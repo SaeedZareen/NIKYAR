@@ -105,6 +105,11 @@ USE_TZ = True
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
+# فایل‌های ساخته‌شده‌ی فرانت‌اند (در نسخه‌ی Docker، کنار بک‌اند سرو می‌شوند)
+FRONTEND_DIST = Path(env("NIKYAR_FRONTEND_DIST", str(BASE_DIR.parent / "frontend" / "dist")))
+if FRONTEND_DIST.exists():
+    WHITENOISE_ROOT = FRONTEND_DIST
+
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 REST_FRAMEWORK = {

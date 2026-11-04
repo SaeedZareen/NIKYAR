@@ -183,17 +183,17 @@ def start(model: ProcessModel, user, title: str = "") -> ProcessInstance:
     if not can_start(model, user):
         raise EngineError("شما مجاز به شروع این فرایند نیستید.")
     version = model.latest_version
-    instance = ProcessInstance.objects.create(
+    instance = ProcessInstance.objects.create(  # شماره پیگیری بعد از گرفتن شناسه تعیین می‌شود
         tracking_code=f"tmp-{timezone.now().timestamp()}-{user.id}",
         version=version, initiator=user, state="",
         title=title.strip() or f"{model.name} - {display_name(user)}",
     )
-    instance.tracking_code = f"{jdatetime.date.today().year}-{instance.pk:06d}"
+    instance.tracking_code = f"{jdatetime.date.today().year}{instance.pk:06d}"
     initial = {
         "initiator": user.username,
         "initiator_name": display_name(user),
         "tracking_code": instance.tracking_code,
-        "start_date": today_jalali(),
+        "request_date": today_jalali(),
     }
     _log(instance, InstanceEvent.Kind.STARTED, f"درخواست توسط {display_name(user)} ثبت شد.", user)
     wf = engine.new_workflow(version.xml, version.process_id, initial)
