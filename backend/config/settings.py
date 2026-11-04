@@ -25,8 +25,19 @@ CSRF_TRUSTED_ORIGINS = [o for o in env("NIKYAR_CSRF_ORIGINS", "").split(",") if 
 # فعال‌اند؛ ماژول‌های تجاری (انبار، حسابداری و ...) با لایسنس فعال می‌شوند.
 # ---------------------------------------------------------------------------
 NIKYAR_APPS = [
-    "apps.core",
-    "apps.workflow",
+    # هسته (همیشه فعال)
+    "core.kernel",
+    "core.accounts",
+    "core.org",
+    "core.audit",
+    "core.lookups",
+    "core.forms",
+    "core.files",
+    "core.numbering",
+    "core.notifications",
+    "core.workflow",
+    # ماژول‌های تجاری (با لایسنس فعال می‌شوند)
+    "modules.personnel",
 ]
 
 INSTALLED_APPS = [
@@ -119,10 +130,16 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": [
         "rest_framework.permissions.IsAuthenticated",
     ],
-    "EXCEPTION_HANDLER": "apps.core.exceptions.persian_exception_handler",
+    "EXCEPTION_HANDLER": "core.kernel.api.exception_handler_fa",
+    "DEFAULT_THROTTLE_RATES": {"anon": "60/min"},
 }
 
 CORS_ALLOWED_ORIGINS = [o for o in env("NIKYAR_CORS_ORIGINS", "http://localhost:5173").split(",") if o]
+
+MEDIA_URL = "media/"
+MEDIA_ROOT = Path(env("NIKYAR_MEDIA_ROOT", str(BASE_DIR / "media")))
+DATA_UPLOAD_MAX_MEMORY_SIZE = 25 * 1024 * 1024
+FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024
 
 # فایل لایسنس: فهرست ماژول‌های خریداری‌شده‌ی مشتری
 NIKYAR_LICENSE_FILE = env("NIKYAR_LICENSE_FILE", str(BASE_DIR / "license.json"))

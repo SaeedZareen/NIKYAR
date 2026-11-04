@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "vibefarsi": {
+      "type": "http",
+      "url": "https://vibefarsi.ir/mcp"
+    }
+  }
+}
