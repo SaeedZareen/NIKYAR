@@ -12,7 +12,7 @@ def inbox(request):
     return Response({
         "unread": Notification.objects.filter(user=request.user, is_read=False).count(),
         "items": [{"id": n.id, "title": n.title, "body": n.body, "link": n.link, "is_read": n.is_read,
-                   "created_at": to_jalali(n.created_at)} for n in qs],
+                   "created_at": to_jalali(n.created_at), "created_iso": n.created_at.isoformat()} for n in qs],
     })
 
 

@@ -193,3 +193,20 @@
   --font-sans: var(--font-vazirmatn), "IRANSans", "IRANSansX", "Vazirmatn", ui-sans-serif, system-ui, sans-serif;
 }
 /* --- vibefarsi:font-end --- */
+
+/* --- nikyar: bpmn-js در صفحه‌ی راست‌چین --- */
+/* اندازه‌گیری متن برچسب‌ها باید چپ‌به‌راست باشد وگرنه برچسب فارسی از شکل بیرون می‌زند */
+#helper-svg, #helper-svg text { direction: ltr; }
+.bpmn-surface { background-color: var(--card); border-radius: var(--shape-field); }
+.bpmn-surface .djs-container svg text { fill: var(--foreground) !important; }
+.bpmn-surface .djs-visual > rect, .bpmn-surface .djs-visual > circle, .bpmn-surface .djs-visual > polygon,
+.bpmn-surface .djs-visual > path { stroke: var(--foreground) !important; }
+.bpmn-surface .djs-visual > rect, .bpmn-surface .djs-visual > circle, .bpmn-surface .djs-visual > polygon { fill: var(--card) !important; }
+.bpmn-surface .djs-connection .djs-visual > path { stroke: var(--muted-foreground) !important; }
+.bpmn-surface .hl-done .djs-visual > :first-child { stroke: var(--success) !important; fill: color-mix(in oklch, var(--success) 14%, var(--card)) !important; }
+.bpmn-surface .hl-active .djs-visual > :first-child { stroke: var(--warning) !important; stroke-width: 3px !important; fill: color-mix(in oklch, var(--warning) 18%, var(--card)) !important; }
+.bpmn-surface .bjs-powered-by { opacity: 0.3; }
+.bpmn-surface .djs-palette { background: var(--popover); border-color: var(--border); }
+.bpmn-surface .djs-palette .entry, .bpmn-surface .djs-context-pad .entry { color: var(--foreground); }
+.bpmn-surface .djs-context-pad .entry { background: var(--popover); }
+.bpmn-surface .djs-popup { background: var(--popover); color: var(--popover-foreground); }
