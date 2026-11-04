@@ -95,10 +95,10 @@ export function ResponsiveList<T>({
       <div className="hidden overflow-x-auto md:block">
         <table className="w-full text-sm">
           <caption className="sr-only">{caption}</caption>
-          <thead className="border-b border-border bg-muted/60 text-sm text-muted-foreground">
+          <thead className="sticky top-0 z-10 border-b border-border bg-secondary text-sm text-foreground/80">
             <tr>
               {columns.map((c) => (
-                <th key={c.key} scope="col" aria-sort={ariaSort(c)} className={cn("h-11 whitespace-nowrap px-4 text-start font-medium", c.className)}>
+                <th key={c.key} scope="col" aria-sort={ariaSort(c)} className={cn("h-9 whitespace-nowrap border-s border-border px-3 text-start font-semibold first:border-s-0", c.className)}>
                   {sortable(c) ? (
                     <button type="button" onClick={() => toggle(c)} className="-mx-1 inline-flex items-center gap-1 rounded-control px-1 hover:text-foreground">
                       {c.header}
@@ -107,16 +107,16 @@ export function ResponsiveList<T>({
                   ) : c.header}
                 </th>
               ))}
-              {rowActions && <th scope="col" className="w-px px-4"><span className="sr-only">عملیات</span></th>}
+              {rowActions && <th scope="col" className="w-px border-s border-border px-3"><span className="sr-only">عملیات</span></th>}
             </tr>
           </thead>
           <tbody>
             {paged.map((row) => {
               const href = rowHref?.(row);
               return (
-                <tr key={rowKey(row)} className={cn("relative border-b border-border last:border-0 transition-colors", href && "hover:bg-accent/60 focus-within:bg-accent/60", rowClassName?.(row))}>
+                <tr key={rowKey(row)} className={cn("relative border-b border-border transition-colors last:border-0 even:bg-muted/70", href && "hover:bg-accent focus-within:bg-accent", rowClassName?.(row))}>
                   {columns.map((c) => (
-                    <td key={c.key} className={cn("px-4 py-3 align-middle", c.numeric && "tabular-nums", c.className)}>
+                    <td key={c.key} className={cn("whitespace-nowrap border-s border-border px-3 py-1.5 align-middle first:border-s-0", c.numeric && "tabular-nums", c.className)}>
                       {c === primary && href ? (
                         <Link to={href} className="font-medium underline-offset-4 after:absolute after:inset-0 hover:underline focus-visible:outline-none">
                           {c.cell(row)}
@@ -124,7 +124,7 @@ export function ResponsiveList<T>({
                       ) : c.cell(row)}
                     </td>
                   ))}
-                  {rowActions && <td className="relative z-10 whitespace-nowrap px-4 py-2 text-end">{rowActions(row)}</td>}
+                  {rowActions && <td className="relative z-10 whitespace-nowrap border-s border-border px-1 py-0.5 text-end">{rowActions(row)}</td>}
                 </tr>
               );
             })}
@@ -153,14 +153,14 @@ export function ResponsiveList<T>({
           );
           return (
             <li key={rowKey(row)} className={rowClassName?.(row)}>
-              {href ? <Link to={href} className="block px-4 py-3 active:bg-accent">{body}</Link> : <div className="px-4 py-3">{body}</div>}
+              {href ? <Link to={href} className="block px-3 py-2.5 active:bg-accent">{body}</Link> : <div className="px-3 py-2.5">{body}</div>}
               {rowActions && <div className="flex flex-wrap gap-2 px-4 pb-3">{rowActions(row)}</div>}
             </li>
           );
         })}
       </ul>
       {pages > 1 && (
-        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border px-4 py-3 text-sm text-muted-foreground">
+        <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border bg-secondary/60 px-3 py-1.5 text-sm text-muted-foreground">
           <span>{fa(sorted.length)} مورد</span>
           <Pagination page={page} total={pages} onChange={setPage} size="sm" />
         </div>
@@ -172,9 +172,19 @@ export function ResponsiveList<T>({
 /** نوار ابزار فهرست: جست‌وجو و فیلترها در یک ردیف، بالای جدول */
 export function ListToolbar({ children, count }: { children: React.ReactNode; count?: number }) {
   return (
-    <div className="flex flex-wrap items-end gap-3 border-b border-border p-4">
+    <div className="flex flex-wrap items-center gap-2 border-b border-border px-3 py-2">
       {children}
       {count !== undefined && <span className="ms-auto text-sm text-muted-foreground" aria-live="polite">{fa(count)} مورد</span>}
+    </div>
+  );
+}
+
+/** فیلتر نوار ابزار فهرست: برچسب کنار کنترل (فشرده، مثل راهکاران) */
+export function ToolbarFilter({ label, htmlFor, className, children }: { label: string; htmlFor: string; className?: string; children: React.ReactNode }) {
+  return (
+    <div className={cn("flex items-center gap-2 text-sm [&_select]:h-8", className)}>
+      <label htmlFor={htmlFor} className="shrink-0 text-muted-foreground">{label}</label>
+      <div className="min-w-0 flex-1">{children}</div>
     </div>
   );
 }

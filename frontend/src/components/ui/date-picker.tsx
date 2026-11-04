@@ -51,7 +51,7 @@ export function DatePicker({ value, onChange, placeholder = "انتخاب تار
           "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60",
         )}
       >
-        <span className={cn("flex min-w-0 items-center gap-2", !date && "text-muted-foreground/70")}>
+        <span className={cn("flex min-w-0 items-center gap-2", !date && "text-muted-foreground")}>
           <CalendarDays className="size-4 shrink-0 text-muted-foreground" />
           <span className="truncate whitespace-nowrap">{date ? formatJalali(date, { weekday }) : placeholder}</span>
         </span>

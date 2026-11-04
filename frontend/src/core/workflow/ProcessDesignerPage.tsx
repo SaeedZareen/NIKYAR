@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import * as React from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { CheckCircle2, Download, Rocket, Save } from "lucide-react";
+import { ArrowRight, CheckCircle2, Download, Rocket, Save } from "lucide-react";
 import Modeler from "bpmn-js/lib/Modeler";
 import camundaModdle from "camunda-bpmn-moddle/resources/camunda.json";
 import "bpmn-js/dist/assets/diagram-js.css";
@@ -16,7 +16,7 @@ import { Switch } from "@/components/ui/switch";
 import { FormField } from "@/components/ui/form";
 import { Alert } from "@/components/ui/alert";
 import { get, patch, post } from "@/app/api";
-import { PageError, LoadingBlock, PageHeader, useApiAction } from "@/app/ui";
+import { PageError, LoadingBlock, useApiAction, useDocumentTitle } from "@/app/ui";
 import type { FormSchema } from "@/core/forms/types";
 import { fa } from "@/lib/utils";
 import { AssignmentBuilder, PropertiesPanel, type ActionInfo, type Directory } from "./designer/PropertiesPanel";
@@ -88,6 +88,7 @@ export default function ProcessDesignerPage() {
     return () => window.removeEventListener("beforeunload", h);
   }, [dirty]);
 
+  useDocumentTitle(model.data ? `فرایندساز: ${model.data.title}` : "فرایندساز");
   if (model.isLoading) return <LoadingBlock rows={8} />;
   if (model.error || !model.data) return <PageError error={model.error} onRetry={() => model.refetch()} back={{ to: "/processes", label: "فرایندساز" }} />;
   const pm = model.data;
@@ -122,33 +123,37 @@ export default function ProcessDesignerPage() {
   );
 
   return (
-    <>
-      <PageHeader title={pm.title} crumbs={[{ label: "فرایندساز", to: "/processes" }]}
-        description={<>
-          {pm.latest_version ? <>نسخه‌ی منتشرشده: {fa(pm.latest_version.version)} ({fa(pm.latest_version.published_at)})</> : "هنوز منتشر نشده"}
-          {dirty ? " · تغییرات ذخیره‌نشده" : pm.has_draft_changes && pm.latest_version ? " · تغییرات منتشرنشده" : ""}
-        </>}
-        actions={<>
-          <Button variant="ghost" onClick={exportXml}><Download className="size-4" aria-hidden /> فایل BPMN</Button>
-          <Button variant="outline" disabled={busy} onClick={() => act(async () => { const x = await saveXml(); return post(`/workflow/processes/${id}/check/`, { xml: x }).then((r: any) => r); }, "دیاگرام بررسی شد و مشکلی ندارد.")}>
-            <CheckCircle2 className="size-4" aria-hidden /> بررسی صحت
-          </Button>
-          <Button variant="outline" disabled={busy} onClick={() => act(saveXml, "پیش‌نویس ذخیره شد.")}><Save className="size-4" aria-hidden /> ذخیره</Button>
-          <Button variant="default" disabled={busy} onClick={() => act(async () => { await saveXml(); return post(`/workflow/processes/${id}/publish/`); }, "فرایند منتشر شد.")}>
-            <Rocket className="size-4" aria-hidden /> انتشار
-          </Button>
-        </>} />
-      <div className="grid overflow-hidden rounded-surface border-line border-border bg-card lg:grid-cols-3 xl:grid-cols-4">
-        <div className="relative lg:col-span-2 xl:col-span-3">
-          <div ref={canvasRef} dir="ltr" role="application" aria-label="بوم طراحی فرایند؛ برای تنظیم هر مرحله آن را انتخاب کنید و از پنل تنظیمات استفاده کنید" className="bpmn-surface h-160 min-h-96" />
+    <div className="flex h-full flex-col">
+      <div role="toolbar" aria-label="ابزار فرایندساز" className="flex h-12 shrink-0 items-center gap-2 border-b border-border bg-card px-3">
+        <Link to="/processes" className="inline-flex size-8 items-center justify-center rounded-control hover:bg-accent" aria-label="بازگشت به فهرست فرایندها"><ArrowRight className="size-4" aria-hidden /></Link>
+        <div className="min-w-0">
+          <h1 className="truncate text-sm font-bold">{pm.title}</h1>
+          <p className="truncate text-xs text-muted-foreground">
+            {pm.latest_version ? <>نسخه‌ی منتشرشده {fa(pm.latest_version.version)} · {fa(pm.latest_version.published_at)}</> : "هنوز منتشر نشده"}
+            {dirty ? " · تغییرات ذخیره‌نشده" : pm.has_draft_changes && pm.latest_version ? " · تغییرات منتشرنشده" : ""}
+          </p>
+        </div>
+        <span className="flex-1" />
+        <Button size="sm" variant="ghost" onClick={exportXml}><Download className="size-4" aria-hidden /> فایل BPMN</Button>
+        <Button size="sm" variant="outline" disabled={busy} onClick={() => act(async () => { const x = await saveXml(); return post(`/workflow/processes/${id}/check/`, { xml: x }).then((r: any) => r); }, "دیاگرام بررسی شد و مشکلی ندارد.")}>
+          <CheckCircle2 className="size-4" aria-hidden /> بررسی صحت
+        </Button>
+        <Button size="sm" variant="outline" disabled={busy} onClick={() => act(saveXml, "پیش‌نویس ذخیره شد.")}><Save className="size-4" aria-hidden /> ذخیره</Button>
+        <Button size="sm" variant="default" disabled={busy} onClick={() => act(async () => { await saveXml(); return post(`/workflow/processes/${id}/publish/`); }, "فرایند منتشر شد.")}>
+          <Rocket className="size-4" aria-hidden /> انتشار
+        </Button>
+      </div>
+      <div className="flex min-h-0 flex-1">
+        <div className="relative min-w-0 flex-1 bg-card">
+          <div ref={canvasRef} dir="ltr" role="application" aria-label="بوم طراحی فرایند؛ برای تنظیم هر مرحله آن را انتخاب کنید و از پنل تنظیمات استفاده کنید" className="bpmn-surface h-full" />
           {busy && <div role="status" className="absolute inset-x-0 top-0 h-1 animate-pulse bg-brand"><span className="sr-only">در حال ذخیره</span></div>}
         </div>
-        <div className="max-h-160 min-h-96 border-t border-border lg:border-s lg:border-t-0" role="region" aria-label="تنظیمات عنصر انتخاب‌شده">
+        <div className="w-72 shrink-0 overflow-y-auto border-s border-border bg-card xl:w-80" role="region" aria-label="تنظیمات عنصر انتخاب‌شده">
           <PropertiesPanel modeler={modeler} element={selected} directory={dir.data ?? { users: [], units: [], roles: [] }}
             actions={catalog.data?.actions ?? []} schema={schema} formTitle={form?.title ?? ""} processSettings={settings} />
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
