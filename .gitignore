@@ -10,3 +10,5 @@ frontend/dist/
 .DS_Store
 media/
 backend/media/
+*.private.pem
+nikyar-private*.pem

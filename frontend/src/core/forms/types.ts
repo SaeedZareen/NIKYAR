@@ -1,6 +1,6 @@
 // ساختار فرم؛ همان چیزی که بک‌اند در core/forms/validation.py اعتبارسنجی می‌کند
 export type FieldType =
-  | "text" | "textarea" | "number" | "amount" | "checkbox" | "select" | "multiselect" | "lookup" | "multilookup"
+  | "text" | "textarea" | "password" | "number" | "amount" | "checkbox" | "select" | "multiselect" | "lookup" | "multilookup"
   | "date" | "time" | "national_id" | "mobile" | "phone" | "email" | "iban" | "card_number" | "postal_code"
   | "address" | "user" | "org_unit" | "file" | "table" | "heading" | "paragraph";
 

@@ -128,6 +128,9 @@ export function FieldControl({ id, field: f, value, onChange, invalid, rowErrors
     case "text":
       return <Input id={id} value={str} placeholder={f.placeholder} maxLength={num(c.maxLength)} aria-invalid={invalid}
         onChange={(e) => onChange(e.target.value)} />;
+    case "password":
+      return <Input id={id} dir="ltr" type="password" autoComplete="new-password" value={str} aria-invalid={invalid}
+        onChange={(e) => onChange(e.target.value)} />;
     case "textarea":
       return <Textarea id={id} value={str} placeholder={f.placeholder} maxLength={num(c.maxLength)} showCount={!!c.maxLength}
         autoResize aria-invalid={invalid} onChange={(e) => onChange(e.target.value)} />;
@@ -199,6 +202,7 @@ export function displayText(f: FieldDef, value: unknown, refs: Refs): string {
   const c = f.config ?? {};
   switch (f.type) {
     case "checkbox": return value ? "بله" : "خیر";
+    case "password": return "••••••••";
     case "amount": return formatToman(Number(value));
     case "select": return c.options?.find((o) => o.value === value)?.label ?? String(value);
     case "multiselect": return (value as string[]).map((v) => c.options?.find((o) => o.value === v)?.label ?? v).join("، ");

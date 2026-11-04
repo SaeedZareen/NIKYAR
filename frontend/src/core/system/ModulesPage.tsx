@@ -6,6 +6,10 @@ import { KeyValue, PageHeader, Panel } from "@/app/ui";
 import { fa } from "@/lib/utils";
 
 const ICONS: Record<string, typeof Contact> = { "building-2": Building2, workflow: Workflow, contact: Contact };
+const STATUS: Record<string, string> = {
+  trial: "نسخه‌ی آزمایشی (همه‌ی ماژول‌ها)", valid: "معتبر (امضای دیجیتال تأیید شد)",
+  unsigned: "بدون امضا (کلید عمومی فروشنده نصب نشده)", invalid: "نامعتبر",
+};
 const FUTURE = [
   { title: "حضور و غیاب", desc: "تردد، مرخصی، مأموریت و اضافه‌کار با اتصال به دستگاه‌ها", icon: Clock },
   { title: "حقوق و دستمزد", desc: "احکام، محاسبه‌ی حقوق، بیمه و مالیات", icon: Wallet },
@@ -24,7 +28,9 @@ export default function ModulesPage() {
           { label: "دارنده‌ی لایسنس", value: system?.customer },
           { label: "تاریخ انقضا", value: system?.expires ? fa(system.expires) : "نامحدود" },
           { label: "سقف کاربران فعال", value: system?.max_users ? fa(system.max_users) : "نامحدود" },
+          { label: "اعتبار لایسنس", value: STATUS[system?.license_status ?? "trial"] },
         ]} />
+        {system?.license_status === "invalid" && <Alert variant="destructive" className="mt-4">امضای فایل لایسنس معتبر نیست؛ فقط ماژول‌های پایه فعال‌اند. با پشتیبانی تماس بگیرید.</Alert>}
         {system?.expired && <Alert variant="destructive" className="mt-4">لایسنس منقضی شده است؛ ماژول‌های تکمیلی غیرفعال‌اند.</Alert>}
       </Panel>
       <h2 className="mb-3 text-base font-semibold">ماژول‌های نصب‌شده</h2>

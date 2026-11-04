@@ -17,6 +17,8 @@ echo   Users: admin / developer / it_manager / hr_expert
 echo   Password: nikyar123
 echo   Keep this window open. Close it to stop.
 echo ============================================
+REM Scheduler: deadline reminders and overdue escalation (separate minimized window)
+start "NIKYAR Scheduler" /min cmd /c "python manage.py nikyar_scheduler --loop"
 start "" http://localhost:8000
 python manage.py runserver 8000
 pause

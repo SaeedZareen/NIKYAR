@@ -35,6 +35,7 @@ NIKYAR_APPS = [
     "core.files",
     "core.numbering",
     "core.notifications",
+    "core.orgsettings",
     "core.workflow",
     # ماژول‌های تجاری (با لایسنس فعال می‌شوند)
     "modules.personnel",

@@ -241,3 +241,66 @@ class DashboardView(APIView):
             "my_completed": mine.filter(status="completed").count(),
             "done_by_me": WorkItem.objects.filter(completed_by=u).count(),
         })
+
+
+class ReportView(APIView):
+    """گزارش عملکرد فرایندها: مدت انجام، گلوگاه‌ها و بار کاری."""
+    permission_classes = [Perm]
+    perms = {"*": "workflow.monitor"}
+
+    def get(self, request):
+        from collections import defaultdict
+
+        from core.kernel.jalali import parse_jalali
+        p = request.query_params
+        insts = ProcessInstance.objects.select_related("version__model")
+        if p.get("from"):
+            insts = insts.filter(started_at__date__gte=parse_jalali(p["from"]).togregorian())
+        if p.get("to"):
+            insts = insts.filter(started_at__date__lte=parse_jalali(p["to"]).togregorian())
+        now = timezone.now()
+        hours = lambda a, b: (b - a).total_seconds() / 3600  # noqa: E731
+
+        procs = defaultdict(lambda: {"total": 0, "running": 0, "completed": 0, "cancelled": 0, "durations": []})
+        for i in insts:
+            d = procs[(i.version.model_id, i.version.model.title)]
+            d["total"] += 1
+            d[i.status] += 1
+            if i.status == "completed" and i.ended_at:
+                d["durations"].append(hours(i.started_at, i.ended_at))
+        processes = [{"id": k[0], "title": k[1], "total": v["total"], "running": v["running"], "completed": v["completed"],
+                      "cancelled": v["cancelled"],
+                      "avg_hours": round(sum(v["durations"]) / len(v["durations"]), 1) if v["durations"] else None}
+                     for k, v in sorted(procs.items(), key=lambda kv: -kv[1]["total"])]
+
+        items = WorkItem.objects.filter(instance__in=insts).exclude(status=WorkItem.Status.CANCELLED)
+        if p.get("process"):
+            items = items.filter(instance__version__model_id=p["process"])
+        steps = defaultdict(lambda: {"done": 0, "open": 0, "overdue": 0, "durations": [], "outcomes": defaultdict(int)})
+        workload = defaultdict(lambda: {"open": 0, "overdue": 0, "done": 0})
+        for w in items.select_related("completed_by").prefetch_related("candidates"):
+            s = steps[w.name]
+            if w.status == "done":
+                s["done"] += 1
+                if w.completed_at:
+                    s["durations"].append(hours(w.created_at, w.completed_at))
+                if w.outcome:
+                    s["outcomes"][w.outcome] += 1
+                if w.completed_by:
+                    workload[display_name(w.completed_by)]["done"] += 1
+            else:
+                late = bool(w.due_at and w.due_at < now)
+                s["open"] += 1
+                s["overdue"] += late
+                for u in w.candidates.all():
+                    workload[display_name(u)]["open"] += 1
+                    workload[display_name(u)]["overdue"] += late
+        step_rows = [{"name": n, "done": v["done"], "open": v["open"], "overdue": v["overdue"],
+                      "avg_hours": round(sum(v["durations"]) / len(v["durations"]), 4) if v["durations"] else None,
+                      "outcomes": dict(v["outcomes"])} for n, v in steps.items()]
+        step_rows.sort(key=lambda r: -(r["avg_hours"] or 0))
+        return Response({
+            "processes": processes,
+            "steps": step_rows,
+            "workload": sorted([{"name": k, **v} for k, v in workload.items()], key=lambda r: (-r["open"], -r["done"])),
+        })

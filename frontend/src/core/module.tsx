@@ -1,5 +1,5 @@
 import { lazy } from "react";
-import { Building2, FileCheck2, FormInput, GitBranch, History, Inbox, LayoutDashboard, ListTree, Plus, Puzzle, Search, ShieldCheck, Users } from "lucide-react";
+import { BarChart3, Building2, Settings2, FileCheck2, FormInput, GitBranch, History, Inbox, LayoutDashboard, ListTree, Plus, Puzzle, Search, ShieldCheck, Users } from "lucide-react";
 import type { FrontModule } from "@/app/modules";
 
 const Dashboard = lazy(() => import("./dashboard/DashboardPage"));
@@ -19,6 +19,9 @@ const Roles = lazy(() => import("./org/RolesPage"));
 const Modules = lazy(() => import("./system/ModulesPage"));
 const Audit = lazy(() => import("./system/AuditPage"));
 const Profile = lazy(() => import("./system/ProfilePage"));
+const Settings = lazy(() => import("./system/SettingsPage"));
+const Reports = lazy(() => import("./workflow/ReportsPage"));
+const PrintPage = lazy(() => import("./workflow/PrintPage"));
 
 export const coreModule: FrontModule = {
   code: "core",
@@ -30,6 +33,7 @@ export const coreModule: FrontModule = {
         { to: "/new", label: "ثبت درخواست جدید", icon: Plus },
         { to: "/requests", label: "پیگیری درخواست‌ها", icon: Search },
         { to: "/inbox/done", label: "کارهای انجام‌شده", icon: FileCheck2 },
+        { to: "/reports/processes", label: "گزارش عملکرد فرایندها", icon: BarChart3, perm: "workflow.monitor" },
       ],
     },
     {
@@ -45,6 +49,7 @@ export const coreModule: FrontModule = {
         { to: "/users", label: "کاربران", icon: Users, perm: "core.users.manage" },
         { to: "/roles", label: "نقش‌ها و دسترسی‌ها", icon: ShieldCheck, perm: "core.roles.manage" },
         { to: "/audit", label: "سوابق تغییرات", icon: History, perm: "core.audit.view" },
+        { to: "/settings", label: "تنظیمات سازمان", icon: Settings2, perm: "core.settings.manage" },
         { to: "/modules", label: "ماژول‌ها و لایسنس", icon: Puzzle, perm: "core.settings.manage" },
       ],
     },
@@ -69,6 +74,9 @@ export const coreModule: FrontModule = {
     { path: "/audit", element: <Audit />, perm: "core.audit.view" },
     { path: "/modules", element: <Modules />, perm: "core.settings.manage" },
     { path: "/profile", element: <Profile /> },
+    { path: "/settings", element: <Settings />, perm: "core.settings.manage" },
+    { path: "/reports/processes", element: <Reports />, perm: "workflow.monitor" },
+    { path: "/requests/:id/print", element: <PrintPage />, bare: true },
   ],
 };
 

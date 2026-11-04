@@ -13,6 +13,7 @@ def system_info(request):
         "expires": lic.get("expires"),
         "expired": license_expired(lic),
         "max_users": lic.get("max_users"),
+        "license_status": lic.get("status"),
         "modules": module_status(),
     })
 

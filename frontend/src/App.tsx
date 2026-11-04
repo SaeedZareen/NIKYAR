@@ -29,8 +29,12 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Navigate to="/" replace />} />
+      {MODULES.flatMap((m) => m.routes.filter((r) => r.bare).map((r) => (
+        <Route key={r.path} path={r.path}
+          element={<Guard perm={r.perm} module={m.code}><React.Suspense fallback={<LoadingBlock />}>{r.element}</React.Suspense></Guard>} />
+      )))}
       <Route element={<Shell />}>
-        {MODULES.flatMap((m) => m.routes.map((r) => (
+        {MODULES.flatMap((m) => m.routes.filter((r) => !r.bare).map((r) => (
           <Route key={r.path} path={r.path}
             element={<Guard perm={r.perm} module={m.code}><React.Suspense fallback={<LoadingBlock />}>{r.element}</React.Suspense></Guard>} />
         )))}

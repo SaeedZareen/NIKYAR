@@ -17,6 +17,9 @@ NIKYAR is a modular Persian BPMS/ERP platform. Read `docs/ARCHITECTURE.md` and `
 - Forms: field types live in `backend/core/forms/fields.py` and `frontend/src/core/forms/FormRenderer.tsx`; keep both in sync.
 - Writes go through `AuditedViewSetMixin` (or `core.audit.service.record`) so every change is audited.
 - Dates: Jalali strings `YYYY/MM/DD` in the API, `JalaliDateField` in serializers.
+- Settings: modules add sections via `ModuleSpec.settings` (form-schema sections); read with `core.orgsettings.service.get(key)`. Secret keys go in `ModuleSpec.secret_settings`.
+- Notifications: call `core.notifications.models.notify(users, title, body, link)`; it fans out to SMS/email when enabled.
+- Background jobs: `python manage.py nikyar_scheduler --loop` (reminders, escalation).
 
 ### Commands
 - Backend tests: `cd backend && python manage.py test tests`

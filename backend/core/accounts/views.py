@@ -5,17 +5,19 @@ from django.contrib.auth.models import User
 from django.db.models import Q
 from django.utils import timezone
 from rest_framework import permissions, viewsets
+from rest_framework import serializers as drf_serializers
 from rest_framework.authtoken.models import Token
 from rest_framework.decorators import action, api_view, permission_classes, throttle_classes
 from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle
 
 from core.audit.mixins import AuditedViewSetMixin
-from core.kernel.api import BusinessError, Perm
+from core.kernel.api import BusinessError, Perm, has_perm
 from core.kernel.license import load_license
 from core.kernel.registry import all_permissions
+from core.kernel.serializer_fields import JalaliDateField
 
-from .models import Profile, Role, user_permissions
+from .models import Delegation, Profile, Role, display_name, user_permissions
 from .serializers import RoleSerializer, UserBriefSerializer, UserSerializer
 
 MAX_FAILED = 5
@@ -29,7 +31,10 @@ class LoginThrottle(AnonRateThrottle):
 def _me(user):
     data = UserSerializer(user).data
     data["permissions"] = sorted(user_permissions(user))
-    data["theme"] = getattr(getattr(user, "profile", None), "theme", "graphite")
+    prof = getattr(user, "profile", None)
+    data["theme"] = getattr(prof, "theme", "graphite")
+    data["notify_sms"] = getattr(prof, "notify_sms", True)
+    data["notify_email"] = getattr(prof, "notify_email", True)
     return data
 
 
@@ -73,7 +78,10 @@ def me(request):
         prof = Profile.objects.get_or_create(user=request.user)[0]
         if request.data.get("theme") in ("graphite", "paper"):
             prof.theme = request.data["theme"]
-            prof.save()
+        for k in ("notify_sms", "notify_email"):
+            if k in request.data:
+                setattr(prof, k, bool(request.data[k]))
+        prof.save()
         request.user.refresh_from_db()
     return Response(_me(request.user))
 
@@ -144,3 +152,69 @@ class RoleViewSet(AuditedViewSetMixin, viewsets.ModelViewSet):
         return Response([{"module": m.code, "title": m.title,
                           "permissions": [{"code": c, "title": t} for c, t in m.permissions]}
                          for m in all_modules() if m.permissions])
+
+
+# ---------------------------------------------------------------------------
+# جانشینی
+# ---------------------------------------------------------------------------
+
+
+class DelegationSerializer(drf_serializers.ModelSerializer):
+    start_date = JalaliDateField()
+    end_date = JalaliDateField()
+    user_name = drf_serializers.SerializerMethodField()
+    substitute_name = drf_serializers.SerializerMethodField()
+    is_current = drf_serializers.SerializerMethodField()
+
+    class Meta:
+        model = Delegation
+        fields = ["id", "user", "user_name", "substitute", "substitute_name", "start_date", "end_date", "note",
+                  "is_active", "is_current"]
+        extra_kwargs = {"user": {"required": False}}
+
+    def get_user_name(self, o):
+        return display_name(o.user)
+
+    def get_substitute_name(self, o):
+        return display_name(o.substitute)
+
+    def get_is_current(self, o):
+        today = timezone.localdate()
+        return o.is_active and o.start_date <= today <= o.end_date
+
+    def validate(self, data):
+        req = self.context["request"]
+        user = data.get("user") or getattr(self.instance, "user", None) or req.user
+        if user != req.user and not has_perm(req.user, "core.users.manage"):
+            raise BusinessError("فقط برای خودتان می‌توانید جانشین تعیین کنید.")
+        data["user"] = user
+        sub = data.get("substitute") or getattr(self.instance, "substitute", None)
+        if sub == user:
+            raise drf_serializers.ValidationError({"substitute": "جانشین نمی‌تواند خود شخص باشد."})
+        s = data.get("start_date") or getattr(self.instance, "start_date", None)
+        e = data.get("end_date") or getattr(self.instance, "end_date", None)
+        if s and e and e < s:
+            raise drf_serializers.ValidationError({"end_date": "تاریخ پایان نمی‌تواند قبل از تاریخ شروع باشد."})
+        return data
+
+
+class DelegationViewSet(AuditedViewSetMixin, viewsets.ModelViewSet):
+    serializer_class = DelegationSerializer
+    permission_classes = [Perm]
+    perms = {"*": None}
+    audit_label = "جانشینی"
+
+    def get_queryset(self):
+        qs = Delegation.objects.select_related("user", "substitute")
+        if self.request.query_params.get("all") == "1" and has_perm(self.request.user, "core.users.manage"):
+            return qs
+        return qs.filter(Q(user=self.request.user) | Q(substitute=self.request.user))
+
+    def perform_create(self, serializer):
+        serializer.validated_data["created_by"] = self.request.user
+        super().perform_create(serializer)
+
+    def perform_destroy(self, instance):
+        if instance.user != self.request.user and not has_perm(self.request.user, "core.users.manage"):
+            raise BusinessError("این جانشینی متعلق به شما نیست.")
+        super().perform_destroy(instance)

@@ -16,7 +16,7 @@ from django.db import transaction
 from core.accounts.models import Profile, Role
 from core.forms.models import FormDefinition, FormVersion
 from core.numbering.models import next_number
-from core.org.models import OrgUnit, Position
+from core.org.models import OrgUnit, Position, record_holder_change
 
 PASSWORD = "nikyar123"
 
@@ -88,8 +88,10 @@ class Command(BaseCommand):
                 u.set_password(PASSWORD)
                 u.save()
             Profile.objects.get_or_create(user=u)
-            Position.objects.update_or_create(code=pcode, defaults={"title": ptitle, "unit": units[unit],
-                                                                    "holder": u, "is_manager": is_mgr})
+            pos, _ = Position.objects.update_or_create(code=pcode, defaults={"title": ptitle, "unit": units[unit],
+                                                                             "holder": u, "is_manager": is_mgr})
+            if not pos.history.exists():
+                record_holder_change(pos, None, admin)
             users[username] = u
 
         for code, title, perms in ROLES:

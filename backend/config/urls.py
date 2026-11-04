@@ -14,7 +14,7 @@ def spa(request):
 
 API = [
     "core.kernel.urls", "core.accounts.urls", "core.org.urls", "core.audit.urls", "core.lookups.urls",
-    "core.forms.urls", "core.files.urls", "core.notifications.urls", "core.workflow.urls",
+    "core.forms.urls", "core.files.urls", "core.notifications.urls", "core.orgsettings.urls", "core.workflow.urls",
     "modules.personnel.urls",
 ]
 

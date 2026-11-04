@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { get, patch, post } from "@/app/api";
 import { LoadingBlock, PageHeader, useApiAction } from "@/app/ui";
 import { useUsersBrief } from "@/core/forms/useFormRefs";
-import { cn } from "@/lib/utils";
+import { cn, fa } from "@/lib/utils";
 
 type Position = { id: number; code: string; title: string; unit: number; holder: number | null; holder_name: string; is_manager: boolean; is_active: boolean };
 type Unit = { id: number; code: string; title: string; parent: number | null; is_active: boolean; positions: Position[] };
@@ -123,7 +123,26 @@ function PositionDialog({ item, units, onClose }: { item: Partial<Position>; uni
         <label className="flex min-h-11 items-center gap-3 text-sm"><Switch checked={f.is_manager} onCheckedChange={(v) => setF({ ...f, is_manager: v })} aria-label="مدیر واحد" /> مدیر این واحد است</label>
         {errors.is_manager && <p className="text-xs text-destructive">{errors.is_manager}</p>}
         <label className="flex min-h-11 items-center gap-3 text-sm"><Switch checked={f.is_active} onCheckedChange={(v) => setF({ ...f, is_active: v })} aria-label="فعال" /> فعال</label>
+        {item.id && <HolderHistory positionId={item.id} />}
       </div>
     </Dialog>
+  );
+}
+
+function HolderHistory({ positionId }: { positionId: number }) {
+  const q = useQuery({ queryKey: ["position-history", positionId], queryFn: () => get<{ holder_name: string; started_at: string; ended_at: string | null; assigned_by: string }[]>(`/org/positions/${positionId}/history/`) });
+  if (!q.data?.length) return null;
+  return (
+    <div>
+      <div className="mb-2 text-sm font-medium">تاریخچه‌ی متصدیان</div>
+      <ul className="space-y-1 text-sm">
+        {q.data.map((h, i) => (
+          <li key={i} className="flex justify-between gap-2 border-b border-border py-1.5 last:border-0">
+            <span>{h.holder_name}</span>
+            <span className="text-muted-foreground">{fa(h.started_at)} تا {h.ended_at ? fa(h.ended_at) : "اکنون"}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
   );
 }

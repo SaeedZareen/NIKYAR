@@ -1,5 +1,5 @@
 import {
-  AlignRight, AtSign, Banknote, Calendar, CheckSquare, Clock, CreditCard, FileText, Hash, Heading, IdCard, Landmark,
+  AlignRight, AtSign, KeyRound, Banknote, Calendar, CheckSquare, Clock, CreditCard, FileText, Hash, Heading, IdCard, Landmark,
   List, ListChecks, ListTree, Mail, MapPin, Paperclip, Phone, Smartphone, Table2, Type, UserRound, Building, Pilcrow,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
@@ -30,6 +30,7 @@ export const CATALOG: CatalogItem[] = [
   { type: "user", title: "انتخاب کاربر", group: "سازمانی", icon: UserRound },
   { type: "org_unit", title: "واحد سازمانی", group: "سازمانی", icon: Building },
   { type: "file", title: "پیوست فایل", group: "پیشرفته", icon: Paperclip },
+  { type: "password", title: "رمز / کلید محرمانه", group: "پیشرفته", icon: KeyRound },
   { type: "table", title: "جدول چندردیفی", group: "پیشرفته", icon: Table2 },
   { type: "heading", title: "عنوان بخش", group: "نمایشی", icon: Heading },
   { type: "paragraph", title: "متن راهنما", group: "نمایشی", icon: Pilcrow },

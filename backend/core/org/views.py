@@ -4,7 +4,12 @@ from core.accounts.models import display_name
 from core.audit.mixins import AuditedViewSetMixin
 from core.kernel.api import BusinessError, Perm
 
-from .models import OrgUnit, Position
+from rest_framework.decorators import action
+from rest_framework.response import Response
+
+from core.kernel.jalali import to_jalali
+
+from .models import OrgUnit, Position, record_holder_change
 
 
 class PositionSerializer(serializers.ModelSerializer):
@@ -60,3 +65,19 @@ class PositionViewSet(AuditedViewSetMixin, viewsets.ModelViewSet):
     serializer_class = PositionSerializer
     permission_classes = [Perm]
     perms = {"read": None, "write": "core.org.manage"}
+
+    def perform_create(self, serializer):
+        super().perform_create(serializer)
+        record_holder_change(serializer.instance, None, self.request.user)
+
+    def perform_update(self, serializer):
+        old = serializer.instance.holder_id
+        super().perform_update(serializer)
+        record_holder_change(serializer.instance, old, self.request.user)
+
+    @action(detail=True)
+    def history(self, request, pk=None):
+        pos = self.get_object()
+        return Response([{"holder_name": display_name(h.holder), "started_at": to_jalali(h.started_at, False),
+                          "ended_at": to_jalali(h.ended_at, False), "assigned_by": display_name(h.assigned_by)}
+                         for h in pos.history.select_related("holder", "assigned_by")])

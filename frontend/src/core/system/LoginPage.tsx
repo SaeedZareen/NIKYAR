@@ -5,7 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { FormField } from "@/components/ui/form";
 import { Alert } from "@/components/ui/alert";
+import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/app/auth";
+import { get } from "@/app/api";
 
 export default function LoginPage() {
   const { login } = useAuth();
@@ -13,6 +15,7 @@ export default function LoginPage() {
   const [f, setF] = React.useState({ username: "", password: "" });
   const [error, setError] = React.useState("");
   const [busy, setBusy] = React.useState(false);
+  const org = useQuery({ queryKey: ["public-settings"], queryFn: () => get<{ org_name: string }>("/settings/public/") });
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -56,7 +59,7 @@ export default function LoginPage() {
         <form onSubmit={submit} className="w-full max-w-sm space-y-5">
           <div>
             <h1 className="text-2xl font-bold leading-tight">ورود به سامانه</h1>
-            <p className="mt-1 text-sm text-muted-foreground">نام کاربری و رمز عبور سازمانی خود را وارد کنید.</p>
+            <p className="mt-1 text-sm text-muted-foreground">{org.data?.org_name ? `${org.data.org_name} · ` : ""}نام کاربری و رمز عبور سازمانی خود را وارد کنید.</p>
           </div>
           {error && <Alert variant="destructive">{error}</Alert>}
           <FormField label="نام کاربری" htmlFor="u">

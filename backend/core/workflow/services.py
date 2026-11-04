@@ -7,7 +7,7 @@ from django.db import transaction
 from django.db.models import Q
 from django.utils import timezone
 
-from core.accounts.models import display_name
+from core.accounts.models import active_substitutes, display_name
 from core.forms.validation import data_fields, validate_schema, validate_submission
 from core.kernel.api import BusinessError, has_perm
 from core.kernel.jalali import today_jalali
@@ -107,11 +107,17 @@ def _sync(instance, wf, runner):
                  f"{' '.join(errors)} کار «{t['name']}» به مدیر سامانه ارسال شد.")
         due = timezone.now() + timedelta(hours=meta.due_hours) if meta and meta.due_hours else None
         item = WorkItem.objects.create(instance=instance, task_id=tid, element_id=t["element_id"],
-                                       name=t["name"] or t["element_id"], due_at=due)
-        item.candidates.set(users)
+                                       name=t["name"] or t["element_id"], due_at=due,
+                                       primary_ids=sorted(u.id for u in users))
+        subs = active_substitutes(users)
+        extra = {s for lst in subs.values() for s in lst} - set(users)
+        item.candidates.set(set(users) | extra)
         names = "، ".join(sorted(display_name(u) for u in users))
-        _log(instance, InstanceEvent.Kind.TASK_CREATED, f"«{item.name}» به کارتابل {names} ارسال شد.")
-        notify(users, f"کار جدید: {item.name}", instance.title, f"/tasks/{item.id}")
+        msg = f"«{item.name}» به کارتابل {names} ارسال شد."
+        if extra:
+            msg += f" (جانشین: {'، '.join(sorted(display_name(u) for u in extra))})"
+        _log(instance, InstanceEvent.Kind.TASK_CREATED, msg)
+        notify(set(users) | extra, f"کار جدید: {item.name}", instance.title, f"/tasks/{item.id}")
 
     instance.state = engine.dump(wf)
     instance.data = engine.data_of(wf)
@@ -199,7 +205,12 @@ def complete(item_id, user, raw: dict, outcome: str = "", comment: str = ""):
     item.outcome, item.submitted = outcome, data
     item.save()
     label = next((o["title"] for o in outcomes if o["code"] == outcome), "")
-    msg = f"«{item.name}» توسط {display_name(user)} انجام شد" + (f" (اقدام: {label})" if label else "") + "."
+    msg = f"«{item.name}» توسط {display_name(user)}"
+    if item.primary_ids and user.id not in item.primary_ids:
+        principals = User.objects.filter(pk__in=item.primary_ids, delegations__substitute=user).distinct()
+        if principals:
+            msg += f" به نیابت از {'، '.join(display_name(p) for p in principals)}"
+    msg += " انجام شد" + (f" (اقدام: {label})" if label else "") + "."
     if comment.strip():
         msg += f" یادداشت: {comment.strip()}"
     _log(instance, InstanceEvent.Kind.TASK_DONE, msg, user)
@@ -215,7 +226,8 @@ def refer(item_id, user, target_id, note=""):
         raise BusinessError("کاربر مقصد را درست انتخاب کنید.")
     item.candidates.set([target])
     item.is_read = False
-    item.save(update_fields=["is_read"])
+    item.primary_ids = [target.id]
+    item.save(update_fields=["is_read", "primary_ids"])
     msg = f"«{item.name}» توسط {display_name(user)} به {display_name(target)} ارجاع شد."
     if note.strip():
         msg += f" توضیح: {note.strip()}"
@@ -263,3 +275,35 @@ def summary(instance) -> list:
             v = display_name(u)
         out.append({"key": f["key"], "label": f["label"], "type": f["type"], "display": v})
     return out
+
+
+# ---------------------------------------------------------------------------
+# زمان‌بندی: یادآوری پیش از مهلت و ارجاع کارهای دیرکرد به مدیر
+# ---------------------------------------------------------------------------
+def run_reminders(now=None) -> dict:
+    """هر چند دقیقه یک‌بار با دستور nikyar_scheduler اجرا می‌شود."""
+    from core.org.assignment import manager_of
+    from core.orgsettings.service import get as setting
+    now = now or timezone.now()
+    before = int(setting("reminder_hours", 4) or 0)
+    escalate = bool(setting("escalate_overdue", True))
+    escalate_after = int(setting("escalate_after_hours", 24) or 0)
+    open_items = WorkItem.objects.filter(status=WorkItem.Status.OPEN, due_at__isnull=False).select_related("instance")
+    reminded = escalated = 0
+    for item in open_items.filter(reminded_at__isnull=True, due_at__lte=now + timedelta(hours=before), due_at__gt=now):
+        notify(item.candidates.all(), f"یادآوری مهلت: {item.name}", item.instance.title, f"/tasks/{item.id}")
+        item.reminded_at = now
+        item.save(update_fields=["reminded_at"])
+        reminded += 1
+    if escalate:
+        for item in open_items.filter(escalated_at__isnull=True, due_at__lte=now - timedelta(hours=escalate_after)):
+            managers = {m for m in (manager_of(u) for u in User.objects.filter(pk__in=item.primary_ids)) if m}
+            people = set(item.candidates.all()) | managers
+            notify(people, f"کار دیرکرد: {item.name}", f"{item.instance.title} · شماره {item.instance.tracking_code}", f"/tasks/{item.id}")
+            if managers:
+                _log(item.instance, InstanceEvent.Kind.WARNING,
+                     f"مهلت «{item.name}» گذشته است؛ به {'، '.join(display_name(m) for m in managers)} اطلاع داده شد.")
+            item.escalated_at = now
+            item.save(update_fields=["escalated_at"])
+            escalated += 1
+    return {"reminded": reminded, "escalated": escalated}

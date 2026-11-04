@@ -162,6 +162,7 @@ def _table(v, f):
 FIELD_TYPES = {
     "text": ("متن کوتاه", "پایه", _text),
     "textarea": ("متن چندخطی", "پایه", _text),
+    "password": ("رمز / کلید محرمانه", "پیشرفته", _text),
     "number": ("عدد", "پایه", _number),
     "amount": ("مبلغ (تومان)", "پایه", _amount),
     "checkbox": ("بله/خیر", "پایه", _bool),

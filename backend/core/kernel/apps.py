@@ -19,6 +19,20 @@ class KernelConfig(AppConfig):
             ("core.audit.view", "مشاهده‌ی سوابق تغییرات"),
             ("core.settings.manage", "تنظیمات سامانه"),
         ),
+        settings=({
+            "id": "org", "title": "مشخصات سازمان", "columns": 2,
+            "description": "در سربرگ چاپ فرم‌ها و صفحه‌ی ورود نمایش داده می‌شود.",
+            "fields": [
+                {"key": "org_name", "type": "text", "label": "نام کامل سازمان", "required": True, "default": "سازمان نمونه"},
+                {"key": "org_short_name", "type": "text", "label": "نام کوتاه"},
+                {"key": "org_national_id", "type": "text", "label": "شناسه‌ی ملی", "config": {"pattern": r"\d{11}", "patternMessage": "شناسه‌ی ملی ۱۱ رقم است."}},
+                {"key": "org_economic_code", "type": "text", "label": "کد اقتصادی"},
+                {"key": "org_phone", "type": "phone", "label": "تلفن"},
+                {"key": "org_postal_code", "type": "postal_code", "label": "کد پستی"},
+                {"key": "org_address", "type": "textarea", "label": "نشانی", "span": 2},
+                {"key": "org_logo", "type": "file", "label": "لوگو", "span": 2, "config": {"maxFiles": 1}},
+            ],
+        },),
     )
 
     def ready(self):

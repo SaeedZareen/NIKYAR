@@ -42,3 +42,24 @@ class Position(models.Model):
 
     def __str__(self):
         return f"{self.title} ({self.unit})"
+
+
+class PositionHolding(models.Model):
+    """تاریخچه‌ی انتصاب: چه کسی از چه زمانی تا چه زمانی متصدی این سمت بوده است."""
+    position = models.ForeignKey(Position, on_delete=models.CASCADE, related_name="history")
+    holder = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="position_history")
+    started_at = models.DateTimeField(auto_now_add=True)
+    ended_at = models.DateTimeField(null=True, blank=True)
+    assigned_by = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, on_delete=models.SET_NULL, related_name="+")
+
+    class Meta:
+        ordering = ["-started_at"]
+
+
+def record_holder_change(position, old_holder_id, by=None):
+    from django.utils import timezone
+    if old_holder_id == position.holder_id:
+        return
+    PositionHolding.objects.filter(position=position, ended_at__isnull=True).update(ended_at=timezone.now())
+    if position.holder_id:
+        PositionHolding.objects.create(position=position, holder_id=position.holder_id, assigned_by=by)

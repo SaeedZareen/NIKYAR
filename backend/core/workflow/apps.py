@@ -15,4 +15,14 @@ class WorkflowConfig(AppConfig):
             ("workflow.monitor", "مشاهده‌ی همه‌ی درخواست‌ها"),
             ("workflow.admin", "مدیریت درخواست‌ها (لغو، انتقال کار)"),
         ),
+        settings=({
+            "id": "workflow", "title": "کارتابل و مهلت‌ها", "columns": 2,
+            "fields": [
+                {"key": "reminder_hours", "type": "number", "label": "یادآوری چند ساعت پیش از پایان مهلت", "default": 4,
+                 "config": {"min": 0, "max": 168}},
+                {"key": "escalate_overdue", "type": "checkbox", "label": "اطلاع کارهای دیرکرد به مدیر کارپذیر", "default": True},
+                {"key": "escalate_after_hours", "type": "number", "label": "چند ساعت پس از پایان مهلت به مدیر اطلاع داده شود",
+                 "default": 24, "config": {"min": 0, "max": 720}, "visibleIf": {"field": "escalate_overdue", "op": "eq", "value": "true"}},
+            ],
+        },),
     )

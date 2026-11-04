@@ -1,7 +1,8 @@
 import * as React from "react";
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { MessageSquarePlus, XCircle } from "lucide-react";
+import { MessageSquarePlus, Printer, XCircle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -24,6 +25,7 @@ const DOT: Record<string, string> = {
 export default function InstancePage() {
   const { id } = useParams();
   const run = useApiAction();
+  const navigate = useNavigate();
   const q = useQuery({ queryKey: ["instance", id], queryFn: () => get<InstanceDetail>(`/workflow/instances/${id}/`) });
   const [note, setNote] = React.useState("");
   const [cancelOpen, setCancelOpen] = React.useState(false);
@@ -46,7 +48,10 @@ export default function InstancePage() {
     <>
       <PageHeader title={i.title} crumbs={[{ label: "پیگیری درخواست‌ها", to: "/requests" }, { label: i.process_title }]}
         description={<span className="flex items-center gap-2">شماره‌ی پیگیری {fa(i.tracking_code)} <StatusBadge status={i.status} label={i.status_display} /></span>}
-        actions={i.can_cancel && <Button variant="outline" onClick={() => setCancelOpen(true)}><XCircle className="size-4" /> لغو درخواست</Button>} />
+        actions={<>
+          <Button variant="outline" onClick={() => navigate(`/requests/${id}/print`)}><Printer className="size-4" /> نسخه‌ی چاپی</Button>
+          {i.can_cancel && <Button variant="outline" onClick={() => setCancelOpen(true)}><XCircle className="size-4" /> لغو درخواست</Button>}
+        </>} />
       <div className="grid items-start gap-6 lg:grid-cols-3">
         <Panel title="نقشه‌ی فرایند" className="lg:col-span-2" bodyClassName="p-2"
           actions={<span className="flex gap-3 text-xs text-muted-foreground"><span className="flex items-center gap-1"><span className="size-2 rounded-full bg-warning" />مرحله‌ی جاری</span><span className="flex items-center gap-1"><span className="size-2 rounded-full bg-success" />انجام‌شده</span></span>}>

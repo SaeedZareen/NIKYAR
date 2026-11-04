@@ -90,6 +90,9 @@ class WorkItem(models.Model):
     status = models.CharField(max_length=20, choices=Status.choices, default=Status.OPEN, db_index=True)
     is_read = models.BooleanField(default=False)
     due_at = models.DateTimeField(null=True, blank=True)
+    primary_ids = models.JSONField(default=list, blank=True)  # کارپذیران اصلی؛ بقیه جانشین‌اند
+    reminded_at = models.DateTimeField(null=True, blank=True)
+    escalated_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     completed_at = models.DateTimeField(null=True, blank=True)
     completed_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
