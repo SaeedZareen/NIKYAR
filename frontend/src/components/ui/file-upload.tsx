@@ -39,6 +39,7 @@ export function FileUpload({ accept, multiple = true, maxSize, onFiles, hint, cl
       <div
         role="button"
         tabIndex={0}
+        aria-label={`بارگذاری فایل${multiple ? "‌ها" : ""}؛ فایل را رها کنید یا Enter بزنید`}
         onClick={() => inputRef.current?.click()}
         onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && inputRef.current?.click()}
         onDragOver={(e) => { e.preventDefault(); setOver(true); }}
@@ -53,9 +54,10 @@ export function FileUpload({ accept, multiple = true, maxSize, onFiles, hint, cl
         <FileUp className="size-5 text-muted-foreground" />
         <p className="text-sm">فایل را این‌جا رها کنید یا <span className="font-medium underline underline-offset-4">انتخاب کنید</span></p>
         {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
-        <input ref={inputRef} type="file" accept={accept} multiple={multiple} className="sr-only" onChange={(e) => add(e.target.files)} />
       </div>
-      {error && <p className="text-xs text-destructive">{error}</p>}
+      <input ref={inputRef} type="file" accept={accept} multiple={multiple} className="sr-only" tabIndex={-1} aria-hidden="true" onChange={(e) => add(e.target.files)} />
+      {/* nikyar: ورودی فایل بیرون از ناحیه‌ی کلیک‌پذیر تا کنترل تعاملی تودرتو نشود (axe: nested-interactive) */}
+      {error && <p role="alert" className="text-xs text-destructive">{error}</p>}
       {files.length > 0 && (
         <ul className="divide-y divide-border rounded-lg border border-border">
           {files.map((f, i) => (

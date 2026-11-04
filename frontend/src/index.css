@@ -4,114 +4,119 @@
 /* فونت به‌صورت محلی بسته‌بندی شده تا سامانه روی شبکه‌ی داخلی سازمان بدون اینترنت کار کند. */
 :root { --font-vazirmatn: "Vazirmatn"; }
 
-/* --- vibefarsi:theme-graphite --- */
-/* گرافیت، مینیمال فنی و تم پیش‌فرض. این بلوک را در :root بگذارید. */
+/* --- nikyar:theme ---
+   زبان طراحی «اداری»: Accessible & Ethical + Minimalism & Swiss Style
+   (پیشنهاد مهارت ui-ux-pro-max برای سامانه‌های دولتی/سازمانی؛ پالت Government/Public Service).
+   روشن پیش‌فرض است؛ تیره به‌صورت جفت طراحی شده و همه‌ی جفت‌رنگ‌ها کنتراست AA دارند.
+   ساختار متغیرها همان توکن‌های وایب‌فارسی است تا کامپوننت‌ها بدون تغییر کار کنند.
+   شرح کامل: design-system/nikyar/MASTER.md */
 :root {
-  color-scheme: dark;
+  color-scheme: light;
+  --background: #F8FAFC;
+  --foreground: #020617;
+  --card: #FFFFFF;
+  --card-foreground: #020617;
+  --popover: #FFFFFF;
+  --popover-foreground: #020617;
+  --primary: #0F172A;
+  --primary-foreground: #FFFFFF;
+  --secondary: #E8EDF3;
+  --secondary-foreground: #0F172A;
+  --muted: #F1F5F9;
+  --muted-foreground: #475569;
+  --accent: #EEF2F7;
+  --accent-foreground: #0F172A;
+  --destructive: #B91C1C;
+  --success: #166534;
+  --warning: #92400E;
+  --border: #E2E8F0;
+  --input: #7C8BA1;
+  --ring: #0369A1;
+  --brand: #0369A1;
+  --brand-foreground: #FFFFFF;
+  --field: #FFFFFF;
+  --depth-surface: 0 1px 2px 0 rgb(15 23 42 / 0.05);
+  --depth-overlay: 0 16px 40px -12px rgb(15 23 42 / 0.28);
 
-  /* رنگ */
-  --background: oklch(0.115 0.002 285);
-  --foreground: oklch(0.975 0 0);
-  --card: oklch(0.14 0.002 285);
-  --card-foreground: oklch(0.975 0 0);
-  --popover: oklch(0.16 0.002 285);
-  --popover-foreground: oklch(0.975 0 0);
-  --primary: oklch(0.975 0 0);
-  --primary-foreground: oklch(0.13 0 0);
-  --secondary: oklch(0.2 0.002 285);
-  --secondary-foreground: oklch(0.975 0 0);
-  --muted: oklch(0.175 0.002 285);
-  --muted-foreground: oklch(0.63 0.004 285);
-  --accent: oklch(0.2 0.002 285);
-  --accent-foreground: oklch(0.975 0 0);
-  --destructive: oklch(0.65 0.2 25);
-  --success: oklch(0.75 0.16 160);
-  --warning: oklch(0.82 0.16 80);
-  --border: oklch(1 0 0 / 8%);
-  --input: oklch(1 0 0 / 11%);
-  --ring: oklch(0.7 0 0);
-  --brand: oklch(0.8 0.165 65);
-  --brand-foreground: oklch(0.22 0.06 60);
-
-  /* زبان طراحی: فونت، فرم، خط، عمق، حرکت و تراکم */
-  --radius: 0.625rem;
+  /* شکل، خط، عمق و حرکت (مشترک) */
+  --radius: 0.5rem;
   --type-display-weight: 700;
-  --shape-control: calc(var(--radius) - 2px);
-  --shape-field: calc(var(--radius) - 2px);
-  --shape-surface: calc(var(--radius) + 12px);
-  --shape-overlay: calc(var(--radius) + 4px);
+  --shape-control: 0.375rem;
+  --shape-field: 0.375rem;
+  --shape-surface: 0.75rem;
+  --shape-overlay: 0.75rem;
   --line: 1px;
   --line-field: 1px;
   --line-style: solid;
-  --field: color-mix(in oklch, var(--background) 60%, transparent);
   --depth-control: 0 0 #0000;
   --depth-press: 0 0 #0000;
   --depth-field: 0 0 #0000;
-  --depth-surface: 0 1px 0 0 oklch(1 0 0 / 6%) inset;
-  --depth-overlay: 0 20px 50px -20px oklch(0 0 0 / 80%);
   --surface-filter: none;
   --press: scale(0.98);
-  --motion: 200ms;
+  --motion: 160ms;
   --motion-ease: cubic-bezier(0.2, 0, 0, 1);
   --backdrop: none;
   --spacing: 0.25rem;
 }
-/* --- vibefarsi:theme-graphite-end --- */
-
-/* تم روشن «کاغذ» برای کاربرانی که حالت روشن را ترجیح می‌دهند */
-/* کاغذ، مجله‌ای. تیترها با Noto Naskh Arabic هستن. */
-[data-theme="paper"] {
-  color-scheme: light;
-
-  /* رنگ */
-  --background: oklch(0.985 0.004 85);
-  --foreground: oklch(0.2 0.01 60);
-  --card: oklch(0.985 0.004 85);
-  --card-foreground: oklch(0.2 0.01 60);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.2 0.01 60);
-  --primary: oklch(0.2 0.01 60);
-  --primary-foreground: oklch(0.985 0.004 85);
-  --secondary: oklch(0.94 0.008 85);
-  --secondary-foreground: oklch(0.2 0.01 60);
-  --muted: oklch(0.955 0.006 85);
-  --muted-foreground: oklch(0.47 0.015 60);
-  --accent: oklch(0.94 0.008 85);
-  --accent-foreground: oklch(0.2 0.01 60);
-  --destructive: oklch(0.55 0.2 25);
-  --success: oklch(0.52 0.13 160);
-  --warning: oklch(0.62 0.14 70);
-  --border: oklch(0.2 0.01 60 / 14%);
-  --input: oklch(0.2 0.01 60 / 30%);
-  --ring: oklch(0.5 0.02 60);
-  --brand: oklch(0.55 0.19 30);
-  --brand-foreground: oklch(0.985 0 0);
-
-  /* زبان طراحی: فونت، فرم، خط، عمق، حرکت و تراکم */
-  --radius: 0.25rem;
-  --type-display: "Noto Naskh Arabic", "IRANSans", "Vazirmatn", serif;
-  --type-display-weight: 700;
-  --shape-control: 0.125rem;
-  --shape-field: 0rem;
-  --shape-surface: 0.125rem;
-  --shape-overlay: 0.25rem;
-  --line: 1px;
-  --line-field: 0 0 1px 0;
-  --line-style: solid;
-  --field: transparent;
-  --depth-control: 0 0 #0000;
-  --depth-press: 0 0 #0000;
-  --depth-field: 0 0 #0000;
-  --depth-surface: 0 0 #0000;
-  --depth-overlay: 0 12px 32px -16px oklch(0.2 0.01 60 / 25%);
-  --surface-filter: none;
-  --press: translateY(1px);
-  --motion: 160ms;
-  --motion-ease: cubic-bezier(0.25, 0.1, 0.25, 1);
-  --backdrop: none;
-  --spacing: 0.26rem;
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --background: #0B1220;
+  --foreground: #F1F5F9;
+  --card: #111A2E;
+  --card-foreground: #F1F5F9;
+  --popover: #131D33;
+  --popover-foreground: #F1F5F9;
+  --primary: #E2E8F0;
+  --primary-foreground: #0B1220;
+  --secondary: #1E293B;
+  --secondary-foreground: #F1F5F9;
+  --muted: #162033;
+  --muted-foreground: #94A3B8;
+  --accent: #1C2740;
+  --accent-foreground: #F1F5F9;
+  --destructive: #F87171;
+  --success: #4ADE80;
+  --warning: #FBBF24;
+  --border: #24314A;
+  --input: #64748B;
+  --ring: #38BDF8;
+  --brand: #38BDF8;
+  --brand-foreground: #0B1220;
+  --field: #0E1729;
+  --depth-surface: 0 0 0 0 #0000;
+  --depth-overlay: 0 20px 48px -16px rgb(0 0 0 / 0.7);
 }
-
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="system"] {
+  color-scheme: dark;
+  --background: #0B1220;
+  --foreground: #F1F5F9;
+  --card: #111A2E;
+  --card-foreground: #F1F5F9;
+  --popover: #131D33;
+  --popover-foreground: #F1F5F9;
+  --primary: #E2E8F0;
+  --primary-foreground: #0B1220;
+  --secondary: #1E293B;
+  --secondary-foreground: #F1F5F9;
+  --muted: #162033;
+  --muted-foreground: #94A3B8;
+  --accent: #1C2740;
+  --accent-foreground: #F1F5F9;
+  --destructive: #F87171;
+  --success: #4ADE80;
+  --warning: #FBBF24;
+  --border: #24314A;
+  --input: #64748B;
+  --ring: #38BDF8;
+  --brand: #38BDF8;
+  --brand-foreground: #0B1220;
+  --field: #0E1729;
+  --depth-surface: 0 0 0 0 #0000;
+  --depth-overlay: 0 20px 48px -16px rgb(0 0 0 / 0.7);
+  }
+}
+/* --- nikyar:theme-end --- */
 
 /* --- vibefarsi:tailwind-map --- */
 @theme inline {
@@ -193,6 +198,27 @@
   --font-sans: var(--font-vazirmatn), "IRANSans", "IRANSansX", "Vazirmatn", ui-sans-serif, system-ui, sans-serif;
 }
 /* --- vibefarsi:font-end --- */
+
+/* --- nikyar: پایه‌ی دسترس‌پذیری (ui-ux-pro-max §1–§3) --- */
+@layer base {
+  /* حلقه‌ی فوکوس ۳ پیکسلی و پرکنتراست روی همه‌ی کنترل‌ها */
+  :where(a, button, input, select, textarea, summary, [role="button"], [role="switch"], [role="tab"], [tabindex]):focus-visible {
+    outline: 3px solid var(--ring);
+    outline-offset: 2px;
+  }
+  /* اعداد جدول‌ها و آمار هم‌عرض تا ستون‌ها نلرزند */
+  table, [data-numeric] { font-variant-numeric: tabular-nums; }
+  /* اندازه‌ی لمسی ۴۴ پیکسل روی صفحه‌های لمسی */
+  @media (pointer: coarse) {
+    button, [role="button"], [role="tab"], a.touch-target, select, input:not([type="checkbox"]):not([type="radio"]) { min-height: 44px; }
+  }
+  /* احترام به «کاهش حرکت» */
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
+  }
+  html { scroll-padding-top: 5rem; }
+  ::selection { background: color-mix(in oklch, var(--brand) 25%, transparent); }
+}
 
 /* --- nikyar: bpmn-js در صفحه‌ی راست‌چین --- */
 /* اندازه‌گیری متن برچسب‌ها باید چپ‌به‌راست باشد وگرنه برچسب فارسی از شکل بیرون می‌زند */

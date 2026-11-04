@@ -43,9 +43,45 @@ def exception_handler_fa(exc, context):
             break
     else:
         if isinstance(exc, exceptions.ValidationError) and isinstance(response.data, dict):
-            fields = {k: (v[0] if isinstance(v, list) else v) for k, v in response.data.items()}
+            labels = _field_labels(context)
+            codes = exc.get_codes() if isinstance(exc.get_codes(), dict) else {}
+            fields = {}
+            for k, v in response.data.items():
+                msg = v[0] if isinstance(v, list) and v else v
+                code = codes.get(k)
+                code = code[0] if isinstance(code, list) and code else code
+                label = labels.get(k)
+                # پیام‌های پیش‌فرض جنگو را با نام فیلد مشخص می‌کنیم (error-clarity)
+                if label and code in ("required", "null", "blank"):
+                    msg = f"تکمیل «{label}» الزامی است."
+                elif label and code in ("does_not_exist", "incorrect_type"):
+                    msg = f"مقدار انتخاب‌شده برای «{label}» معتبر نیست."
+                elif label and code == "invalid" and "عدد" not in str(msg) and "تاریخ" not in str(msg):
+                    msg = f"مقدار «{label}» معتبر نیست."
+                fields[k] = str(msg) if not isinstance(msg, dict) else msg
             response.data = {"detail": "لطفاً خطاهای فرم را برطرف کنید.", "fields": fields}
     return response
+
+
+def _field_labels(context) -> dict:
+    """عنوان فارسی فیلدهای سریالایزر ویو (برای پیام خطای روشن)."""
+    view = context.get("view") if context else None
+    try:
+        ser = view.get_serializer()
+    except Exception:  # noqa: BLE001
+        return {}
+    out = {}
+    for name, f in getattr(ser, "fields", {}).items():
+        label = f.label
+        if not label or label == name.replace("_", " ").capitalize():
+            model = getattr(getattr(ser, "Meta", None), "model", None)
+            try:
+                label = str(model._meta.get_field(name).verbose_name) if model else None
+            except Exception:  # noqa: BLE001
+                label = None
+        if label:
+            out[name] = label
+    return out
 
 
 def has_perm(user, code: str) -> bool:

@@ -180,6 +180,8 @@ class InstanceViewSet(viewsets.ViewSet):
             qs = qs.filter(version__model_id=p["process"])
         if p.get("q"):
             qs = qs.filter(tracking_code__icontains=p["q"]) | qs.filter(title__icontains=p["q"])
+        if p.get("ordering") in ("tracking_code", "-tracking_code", "started_at", "-started_at", "title", "-title"):
+            qs = qs.order_by(p["ordering"])
         paginator = Pagination()
         page = paginator.paginate_queryset(qs, request)
         return paginator.get_paginated_response([{

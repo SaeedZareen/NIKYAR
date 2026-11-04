@@ -334,7 +334,7 @@ export function ChartFrame({
           <table>
             <caption>{title}</caption>
             <thead>
-              <tr>{table.head.map((h, j) => <th key={j} scope="col">{h}</th>)}</tr>
+              <tr>{table.head.map((h, j) => <th key={j} scope="col">{h || <span>{j === 0 ? "دسته" : "مقدار"}</span>}</th>)}</tr>
             </thead>
             <tbody>
               {table.rows.map((r, i) => (

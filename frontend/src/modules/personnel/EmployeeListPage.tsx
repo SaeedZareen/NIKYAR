@@ -2,17 +2,16 @@ import * as React from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Download, Plus, Users } from "lucide-react";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { SearchInput } from "@/components/ui/search-input";
 import { Pagination } from "@/components/ui/pagination";
-import { EmptyState } from "@/components/ui/empty-state";
-import { Dialog } from "@/components/ui/dialog";
+import { FormField } from "@/components/ui/form";
 import { get, post, tokenStore, type Paged } from "@/app/api";
 import { useAuth } from "@/app/auth";
-import { LoadingBlock, PageHeader, Panel, StatusBadge, useApiAction } from "@/app/ui";
+import { ErrorBlock, GuardedDialog, PageHeader, Panel, StatusBadge, SubmitButton, useApiAction, useUrlState } from "@/app/ui";
+import { ListToolbar, ResponsiveList, type Column, type Sort } from "@/app/list";
 import { FormRenderer } from "@/core/forms/FormRenderer";
 import { useLookupBundle, useUnits } from "@/core/forms/useFormRefs";
 import type { FormSchema, Values } from "@/core/forms/types";
@@ -36,16 +35,17 @@ const NEW_SCHEMA: FormSchema = { sections: [{ id: "n", title: "", columns: 2, fi
 export default function EmployeeListPage() {
   const navigate = useNavigate();
   const { can } = useAuth();
-  const [q, setQ] = React.useState("");
-  const [status, setStatus] = React.useState("active");
-  const [unit, setUnit] = React.useState("");
-  const [page, setPage] = React.useState(1);
+  const [q, setQ] = useUrlState("q");
+  const [status, setStatus] = useUrlState("status", "active");
+  const [unit, setUnit] = useUrlState("unit");
+  const [page, setPage] = useUrlState("page", "1");
+  const [ordering, setOrdering] = useUrlState("ordering", "last_name");
   const [open, setOpen] = React.useState(false);
   const lookups = useLookupBundle(["employment_status"]);
   const units = useUnits();
-  const params = new URLSearchParams({ page: String(page), page_size: String(PAGE), ...(q && { q: en(q) }), ...(status && { employment_status: status }), ...(unit && { org_unit: unit }) });
-  const data = useQuery({ queryKey: ["employees", params.toString()], queryFn: () => get<Paged<Row>>(`/personnel/employees/?${params}`) });
-  React.useEffect(() => setPage(1), [q, status, unit]);
+  const params = new URLSearchParams({ page, page_size: String(PAGE), ordering, ...(q && { q: en(q) }), ...(status && { employment_status: status }), ...(unit && { org_unit: unit }) });
+  const data = useQuery({ queryKey: ["employees", params.toString()], queryFn: () => get<Paged<Row>>(`/personnel/employees/?${params}`), placeholderData: (p) => p });
+  const sort: Sort = { key: ordering.replace("-", ""), dir: ordering.startsWith("-") ? "desc" : "asc" };
 
   const exportCsv = async () => {
     const res = await fetch(`/api/personnel/employees/export/?${params}`, { headers: { Authorization: `Token ${tokenStore.get()}` } });
@@ -55,50 +55,47 @@ export default function EmployeeListPage() {
     a.click();
   };
 
+  const columns: Column<Row>[] = [
+    { key: "last_name", header: "نام و نام خانوادگی", primary: true, sortKey: "last_name",
+      cell: (r) => <span className="flex items-center gap-3"><Avatar name={r.full_name} size="sm" />{r.full_name}</span> },
+    { key: "personnel_code", header: "کد پرسنلی", sortKey: "personnel_code", cell: (r) => <bdi className="tabular-nums">{fa(r.personnel_code)}</bdi> },
+    { key: "national_id", header: "کد ملی", cell: (r) => <bdi dir="ltr" className="tabular-nums">{fa(r.national_id)}</bdi>, hideOnMobile: true },
+    { key: "unit", header: "واحد / سمت", cell: (r) => <span><span className="block">{r.org_unit_title || "—"}</span><span className="text-sm text-muted-foreground">{r.position_title || r.job_title}</span></span> },
+    { key: "type", header: "نوع استخدام", cell: (r) => r.employment_type_title || "—", hideOnMobile: true },
+    { key: "hire_date", header: "تاریخ استخدام", sortKey: "hire_date", cell: (r) => <span className="tabular-nums">{r.hire_date ? fa(r.hire_date) : "—"}</span>, hideOnMobile: true },
+    { key: "status", header: "وضعیت", cell: (r) => <StatusBadge status={r.employment_status} label={r.employment_status_title} /> },
+  ];
+
   return (
     <>
-      <PageHeader title="پرونده‌های پرسنلی" description={data.data ? `${fa(data.data.count)} پرونده` : undefined}
+      <PageHeader title="پرونده‌های پرسنلی" description="اطلاعات هویتی، استخدامی، تحصیلی و مدارک پرسنل"
         actions={<>
-          {can("personnel.export") && <Button variant="outline" onClick={exportCsv}><Download className="size-4" /> خروجی اکسل</Button>}
-          {can("personnel.employee.edit") && <Button onClick={() => setOpen(true)}><Plus className="size-4" /> پرونده‌ی جدید</Button>}
+          {can("personnel.export") && <Button variant="outline" onClick={exportCsv}><Download className="size-4" aria-hidden /> خروجی اکسل</Button>}
+          {can("personnel.employee.edit") && <Button onClick={() => setOpen(true)}><Plus className="size-4" aria-hidden /> پرونده‌ی جدید</Button>}
         </>} />
-      <Panel bodyClassName="p-0">
-        <div className="flex flex-wrap items-center gap-3 border-b border-border p-4">
-          <SearchInput value={q} onChange={setQ} debounce={300} placeholder="نام، کد ملی، کد پرسنلی یا موبایل" size="sm" />
-          <Select className="w-44" aria-label="وضعیت اشتغال" value={status} onChange={(e) => setStatus(e.target.value)} placeholder="همه‌ی وضعیت‌ها"
-            options={(lookups.data?.employment_status ?? []).map((i) => ({ value: i.code, label: i.title }))} />
-          <Select className="w-52" aria-label="واحد" value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="همه‌ی واحدها"
-            options={(units.data ?? []).map((u) => ({ value: String(u.id), label: u.title }))} />
-        </div>
-        {data.isLoading ? <div className="p-5"><LoadingBlock /></div> : !data.data?.results.length ? (
-          <EmptyState icon={Users} title="پرونده‌ای پیدا نشد" description="فیلترها را تغییر دهید یا پرونده‌ی جدید ثبت کنید." />
-        ) : (
-          <div className="overflow-x-auto">
-            <Table className="whitespace-nowrap">
-              <TableHeader><TableRow>
-                <TableHead>نام و نام خانوادگی</TableHead><TableHead>کد پرسنلی</TableHead><TableHead>کد ملی</TableHead>
-                <TableHead>واحد / سمت</TableHead><TableHead>نوع استخدام</TableHead><TableHead>تاریخ استخدام</TableHead><TableHead>وضعیت</TableHead>
-              </TableRow></TableHeader>
-              <TableBody>
-                {data.data.results.map((r) => (
-                  <TableRow key={r.id} className="cursor-pointer" onClick={() => navigate(`/personnel/${r.id}`)}>
-                    <TableCell><span className="flex items-center gap-3"><Avatar name={r.full_name} size="sm" /><span className="font-medium">{r.full_name}</span></span></TableCell>
-                    <TableCell>{fa(r.personnel_code)}</TableCell>
-                    <TableCell dir="ltr" className="text-end">{fa(r.national_id)}</TableCell>
-                    <TableCell><span className="block">{r.org_unit_title || "—"}</span><span className="text-xs text-muted-foreground">{r.position_title || r.job_title}</span></TableCell>
-                    <TableCell>{r.employment_type_title || "—"}</TableCell>
-                    <TableCell>{r.hire_date ? fa(r.hire_date) : "—"}</TableCell>
-                    <TableCell><StatusBadge status={r.employment_status} label={r.employment_status_title} /></TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </div>
-        )}
-        {(data.data?.count ?? 0) > PAGE && (
-          <div className="flex justify-center border-t border-border p-3"><Pagination page={page} total={Math.ceil((data.data?.count ?? 0) / PAGE)} onChange={setPage} size="sm" /></div>
-        )}
-      </Panel>
+      {data.error ? <ErrorBlock error={data.error} onRetry={() => data.refetch()} /> : (
+        <Panel flush>
+          <ListToolbar count={data.data?.count}>
+            <div className="w-full sm:w-80"><SearchInput value={q} onChange={setQ} debounce={300} placeholder="نام، کد ملی، کد پرسنلی یا موبایل" aria-label="جست‌وجوی پرسنل" size="sm" /></div>
+            <FormField label="وضعیت اشتغال" htmlFor="flt-status" className="w-44">
+              <Select id="flt-status" value={status} onChange={(e) => setStatus(e.target.value)} placeholder="همه‌ی وضعیت‌ها"
+                options={(lookups.data?.employment_status ?? []).map((i) => ({ value: i.code, label: i.title }))} />
+            </FormField>
+            <FormField label="واحد" htmlFor="flt-unit" className="w-52">
+              <Select id="flt-unit" value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="همه‌ی واحدها"
+                options={(units.data ?? []).map((u) => ({ value: String(u.id), label: u.title }))} />
+            </FormField>
+          </ListToolbar>
+          <ResponsiveList rows={data.data?.results ?? []} columns={columns} rowKey={(r) => r.id} loading={data.isLoading} caption="پرونده‌های پرسنلی"
+            rowHref={(r) => `/personnel/${r.id}`} sort={sort} onSortChange={(s) => setOrdering(s ? `${s.dir === "desc" ? "-" : ""}${s.key}` : "last_name")}
+            empty={{ icon: Users, title: "پرونده‌ای پیدا نشد", description: q || unit || status !== "active" ? "فیلترها را تغییر دهید." : "اولین پرونده را ثبت کنید." }} />
+          {(data.data?.count ?? 0) > PAGE && (
+            <div className="flex justify-center border-t border-border p-3">
+              <Pagination page={Number(page)} total={Math.ceil((data.data?.count ?? 0) / PAGE)} onChange={(p) => setPage(String(p))} size="sm" />
+            </div>
+          )}
+        </Panel>
+      )}
       {open && <NewEmployeeDialog onClose={() => setOpen(false)} onCreated={(id) => navigate(`/personnel/${id}`)} />}
     </>
   );
@@ -106,17 +103,25 @@ export default function EmployeeListPage() {
 
 function NewEmployeeDialog({ onClose, onCreated }: { onClose: () => void; onCreated: (id: number) => void }) {
   const run = useApiAction();
-  const [values, setValues] = React.useState<Values>({ employment_status: "active" });
+  const initial: Values = { employment_status: "active" };
+  const [values, setValues] = React.useState<Values>(initial);
   const [errors, setErrors] = React.useState<Record<string, string>>({});
-  const save = async () => {
+  const [busy, setBusy] = React.useState(false);
+  const save = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
     const body = { ...values, hire_date: values.hire_date || null, org_unit: values.org_unit || null };
     const r = await run(() => post<{ id: number }>("/personnel/employees/", body), "پرونده ساخته شد.");
+    setBusy(false);
     if (r.ok && r.data) onCreated(r.data.id); else setErrors(r.fields ?? {});
   };
   return (
-    <Dialog open onOpenChange={(o) => !o && onClose()} title="پرونده‌ی پرسنلی جدید" description="بقیه‌ی اطلاعات را بعد از ساخت پرونده تکمیل کنید." className="max-w-2xl"
-      footer={<><Button onClick={save}>ساخت پرونده</Button><Button variant="ghost" onClick={onClose}>انصراف</Button></>}>
-      <FormRenderer schema={NEW_SCHEMA} values={values} onChange={setValues} errors={errors} />
-    </Dialog>
+    <GuardedDialog open onOpenChange={(o) => !o && onClose()} dirty={JSON.stringify(values) !== JSON.stringify(initial)}
+      title="پرونده‌ی پرسنلی جدید" description="بقیه‌ی اطلاعات را بعد از ساخت پرونده تکمیل کنید." className="max-w-2xl"
+      footer={<><SubmitButton type="submit" form="new-employee" loading={busy}>ساخت پرونده</SubmitButton><Button variant="ghost" onClick={onClose}>انصراف</Button></>}>
+      <form id="new-employee" onSubmit={save} noValidate>
+        <FormRenderer schema={NEW_SCHEMA} values={values} onChange={setValues} errors={errors} />
+      </form>
+    </GuardedDialog>
   );
 }

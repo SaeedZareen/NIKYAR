@@ -2,11 +2,11 @@ import * as React from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ArrowLeft, GitBranch } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SearchInput } from "@/components/ui/search-input";
 import { get, post } from "@/app/api";
-import { LoadingBlock, PageHeader, useApiAction } from "@/app/ui";
+import { ErrorBlock, LoadingBlock, PageHeader, SubmitButton, useApiAction, useUrlState } from "@/app/ui";
+import { matches } from "@/app/list";
 import { fa } from "@/lib/utils";
 
 type Startable = { id: number; key: string; title: string; description: string; category: string };
@@ -17,7 +17,7 @@ export default function NewRequestPage() {
   const run = useApiAction();
   const q = useQuery({ queryKey: ["startable"], queryFn: () => get<Startable[]>("/workflow/processes/startable/") });
   const [busy, setBusy] = React.useState<number | null>(null);
-  const [term, setTerm] = React.useState("");
+  const [term, setTerm] = useUrlState("q");
 
   const start = async (m: Startable) => {
     setBusy(m.id);
@@ -29,7 +29,7 @@ export default function NewRequestPage() {
     }
   };
 
-  const list = (q.data ?? []).filter((m) => !term || m.title.includes(term) || m.description.includes(term));
+  const list = (q.data ?? []).filter((m) => matches(term, m.title, m.description, m.category));
   const groups = Object.entries(list.reduce<Record<string, Startable[]>>((acc, m) => {
     (acc[m.category || "سایر"] ||= []).push(m);
     return acc;
@@ -37,24 +37,28 @@ export default function NewRequestPage() {
 
   return (
     <>
-      <PageHeader title="ثبت درخواست جدید" description="نوع درخواست را انتخاب کنید."
-        actions={<SearchInput value={term} onChange={setTerm} placeholder="جست‌وجوی فرایند" size="sm" />} />
-      {q.isLoading ? <LoadingBlock /> : !groups.length ? (
-        <EmptyState icon={GitBranch} title="فرایندی برای شما تعریف نشده است" description="با مدیر سامانه تماس بگیرید." />
+      <PageHeader title="ثبت درخواست جدید" description="نوع درخواست را انتخاب کنید؛ پس از شروع، فرم مرحله‌ی اول باز می‌شود." />
+      <div className="mb-6 w-full sm:w-96">
+        <SearchInput value={term} onChange={setTerm} placeholder="جست‌وجوی نوع درخواست" aria-label="جست‌وجوی نوع درخواست" />
+      </div>
+      {q.error ? <ErrorBlock error={q.error} onRetry={() => q.refetch()} /> : q.isLoading ? <LoadingBlock /> : !groups.length ? (
+        <EmptyState icon={GitBranch} title={term ? "درخواستی با این نام پیدا نشد" : "فرایندی برای شما تعریف نشده است"}
+          description={term ? "عبارت دیگری را امتحان کنید." : "برای دسترسی به فرایندها با مدیر سامانه تماس بگیرید."} />
       ) : groups.map(([cat, items]) => (
-        <section key={cat} className="mb-8">
-          <h2 className="mb-3 text-base font-semibold">{cat} <span className="text-sm font-normal text-muted-foreground">({fa(items.length)})</span></h2>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <section key={cat} className="mb-8" aria-labelledby={`cat-${cat}`}>
+          <h2 id={`cat-${cat}`} className="mb-3 text-lg font-semibold">{cat} <span className="text-sm font-normal text-muted-foreground">({fa(items.length)})</span></h2>
+          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {items.map((m) => (
-              <article key={m.id} className="flex min-h-44 flex-col gap-3 rounded-surface border-line border-border bg-card p-5 shadow-surface">
+              <li key={m.id} className="flex min-h-40 flex-col gap-3 rounded-surface border-line border-border bg-card p-5 shadow-surface">
                 <h3 className="text-base font-semibold leading-tight">{m.title}</h3>
                 <p className="flex-1 text-sm text-muted-foreground">{m.description || "بدون توضیحات"}</p>
-                <Button onClick={() => start(m)} disabled={busy === m.id} className="self-start">
-                  {busy === m.id ? "در حال ایجاد…" : "شروع درخواست"} <ArrowLeft className="size-4" />
-                </Button>
-              </article>
+                <SubmitButton onClick={() => start(m)} loading={busy === m.id} disabled={busy !== null} loadingText="در حال ایجاد…" className="self-start"
+                  aria-label={`شروع درخواست ${m.title}`}>
+                  شروع درخواست <ArrowLeft className="size-4" aria-hidden />
+                </SubmitButton>
+              </li>
             ))}
-          </div>
+          </ul>
         </section>
       ))}
     </>

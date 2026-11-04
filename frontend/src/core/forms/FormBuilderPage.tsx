@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Alert } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { get, patch, post } from "@/app/api";
-import { ErrorBlock, LoadingBlock, PageHeader, Panel, useApiAction } from "@/app/ui";
+import { PageError, LoadingBlock, PageHeader, Panel, useApiAction } from "@/app/ui";
 import { cn, fa } from "@/lib/utils";
 import { FormRenderer } from "./FormRenderer";
 import { allFields, DISPLAY_ONLY, type FieldDef, type FieldType, type FormSchema, type SectionDef, type Values } from "./types";
@@ -21,6 +21,17 @@ export type FormRow = {
   id: number; key: string; title: string; description: string; category: string; entity: string; entity_title: string;
   is_active: boolean; draft_schema: FormSchema; latest_version: { version: number; published_at: string } | null;
   has_draft_changes: boolean; updated_at: string;
+};
+
+// اعلان‌های فارسی برای صفحه‌خوان هنگام جابه‌جایی فیلدها با صفحه‌کلید (dragging-alternative)
+const DND_A11Y = {
+  screenReaderInstructions: { draggable: "برای جابه‌جایی، فاصله یا Enter را بزنید؛ با کلیدهای جهت جابه‌جا کنید و دوباره فاصله را بزنید. Escape لغو می‌کند." },
+  announcements: {
+    onDragStart: () => "فیلد برداشته شد.",
+    onDragOver: () => "روی جای جدید.",
+    onDragEnd: () => "فیلد در جای جدید قرار گرفت.",
+    onDragCancel: () => "جابه‌جایی لغو شد.",
+  },
 };
 
 type Sel = { kind: "section"; sid: string } | { kind: "field"; sid: string; key: string } | null;
@@ -54,7 +65,7 @@ export default function FormBuilderPage() {
   }, [dirty]);
 
   if (q.isLoading || (!schema && !q.error)) return <LoadingBlock rows={8} />;
-  if (q.error || !q.data || !schema) return <ErrorBlock error={q.error} />;
+  if (q.error || !q.data || !schema) return <PageError error={q.error} onRetry={() => q.refetch()} back={{ to: "/forms", label: "فرم‌ساز" }} />;
   const form = q.data;
 
   const update = (next: FormSchema) => { setSchema(next); setDirty(true); };
@@ -112,14 +123,14 @@ export default function FormBuilderPage() {
           {dirty ? " · تغییرات ذخیره‌نشده" : form.has_draft_changes && form.latest_version ? " · تغییرات منتشرنشده" : ""}
         </>}
         actions={<>
-          <Button variant="outline" disabled={busy} onClick={() => act(() => post(`/forms/${key}/check/`, { schema }), "ساختار فرم درست است.")}><CheckCircle2 className="size-4" /> بررسی</Button>
-          <Button variant="outline" disabled={busy || !dirty} onClick={() => act(save, "پیش‌نویس ذخیره شد.")}><Save className="size-4" /> ذخیره</Button>
-          <Button variant="brand" disabled={busy} onClick={() => act(async () => { await save(); return post(`/forms/${key}/publish/`); }, "فرم منتشر شد.")}><Rocket className="size-4" /> انتشار</Button>
+          <Button variant="outline" disabled={busy} onClick={() => act(() => post(`/forms/${key}/check/`, { schema }), "ساختار فرم درست است.")}><CheckCircle2 className="size-4" aria-hidden /> بررسی</Button>
+          <Button variant="outline" disabled={busy || !dirty} onClick={() => act(save, "پیش‌نویس ذخیره شد.")}><Save className="size-4" aria-hidden /> ذخیره</Button>
+          <Button variant="default" disabled={busy} onClick={() => act(async () => { await save(); return post(`/forms/${key}/publish/`); }, "فرم منتشر شد.")}><Rocket className="size-4" aria-hidden /> انتشار</Button>
         </>} />
       <Tabs defaultValue="design" variant="underline">
         <TabsList>
-          <TabsTrigger value="design"><PencilRuler className="size-4" /> طراحی</TabsTrigger>
-          <TabsTrigger value="preview"><Eye className="size-4" /> پیش‌نمایش و آزمایش</TabsTrigger>
+          <TabsTrigger value="design"><PencilRuler className="size-4" aria-hidden /> طراحی</TabsTrigger>
+          <TabsTrigger value="preview"><Eye className="size-4" aria-hidden /> پیش‌نمایش و آزمایش</TabsTrigger>
         </TabsList>
         <TabsContent value="design">
           <div className="grid items-start gap-4 lg:grid-cols-12">
@@ -150,7 +161,7 @@ export default function FormBuilderPage() {
                       <span className="block font-semibold">{s.title}</span>
                       <span className="text-xs text-muted-foreground">{fa(cols)} ستونه · {fa(s.fields.length)} فیلد · برای تنظیم بخش کلیک کنید</span>
                     </button>
-                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd(s.id)}>
+                    <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd(s.id)} accessibility={DND_A11Y}>
                       <SortableContext items={s.fields.map((f) => f.key)} strategy={rectSortingStrategy}>
                         <div className={cn("grid grid-cols-1 gap-2", GRID[cols])}>
                           {s.fields.map((f) => (
@@ -164,9 +175,9 @@ export default function FormBuilderPage() {
                   </section>
                 );
               })}
-              <Button variant="outline" className="w-full" onClick={addSection}><Plus className="size-4" /> افزودن بخش</Button>
+              <Button variant="outline" className="w-full" onClick={addSection}><Plus className="size-4" aria-hidden /> افزودن بخش</Button>
             </div>
-            <aside className="lg:col-span-3">
+            <aside className="lg:col-span-3" aria-label="تنظیمات فیلد یا بخش انتخاب‌شده">
               <Panel title={selField ? "تنظیمات فیلد" : "تنظیمات بخش"} bodyClassName="p-4">
                 {selField && selSection ? (
                   <FieldInspector key={selField.key} field={selField} sections={schema.sections} sectionId={selSection.id}
@@ -223,7 +234,7 @@ function SortableField({ field, span, selected, onSelect }: { field: FieldDef; s
         selected ? "border-brand" : "border-border", isDragging && "z-10 opacity-80 shadow-overlay")}>
       <button type="button" {...attributes} {...listeners} aria-label={`جابه‌جایی ${field.label}`}
         className="inline-flex size-9 shrink-0 cursor-grab items-center justify-center rounded-control text-muted-foreground hover:bg-accent">
-        <GripVertical className="size-4" />
+        <GripVertical className="size-4" aria-hidden />
       </button>
       <button type="button" onClick={onSelect} className="flex min-w-0 flex-1 items-center gap-2 text-start">
         <cat.icon className="size-4 shrink-0 text-muted-foreground" strokeWidth={1.75} />

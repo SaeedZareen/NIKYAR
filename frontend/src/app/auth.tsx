@@ -5,7 +5,7 @@ import { api, get, post, tokenStore } from "./api";
 export type Me = {
   id: number; username: string; first_name: string; last_name: string; full_name: string; is_superuser: boolean;
   permissions: string[]; positions: { id: number; title: string; unit: string; is_manager: boolean }[];
-  theme: "graphite" | "paper"; role_titles: string[]; notify_sms: boolean; notify_email: boolean; email: string;
+  theme: "light" | "dark" | "system"; role_titles: string[]; notify_sms: boolean; notify_email: boolean; email: string;
 };
 export type ModuleInfo = { code: string; title: string; description: string; is_core: boolean; icon: string; enabled: boolean };
 export type SystemInfo = { customer: string; expires: string | null; expired: boolean; max_users: number | null; license_status: string; modules: ModuleInfo[] };
@@ -24,7 +24,7 @@ type AuthCtx = {
 const Ctx = React.createContext<AuthCtx | null>(null);
 
 export function applyTheme(theme: string) {
-  document.documentElement.dataset.theme = theme;
+  document.documentElement.dataset.theme = ["light", "dark", "system"].includes(theme) ? theme : "light";
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {

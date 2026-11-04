@@ -32,8 +32,9 @@ export function NotificationInbox({ items, onRead, onReadAll, className }: { ite
     <Popover
       className={cn("w-80 p-0", className)}
       align="end"
+      triggerLabel={unread ? `اعلان‌ها، ${fa(unread)} خوانده‌نشده` : "اعلان‌ها"}
       trigger={
-        <span className="relative inline-flex size-9 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:text-foreground">
+        <span className="relative inline-flex size-10 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:text-foreground">
           <Bell className="size-4" />
           {unread > 0 && <span className="absolute -end-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand px-1 text-[10px] font-bold text-brand-foreground">{fa(unread)}</span>}
         </span>

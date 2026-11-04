@@ -29,7 +29,7 @@ class Role(models.Model):
 class Profile(models.Model):
     user = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="profile")
     mobile = models.CharField("تلفن همراه", max_length=11, blank=True)
-    theme = models.CharField("تم", max_length=20, default="graphite")
+    theme = models.CharField("تم", max_length=20, default="light")  # light | dark | system
     failed_logins = models.PositiveSmallIntegerField(default=0)
     locked_until = models.DateTimeField(null=True, blank=True)
     must_change_password = models.BooleanField(default=False)

@@ -32,7 +32,7 @@ def _me(user):
     data = UserSerializer(user).data
     data["permissions"] = sorted(user_permissions(user))
     prof = getattr(user, "profile", None)
-    data["theme"] = getattr(prof, "theme", "graphite")
+    data["theme"] = getattr(prof, "theme", "light")
     data["notify_sms"] = getattr(prof, "notify_sms", True)
     data["notify_email"] = getattr(prof, "notify_email", True)
     return data
@@ -76,7 +76,7 @@ def logout(request):
 def me(request):
     if request.method == "PATCH":
         prof = Profile.objects.get_or_create(user=request.user)[0]
-        if request.data.get("theme") in ("graphite", "paper"):
+        if request.data.get("theme") in ("light", "dark", "system"):
             prof.theme = request.data["theme"]
         for k in ("notify_sms", "notify_email"):
             if k in request.data:

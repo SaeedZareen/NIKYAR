@@ -6,6 +6,8 @@ import { eventInside, FloatPortal, useFloat } from "@/lib/float";
 
 export interface PopoverProps {
   trigger: React.ReactNode;
+  /** نام دسترس‌پذیر دکمه‌ی بازکننده وقتی فقط آیکون دارد */
+  triggerLabel?: string;
   children: React.ReactNode;
   side?: "top" | "bottom";
   align?: "start" | "center" | "end";
@@ -19,7 +21,7 @@ export interface PopoverProps {
  * Rendered into `document.body` so a parent with overflow hidden cannot clip it.
  * `align="start"` hugs the trigger's inline-start (right in RTL).
  */
-export function Popover({ trigger, children, side = "bottom", align = "start", open, onOpenChange, className }: PopoverProps) {
+export function Popover({ trigger, triggerLabel, children, side = "bottom", align = "start", open, onOpenChange, className }: PopoverProps) {
   const [internal, setInternal] = React.useState(false);
   const isOpen = open ?? internal;
   const set = (v: boolean) => { if (open === undefined) setInternal(v); onOpenChange?.(v); };
@@ -39,15 +41,18 @@ export function Popover({ trigger, children, side = "bottom", align = "start", o
 
   return (
     <div ref={root} className="inline-block">
-      <span
+      {/* nikyar: دکمه‌ی واقعی به‌جای span تا با صفحه‌کلید در دسترس باشد (axe: aria-allowed-attr) */}
+      <button
+        type="button"
         onClick={() => { if (!isOpen) update(); set(!isOpen); }}
         aria-haspopup="dialog"
         aria-expanded={isOpen}
         aria-controls={id}
-        className="inline-flex cursor-pointer"
+        aria-label={triggerLabel}
+        className="inline-flex cursor-pointer rounded-control"
       >
         {trigger}
-      </span>
+      </button>
       <FloatPortal
         open={isOpen}
         mounted={mounted}

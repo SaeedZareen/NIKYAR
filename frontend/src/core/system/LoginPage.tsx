@@ -1,24 +1,37 @@
 import * as React from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Building2, GitBranch, ListTree } from "lucide-react";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
-import { FormField } from "@/components/ui/form";
-import { Alert } from "@/components/ui/alert";
 import { useQuery } from "@tanstack/react-query";
+import { AlertCircle, ArrowLeft, Building2, GitBranch, ListTree } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
+import { FormField } from "@/components/ui/form";
 import { useAuth } from "@/app/auth";
 import { get } from "@/app/api";
+import { SubmitButton, useDocumentTitle } from "@/app/ui";
+
+const FEATURES = [
+  { icon: GitBranch, title: "فرایندساز و فرم‌ساز بدون کدنویسی", desc: "فرایندهای سازمان را طراحی کنید و همان روز اجرا کنید." },
+  { icon: Building2, title: "کارتابل اداری بر پایه‌ی چارت سازمانی", desc: "هر کار به‌طور خودکار به فرد درست می‌رسد." },
+  { icon: ListTree, title: "ماژولار و قابل توسعه", desc: "پرونده‌ی پرسنلی امروز؛ حقوق، انبار و حسابداری فردا." },
+];
 
 export default function LoginPage() {
+  useDocumentTitle("ورود");
   const { login } = useAuth();
   const navigate = useNavigate();
+  const org = useQuery({ queryKey: ["public-settings"], queryFn: () => get<{ org_name: string }>("/settings/public/") });
   const [f, setF] = React.useState({ username: "", password: "" });
   const [error, setError] = React.useState("");
   const [busy, setBusy] = React.useState(false);
-  const org = useQuery({ queryKey: ["public-settings"], queryFn: () => get<{ org_name: string }>("/settings/public/") });
+  const errorRef = React.useRef<HTMLDivElement>(null);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!f.username || !f.password) {
+      setError("نام کاربری و رمز عبور را وارد کنید.");
+      requestAnimationFrame(() => errorRef.current?.focus());
+      return;
+    }
     setBusy(true);
     setError("");
     try {
@@ -26,6 +39,7 @@ export default function LoginPage() {
       navigate("/");
     } catch (err) {
       setError((err as Error).message);
+      requestAnimationFrame(() => errorRef.current?.focus());
     } finally {
       setBusy(false);
     }
@@ -33,50 +47,54 @@ export default function LoginPage() {
 
   return (
     <div className="grid min-h-dvh bg-background text-foreground lg:grid-cols-2">
-      <section className="hidden flex-col justify-between border-e border-border bg-card p-12 lg:flex">
-        <div>
-          <div className="text-3xl font-bold leading-tight">نیک‌یار</div>
-          <p className="mt-2 text-muted-foreground">سامانه‌ی یکپارچه‌ی مدیریت فرایند و منابع سازمانی</p>
+      <section className="hidden flex-col justify-between bg-primary p-12 text-primary-foreground lg:flex" aria-label="معرفی سامانه">
+        <div className="flex items-center gap-3">
+          <span aria-hidden className="grid size-11 place-items-center rounded-control bg-primary-foreground text-lg font-bold text-primary">ن</span>
+          <div>
+            <div className="text-2xl font-bold leading-tight">نیک‌یار</div>
+            <div className="text-sm opacity-80">سامانه‌ی یکپارچه‌ی مدیریت فرایند و منابع سازمانی</div>
+          </div>
         </div>
-        <ul className="space-y-5">
-          {[
-            [GitBranch, "فرایندساز و فرم‌ساز بدون کدنویسی", "فرایندهای سازمان را طراحی کنید و همان روز اجرا کنید."],
-            [Building2, "کارتابل اداری بر پایه‌ی چارت سازمانی", "هر کار به‌طور خودکار به فرد درست می‌رسد."],
-            [ListTree, "ماژولار و قابل توسعه", "پرونده‌ی پرسنلی امروز؛ حقوق، انبار و حسابداری فردا."],
-          ].map(([Icon, title, desc]) => {
-            const I = Icon as typeof GitBranch;
-            return (
-              <li key={title as string} className="flex gap-3">
-                <I className="mt-1 size-5 shrink-0 text-brand" strokeWidth={1.75} />
-                <div><div className="font-medium">{title as string}</div><div className="text-sm text-muted-foreground">{desc as string}</div></div>
-              </li>
-            );
-          })}
+        <ul className="space-y-6">
+          {FEATURES.map((x) => (
+            <li key={x.title} className="flex gap-4">
+              <x.icon className="mt-1 size-6 shrink-0 opacity-90" strokeWidth={1.75} aria-hidden />
+              <div><div className="font-semibold">{x.title}</div><div className="text-sm opacity-80">{x.desc}</div></div>
+            </li>
+          ))}
         </ul>
-        <p className="text-xs text-muted-foreground">نسخه‌ی ۲٫۰</p>
+        <p className="text-sm opacity-70">نسخه‌ی ۲٫۰</p>
       </section>
-      <section className="flex items-center justify-center p-6">
-        <form onSubmit={submit} className="w-full max-w-sm space-y-5">
+      <main id="main" className="flex items-center justify-center p-6">
+        <form onSubmit={submit} className="w-full max-w-sm space-y-5" noValidate aria-describedby={error ? "login-error" : undefined}>
           <div>
             <h1 className="text-2xl font-bold leading-tight">ورود به سامانه</h1>
-            <p className="mt-1 text-sm text-muted-foreground">{org.data?.org_name ? `${org.data.org_name} · ` : ""}نام کاربری و رمز عبور سازمانی خود را وارد کنید.</p>
+            <p className="mt-1 text-muted-foreground">{org.data?.org_name ? `${org.data.org_name} · ` : ""}با نام کاربری و رمز عبور سازمانی وارد شوید.</p>
           </div>
-          {error && <Alert variant="destructive">{error}</Alert>}
-          <FormField label="نام کاربری" htmlFor="u">
-            <Input id="u" dir="ltr" autoFocus autoComplete="username" value={f.username} onChange={(e) => setF({ ...f, username: e.target.value })} />
+          {error && (
+            <div ref={errorRef} id="login-error" tabIndex={-1} role="alert"
+              className="flex items-start gap-2 rounded-field border-line border-destructive/50 bg-destructive/5 p-3 text-sm text-destructive focus-visible:outline-none">
+              <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden /> {error}
+            </div>
+          )}
+          <FormField label="نام کاربری" htmlFor="u" required>
+            <Input id="u" name="username" dir="ltr" autoFocus autoComplete="username" autoCapitalize="none" spellCheck={false}
+              value={f.username} onChange={(e) => setF({ ...f, username: e.target.value })} aria-invalid={!!error && !f.username} />
           </FormField>
-          <FormField label="رمز عبور" htmlFor="p">
-            <Input id="p" dir="ltr" type="password" autoComplete="current-password" value={f.password} onChange={(e) => setF({ ...f, password: e.target.value })} />
+          <FormField label="رمز عبور" htmlFor="p" required>
+            <PasswordInput id="p" name="password" autoComplete="current-password" value={f.password}
+              onChange={(e) => setF({ ...f, password: e.target.value })} aria-invalid={!!error && !f.password} />
           </FormField>
-          <Button type="submit" size="lg" className="w-full" disabled={busy || !f.username || !f.password}>
-            {busy ? "در حال ورود…" : "ورود"} {!busy && <ArrowLeft className="size-4" />}
-          </Button>
-          <div className="rounded-field border-line border-dashed border-border p-3 text-xs leading-6 text-muted-foreground">
-            <b className="text-foreground">کاربران نمایشی</b> با رمز <span dir="ltr">nikyar123</span>:<br />
-            admin (مدیر کل) · hr_manager (مسئول پرسنلی) · it_manager (مدیر) · developer (کارمند)
-          </div>
+          <SubmitButton type="submit" size="lg" className="w-full" loading={busy} loadingText="در حال ورود…">
+            ورود <ArrowLeft className="size-4" aria-hidden />
+          </SubmitButton>
+          <details className="rounded-field border-line border-border p-3 text-sm text-muted-foreground">
+            <summary className="cursor-pointer font-medium text-foreground">کاربران نمایشی</summary>
+            <p className="mt-2 leading-7">رمز همه: <bdi dir="ltr">nikyar123</bdi><br />
+              admin (مدیر کل) · hr_manager (مسئول پرسنلی) · it_manager (مدیر) · developer (کارمند)</p>
+          </details>
         </form>
-      </section>
+      </main>
     </div>
   );
 }

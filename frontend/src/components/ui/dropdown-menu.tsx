@@ -19,6 +19,8 @@ export type MenuItem =
 
 export interface DropdownMenuProps {
   trigger: React.ReactNode;
+  /** نام دسترس‌پذیر دکمه‌ی بازکننده */
+  triggerLabel?: string;
   items: MenuItem[];
   align?: "start" | "end";
   className?: string;
@@ -30,6 +32,7 @@ export interface DropdownMenuProps {
  */
 export function DropdownMenu({
   trigger,
+  triggerLabel,
   items,
   align = "start",
   className,
@@ -67,14 +70,17 @@ export function DropdownMenu({
 
   return (
     <div ref={root} className={cn("inline-block", className)}>
-      <span
+      {/* nikyar: دکمه‌ی واقعی به‌جای span تا با صفحه‌کلید در دسترس باشد (axe: aria-allowed-attr) */}
+      <button
+        type="button"
         onClick={() => { if (!open) update(); setOpen((o) => !o); }}
         aria-haspopup="menu"
         aria-expanded={open}
-        className="inline-flex cursor-pointer"
+        aria-label={triggerLabel}
+        className="inline-flex cursor-pointer rounded-control"
       >
         {trigger}
-      </span>
+      </button>
       <FloatPortal
         open={open}
         mounted={mounted}

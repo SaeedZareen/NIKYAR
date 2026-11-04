@@ -22,7 +22,7 @@ import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { cn, en, fa, faFileSize, formatToman } from "@/lib/utils";
 import { get, uploadFile, type Attachment } from "@/app/api";
-import { JalaliDateInput, ReadValue, useApiAction } from "@/app/ui";
+import { ErrorSummary, JalaliDateInput, useApiAction } from "@/app/ui";
 import { DISPLAY_ONLY, isVisible, lookupCodes, type Access, type FieldDef, type FormSchema, type Values } from "./types";
 import { useLookupBundle, useUnits, useUsersBrief, type LookupOption } from "./useFormRefs";
 
@@ -44,9 +44,15 @@ export interface FormRendererProps {
   access?: Access;          // دسترسی هر فیلد در این مرحله؛ پیش‌فرض: defaultMode
   defaultMode?: "edit" | "read";
   readOnly?: boolean;
+  /** خلاصه‌ی خطاها بالای فرم پس از ارسال ناموفق (پیش‌فرض: روشن) */
+  summary?: boolean;
 }
 
-export function FormRenderer({ schema, values, onChange, errors = {}, access = {}, defaultMode = "edit", readOnly }: FormRendererProps) {
+export function labelsOf(schema: FormSchema): Record<string, string> {
+  return Object.fromEntries(schema.sections.flatMap((s) => s.fields.map((f) => [f.key, f.label])));
+}
+
+export function FormRenderer({ schema, values, onChange, errors = {}, access = {}, defaultMode = "edit", readOnly, summary = true }: FormRendererProps) {
   const fields = schema.sections.flatMap((s) => s.fields);
   const needUsers = hasType(fields, "user");
   const needUnits = hasType(fields, "org_unit");
@@ -59,6 +65,7 @@ export function FormRenderer({ schema, values, onChange, errors = {}, access = {
 
   return (
     <RefsCtx.Provider value={refs}>
+      {summary && !readOnly && <ErrorSummary errors={errors} labels={labelsOf(schema)} />}
       <div className="space-y-8">
         {schema.sections.map((s) => {
           const visible = s.fields.filter((f) => isVisible(f, values) && (DISPLAY_ONLY.includes(f.type) || modeOf(f) !== "hidden"));
@@ -66,7 +73,7 @@ export function FormRenderer({ schema, values, onChange, errors = {}, access = {
           const cols = Math.min(Math.max(s.columns ?? 2, 1), 4);
           return (
             <fieldset key={s.id} className="min-w-0">
-              <legend className="mb-1 text-base font-semibold">{s.title}</legend>
+              {s.title && <legend className="mb-1 text-base font-semibold">{s.title}</legend>}
               {s.description && <p className="mb-3 text-sm text-muted-foreground">{s.description}</p>}
               <div className={cn("mt-3 grid grid-cols-1 gap-x-4 gap-y-5", GRID[cols])}>
                 {visible.map((f) => (
@@ -106,13 +113,18 @@ function FieldBlock({ field: f, value, mode, error, rowErrors, onChange }: {
       </div>
     );
   }
+  if (!editable) {
+    // حالت فقط‌خواندنی: برچسب و مقدار، نه فیلد خاکستری شبیه غیرفعال (read-only-distinction)
+    return (
+      <div className="min-w-0" role="group" aria-labelledby={`${id}-label`}>
+        <div id={`${id}-label`} className="text-sm text-muted-foreground">{f.label}</div>
+        <div className="mt-0.5 break-words font-medium"><FieldDisplay field={f} value={value} /></div>
+      </div>
+    );
+  }
   return (
-    <FormField label={f.label} htmlFor={id} required={editable && f.required} error={error} hint={f.help}>
-      {editable ? (
-        <FieldControl id={id} field={f} value={value} onChange={onChange} invalid={!!error} rowErrors={rowErrors} />
-      ) : (
-        <FieldDisplay field={f} value={value} />
-      )}
+    <FormField label={f.label} htmlFor={id} required={f.required} error={error} hint={f.help}>
+      <FieldControl id={id} field={f} value={value} onChange={onChange} invalid={!!error} rowErrors={rowErrors} />
     </FormField>
   );
 }
@@ -158,7 +170,7 @@ export function FieldControl({ id, field: f, value, onChange, invalid, rowErrors
       return <MultiSelect options={items.map((i) => ({ value: i.code, label: i.title }))} value={(value as string[]) ?? []} onChange={onChange} searchable />;
     }
     case "date":
-      return <JalaliDateInput value={str} onChange={onChange} />;
+      return <JalaliDateInput id={id} value={str} onChange={onChange} />;
     case "time":
       return <TimePicker id={id} value={str || null} onChange={onChange} />;
     case "national_id":
@@ -220,7 +232,9 @@ function FieldDisplay({ field: f, value }: { field: FieldDef; value: unknown }) 
   if (f.type === "file") return <FileList ids={(value as number[]) ?? []} />;
   if (f.type === "table") return <TableField field={f} value={(value as Values[]) ?? []} readOnly />;
   const ltr = ["iban", "card_number", "email", "mobile", "phone", "national_id", "postal_code"].includes(f.type);
-  return <ReadValue value={displayText(f, value, refs)} ltr={ltr} />;
+  const text = displayText(f, value, refs);
+  if (text === "—") return <span className="font-normal text-muted-foreground">ثبت نشده</span>;
+  return ltr ? <bdi dir="ltr">{text}</bdi> : <span className="whitespace-pre-wrap">{text}</span>;
 }
 
 function FileField({ value, onChange, max }: { value: number[]; onChange: (v: unknown) => void; max?: number }) {
@@ -253,7 +267,7 @@ export function FileList({ ids, onRemove }: { ids: number[]; onRemove?: (id: num
     queryKey: ["files-meta", ids.join(",")], enabled: ids.length > 0,
     queryFn: () => get<Attachment[]>(`/files/meta/?ids=${ids.join(",")}`),
   });
-  if (!ids.length) return onRemove ? null : <ReadValue value="—" />;
+  if (!ids.length) return onRemove ? null : <span className="font-normal text-muted-foreground">بدون پیوست</span>;
   return (
     <ul className="space-y-2">
       {(q.data ?? []).map((a) => (

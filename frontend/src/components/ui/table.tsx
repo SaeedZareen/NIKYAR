@@ -2,9 +2,10 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 
 /** جدول. Columns start from the right; use `numeric` on cells with amounts. */
-export function Table({ className, ...props }: React.TableHTMLAttributes<HTMLTableElement>) {
+export function Table({ className, bare, ...props }: React.TableHTMLAttributes<HTMLTableElement> & { bare?: boolean }) {
+  // nikyar: «bare» برای جدول داخل یک سطح دیگر، تا کارت داخل کارت نشود
   return (
-    <div className="w-full overflow-x-auto rounded-xl border border-border">
+    <div className={cn("w-full overflow-x-auto", !bare && "rounded-xl border border-border")}>
       <table className={cn("w-full caption-bottom text-sm", className)} {...props} />
     </div>
   );

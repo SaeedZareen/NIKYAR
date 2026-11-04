@@ -6,7 +6,7 @@ import { ArrowRight, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { get } from "@/app/api";
 import { applyTheme, useAuth } from "@/app/auth";
-import { ErrorBlock, LoadingBlock } from "@/app/ui";
+import { ErrorBlock, LoadingBlock, useDocumentTitle } from "@/app/ui";
 import { FormRenderer } from "@/core/forms/FormRenderer";
 import { todayJ } from "@/core/workflow/printUtils";
 import { fa } from "@/lib/utils";
@@ -19,9 +19,10 @@ export default function PrintPage() {
   const { user } = useAuth();
   const q = useQuery({ queryKey: ["instance", id], queryFn: () => get<InstanceDetail>(`/workflow/instances/${id}/`) });
   const org = useQuery({ queryKey: ["public-settings"], queryFn: () => get<Org>("/settings/public/") });
+  useDocumentTitle(q.data ? `نسخه‌ی چاپی ${q.data.tracking_code}` : "نسخه‌ی چاپی");
   React.useEffect(() => {
-    applyTheme("paper");  // چاپ همیشه روی زمینه‌ی روشن
-    return () => applyTheme(user?.theme ?? "graphite");
+    applyTheme("light");  // چاپ همیشه روی زمینه‌ی روشن
+    return () => applyTheme(user?.theme ?? "light");
   }, [user?.theme]);
 
   if (q.isLoading || org.isLoading) return <div className="p-8"><LoadingBlock rows={10} /></div>;
@@ -34,10 +35,10 @@ export default function PrintPage() {
   return (
     <div className="min-h-dvh bg-background text-foreground">
       <div className="mx-auto flex max-w-4xl items-center justify-between gap-2 p-4 print:hidden">
-        <Link to={`/requests/${id}`} className="flex min-h-11 items-center gap-2 text-sm text-muted-foreground hover:text-foreground"><ArrowRight className="size-4" /> بازگشت به پرونده</Link>
-        <Button onClick={() => window.print()}><Printer className="size-4" /> چاپ یا ذخیره‌ی PDF</Button>
+        <Link to={`/requests/${id}`} className="flex min-h-10 items-center gap-2 rounded-control text-sm text-brand hover:underline"><ArrowRight className="size-4" aria-hidden /> بازگشت به پرونده</Link>
+        <Button onClick={() => window.print()}><Printer className="size-4" aria-hidden /> چاپ یا ذخیره‌ی PDF</Button>
       </div>
-      <article className="mx-auto max-w-4xl border-line border-border bg-card p-8 print:max-w-none print:border-0 print:p-0">
+      <main id="main"><article className="mx-auto max-w-4xl border-line border-border bg-card p-8 print:max-w-none print:border-0 print:p-0">
         <header className="mb-6 grid grid-cols-3 items-center gap-4 border-b border-border pb-4">
           <div className="text-sm leading-7">
             <div>شماره: {fa(i.tracking_code)}</div>
@@ -58,10 +59,11 @@ export default function PrintPage() {
         <section className="mb-8">
           <h2 className="mb-3 text-base font-semibold">گردش و تأییدها</h2>
           <table className="w-full border-collapse text-sm">
+            <caption className="sr-only">گردش و تأییدهای درخواست</caption>
             <thead>
               <tr className="bg-muted/50">
-                <th className="border border-border p-2 text-start">مرحله</th><th className="border border-border p-2 text-start">اقدام‌کننده</th>
-                <th className="border border-border p-2 text-start">تاریخ</th><th className="border border-border p-2 text-start">امضا</th>
+                <th scope="col" className="border border-border p-2 text-start">مرحله</th><th scope="col" className="border border-border p-2 text-start">اقدام‌کننده</th>
+                <th scope="col" className="border border-border p-2 text-start">تاریخ</th><th scope="col" className="border border-border p-2 text-start">امضا</th>
               </tr>
             </thead>
             <tbody>
@@ -84,7 +86,7 @@ export default function PrintPage() {
           {[o?.org_address, o?.org_phone && `تلفن: ${fa(o.org_phone)}`, o?.org_national_id && `شناسه‌ی ملی: ${fa(o.org_national_id)}`].filter(Boolean).join(" · ")}
           <div>وضعیت پرونده هنگام چاپ: {i.status_display} · تاریخ چاپ: {fa(todayJ())}</div>
         </footer>
-      </article>
+      </article></main>
     </div>
   );
 }

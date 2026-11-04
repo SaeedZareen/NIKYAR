@@ -5,12 +5,11 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SegmentedControl } from "@/components/ui/segmented-control";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FormField } from "@/components/ui/form";
 import { get, post, put } from "@/app/api";
-import { LoadingBlock, PageHeader, Panel, useApiAction } from "@/app/ui";
-import { FormRenderer } from "@/core/forms/FormRenderer";
+import { ErrorSummary, LoadingBlock, StatusBadge, PageHeader, Panel, SubmitButton, useApiAction } from "@/app/ui";
+import { FormRenderer, labelsOf } from "@/core/forms/FormRenderer";
 import type { FormSchema, Values } from "@/core/forms/types";
 import { fa } from "@/lib/utils";
 
@@ -22,11 +21,14 @@ export default function SettingsPage() {
   const q = useQuery({ queryKey: ["settings"], queryFn: () => get<{ schema: FormSchema; values: Values }>("/settings/") });
   const [values, setValues] = React.useState<Values>({});
   const [errors, setErrors] = React.useState<Record<string, string>>({});
+  const [busy, setBusy] = React.useState(false);
   React.useEffect(() => { if (q.data) setValues(q.data.values); }, [q.data]);
   if (q.isLoading || !q.data) return <LoadingBlock rows={10} />;
 
   const save = async () => {
+    setBusy(true);
     const r = await run(() => put<{ values: Values }>("/settings/", { values }), "تنظیمات ذخیره شد.");
+    setBusy(false);
     if (r.ok) { setErrors({}); qc.invalidateQueries({ queryKey: ["settings"] }); qc.invalidateQueries({ queryKey: ["public-settings"] }); }
     else setErrors(r.fields ?? {});
   };
@@ -34,11 +36,12 @@ export default function SettingsPage() {
   return (
     <>
       <PageHeader title="تنظیمات سازمان" description="مشخصات سازمان، پیامک، ایمیل و مهلت‌های کارتابل"
-        actions={<Button onClick={save}><Save className="size-4" /> ذخیره‌ی تنظیمات</Button>} />
+        actions={<SubmitButton onClick={save} loading={busy} disabled={JSON.stringify(values) === JSON.stringify(q.data.values)}><Save className="size-4" aria-hidden /> ذخیره‌ی تنظیمات</SubmitButton>} />
+      <ErrorSummary errors={errors} labels={labelsOf(q.data.schema)} />
       <div className="space-y-6">
         {q.data.schema.sections.map((s) => (
           <Panel key={s.id}>
-            <FormRenderer schema={{ sections: [s] }} values={values} onChange={setValues} errors={errors} />
+            <FormRenderer schema={{ sections: [s] }} values={values} onChange={setValues} errors={errors} summary={false} />
           </Panel>
         ))}
         <ChannelTest />
@@ -60,11 +63,11 @@ function ChannelTest() {
         <FormField label={channel === "sms" ? "شماره موبایل گیرنده" : "ایمیل گیرنده"} htmlFor="test-to" className="min-w-60 flex-1">
           <Input id="test-to" dir="ltr" value={to} onChange={(e) => setTo(e.target.value)} />
         </FormField>
-        <Button variant="outline" onClick={send} disabled={!to}><Send className="size-4" /> ارسال آزمایشی</Button>
+        <Button variant="outline" onClick={send} disabled={!to}><Send className="size-4" aria-hidden /> ارسال آزمایشی</Button>
       </div>
-      <h3 className="mb-2 text-sm font-semibold">آخرین ارسال‌ها</h3>
+      <h3 className="mb-2 text-base font-semibold">آخرین ارسال‌ها</h3>
       {!log.data?.length ? <EmptyState title="هنوز پیامک یا ایمیلی ارسال نشده است" /> : (
-        <Table className="whitespace-nowrap">
+        <Table bare className="whitespace-nowrap">
           <TableHeader><TableRow><TableHead>زمان</TableHead><TableHead>کانال</TableHead><TableHead>گیرنده</TableHead><TableHead>عنوان</TableHead><TableHead>نتیجه</TableHead></TableRow></TableHeader>
           <TableBody>
             {log.data.slice(0, 15).map((l) => (
@@ -73,7 +76,7 @@ function ChannelTest() {
                 <TableCell>{l.channel === "sms" ? "پیامک" : "ایمیل"}</TableCell>
                 <TableCell dir="ltr" className="text-end">{l.recipient}</TableCell>
                 <TableCell>{l.title}</TableCell>
-                <TableCell>{l.ok ? <Badge variant="success">موفق</Badge> : <Badge variant="destructive">{l.error || "ناموفق"}</Badge>}</TableCell>
+                <TableCell>{l.ok ? <StatusBadge tone="success" label="موفق" /> : <StatusBadge tone="destructive" label={l.error || "ناموفق"} />}</TableCell>
               </TableRow>
             ))}
           </TableBody>

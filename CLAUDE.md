@@ -10,6 +10,10 @@ NIKYAR is a modular Persian BPMS/ERP platform. Read `docs/ARCHITECTURE.md` and `
 - `frontend/src/app` — shell, auth, API client, module registry. `frontend/src/core`, `frontend/src/modules` mirror the backend.
 - UI components come from vibefarsi (`src/components/ui`, `src/components/charts`). Add more with `NODE_USE_ENV_PROXY=1 npx vibefarsi add <slug>` from `frontend/`; the vibefarsi MCP server is configured in `.mcp.json`.
 
+### UI/UX (mandatory for any frontend change)
+- Follow `design-system/nikyar/MASTER.md` (source of truth) and the installed skill `.claude/skills/ui-ux-pro-max` (rules: `references/quick-reference.md`). Use the shared primitives in `frontend/src/app/ui.tsx` and `frontend/src/app/list.tsx` instead of ad-hoc markup.
+- Lists are `ResponsiveList` with real links per row; filters live in the URL (`useUrlState`); read-only data is a definition list; failed submits show `ErrorSummary`; one primary action per screen.
+
 ### Rules
 - All user-facing text is formal Persian. API errors raise `core.kernel.api.BusinessError(message, fields)`.
 - Permissions: use `core.kernel.api.Perm` with a `perms` map on the view; frontend uses `useAuth().can()`.

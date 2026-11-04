@@ -16,7 +16,7 @@ import { Switch } from "@/components/ui/switch";
 import { FormField } from "@/components/ui/form";
 import { Alert } from "@/components/ui/alert";
 import { get, patch, post } from "@/app/api";
-import { ErrorBlock, LoadingBlock, PageHeader, useApiAction } from "@/app/ui";
+import { PageError, LoadingBlock, PageHeader, useApiAction } from "@/app/ui";
 import type { FormSchema } from "@/core/forms/types";
 import { fa } from "@/lib/utils";
 import { AssignmentBuilder, PropertiesPanel, type ActionInfo, type Directory } from "./designer/PropertiesPanel";
@@ -89,7 +89,7 @@ export default function ProcessDesignerPage() {
   }, [dirty]);
 
   if (model.isLoading) return <LoadingBlock rows={8} />;
-  if (model.error || !model.data) return <ErrorBlock error={model.error} />;
+  if (model.error || !model.data) return <PageError error={model.error} onRetry={() => model.refetch()} back={{ to: "/processes", label: "فرایندساز" }} />;
   const pm = model.data;
   const form = forms.data?.find((f) => f.id === pm.form) ?? null;
   const schema = form ? form.draft_schema : null;
@@ -129,18 +129,21 @@ export default function ProcessDesignerPage() {
           {dirty ? " · تغییرات ذخیره‌نشده" : pm.has_draft_changes && pm.latest_version ? " · تغییرات منتشرنشده" : ""}
         </>}
         actions={<>
-          <Button variant="ghost" onClick={exportXml}><Download className="size-4" /> فایل BPMN</Button>
+          <Button variant="ghost" onClick={exportXml}><Download className="size-4" aria-hidden /> فایل BPMN</Button>
           <Button variant="outline" disabled={busy} onClick={() => act(async () => { const x = await saveXml(); return post(`/workflow/processes/${id}/check/`, { xml: x }).then((r: any) => r); }, "دیاگرام بررسی شد و مشکلی ندارد.")}>
-            <CheckCircle2 className="size-4" /> بررسی صحت
+            <CheckCircle2 className="size-4" aria-hidden /> بررسی صحت
           </Button>
-          <Button variant="outline" disabled={busy} onClick={() => act(saveXml, "پیش‌نویس ذخیره شد.")}><Save className="size-4" /> ذخیره</Button>
-          <Button variant="brand" disabled={busy} onClick={() => act(async () => { await saveXml(); return post(`/workflow/processes/${id}/publish/`); }, "فرایند منتشر شد.")}>
-            <Rocket className="size-4" /> انتشار
+          <Button variant="outline" disabled={busy} onClick={() => act(saveXml, "پیش‌نویس ذخیره شد.")}><Save className="size-4" aria-hidden /> ذخیره</Button>
+          <Button variant="default" disabled={busy} onClick={() => act(async () => { await saveXml(); return post(`/workflow/processes/${id}/publish/`); }, "فرایند منتشر شد.")}>
+            <Rocket className="size-4" aria-hidden /> انتشار
           </Button>
         </>} />
       <div className="grid overflow-hidden rounded-surface border-line border-border bg-card lg:grid-cols-3 xl:grid-cols-4">
-        <div ref={canvasRef} dir="ltr" className="bpmn-surface h-160 min-h-96 lg:col-span-2 xl:col-span-3" aria-label="بوم طراحی فرایند" />
-        <div className="max-h-160 min-h-96 border-t border-border lg:border-s lg:border-t-0">
+        <div className="relative lg:col-span-2 xl:col-span-3">
+          <div ref={canvasRef} dir="ltr" role="application" aria-label="بوم طراحی فرایند؛ برای تنظیم هر مرحله آن را انتخاب کنید و از پنل تنظیمات استفاده کنید" className="bpmn-surface h-160 min-h-96" />
+          {busy && <div role="status" className="absolute inset-x-0 top-0 h-1 animate-pulse bg-brand"><span className="sr-only">در حال ذخیره</span></div>}
+        </div>
+        <div className="max-h-160 min-h-96 border-t border-border lg:border-s lg:border-t-0" role="region" aria-label="تنظیمات عنصر انتخاب‌شده">
           <PropertiesPanel modeler={modeler} element={selected} directory={dir.data ?? { users: [], units: [], roles: [] }}
             actions={catalog.data?.actions ?? []} schema={schema} formTitle={form?.title ?? ""} processSettings={settings} />
         </div>

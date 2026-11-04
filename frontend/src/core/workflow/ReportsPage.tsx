@@ -1,15 +1,13 @@
-import * as React from "react";
 import { useQuery } from "@tanstack/react-query";
 import { BarChart3 } from "lucide-react";
 import { BarChart } from "@/components/charts/bar-chart";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Select } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FormField } from "@/components/ui/form";
 import { get } from "@/app/api";
-import { JalaliDateInput, LoadingBlock, PageHeader, Panel } from "@/app/ui";
+import { ErrorBlock, JalaliDateInput, LoadingBlock, PageHeader, Panel, StatusBadge, useUrlState } from "@/app/ui";
 import { fa } from "@/lib/utils";
 
 type Report = {
@@ -26,9 +24,9 @@ export function duration(h: number | null) {
 }
 
 export default function ReportsPage() {
-  const [from, setFrom] = React.useState("");
-  const [to, setTo] = React.useState("");
-  const [proc, setProc] = React.useState("");
+  const [from, setFrom] = useUrlState("from");
+  const [to, setTo] = useUrlState("to");
+  const [proc, setProc] = useUrlState("process");
   const params = new URLSearchParams({ ...(from && { from }), ...(to && { to }), ...(proc && { process: proc }) });
   const q = useQuery({ queryKey: ["wf-report", params.toString()], queryFn: () => get<Report>(`/workflow/reports/?${params}`) });
   const r = q.data;
@@ -40,10 +38,10 @@ export default function ReportsPage() {
   return (
     <>
       <PageHeader title="گزارش عملکرد فرایندها" description="مدت انجام، گلوگاه‌ها و بار کاری کارکنان" />
-      <Panel className="mb-6">
+      <Panel className="mb-6" title="فیلتر">
         <div className="flex flex-wrap items-end gap-4">
-          <FormField label="از تاریخ" className="w-48"><JalaliDateInput value={from} onChange={setFrom} /></FormField>
-          <FormField label="تا تاریخ" className="w-48"><JalaliDateInput value={to} onChange={setTo} /></FormField>
+          <FormField label="از تاریخ" className="w-48"><JalaliDateInput id="from" value={from} onChange={setFrom} /></FormField>
+          <FormField label="تا تاریخ" className="w-48"><JalaliDateInput id="to" value={to} onChange={setTo} /></FormField>
           <FormField label="فرایند (برای مراحل)" htmlFor="rp-proc" className="w-60">
             <Select id="rp-proc" value={proc} placeholder="همه‌ی فرایندها" onChange={(e) => setProc(e.target.value)}
               options={(r?.processes ?? []).map((p) => ({ value: String(p.id), label: p.title }))} />
@@ -51,12 +49,12 @@ export default function ReportsPage() {
           {(from || to || proc) && <Button variant="ghost" onClick={() => { setFrom(""); setTo(""); setProc(""); }}>حذف فیلترها</Button>}
         </div>
       </Panel>
-      {q.isLoading || !r ? <LoadingBlock rows={8} /> : !r.processes.length ? (
+      {q.error ? <ErrorBlock error={q.error} onRetry={() => q.refetch()} /> : q.isLoading || !r ? <LoadingBlock rows={8} /> : !r.processes.length ? (
         <EmptyState icon={BarChart3} title="در این بازه درخواستی ثبت نشده است" />
       ) : (
         <div className="space-y-6">
-          <Panel title="خلاصه‌ی فرایندها" bodyClassName="p-0">
-            <Table className="whitespace-nowrap">
+          <Panel title="خلاصه‌ی فرایندها" flush>
+            <Table bare className="whitespace-nowrap">
               <TableHeader><TableRow><TableHead>فرایند</TableHead><TableHead>کل</TableHead><TableHead>در جریان</TableHead><TableHead>خاتمه‌یافته</TableHead><TableHead>لغو شده</TableHead><TableHead>میانگین مدت انجام</TableHead></TableRow></TableHeader>
               <TableBody>
                 {r.processes.map((p) => (
@@ -72,19 +70,20 @@ export default function ReportsPage() {
           </Panel>
           <div className="grid gap-6 lg:grid-cols-2">
             <Panel>
-              {bottlenecks.length ? (
+              {bottlenecks.length ? (<>
+                <p className="sr-only">کندترین مرحله: {timed[0]?.name} با میانگین {duration(timed[0]?.avg_hours ?? null)}. جزئیات در جدول «مراحل».</p>
                 <BarChart title={`گلوگاه‌ها: میانگین زمان هر مرحله (${unit})`} data={bottlenecks} x="name" orientation="horizontal" showValues
                   series={[{ key: "value", label: `میانگین (${unit})` }]} />
-              ) : <EmptyState title="هنوز مرحله‌ای انجام نشده است" />}
+              </>) : <EmptyState title="هنوز مرحله‌ای انجام نشده است" />}
             </Panel>
-            <Panel title="مراحل" bodyClassName="p-0">
-              <Table className="whitespace-nowrap">
+            <Panel title="مراحل" flush>
+              <Table bare className="whitespace-nowrap">
                 <TableHeader><TableRow><TableHead>مرحله</TableHead><TableHead>انجام‌شده</TableHead><TableHead>باز</TableHead><TableHead>دیرکرد</TableHead><TableHead>میانگین</TableHead></TableRow></TableHeader>
                 <TableBody>
                   {r.steps.map((s) => (
                     <TableRow key={s.name}>
                       <TableCell>{s.name}</TableCell><TableCell>{fa(s.done)}</TableCell><TableCell>{fa(s.open)}</TableCell>
-                      <TableCell>{s.overdue ? <Badge variant="destructive">{fa(s.overdue)}</Badge> : "۰"}</TableCell>
+                      <TableCell>{s.overdue ? <StatusBadge tone="destructive" label={fa(s.overdue)} /> : "۰"}</TableCell>
                       <TableCell>{duration(s.avg_hours)}</TableCell>
                     </TableRow>
                   ))}
@@ -92,14 +91,14 @@ export default function ReportsPage() {
               </Table>
             </Panel>
           </div>
-          <Panel title="بار کاری کارکنان" bodyClassName="p-0">
-            <Table className="whitespace-nowrap">
+          <Panel title="بار کاری کارکنان" flush>
+            <Table bare className="whitespace-nowrap">
               <TableHeader><TableRow><TableHead>کارمند</TableHead><TableHead>کارهای باز</TableHead><TableHead>دیرکرد</TableHead><TableHead>انجام‌شده</TableHead></TableRow></TableHeader>
               <TableBody>
                 {r.workload.map((w) => (
                   <TableRow key={w.name}>
                     <TableCell>{w.name}</TableCell><TableCell>{fa(w.open)}</TableCell>
-                    <TableCell>{w.overdue ? <Badge variant="destructive">{fa(w.overdue)}</Badge> : "۰"}</TableCell><TableCell>{fa(w.done)}</TableCell>
+                    <TableCell>{w.overdue ? <StatusBadge tone="destructive" label={fa(w.overdue)} /> : "۰"}</TableCell><TableCell>{fa(w.done)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

@@ -1,40 +1,54 @@
 import * as React from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { Plus } from "lucide-react";
-import { DataTable, type Column } from "@/components/ui/data-table";
+import { GitBranch, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Dialog } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { SearchInput } from "@/components/ui/search-input";
 import { FormField } from "@/components/ui/form";
 import { get, post } from "@/app/api";
-import { PageHeader, useApiAction } from "@/app/ui";
+import { ErrorBlock, ErrorSummary, GuardedDialog, PageHeader, Panel, StatusBadge, SubmitButton, useApiAction, useUrlState } from "@/app/ui";
+import { ListToolbar, matches, ResponsiveList, type Column } from "@/app/list";
 import { fa } from "@/lib/utils";
 import type { ProcessModel } from "./ProcessDesignerPage";
+
+export function processState(p: { is_active?: boolean; latest_version: unknown; has_draft_changes: boolean }) {
+  if (p.is_active === false) return <StatusBadge tone="neutral" label="غیرفعال" />;
+  if (!p.latest_version) return <StatusBadge tone="warning" label="پیش‌نویس" />;
+  if (p.has_draft_changes) return <StatusBadge tone="warning" label="تغییرات منتشرنشده" />;
+  return <StatusBadge tone="success" label="منتشرشده" />;
+}
 
 export default function ProcessListPage() {
   const navigate = useNavigate();
   const q = useQuery({ queryKey: ["processes"], queryFn: () => get<ProcessModel[]>("/workflow/processes/") });
+  const [term, setTerm] = useUrlState("q");
   const [open, setOpen] = React.useState(false);
-  const columns: Column<ProcessModel & Record<string, unknown>>[] = [
-    { key: "title", header: "نام فرایند", cell: (p) => <span><span className="block font-medium">{p.title}</span><span dir="ltr" className="text-xs text-muted-foreground">{p.key}</span></span> },
-    { key: "category", header: "دسته" },
-    { key: "form_title", header: "فرم", cell: (p) => p.form_title || "—" },
-    { key: "latest_version", header: "نسخه", cell: (p) => (p.latest_version ? fa(p.latest_version.version) : "—") },
-    { key: "instance_count", header: "تعداد درخواست", numeric: true, cell: (p) => fa(p.instance_count) },
-    { key: "is_active", header: "وضعیت", cell: (p) => !p.is_active ? <Badge variant="secondary">غیرفعال</Badge>
-      : !p.latest_version ? <Badge variant="warning">پیش‌نویس</Badge>
-      : p.has_draft_changes ? <Badge variant="warning">تغییرات منتشرنشده</Badge> : <Badge variant="success">منتشرشده</Badge> },
+  const rows = (q.data ?? []).filter((p) => matches(term, p.title, p.key, p.category));
+  const columns: Column<ProcessModel>[] = [
+    { key: "title", header: "نام فرایند", primary: true, sortValue: (p) => p.title, cell: (p) => p.title },
+    { key: "key", header: "کلید", cell: (p) => <bdi dir="ltr" className="text-sm text-muted-foreground">{p.key}</bdi>, hideOnMobile: true },
+    { key: "category", header: "دسته", sortValue: (p) => p.category, cell: (p) => p.category || "—" },
+    { key: "form", header: "فرم", cell: (p) => p.form_title || <span className="text-muted-foreground">بدون فرم</span> },
+    { key: "version", header: "نسخه", numeric: true, cell: (p) => (p.latest_version ? fa(p.latest_version.version) : "—") },
+    { key: "count", header: "درخواست‌ها", numeric: true, sortValue: (p) => p.instance_count, cell: (p) => fa(p.instance_count) },
+    { key: "state", header: "وضعیت", cell: processState },
   ];
   return (
     <>
       <PageHeader title="فرایندساز" description="فرایندهای سازمان را طراحی، نسخه‌بندی و منتشر کنید."
-        actions={<Button onClick={() => setOpen(true)}><Plus className="size-4" /> فرایند جدید</Button>} />
-      <DataTable rows={(q.data ?? []) as (ProcessModel & Record<string, unknown>)[]} columns={columns} rowKey={(p) => String(p.id)}
-        loading={q.isLoading} searchKeys={["title", "key", "category"]} emptyTitle="هنوز فرایندی تعریف نشده است"
-        onRowClick={(p) => navigate(`/processes/${p.id}`)} pageSize={15} />
-      <NewKeyDialog open={open} onOpenChange={setOpen} title="فرایند جدید" keyHint="شناسه‌ی یکتا و غیرقابل تغییر، مثل purchase_request"
+        actions={<Button onClick={() => setOpen(true)}><Plus className="size-4" aria-hidden /> فرایند جدید</Button>} />
+      {q.error ? <ErrorBlock error={q.error} onRetry={() => q.refetch()} /> : (
+        <Panel flush>
+          <ListToolbar count={q.data ? rows.length : undefined}>
+            <div className="w-full sm:w-80"><SearchInput value={term} onChange={setTerm} placeholder="نام، کلید یا دسته" aria-label="جست‌وجوی فرایند" size="sm" /></div>
+          </ListToolbar>
+          <ResponsiveList rows={rows} columns={columns} rowKey={(p) => p.id} loading={q.isLoading} caption="فرایندها" rowHref={(p) => `/processes/${p.id}`}
+            empty={{ icon: GitBranch, title: term ? "فرایندی با این نام پیدا نشد" : "هنوز فرایندی تعریف نشده است",
+              action: !term && <Button variant="outline" onClick={() => setOpen(true)}><Plus className="size-4" aria-hidden /> ساخت اولین فرایند</Button> }} />
+        </Panel>
+      )}
+      <NewKeyDialog open={open} onOpenChange={setOpen} title="فرایند جدید" keyHint="شناسه‌ی یکتا و غیرقابل‌تغییر، مثل purchase_request"
         onCreate={(title, key) => post<ProcessModel>("/workflow/processes/", { title, key }).then((p) => navigate(`/processes/${p.id}`))} />
     </>
   );
@@ -47,22 +61,28 @@ export function NewKeyDialog({ open, onOpenChange, title, keyHint, onCreate, ext
   const run = useApiAction();
   const [f, setF] = React.useState({ title: "", key: "" });
   const [errors, setErrors] = React.useState<Record<string, string>>({});
-  const create = async () => {
+  const [busy, setBusy] = React.useState(false);
+  const create = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setBusy(true);
     const r = await run(() => onCreate(f.title, f.key));
+    setBusy(false);
     if (!r.ok) setErrors(r.fields ?? {});
   };
   return (
-    <Dialog open={open} onOpenChange={onOpenChange} title={title}
-      footer={<><Button onClick={create} disabled={!f.title || !f.key}>ایجاد</Button><Button variant="ghost" onClick={() => onOpenChange(false)}>انصراف</Button></>}>
-      <div className="space-y-4">
-        <FormField label="عنوان" htmlFor="nk-title" required error={errors.title}>
-          <Input id="nk-title" value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} />
+    <GuardedDialog open={open} onOpenChange={onOpenChange} dirty={!!(f.title || f.key)} title={title}
+      footer={<><SubmitButton type="submit" form="new-key-form" loading={busy} disabled={!f.title || !f.key}>ایجاد</SubmitButton><Button variant="ghost" onClick={() => onOpenChange(false)}>انصراف</Button></>}>
+      <form id="new-key-form" onSubmit={create} className="space-y-4" noValidate>
+        <ErrorSummary errors={errors} labels={{ title: "عنوان", key: "کلید لاتین" }} />
+        <FormField label="عنوان" htmlFor="f-title" required error={errors.title}>
+          <Input id="f-title" value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} autoFocus />
         </FormField>
-        <FormField label="کلید لاتین" htmlFor="nk-key" required hint={keyHint} error={errors.key}>
-          <Input id="nk-key" dir="ltr" value={f.key} onChange={(e) => setF({ ...f, key: e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, "") })} />
+        <FormField label="کلید لاتین" htmlFor="f-key" required hint={keyHint} error={errors.key}>
+          <Input id="f-key" dir="ltr" value={f.key} autoComplete="off" spellCheck={false}
+            onChange={(e) => setF({ ...f, key: e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, "") })} />
         </FormField>
         {extra}
-      </div>
-    </Dialog>
+      </form>
+    </GuardedDialog>
   );
 }

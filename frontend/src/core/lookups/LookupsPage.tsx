@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Select } from "@/components/ui/select";
-import { Badge } from "@/components/ui/badge";
 import { Alert } from "@/components/ui/alert";
 import { Dialog } from "@/components/ui/dialog";
 import { AlertDialog } from "@/components/ui/alert-dialog";
@@ -16,7 +15,7 @@ import { SearchInput } from "@/components/ui/search-input";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { del, get, patch, post } from "@/app/api";
-import { LoadingBlock, PageHeader, Panel, useApiAction } from "@/app/ui";
+import { LoadingBlock, PageHeader, Panel, StatusBadge, SubmitButton, useApiAction } from "@/app/ui";
 import { cn, fa } from "@/lib/utils";
 
 type LType = { id: number; code: string; title: string; description: string; module: string; module_title: string; is_system: boolean; hierarchical: boolean; item_count: number };
@@ -38,7 +37,7 @@ export default function LookupsPage() {
   return (
     <>
       <PageHeader title="فهرست‌های پایه" description="مقادیر انتخابی سامانه. فهرست‌های قفل‌دار سیستمی هستند و منطق برنامه به آن‌ها وابسته است."
-        actions={<Button onClick={() => setNewOpen(true)}><Plus className="size-4" /> فهرست جدید</Button>} />
+        actions={<Button onClick={() => setNewOpen(true)}><Plus className="size-4" aria-hidden /> فهرست جدید</Button>} />
       <div className="grid items-start gap-6 lg:grid-cols-12">
         <Panel className="lg:col-span-4" bodyClassName="p-3">
           <SearchInput value={term} onChange={setTerm} placeholder="جست‌وجوی فهرست" size="sm" />
@@ -46,14 +45,14 @@ export default function LookupsPage() {
             <nav className="mt-3 space-y-4" aria-label="فهرست‌ها">
               {groups.map(([g, list]) => (
                 <div key={g}>
-                  <div className="px-2 pb-1 text-xs text-muted-foreground">{g}</div>
+                  <h2 className="px-2 pb-1 text-sm font-medium text-muted-foreground">{g}</h2>
                   {list.map((t) => (
-                    <button key={t.code} type="button" onClick={() => navigate(`/lookups/${t.code}`)}
+                    <button key={t.code} type="button" onClick={() => navigate(`/lookups/${t.code}`)} aria-current={t.code === code ? "true" : undefined}
                       className={cn("flex min-h-11 w-full items-center gap-2 rounded-control px-2 text-start text-sm transition-colors",
                         t.code === code ? "bg-accent font-medium" : "hover:bg-accent/60")}>
-                      {t.is_system ? <Lock className="size-4 shrink-0 text-warning" aria-label="سیستمی" /> : <ListTree className="size-4 shrink-0 text-muted-foreground" />}
+                      {t.is_system ? <><Lock className="size-4 shrink-0 text-warning" aria-hidden /><span className="sr-only">(سیستمی) </span></> : <ListTree className="size-4 shrink-0 text-muted-foreground" aria-hidden />}
                       <span className="flex-1 truncate">{t.title}</span>
-                      <span className="text-xs text-muted-foreground">{fa(t.item_count)}</span>
+                      <span className="text-sm text-muted-foreground tabular-nums">{fa(t.item_count)}<span className="sr-only"> مقدار</span></span>
                     </button>
                   ))}
                 </div>
@@ -102,7 +101,7 @@ function ItemsPanel({ code }: { code: string }) {
   };
 
   return (
-    <Panel title={<span className="flex items-center gap-2">{t.title} {locked ? <Badge variant="warning">سیستمی</Badge> : <Badge variant="success">قابل‌ویرایش</Badge>}</span>}
+    <Panel title={<span className="flex items-center gap-2">{t.title} {locked ? <StatusBadge tone="warning" label="سیستمی (قفل)" /> : <StatusBadge tone="success" label="قابل‌ویرایش" />}</span>}
       description={<span dir="ltr">{t.code}</span>}
       actions={!locked && t.module === "custom" && <Button variant="ghost" size="sm" className="text-destructive" onClick={() => setDelType(true)}><Trash2 className="size-4" /> حذف فهرست</Button>}>
       {locked ? (
@@ -121,12 +120,12 @@ function ItemsPanel({ code }: { code: string }) {
                 options={items.filter((i) => !i.parent).map((i) => ({ value: String(i.id), label: i.title }))} />
             </FormField>
           )}
-          <Button onClick={add} disabled={!title.trim()}><Plus className="size-4" /> افزودن</Button>
+          <Button onClick={add} disabled={!title.trim()}><Plus className="size-4" aria-hidden /> افزودن</Button>
         </div>
       )}
       <label className="mb-2 flex min-h-11 items-center gap-2 text-sm"><Switch checked={showInactive} onCheckedChange={setShowInactive} aria-label="نمایش غیرفعال‌ها" /> نمایش مقادیر غیرفعال</label>
       <div className="overflow-x-auto">
-        <Table>
+        <Table bare>
           <TableHeader><TableRow>
             <TableHead className="w-12">ردیف</TableHead><TableHead>عنوان</TableHead><TableHead>کد</TableHead>
             {t.hierarchical && <TableHead>والد</TableHead>}<TableHead>فعال</TableHead>{!locked && <TableHead className="w-40">عملیات</TableHead>}
@@ -140,7 +139,7 @@ function ItemsPanel({ code }: { code: string }) {
                   <TableCell>
                     {locked ? it.title : <EditableTitle value={it.title} onSave={(v) => update(it, { title: v })} />}
                   </TableCell>
-                  <TableCell><span dir="ltr" className="text-xs text-muted-foreground">{it.code}</span></TableCell>
+                  <TableCell><bdi dir="ltr" className="text-sm text-muted-foreground">{it.code}</bdi></TableCell>
                   {t.hierarchical && <TableCell>{titleOf(it.parent) || "—"}</TableCell>}
                   <TableCell><Switch checked={it.is_active} disabled={locked} onCheckedChange={(v) => update(it, { is_active: v })} aria-label={`فعال بودن ${it.title}`} /></TableCell>
                   {!locked && (
@@ -184,7 +183,7 @@ function NewTypeDialog({ open, onOpenChange, onCreated }: { open: boolean; onOpe
   };
   return (
     <Dialog open={open} onOpenChange={onOpenChange} title="فهرست پایه‌ی جدید" description="فهرست‌های سفارشی در فرم‌ساز قابل استفاده‌اند."
-      footer={<><Button onClick={create} disabled={!f.title || !f.code}>ایجاد</Button><Button variant="ghost" onClick={() => onOpenChange(false)}>انصراف</Button></>}>
+      footer={<><SubmitButton onClick={create} disabled={!f.title || !f.code}>ایجاد</SubmitButton><Button variant="ghost" onClick={() => onOpenChange(false)}>انصراف</Button></>}>
       <div className="space-y-4">
         <FormField label="عنوان" htmlFor="nt-title" required><Input id="nt-title" value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} /></FormField>
         <FormField label="کد لاتین" htmlFor="nt-code" required hint="مثل skills"><Input id="nt-code" dir="ltr" value={f.code} onChange={(e) => setF({ ...f, code: e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, "") })} /></FormField>

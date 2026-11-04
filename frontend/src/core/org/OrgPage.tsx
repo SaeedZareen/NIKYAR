@@ -5,11 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
-import { Dialog } from "@/components/ui/dialog";
 import { FormField } from "@/components/ui/form";
-import { Badge } from "@/components/ui/badge";
 import { get, patch, post } from "@/app/api";
-import { LoadingBlock, PageHeader, useApiAction } from "@/app/ui";
+import { ErrorSummary, GuardedDialog, LoadingBlock, PageHeader, StatusBadge, SubmitButton, useApiAction } from "@/app/ui";
 import { useUsersBrief } from "@/core/forms/useFormRefs";
 import { cn, fa } from "@/lib/utils";
 
@@ -29,13 +27,13 @@ export default function OrgPage() {
       <div className="mb-3 rounded-surface border-line border-border bg-card shadow-surface">
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-border px-4 py-3">
           <div>
-            <div className="font-semibold">{u.title}</div>
+            <h2 className="text-base font-semibold">{u.title}</h2>
             <div dir="ltr" className="text-end text-xs text-muted-foreground">{u.code}</div>
           </div>
           <div className="flex flex-wrap gap-1">
-            <Button size="sm" variant="ghost" onClick={() => setEdit({ kind: "position", item: { unit: u.id, is_active: true } })}><UserPlus className="size-4" /> سمت</Button>
-            <Button size="sm" variant="ghost" onClick={() => setEdit({ kind: "unit", item: { parent: u.id } })}><Plus className="size-4" /> زیرواحد</Button>
-            <Button size="sm" variant="ghost" onClick={() => setEdit({ kind: "unit", item: u })}><Pencil className="size-4" /> ویرایش</Button>
+            <Button size="sm" variant="ghost" aria-label={`افزودن سمت به ${u.title}`} onClick={() => setEdit({ kind: "position", item: { unit: u.id, is_active: true } })}><UserPlus className="size-4" aria-hidden /> سمت</Button>
+            <Button size="sm" variant="ghost" aria-label={`افزودن زیرواحد به ${u.title}`} onClick={() => setEdit({ kind: "unit", item: { parent: u.id } })}><Plus className="size-4" aria-hidden /> زیرواحد</Button>
+            <Button size="sm" variant="ghost" aria-label={`ویرایش ${u.title}`} onClick={() => setEdit({ kind: "unit", item: u })}><Pencil className="size-4" aria-hidden /> ویرایش</Button>
           </div>
         </div>
         {u.positions.length > 0 ? (
@@ -45,8 +43,8 @@ export default function OrgPage() {
                 <button type="button" onClick={() => setEdit({ kind: "position", item: p })}
                   className="flex min-h-12 w-full items-center justify-between gap-3 px-4 text-start text-sm hover:bg-accent/50">
                   <span className="flex items-center gap-2">
-                    {p.is_manager && <Crown className="size-4 text-brand" aria-label="مدیر واحد" />}{p.title}
-                    {!p.is_active && <Badge variant="secondary">غیرفعال</Badge>}
+                    {p.is_manager && <Crown className="size-4 text-brand" aria-hidden />}{p.title}{p.is_manager && <span className="sr-only">(مدیر واحد)</span>}
+                    {!p.is_active && <StatusBadge tone="neutral" label="غیرفعال" />}
                   </span>
                   <span className={p.holder_name ? "" : "text-muted-foreground"}>{p.holder_name || "بدون متصدی"}</span>
                 </button>
@@ -62,8 +60,8 @@ export default function OrgPage() {
   return (
     <>
       <PageHeader title="ساختار سازمانی" description="واحدها و سمت‌ها. انتساب کارها در فرایندها (مثل «مدیر مستقیم») بر اساس همین ساختار است."
-        actions={<Button onClick={() => setEdit({ kind: "unit", item: {} })}><Plus className="size-4" /> واحد جدید</Button>} />
-      <ul className="space-y-1">{children(null).map((u) => render(u, 0))}</ul>
+        actions={<Button onClick={() => setEdit({ kind: "unit", item: {} })}><Plus className="size-4" aria-hidden /> واحد جدید</Button>} />
+      <ul className="space-y-1" aria-label="درخت ساختار سازمانی">{children(null).map((u) => render(u, 0))}</ul>
       {edit?.kind === "unit" && <UnitDialog item={edit.item} units={units} onClose={() => setEdit(null)} />}
       {edit?.kind === "position" && <PositionDialog item={edit.item} units={units} onClose={() => setEdit(null)} />}
     </>
@@ -74,44 +72,51 @@ function useSaver(path: string, id: number | undefined, onClose: () => void) {
   const qc = useQueryClient();
   const run = useApiAction();
   const [errors, setErrors] = React.useState<Record<string, string>>({});
+  const [busy, setBusy] = React.useState(false);
   const save = async (body: unknown) => {
+    setBusy(true);
     const r = await run(() => (id ? patch(`${path}${id}/`, body) : post(path, body)), "ذخیره شد.");
+    setBusy(false);
     if (r.ok) { qc.invalidateQueries({ queryKey: ["org-units"] }); qc.invalidateQueries({ queryKey: ["directory"] }); onClose(); } else setErrors(r.fields ?? {});
   };
-  return { save, errors };
+  return { save, errors, busy };
 }
 
 const slug = (v: string) => v.toLowerCase().replace(/[^a-z0-9_-]/g, "");
 
 function UnitDialog({ item, units, onClose }: { item: Partial<Unit>; units: Unit[]; onClose: () => void }) {
-  const [f, setF] = React.useState({ title: item.title ?? "", code: item.code ?? "", parent: item.parent ?? null });
-  const { save, errors } = useSaver("/org/units/", item.id, onClose);
+  const init = { title: item.title ?? "", code: item.code ?? "", parent: item.parent ?? null };
+  const [f, setF] = React.useState(init);
+  const { save, errors, busy } = useSaver("/org/units/", item.id, onClose);
   return (
-    <Dialog open onOpenChange={(o) => !o && onClose()} title={item.id ? "ویرایش واحد" : "واحد جدید"}
-      footer={<><Button onClick={() => save(f)} disabled={!f.title || !f.code}>ذخیره</Button><Button variant="ghost" onClick={onClose}>انصراف</Button></>}>
+    <GuardedDialog open onOpenChange={(o) => !o && onClose()} dirty={JSON.stringify(f) !== JSON.stringify(init)} title={item.id ? "ویرایش واحد" : "واحد جدید"}
+      footer={<><SubmitButton onClick={() => save(f)} loading={busy} disabled={!f.title || !f.code}>ذخیره</SubmitButton><Button variant="ghost" onClick={onClose}>انصراف</Button></>}>
       <div className="space-y-4">
-        <FormField label="نام واحد" htmlFor="u-title" required error={errors.title}><Input id="u-title" value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} /></FormField>
-        <FormField label="کد لاتین" htmlFor="u-code" required error={errors.code}><Input id="u-code" dir="ltr" value={f.code} onChange={(e) => setF({ ...f, code: slug(e.target.value) })} /></FormField>
+        <ErrorSummary errors={errors} labels={{ title: "نام واحد", code: "کد لاتین", parent: "واحد بالادستی" }} />
+        <FormField label="نام واحد" htmlFor="f-title" required error={errors.title}><Input id="f-title" value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} /></FormField>
+        <FormField label="کد لاتین" htmlFor="f-code" required error={errors.code}><Input id="f-code" autoComplete="off" spellCheck={false} dir="ltr" value={f.code} onChange={(e) => setF({ ...f, code: slug(e.target.value) })} /></FormField>
         <FormField label="واحد بالادستی" htmlFor="u-parent" error={errors.parent}>
           <Select id="u-parent" value={String(f.parent ?? "")} placeholder="بالاترین سطح" onChange={(e) => setF({ ...f, parent: e.target.value ? Number(e.target.value) : null })}
             options={units.filter((u) => u.id !== item.id).map((u) => ({ value: String(u.id), label: u.title }))} />
         </FormField>
       </div>
-    </Dialog>
+    </GuardedDialog>
   );
 }
 
 function PositionDialog({ item, units, onClose }: { item: Partial<Position>; units: Unit[]; onClose: () => void }) {
   const users = useUsersBrief();
-  const [f, setF] = React.useState({ title: item.title ?? "", code: item.code ?? "", unit: item.unit!, holder: item.holder ?? null, is_manager: item.is_manager ?? false, is_active: item.is_active ?? true });
-  const { save, errors } = useSaver("/org/positions/", item.id, onClose);
+  const init = { title: item.title ?? "", code: item.code ?? "", unit: item.unit!, holder: item.holder ?? null, is_manager: item.is_manager ?? false, is_active: item.is_active ?? true };
+  const [f, setF] = React.useState(init);
+  const { save, errors, busy } = useSaver("/org/positions/", item.id, onClose);
   return (
-    <Dialog open onOpenChange={(o) => !o && onClose()} title={item.id ? "ویرایش سمت" : "سمت جدید"}
-      footer={<><Button onClick={() => save(f)} disabled={!f.title || !f.code}>ذخیره</Button><Button variant="ghost" onClick={onClose}>انصراف</Button></>}>
+    <GuardedDialog open onOpenChange={(o) => !o && onClose()} dirty={JSON.stringify(f) !== JSON.stringify(init)} title={item.id ? "ویرایش سمت" : "سمت جدید"}
+      footer={<><SubmitButton onClick={() => save(f)} loading={busy} disabled={!f.title || !f.code}>ذخیره</SubmitButton><Button variant="ghost" onClick={onClose}>انصراف</Button></>}>
       <div className="space-y-4">
-        <FormField label="عنوان سمت" htmlFor="p-title" required error={errors.title}><Input id="p-title" value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} /></FormField>
-        <FormField label="کد لاتین" htmlFor="p-code" required error={errors.code} hint="در فرایندساز برای انتساب کار به این سمت استفاده می‌شود.">
-          <Input id="p-code" dir="ltr" value={f.code} onChange={(e) => setF({ ...f, code: slug(e.target.value) })} />
+        <ErrorSummary errors={errors} labels={{ title: "عنوان سمت", code: "کد لاتین", unit: "واحد", holder: "متصدی", is_manager: "مدیر واحد" }} />
+        <FormField label="عنوان سمت" htmlFor="f-title" required error={errors.title}><Input id="f-title" value={f.title} onChange={(e) => setF({ ...f, title: e.target.value })} /></FormField>
+        <FormField label="کد لاتین" htmlFor="f-code" required error={errors.code} hint="در فرایندساز برای انتساب کار به این سمت استفاده می‌شود.">
+          <Input id="f-code" autoComplete="off" spellCheck={false} dir="ltr" value={f.code} onChange={(e) => setF({ ...f, code: slug(e.target.value) })} />
         </FormField>
         <FormField label="واحد" htmlFor="p-unit" error={errors.unit}>
           <Select id="p-unit" value={String(f.unit)} onChange={(e) => setF({ ...f, unit: Number(e.target.value) })} options={units.map((u) => ({ value: String(u.id), label: u.title }))} />
@@ -121,11 +126,11 @@ function PositionDialog({ item, units, onClose }: { item: Partial<Position>; uni
             options={(users.data ?? []).map((u) => ({ value: String(u.id), label: u.full_name }))} />
         </FormField>
         <label className="flex min-h-11 items-center gap-3 text-sm"><Switch checked={f.is_manager} onCheckedChange={(v) => setF({ ...f, is_manager: v })} aria-label="مدیر واحد" /> مدیر این واحد است</label>
-        {errors.is_manager && <p className="text-xs text-destructive">{errors.is_manager}</p>}
+        {errors.is_manager && <p id="f-is_manager" tabIndex={-1} className="text-sm text-destructive">{errors.is_manager}</p>}
         <label className="flex min-h-11 items-center gap-3 text-sm"><Switch checked={f.is_active} onCheckedChange={(v) => setF({ ...f, is_active: v })} aria-label="فعال" /> فعال</label>
         {item.id && <HolderHistory positionId={item.id} />}
       </div>
-    </Dialog>
+    </GuardedDialog>
   );
 }
 
