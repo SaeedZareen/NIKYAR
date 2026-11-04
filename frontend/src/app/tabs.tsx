@@ -58,13 +58,22 @@ export const usePageTabs = () => React.useContext(TabsCtx);
 
 function TabStrip({ tabs, active, onClose }: { tabs: Tab[]; active: string; onClose: (key: string) => void }) {
   const navigate = useNavigate();
+  const nav = React.useRef<HTMLElement>(null);
+  // زبانه‌ی فعال را در دید نگه می‌دارد (بدون scrollIntoView که نقطه‌ی شروع Tab را جابه‌جا می‌کند)
+  React.useEffect(() => {
+    const n = nav.current; const el = n?.querySelector<HTMLElement>("[aria-current=page]")?.parentElement;
+    if (!n || !el) return;
+    const nr = n.getBoundingClientRect(), er = el.getBoundingClientRect();
+    if (er.left < nr.left) n.scrollLeft -= nr.left - er.left + 8;
+    else if (er.right > nr.right) n.scrollLeft += er.right - nr.right + 8;
+  }, [active, tabs]);
   const close = (t: Tab) => {
     const i = tabs.findIndex((x) => x.key === t.key);
     onClose(t.key);
     if (t.key === active) navigate(tabs[i - 1]?.path ?? "/");
   };
   return (
-    <nav aria-label="صفحه‌های باز" className="hidden h-9 shrink-0 items-end gap-px overflow-x-auto border-b border-border bg-secondary px-2 md:flex">
+    <nav ref={nav} aria-label="صفحه‌های باز" className="hidden h-9 shrink-0 items-end gap-px overflow-x-auto border-b border-border bg-secondary px-2 md:flex">
       {tabs.map((t) => {
         const on = t.key === active;
         return (
@@ -73,12 +82,12 @@ function TabStrip({ tabs, active, onClose }: { tabs: Tab[]; active: string; onCl
             on ? "border-border bg-background font-semibold text-foreground" : "border-transparent text-muted-foreground hover:bg-background/60 hover:text-foreground",
           )}>
             <button type="button" onClick={() => navigate(t.path)} aria-current={on ? "page" : undefined}
-              className="h-full min-w-0 truncate ps-3 pe-1 text-start">
+              className="h-full min-w-12 truncate ps-3 pe-1 text-start">
               {t.title}
             </button>
             {t.key !== "/" ? (
               <button type="button" onClick={() => close(t)} aria-label={`بستن زبانه‌ی ${t.title}`}
-                className="me-1 inline-flex size-6 shrink-0 items-center justify-center rounded-control opacity-60 hover:bg-accent hover:opacity-100">
+                className="me-0.5 inline-flex size-7 shrink-0 items-center justify-center rounded-control text-muted-foreground hover:bg-accent hover:text-foreground">
                 <X className="size-3.5" aria-hidden />
               </button>
             ) : <span className="pe-2" />}

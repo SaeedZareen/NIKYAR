@@ -2,16 +2,14 @@ import * as React from "react";
 import { useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { Download, Plus, Users } from "lucide-react";
-import { Avatar } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { SearchInput } from "@/components/ui/search-input";
 import { Pagination } from "@/components/ui/pagination";
-import { FormField } from "@/components/ui/form";
 import { get, post, tokenStore, type Paged } from "@/app/api";
 import { useAuth } from "@/app/auth";
 import { ErrorBlock, GuardedDialog, PageHeader, Panel, StatusBadge, SubmitButton, useApiAction, useUrlState } from "@/app/ui";
-import { ListToolbar, ResponsiveList, type Column, type Sort } from "@/app/list";
+import { ToolbarFilter, ListToolbar, ResponsiveList, type Column, type Sort } from "@/app/list";
 import { FormRenderer } from "@/core/forms/FormRenderer";
 import { useLookupBundle, useUnits } from "@/core/forms/useFormRefs";
 import type { FormSchema, Values } from "@/core/forms/types";
@@ -57,10 +55,11 @@ export default function EmployeeListPage() {
 
   const columns: Column<Row>[] = [
     { key: "last_name", header: "نام و نام خانوادگی", primary: true, sortKey: "last_name",
-      cell: (r) => <span className="flex items-center gap-3"><Avatar name={r.full_name} size="sm" />{r.full_name}</span> },
+      cell: (r) => r.full_name },
     { key: "personnel_code", header: "کد پرسنلی", sortKey: "personnel_code", cell: (r) => <bdi className="tabular-nums">{fa(r.personnel_code)}</bdi> },
     { key: "national_id", header: "کد ملی", cell: (r) => <bdi dir="ltr" className="tabular-nums">{fa(r.national_id)}</bdi>, hideOnMobile: true },
-    { key: "unit", header: "واحد / سمت", cell: (r) => <span><span className="block">{r.org_unit_title || "—"}</span><span className="text-sm text-muted-foreground">{r.position_title || r.job_title}</span></span> },
+    { key: "unit", header: "واحد سازمانی", cell: (r) => r.org_unit_title || "—" },
+    { key: "position", header: "سمت", cell: (r) => r.position_title || r.job_title || "—", hideOnMobile: true },
     { key: "type", header: "نوع استخدام", cell: (r) => r.employment_type_title || "—", hideOnMobile: true },
     { key: "hire_date", header: "تاریخ استخدام", sortKey: "hire_date", cell: (r) => <span className="tabular-nums">{r.hire_date ? fa(r.hire_date) : "—"}</span>, hideOnMobile: true },
     { key: "status", header: "وضعیت", cell: (r) => <StatusBadge status={r.employment_status} label={r.employment_status_title} /> },
@@ -77,14 +76,14 @@ export default function EmployeeListPage() {
         <Panel flush>
           <ListToolbar count={data.data?.count}>
             <div className="w-full sm:w-80"><SearchInput value={q} onChange={setQ} debounce={300} placeholder="نام، کد ملی، کد پرسنلی یا موبایل" aria-label="جست‌وجوی پرسنل" size="sm" /></div>
-            <FormField label="وضعیت اشتغال" htmlFor="flt-status" className="w-44">
+            <ToolbarFilter label="وضعیت" htmlFor="flt-status" className="w-48">
               <Select id="flt-status" value={status} onChange={(e) => setStatus(e.target.value)} placeholder="همه‌ی وضعیت‌ها"
                 options={(lookups.data?.employment_status ?? []).map((i) => ({ value: i.code, label: i.title }))} />
-            </FormField>
-            <FormField label="واحد" htmlFor="flt-unit" className="w-52">
+            </ToolbarFilter>
+            <ToolbarFilter label="واحد" htmlFor="flt-unit" className="w-60">
               <Select id="flt-unit" value={unit} onChange={(e) => setUnit(e.target.value)} placeholder="همه‌ی واحدها"
                 options={(units.data ?? []).map((u) => ({ value: String(u.id), label: u.title }))} />
-            </FormField>
+            </ToolbarFilter>
           </ListToolbar>
           <ResponsiveList rows={data.data?.results ?? []} columns={columns} rowKey={(r) => r.id} loading={data.isLoading} caption="پرونده‌های پرسنلی"
             rowHref={(r) => `/personnel/${r.id}`} sort={sort} onSortChange={(s) => setOrdering(s ? `${s.dir === "desc" ? "-" : ""}${s.key}` : "last_name")}

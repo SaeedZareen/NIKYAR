@@ -47,9 +47,9 @@ export default function LoginPage() {
 
   return (
     <div className="grid min-h-dvh bg-background text-foreground lg:grid-cols-2">
-      <section className="hidden flex-col justify-between bg-primary p-12 text-primary-foreground lg:flex" aria-label="معرفی سامانه">
+      <section className="hidden flex-col justify-between bg-topbar p-12 text-topbar-foreground lg:flex" aria-label="معرفی سامانه">
         <div className="flex items-center gap-3">
-          <span aria-hidden className="grid size-11 place-items-center rounded-control bg-primary-foreground text-lg font-bold text-primary">ن</span>
+          <span aria-hidden className="grid size-11 place-items-center rounded-control bg-topbar-foreground text-lg font-bold text-topbar">ن</span>
           <div>
             <div className="text-2xl font-bold leading-tight">نیک‌یار</div>
             <div className="text-sm opacity-80">سامانه‌ی یکپارچه‌ی مدیریت فرایند و منابع سازمانی</div>
@@ -63,7 +63,7 @@ export default function LoginPage() {
             </li>
           ))}
         </ul>
-        <p className="text-sm opacity-70">نسخه‌ی ۲٫۰</p>
+        <p className="text-sm opacity-90">نسخه‌ی ۲٫۰</p>
       </section>
       <main id="main" className="flex items-center justify-center p-6">
         <form onSubmit={submit} className="w-full max-w-sm space-y-5" noValidate aria-describedby={error ? "login-error" : undefined}>

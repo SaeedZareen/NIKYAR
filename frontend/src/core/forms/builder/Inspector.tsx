@@ -42,8 +42,8 @@ function NumInput({ label, value, onChange, hint }: { label: string; value: unkn
 
 const TABS = [
   { value: "general", label: "عمومی" },
-  { value: "validation", label: "اعتبارسنجی" },
-  { value: "condition", label: "نمایش شرطی" },
+  { value: "validation", label: "قواعد" },
+  { value: "condition", label: "شرط نمایش" },
   { value: "advanced", label: "پیشرفته" },
 ];
 
@@ -61,8 +61,14 @@ export function FieldInspector({ field, sections, sectionId, allFields, onChange
         <cat.icon className="size-4 text-brand" aria-hidden />
         <span className="text-sm font-bold">{cat.title}</span>
       </div>
-      <div className="border-b border-border p-2">
-        <SegmentedControl size="sm" fullWidth value={tab} onChange={setTab} aria-label="بخش تنظیمات" options={tabs} />
+      <div role="tablist" aria-label="بخش تنظیمات" className="flex border-b border-border px-1">
+        {tabs.map((t) => (
+          <button key={t.value} type="button" role="tab" aria-selected={tab === t.value} onClick={() => setTab(t.value)}
+            className={cn("-mb-px h-9 flex-1 whitespace-nowrap border-b-2 px-1 text-sm",
+              tab === t.value ? "border-brand font-semibold text-foreground" : "border-transparent text-muted-foreground hover:text-foreground")}>
+            {t.label}
+          </button>
+        ))}
       </div>
       <div className="space-y-3 p-3">
         {tab === "general" && <GeneralTab field={field} onChange={onChange} />}

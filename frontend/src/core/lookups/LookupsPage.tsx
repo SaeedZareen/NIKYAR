@@ -125,7 +125,7 @@ function ItemsPanel({ code }: { code: string }) {
       )}
       <label className="mb-2 flex min-h-11 items-center gap-2 text-sm"><Switch checked={showInactive} onCheckedChange={setShowInactive} aria-label="نمایش غیرفعال‌ها" /> نمایش مقادیر غیرفعال</label>
       <div className="overflow-x-auto">
-        <Table bare>
+        <Table bare className="[&_input]:h-8 [&_td]:py-1">
           <TableHeader><TableRow>
             <TableHead className="w-12">ردیف</TableHead><TableHead>عنوان</TableHead><TableHead>کد</TableHead>
             {t.hierarchical && <TableHead>والد</TableHead>}<TableHead>فعال</TableHead>{!locked && <TableHead className="w-40">عملیات</TableHead>}

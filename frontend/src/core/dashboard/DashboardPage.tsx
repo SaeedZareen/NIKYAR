@@ -14,15 +14,15 @@ type Dash = { inbox_open: number; inbox_unread: number; inbox_overdue: number; m
 function MetricLink({ to, label, value, icon: Icon, tone }: { to: string; label: string; value?: number; icon: typeof Inbox; tone?: "warning" }) {
   return (
     <Link to={to} className={cn(
-      "group flex min-h-24 items-center gap-4 rounded-surface border-line border-border bg-card p-5 shadow-surface transition-colors hover:border-brand/40",
+      "group flex min-h-16 items-center gap-3 rounded-surface border-line border-border bg-card px-4 py-3 shadow-surface transition-colors hover:border-brand/40",
       tone === "warning" && value ? "border-warning/40 bg-warning/5" : "",
     )}>
-      <span aria-hidden className={cn("grid size-11 shrink-0 place-items-center rounded-control", tone === "warning" && value ? "bg-warning/15 text-warning" : "bg-brand/10 text-brand")}>
+      <span aria-hidden className={cn("grid size-9 shrink-0 place-items-center rounded-control", tone === "warning" && value ? "bg-warning/15 text-warning" : "bg-brand/10 text-brand")}>
         <Icon className="size-5" />
       </span>
       <span className="min-w-0">
         <span className="block text-sm text-muted-foreground">{label}</span>
-        <span className="block text-2xl font-bold tabular-nums">{value === undefined ? "…" : fa(value)}</span>
+        <span className="block text-xl font-bold leading-tight tabular-nums">{value === undefined ? "…" : fa(value)}</span>
       </span>
     </Link>
   );
@@ -43,7 +43,7 @@ export default function DashboardPage() {
     <>
       <PageHeader title={`${user?.first_name || user?.full_name}، خوش آمدید`} docTitle="پیشخوان" description="خلاصه‌ی کارها و درخواست‌های شما"
         actions={<LinkButton to="/new"><Plus className="size-4" aria-hidden /> ثبت درخواست جدید</LinkButton>} />
-      <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <MetricLink to="/inbox" label="کارهای در انتظار من" value={d?.inbox_open} icon={Inbox} />
         <MetricLink to="/inbox" label="کارهای دیرکرد" value={d?.inbox_overdue} icon={AlarmClock} tone="warning" />
         <MetricLink to="/requests?mine=1&status=running" label="درخواست‌های در جریان من" value={d?.my_running} icon={Send} />
@@ -51,7 +51,7 @@ export default function DashboardPage() {
           ? <MetricLink to="/personnel" label="پرسنل شاغل" value={staff.data.active} icon={Users} />
           : <MetricLink to="/inbox/done" label="کارهای انجام‌شده‌ی من" value={d?.done_by_me} icon={CheckCheck} />}
       </div>
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-2">
         <Panel title="کارهای در انتظار شما" flush
           actions={<Link to="/inbox" className="flex min-h-10 items-center gap-1 rounded-control px-2 text-sm text-brand hover:underline">همه‌ی کارتابل <ArrowLeft className="size-4" aria-hidden /></Link>}>
           {inbox.isLoading ? <div className="p-5"><LoadingBlock rows={3} /></div> : !inbox.data?.length ? (

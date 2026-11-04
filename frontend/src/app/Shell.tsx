@@ -6,10 +6,8 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { ChevronDown, KeyRound, LogOut, Menu, Monitor, Moon, PanelRightClose, PanelRightOpen, Search, Sun, UserRound } from "lucide-react";
 import { Sheet } from "@/components/ui/sheet";
 import { DropdownMenu } from "@/components/ui/dropdown-menu";
-import { Avatar } from "@/components/ui/avatar";
 import { NotificationInbox } from "@/components/ui/notification-inbox";
 import { CommandDialog, type CommandItem } from "@/components/ui/command";
-import { Kbd } from "@/components/ui/kbd";
 import { JALALI_MONTHS, JALALI_WEEKDAYS, jalaliWeekday, toJalali } from "@/lib/jalali";
 import { cn, fa } from "@/lib/utils";
 import { get, post } from "./api";
@@ -190,8 +188,8 @@ export function Shell() {
         </NavLink>
         <button type="button" onClick={() => setSearch(true)}
           className="ms-auto hidden h-8 w-72 items-center gap-2 rounded-control bg-topbar-foreground/10 px-3 text-sm text-topbar-muted hover:bg-topbar-foreground/15 md:flex">
-          <Search className="size-4" aria-hidden /> جست‌وجو و رفتن به بخش‌ها
-          <span className="ms-auto" dir="ltr"><Kbd keys={["Ctrl", "K"]} /></span>
+          <Search className="size-4 shrink-0" aria-hidden /> <span className="truncate whitespace-nowrap">جست‌وجوی بخش‌ها</span>
+          <span className="ms-auto shrink-0 text-xs" dir="ltr">Ctrl+K</span>
         </button>
         <button type="button" className={cn(TOP_BTN, "ms-auto md:hidden")} aria-label="جست‌وجو" onClick={() => setSearch(true)}>
           <Search className="size-5" aria-hidden />
@@ -204,7 +202,7 @@ export function Shell() {
         <DropdownMenu align="end" triggerLabel={`حساب کاربری: ${user.full_name}`}
           trigger={
             <span className="flex h-9 items-center gap-2 rounded-control px-2 text-topbar-foreground hover:bg-topbar-foreground/10">
-              <Avatar name={user.full_name} size="sm" />
+              <span aria-hidden className="grid size-8 shrink-0 place-items-center rounded-full bg-topbar-foreground/15 text-sm font-bold">{user.full_name.trim().charAt(0)}</span>
               <span className="hidden text-start leading-tight md:block">
                 <span className="block text-sm font-medium">{user.full_name}</span>
                 <span className="block text-xs text-topbar-muted">{user.positions[0]?.title ?? (user.is_superuser ? "مدیر سامانه" : "")}</span>
@@ -231,7 +229,7 @@ export function Shell() {
           <PageTabsProvider>
             <main id="main" ref={main} tabIndex={-1}
               className={cn("min-h-0 flex-1 focus:outline-none", workspace ? "overflow-hidden" : "overflow-y-auto px-3 py-3 lg:px-5 lg:py-4")}>
-              {workspace ? <Outlet /> : <div className="mx-auto w-full max-w-screen-2xl"><Outlet /></div>}
+              {workspace ? <Outlet /> : <div className="w-full"><Outlet /></div>}
             </main>
           </PageTabsProvider>
         </div>

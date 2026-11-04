@@ -12,7 +12,9 @@ NIKYAR is a modular Persian BPMS/ERP platform. Read `docs/ARCHITECTURE.md` and `
 
 ### UI/UX (mandatory for any frontend change)
 - Follow `design-system/nikyar/MASTER.md` (source of truth) and the installed skill `.claude/skills/ui-ux-pro-max` (rules: `references/quick-reference.md`). Use the shared primitives in `frontend/src/app/ui.tsx` and `frontend/src/app/list.tsx` instead of ad-hoc markup.
-- Lists are `ResponsiveList` with real links per row; filters live in the URL (`useUrlState`); read-only data is a definition list; failed submits show `ErrorSummary`; one primary action per screen.
+- Style is dense Rahkaran-like office software (navy topbar, tree menu, page tabs, compact toolbars, dense grids, side labels). Check every change at 1093×600 @1.25 (a 1366×768 laptop at 125%), then 1920 and 375.
+- Lists are `ResponsiveList` with real links per row; list filters use `ListToolbar` + `ToolbarFilter` and live in the URL (`useUrlState`); read-only data is a definition list; failed submits show `ErrorSummary`; one primary action per screen.
+- Builders (form/process) are full-height workspaces: see the `WORKSPACE` list in `app/Shell.tsx`.
 
 ### Rules
 - All user-facing text is formal Persian. API errors raise `core.kernel.api.BusinessError(message, fields)`.

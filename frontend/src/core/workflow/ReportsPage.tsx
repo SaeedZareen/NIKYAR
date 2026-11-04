@@ -5,9 +5,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
-import { FormField } from "@/components/ui/form";
 import { get } from "@/app/api";
 import { ErrorBlock, JalaliDateInput, LoadingBlock, PageHeader, Panel, StatusBadge, useUrlState } from "@/app/ui";
+import { ListToolbar, ToolbarFilter } from "@/app/list";
 import { fa } from "@/lib/utils";
 
 type Report = {
@@ -38,16 +38,16 @@ export default function ReportsPage() {
   return (
     <>
       <PageHeader title="گزارش عملکرد فرایندها" description="مدت انجام، گلوگاه‌ها و بار کاری کارکنان" />
-      <Panel className="mb-6" title="فیلتر">
-        <div className="flex flex-wrap items-end gap-4">
-          <FormField label="از تاریخ" className="w-48"><JalaliDateInput id="from" value={from} onChange={setFrom} /></FormField>
-          <FormField label="تا تاریخ" className="w-48"><JalaliDateInput id="to" value={to} onChange={setTo} /></FormField>
-          <FormField label="فرایند (برای مراحل)" htmlFor="rp-proc" className="w-60">
+      <Panel className="mb-3" flush>
+        <ListToolbar>
+          <ToolbarFilter label="از تاریخ" htmlFor="from" className="w-56"><JalaliDateInput id="from" value={from} onChange={setFrom} /></ToolbarFilter>
+          <ToolbarFilter label="تا تاریخ" htmlFor="to" className="w-56"><JalaliDateInput id="to" value={to} onChange={setTo} /></ToolbarFilter>
+          <ToolbarFilter label="فرایند" htmlFor="rp-proc" className="w-64">
             <Select id="rp-proc" value={proc} placeholder="همه‌ی فرایندها" onChange={(e) => setProc(e.target.value)}
               options={(r?.processes ?? []).map((p) => ({ value: String(p.id), label: p.title }))} />
-          </FormField>
-          {(from || to || proc) && <Button variant="ghost" onClick={() => { setFrom(""); setTo(""); setProc(""); }}>حذف فیلترها</Button>}
-        </div>
+          </ToolbarFilter>
+          {(from || to || proc) && <Button size="sm" variant="ghost" onClick={() => { setFrom(""); setTo(""); setProc(""); }}>حذف فیلترها</Button>}
+        </ListToolbar>
       </Panel>
       {q.error ? <ErrorBlock error={q.error} onRetry={() => q.refetch()} /> : q.isLoading || !r ? <LoadingBlock rows={8} /> : !r.processes.length ? (
         <EmptyState icon={BarChart3} title="در این بازه درخواستی ثبت نشده است" />

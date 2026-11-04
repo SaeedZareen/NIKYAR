@@ -92,7 +92,7 @@ export default function EmployeePage() {
   return (
     <>
       <PageHeader docTitle={name} crumbs={[{ label: "پرونده‌های پرسنلی", to: "/personnel" }, { label: name }]}
-        title={<span className="flex items-center gap-3"><Avatar name={name} size="lg" />{name}</span>}
+        title={<span className="flex items-center gap-3"><Avatar name={name} size="md" />{name}</span>}
         description={<span className="flex flex-wrap items-center gap-2">
           کد پرسنلی <bdi className="tabular-nums">{fa(e.personnel_code)}</bdi> · {e.job_title || e.position_title || "بدون سمت"}{e.org_unit_title ? ` · ${e.org_unit_title}` : ""}
           <StatusBadge status={e.employment_status} label={e.employment_status_title} />

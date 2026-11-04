@@ -116,7 +116,7 @@ export function ResponsiveList<T>({
               return (
                 <tr key={rowKey(row)} className={cn("relative border-b border-border transition-colors last:border-0 even:bg-muted/70", href && "hover:bg-accent focus-within:bg-accent", rowClassName?.(row))}>
                   {columns.map((c) => (
-                    <td key={c.key} className={cn("border-s border-border px-3 py-1.5 align-middle first:border-s-0", c.numeric && "tabular-nums", c.className)}>
+                    <td key={c.key} className={cn("whitespace-nowrap border-s border-border px-3 py-1.5 align-middle first:border-s-0", c.numeric && "tabular-nums", c.className)}>
                       {c === primary && href ? (
                         <Link to={href} className="font-medium underline-offset-4 after:absolute after:inset-0 hover:underline focus-visible:outline-none">
                           {c.cell(row)}
@@ -172,9 +172,19 @@ export function ResponsiveList<T>({
 /** نوار ابزار فهرست: جست‌وجو و فیلترها در یک ردیف، بالای جدول */
 export function ListToolbar({ children, count }: { children: React.ReactNode; count?: number }) {
   return (
-    <div className="flex flex-wrap items-end gap-2 border-b border-border px-3 py-2">
+    <div className="flex flex-wrap items-center gap-2 border-b border-border px-3 py-2">
       {children}
       {count !== undefined && <span className="ms-auto text-sm text-muted-foreground" aria-live="polite">{fa(count)} مورد</span>}
+    </div>
+  );
+}
+
+/** فیلتر نوار ابزار فهرست: برچسب کنار کنترل (فشرده، مثل راهکاران) */
+export function ToolbarFilter({ label, htmlFor, className, children }: { label: string; htmlFor: string; className?: string; children: React.ReactNode }) {
+  return (
+    <div className={cn("flex items-center gap-2 text-sm [&_select]:h-8", className)}>
+      <label htmlFor={htmlFor} className="shrink-0 text-muted-foreground">{label}</label>
+      <div className="min-w-0 flex-1">{children}</div>
     </div>
   );
 }

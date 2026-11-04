@@ -75,29 +75,34 @@ export default function FormBuilderPage() {
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
   useDocumentTitle(q.data ? `فرم‌ساز: ${q.data.title}` : "فرم‌ساز");
 
-  React.useEffect(() => {
-    if (q.data && !loaded.current) { loaded.current = true; hist.reset(q.data.draft_schema); }
-  }, [q.data, hist]);
-
   // ذخیره‌ی خودکار پیش‌نویس
   const lastSaved = React.useRef<string>("");
+  const latest = React.useRef<string>("");
   React.useEffect(() => {
-    if (!schema || !q.data) return;
+    if (q.data && !loaded.current) {
+      loaded.current = true;
+      lastSaved.current = JSON.stringify(q.data.draft_schema);
+      hist.reset(q.data.draft_schema);
+    }
+  }, [q.data, hist]);
+
+  React.useEffect(() => {
+    if (!schema || !lastSaved.current) return;
     const json = JSON.stringify(schema);
-    if (!lastSaved.current) { lastSaved.current = JSON.stringify(q.data.draft_schema); }
-    if (json === lastSaved.current) return;
+    latest.current = json;
+    if (json === lastSaved.current) { setSave("saved"); return; }
     setSave("dirty");
     const h = setTimeout(async () => {
       setSave("saving");
       try {
-        const r = await patch<FormRow>(`/forms/${key}/`, { draft_schema: schema });
+        const r = await patch<FormRow>(`/forms/${key}/`, { draft_schema: JSON.parse(json) });
         lastSaved.current = json;
         qc.setQueryData(["form", key], r);
-        setSave("saved");
+        if (latest.current === json) setSave("saved");
       } catch { setSave("error"); }
     }, 900);
     return () => clearTimeout(h);
-  }, [schema, key, q.data, qc]);
+  }, [schema, key, qc]);
 
   // میان‌برهای صفحه‌کلید
   React.useEffect(() => {

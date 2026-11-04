@@ -79,7 +79,7 @@ export function PostalCodeInput({ value, defaultValue = "", onChange, name, id, 
         ) : missing ? (
           <span className="text-destructive">کد پستی را وارد کنید.</span>
         ) : (
-          "ده رقم، بدون خط تیره هم قبول میشه"
+          "ده رقم؛ با خط تیره یا بدون آن پذیرفته می‌شود."
         )}
       </p>
     </div>
