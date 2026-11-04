@@ -11,6 +11,7 @@ import { useToast } from "@/components/ui/toast";
 import { toGregorian, toJalali } from "@/lib/jalali";
 import { cn, en } from "@/lib/utils";
 import { ApiError } from "./api";
+import { usePageTabs } from "./tabs";
 
 const APP = "نیک‌یار";
 
@@ -18,40 +19,47 @@ export type Crumb = { label: string; to?: string };
 
 /** عنوان سند مرورگر؛ برای زبانه‌ها، تاریخچه و صفحه‌خوان‌ها */
 export function useDocumentTitle(title?: string) {
+  const { setTitle } = usePageTabs();
   React.useEffect(() => {
-    if (title) document.title = `${title} | ${APP}`;
-  }, [title]);
+    if (!title) return;
+    document.title = `${title} | ${APP}`;
+    setTitle(title);
+  }, [title, setTitle]);
 }
 
-/** سرصفحه: یک h1، مسیر برای صفحه‌های عمیق، و حداکثر یک اقدام اصلی */
+/**
+ * سرصفحه به سبک راهکاران: مسیر کوچک، عنوان، و نوار ابزار اقدام‌ها در همان ردیف.
+ * اقدام‌ها دکمه‌های کوچک (size="sm") هستند؛ حداکثر یک اقدام اصلی.
+ */
 export function PageHeader({ title, docTitle, description, crumbs, actions }: {
   title: React.ReactNode; docTitle?: string; description?: React.ReactNode; crumbs?: Crumb[]; actions?: React.ReactNode;
 }) {
   useDocumentTitle(docTitle ?? (typeof title === "string" ? title : undefined));
   return (
-    <header className="mb-6 flex flex-wrap items-end justify-between gap-4">
-      <div className="w-full min-w-0 sm:w-auto sm:flex-1">
+    <header className="mb-3 flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-border pb-3">
+      <div className="min-w-0 flex-1 basis-60">
         {crumbs && crumbs.length > 0 && (
-          <nav aria-label="مسیر صفحه" className="mb-2">
-            <ol className="flex flex-wrap items-center gap-1 text-sm text-muted-foreground">
+          <nav aria-label="مسیر صفحه">
+            <ol className="flex flex-wrap items-center gap-1 text-xs text-muted-foreground">
               {crumbs.map((c, i) => (
                 <li key={i} className="flex items-center gap-1">
-                  {c.to ? <Link to={c.to} className="rounded-control underline-offset-4 hover:text-foreground hover:underline">{c.label}</Link> : <span aria-current="page">{c.label}</span>}
-                  {i < crumbs.length - 1 && <ChevronLeft className="size-4" aria-hidden />}
+                  {c.to ? <Link to={c.to} className="hover:text-brand hover:underline">{c.label}</Link> : <span aria-current="page">{c.label}</span>}
+                  {i < crumbs.length - 1 && <ChevronLeft className="size-3" aria-hidden />}
                 </li>
               ))}
             </ol>
           </nav>
         )}
-        <h1 className="text-2xl font-bold leading-tight text-balance">{title}</h1>
-        {description && <div className="mt-1 text-sm text-muted-foreground">{description}</div>}
+        <h1 className="truncate text-lg font-bold leading-snug">{title}</h1>
+        {description && <div className="text-sm text-muted-foreground">{description}</div>}
       </div>
-      {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+      {actions && <div role="toolbar" aria-label="اقدام‌های صفحه"
+        className="flex flex-wrap items-center gap-1.5 [&>button]:h-8 [&>button]:gap-1.5 [&>button]:px-3 [&>button]:text-sm">{actions}</div>}
     </header>
   );
 }
 
-/** سطح محتوا. «flush» برای فهرست‌ها: بدون فاصله‌ی داخلی تا جدول لبه‌به‌لبه بنشیند (بدون کارت داخل کارت). */
+/** «جعبه‌ی گروه» محتوا. flush برای فهرست‌ها (جدول لبه‌به‌لبه، بدون کارت داخل کارت). */
 export function Panel({ title, description, actions, children, className, bodyClassName, flush, as: Tag = "section" }: {
   title?: React.ReactNode; description?: React.ReactNode; actions?: React.ReactNode; children: React.ReactNode;
   className?: string; bodyClassName?: string; flush?: boolean; as?: "section" | "div";
@@ -60,15 +68,15 @@ export function Panel({ title, description, actions, children, className, bodyCl
   return (
     <Tag aria-labelledby={title ? id : undefined} className={cn("rounded-surface border-line border-border bg-card shadow-surface", className)}>
       {(title || actions) && (
-        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-4">
+        <div className="flex min-h-10 flex-wrap items-center justify-between gap-2 border-b border-border bg-muted/60 px-3 py-1.5">
           <div className="min-w-0">
-            {title && <h2 id={id} className="text-lg font-semibold leading-tight">{title}</h2>}
-            {description && <p className="mt-1 text-sm text-muted-foreground">{description}</p>}
+            {title && <h2 id={id} className="text-sm font-bold">{title}</h2>}
+            {description && <p className="text-xs text-muted-foreground">{description}</p>}
           </div>
-          {actions && <div className="flex flex-wrap items-center gap-2">{actions}</div>}
+          {actions && <div className="flex flex-wrap items-center gap-1.5">{actions}</div>}
         </div>
       )}
-      <div className={cn(!flush && "p-5", bodyClassName)}>{children}</div>
+      <div className={cn(!flush && "p-3 lg:p-4", bodyClassName)}>{children}</div>
     </Tag>
   );
 }
@@ -104,7 +112,7 @@ export function LinkButton({ to, variant = "default", className, children, ...pr
 } & Omit<React.AnchorHTMLAttributes<HTMLAnchorElement>, "href">) {
   return (
     <Link to={to} {...props} className={cn(
-      "inline-flex h-10 items-center justify-center gap-2 whitespace-nowrap rounded-control px-4 text-sm font-medium transition-colors duration-(--motion) ease-motion active:[transform:var(--press)]",
+      "inline-flex h-8 items-center justify-center gap-1.5 whitespace-nowrap rounded-control px-3 text-sm font-medium transition-colors duration-(--motion) ease-motion",
       LINK_VARIANTS[variant], className)}>
       {children}
     </Link>
@@ -257,15 +265,15 @@ export function useApiAction() {
   }, [toast]);
 }
 
-/** فهرست تعریف برای اطلاعات فقط‌خواندنی (read-only-distinction) */
+/** فهرست تعریف برای اطلاعات فقط‌خواندنی؛ برچسب و مقدار در یک ردیف (read-only-distinction) */
 export function KeyValue({ items, columns = 2 }: { items: { label: string; value: React.ReactNode; ltr?: boolean }[]; columns?: 1 | 2 | 3 }) {
   return (
-    <dl className={cn("grid grid-cols-1 gap-x-6 gap-y-4", columns >= 2 && "sm:grid-cols-2", columns === 3 && "lg:grid-cols-3")}>
+    <dl className={cn("grid grid-cols-1 gap-x-8", columns >= 2 && "sm:grid-cols-2", columns === 3 && "xl:grid-cols-3")}>
       {items.map((it) => (
-        <div key={it.label} className="min-w-0">
-          <dt className="text-sm text-muted-foreground">{it.label}</dt>
-          <dd className="mt-0.5 font-medium break-words" dir={it.ltr ? "ltr" : undefined} style={it.ltr ? { textAlign: "end" } : undefined}>
-            {it.value === "" || it.value === null || it.value === undefined ? <span className="text-muted-foreground">ثبت نشده</span> : it.value}
+        <div key={it.label} className="flex min-w-0 items-baseline gap-3 border-b border-dashed border-border py-1.5 last:border-0">
+          <dt className="w-28 shrink-0 text-sm text-muted-foreground">{it.label}</dt>
+          <dd className="min-w-0 flex-1 break-words text-sm font-medium" dir={it.ltr ? "ltr" : undefined} style={it.ltr ? { textAlign: "end" } : undefined}>
+            {it.value === "" || it.value === null || it.value === undefined ? <span className="font-normal text-muted-foreground">—</span> : it.value}
           </dd>
         </div>
       ))}

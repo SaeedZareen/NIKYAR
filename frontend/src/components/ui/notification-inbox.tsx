@@ -34,9 +34,9 @@ export function NotificationInbox({ items, onRead, onReadAll, className }: { ite
       align="end"
       triggerLabel={unread ? `اعلان‌ها، ${fa(unread)} خوانده‌نشده` : "اعلان‌ها"}
       trigger={
-        <span className="relative inline-flex size-10 items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:text-foreground">
-          <Bell className="size-4" />
-          {unread > 0 && <span className="absolute -end-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand px-1 text-[10px] font-bold text-brand-foreground">{fa(unread)}</span>}
+        <span className="relative inline-flex size-9 items-center justify-center rounded-control text-current transition-colors hover:bg-current/10">
+          <Bell className="size-4" aria-hidden />
+          {unread > 0 && <span className="absolute -end-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-destructive px-1 text-xs font-bold text-card">{fa(unread)}</span>}
         </span>
       }
     >

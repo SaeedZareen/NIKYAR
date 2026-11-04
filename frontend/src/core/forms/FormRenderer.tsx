@@ -17,7 +17,6 @@ import { CardNumberInput } from "@/components/ui/card-number-input";
 import { PostalCodeInput } from "@/components/ui/postal-code-input";
 import { AddressPicker } from "@/components/ui/address-picker";
 import { FileUpload } from "@/components/ui/file-upload";
-import { FormField } from "@/components/ui/form";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
 import { cn, en, fa, faFileSize, formatToman } from "@/lib/utils";
@@ -33,8 +32,9 @@ type Refs = {
 };
 const RefsCtx = React.createContext<Refs>({ lookups: {}, users: [], units: [] });
 
-const GRID: Record<number, string> = { 1: "sm:grid-cols-1", 2: "sm:grid-cols-2", 3: "sm:grid-cols-3", 4: "sm:grid-cols-4" };
-const SPAN: Record<number, string> = { 1: "sm:col-span-1", 2: "sm:col-span-2", 3: "sm:col-span-3", 4: "sm:col-span-4" };
+// ستون‌ها بر اساس عرض واقعی: روی لپ‌تاپ حداکثر ۲ ستون، روی نمایشگر بزرگ تا ۳/۴ ستون
+const GRID: Record<number, string> = { 1: "", 2: "lg:grid-cols-2", 3: "lg:grid-cols-2 2xl:grid-cols-3", 4: "lg:grid-cols-2 2xl:grid-cols-4" };
+const SPAN: Record<number, string> = { 1: "", 2: "lg:col-span-2", 3: "lg:col-span-2 2xl:col-span-3", 4: "lg:col-span-2 2xl:col-span-4" };
 
 export interface FormRendererProps {
   schema: FormSchema;
@@ -52,30 +52,37 @@ export function labelsOf(schema: FormSchema): Record<string, string> {
   return Object.fromEntries(schema.sections.flatMap((s) => s.fields.map((f) => [f.key, f.label])));
 }
 
-export function FormRenderer({ schema, values, onChange, errors = {}, access = {}, defaultMode = "edit", readOnly, summary = true }: FormRendererProps) {
+function useRefs(schema: FormSchema): Refs {
   const fields = schema.sections.flatMap((s) => s.fields);
-  const needUsers = hasType(fields, "user");
-  const needUnits = hasType(fields, "org_unit");
   const lookups = useLookupBundle(lookupCodes(schema));
-  const users = useUsersBrief(needUsers);
-  const units = useUnits(needUnits);
-  const refs: Refs = { lookups: lookups.data ?? {}, users: users.data ?? [], units: units.data ?? [] };
+  const users = useUsersBrief(hasType(fields, "user"));
+  const units = useUnits(hasType(fields, "org_unit"));
+  return { lookups: lookups.data ?? {}, users: users.data ?? [], units: units.data ?? [] };
+}
+
+/** داده‌ی مرجع فیلدها (فهرست‌های پایه، کاربران، واحدها) برای پیش‌نمایش فیلد بیرون از FormRenderer */
+export function FormRefsProvider({ schema, children }: { schema: FormSchema; children: React.ReactNode }) {
+  return <RefsCtx.Provider value={useRefs(schema)}>{children}</RefsCtx.Provider>;
+}
+
+export function FormRenderer({ schema, values, onChange, errors = {}, access = {}, defaultMode = "edit", readOnly, summary = true }: FormRendererProps) {
+  const refs = useRefs(schema);
   const modeOf = (f: FieldDef) => (readOnly ? "read" : access[f.key] ?? defaultMode);
   const set = (key: string, v: unknown) => onChange?.({ ...values, [key]: v });
 
   return (
     <RefsCtx.Provider value={refs}>
       {summary && !readOnly && <ErrorSummary errors={errors} labels={labelsOf(schema)} />}
-      <div className="space-y-8">
+      <div className="space-y-5">
         {schema.sections.map((s) => {
           const visible = s.fields.filter((f) => isVisible(f, values) && (DISPLAY_ONLY.includes(f.type) || modeOf(f) !== "hidden"));
           if (!visible.length) return null;
           const cols = Math.min(Math.max(s.columns ?? 2, 1), 4);
           return (
             <fieldset key={s.id} className="min-w-0">
-              {s.title && <legend className="mb-1 text-base font-semibold">{s.title}</legend>}
-              {s.description && <p className="mb-3 text-sm text-muted-foreground">{s.description}</p>}
-              <div className={cn("mt-3 grid grid-cols-1 gap-x-4 gap-y-5", GRID[cols])}>
+              {s.title && <legend className="mb-2 w-full border-b border-border pb-1 text-sm font-bold text-brand">{s.title}</legend>}
+              {s.description && <p className="mb-2 text-sm text-muted-foreground">{s.description}</p>}
+              <div className={cn("grid grid-cols-1 gap-x-8 gap-y-2.5", GRID[cols])}>
                 {visible.map((f) => (
                   <div key={f.key || f.label} className={cn(SPAN[Math.min(f.span ?? 1, cols)])}>
                     <FieldBlock field={f} value={values[f.key]} mode={modeOf(f)} error={errors[f.key]}
@@ -95,37 +102,55 @@ function hasType(fields: FieldDef[], t: string): boolean {
   return fields.some((f) => f.type === t || (f.columns && hasType(f.columns, t)));
 }
 
+/** چیدمان فیلد به سبک راهکاران: برچسب در راست و کنترل در همان ردیف (روی موبایل زیر هم) */
+export function FieldRow({ label, labelFor, labelId, required, children, hint, error }: {
+  label: React.ReactNode; labelFor?: string; labelId?: string; required?: boolean; children: React.ReactNode; hint?: string; error?: string;
+}) {
+  const msgId = labelFor ? `${labelFor}-msg` : undefined;
+  return (
+    <div className="flex min-w-0 flex-col gap-1 md:flex-row md:items-start md:gap-3">
+      {labelFor
+        ? <label htmlFor={labelFor} id={labelId} className="text-sm font-medium md:w-32 md:shrink-0 md:pt-2">{label}{required && <span className="ms-1 text-destructive" aria-hidden>*</span>}{required && <span className="sr-only"> (الزامی)</span>}</label>
+        : <div id={labelId} className="text-sm text-muted-foreground md:w-32 md:shrink-0 md:pt-0.5">{label}</div>}
+      <div className="min-w-0 flex-1">
+        {children}
+        {(error || hint) && <p id={msgId} role={error ? "alert" : undefined} className={cn("mt-1 text-xs", error ? "text-destructive" : "text-muted-foreground")}>{error ?? hint}</p>}
+      </div>
+    </div>
+  );
+}
+
 function FieldBlock({ field: f, value, mode, error, rowErrors, onChange }: {
   field: FieldDef; value: unknown; mode: string; error?: string; rowErrors: Record<string, string>; onChange: (v: unknown) => void;
 }) {
-  if (f.type === "heading") return <h3 className="pt-2 text-base font-semibold">{f.label}</h3>;
+  if (f.type === "heading") return <h3 className="pt-1 text-sm font-bold">{f.label}</h3>;
   if (f.type === "paragraph") return <p className="text-sm text-muted-foreground">{f.label}</p>;
   const id = `f-${f.key}`;
   const editable = mode === "edit" && !f.readonly;
-  if (f.type === "checkbox" && editable) {
-    return (
-      <div className="space-y-1.5">
-        <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm">
-          <Switch checked={!!value} onCheckedChange={onChange} aria-label={f.label} />
-          <span>{f.label}{f.required && <span className="ms-1 text-destructive">*</span>}</span>
-        </label>
-        {(error || f.help) && <p className={cn("text-xs", error ? "text-destructive" : "text-muted-foreground")}>{error ?? f.help}</p>}
-      </div>
-    );
-  }
   if (!editable) {
     // حالت فقط‌خواندنی: برچسب و مقدار، نه فیلد خاکستری شبیه غیرفعال (read-only-distinction)
     return (
-      <div className="min-w-0" role="group" aria-labelledby={`${id}-label`}>
-        <div id={`${id}-label`} className="text-sm text-muted-foreground">{f.label}</div>
-        <div className="mt-0.5 break-words font-medium"><FieldDisplay field={f} value={value} /></div>
+      <div role="group" aria-labelledby={`${id}-label`} className="border-b border-dashed border-border pb-1.5">
+        <FieldRow label={f.label} labelId={`${id}-label`}>
+          <div className="break-words text-sm font-medium"><FieldDisplay field={f} value={value} /></div>
+        </FieldRow>
       </div>
     );
   }
+  if (f.type === "checkbox") {
+    return (
+      <FieldRow label="" error={error} hint={f.help}>
+        <label className="flex min-h-9 cursor-pointer items-center gap-2.5 text-sm">
+          <Switch id={id} checked={!!value} onCheckedChange={onChange} aria-label={f.label} />
+          <span>{f.label}{f.required && <span className="ms-1 text-destructive">*</span>}</span>
+        </label>
+      </FieldRow>
+    );
+  }
   return (
-    <FormField label={f.label} htmlFor={id} required={f.required} error={error} hint={f.help}>
+    <FieldRow label={f.label} labelFor={id} required={f.required} error={error} hint={f.help}>
       <FieldControl id={id} field={f} value={value} onChange={onChange} invalid={!!error} rowErrors={rowErrors} />
-    </FormField>
+    </FieldRow>
   );
 }
 
