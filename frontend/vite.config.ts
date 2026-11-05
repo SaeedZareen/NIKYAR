@@ -1,14 +1,13 @@
-import path from "node:path";
-import react from "@vitejs/plugin-react";
-import tailwindcss from "@tailwindcss/vite";
-import { defineConfig } from "vite";
+import path from "node:path"
+import tailwindcss from "@tailwindcss/vite"
+import react from "@vitejs/plugin-react"
+import { defineConfig } from "vite"
 
 export default defineConfig({
   plugins: [react(), tailwindcss()],
-  resolve: { alias: { "@": path.resolve(__dirname, "./src") } },
+  resolve: { alias: { "@": path.resolve(import.meta.dirname, "./src") } },
   server: {
     host: true,
-    port: 5173,
-    proxy: { "/api": "http://127.0.0.1:8000", "/admin": "http://127.0.0.1:8000", "/static": "http://127.0.0.1:8000", "/media": "http://127.0.0.1:8000" },
+    proxy: { "/api": "http://127.0.0.1:8000", "/media": "http://127.0.0.1:8000" },
   },
-});
+})

@@ -1,27 +1,121 @@
-import { ChevronLeft } from "lucide-react";
-import { cn } from "@/lib/utils";
+import * as React from "react"
+import { cn } from "@/lib/utils"
+import { Slot } from "radix-ui"
+import { ChevronRightIcon, MoreHorizontalIcon } from "lucide-react"
 
-export interface Crumb { label: React.ReactNode; href?: string }
-
-/** مسیر. Separators point left; the last item is the current page. */
-export function Breadcrumb({ items, className }: { items: Crumb[]; className?: string }) {
+function Breadcrumb({ className, ...props }: React.ComponentProps<"nav">) {
   return (
-    <nav aria-label="مسیر" className={className}>
-      <ol className="flex flex-wrap items-center gap-1.5 text-sm">
-        {items.map((c, i) => {
-          const last = i === items.length - 1;
-          return (
-            <li key={i} className="flex items-center gap-1.5">
-              {c.href && !last ? (
-                <a href={c.href} className="text-muted-foreground transition-colors hover:text-foreground">{c.label}</a>
-              ) : (
-                <span aria-current={last ? "page" : undefined} className={cn(last ? "font-medium text-foreground" : "text-muted-foreground")}>{c.label}</span>
-              )}
-              {!last && <ChevronLeft className="size-3.5 text-muted-foreground/60" aria-hidden />}
-            </li>
-          );
-        })}
-      </ol>
-    </nav>
-  );
+    <nav
+      aria-label="مسیر صفحه"
+      data-slot="breadcrumb"
+      className={cn(className)}
+      {...props}
+    />
+  )
+}
+
+function BreadcrumbList({ className, ...props }: React.ComponentProps<"ol">) {
+  return (
+    <ol
+      data-slot="breadcrumb-list"
+      className={cn(
+        "flex flex-wrap items-center gap-1.5 text-xs/relaxed wrap-break-word text-muted-foreground",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function BreadcrumbItem({ className, ...props }: React.ComponentProps<"li">) {
+  return (
+    <li
+      data-slot="breadcrumb-item"
+      className={cn("inline-flex items-center gap-1", className)}
+      {...props}
+    />
+  )
+}
+
+function BreadcrumbLink({
+  asChild,
+  className,
+  ...props
+}: React.ComponentProps<"a"> & {
+  asChild?: boolean
+}) {
+  const Comp = asChild ? Slot.Root : "a"
+
+  return (
+    <Comp
+      data-slot="breadcrumb-link"
+      className={cn("transition-colors hover:text-foreground", className)}
+      {...props}
+    />
+  )
+}
+
+function BreadcrumbPage({ className, ...props }: React.ComponentProps<"span">) {
+  return (
+    <span
+      data-slot="breadcrumb-page"
+      role="link"
+      aria-disabled="true"
+      aria-current="page"
+      className={cn("font-normal text-foreground", className)}
+      {...props}
+    />
+  )
+}
+
+function BreadcrumbSeparator({
+  children,
+  className,
+  ...props
+}: React.ComponentProps<"li">) {
+  return (
+    <li
+      data-slot="breadcrumb-separator"
+      role="presentation"
+      aria-hidden="true"
+      className={cn("[&>svg]:size-3.5", className)}
+      {...props}
+    >
+      {children ?? (
+        <ChevronRightIcon className="rtl:rotate-180" />
+      )}
+    </li>
+  )
+}
+
+function BreadcrumbEllipsis({
+  className,
+  ...props
+}: React.ComponentProps<"span">) {
+  return (
+    <span
+      data-slot="breadcrumb-ellipsis"
+      role="presentation"
+      aria-hidden="true"
+      className={cn(
+        "flex size-4 items-center justify-center [&>svg]:size-3.5",
+        className
+      )}
+      {...props}
+    >
+      <MoreHorizontalIcon
+      />
+      <span className="sr-only">بیشتر</span>
+    </span>
+  )
+}
+
+export {
+  Breadcrumb,
+  BreadcrumbList,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+  BreadcrumbEllipsis,
 }

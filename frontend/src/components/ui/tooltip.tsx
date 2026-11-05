@@ -1,34 +1,54 @@
-import * as React from "react";
-import { cn } from "@/lib/utils";
+import * as React from "react"
+import { cn } from "@/lib/utils"
+import { Tooltip as TooltipPrimitive } from "radix-ui"
 
-export interface TooltipProps {
-  content: React.ReactNode;
-  side?: "top" | "bottom";
-  children: React.ReactNode;
-  className?: string;
-}
-
-/**
- * راهنمای ابزار. CSS-only: shows on hover and keyboard focus, no JS,
- * no positioning library. For rich or delayed tooltips use Popover.
- */
-export function Tooltip({ content, side = "top", children, className }: TooltipProps) {
-  const id = React.useId();
+function TooltipProvider({
+  delayDuration = 0,
+  ...props
+}: React.ComponentProps<typeof TooltipPrimitive.Provider>) {
   return (
-    <span className={cn("group/tt relative inline-flex", className)}>
-      <span aria-describedby={id} className="inline-flex">{children}</span>
-      <span
-        id={id}
-        role="tooltip"
-        className={cn(
-          "pointer-events-none absolute left-1/2 z-30 w-max max-w-56 -translate-x-1/2 rounded-control bg-foreground px-2.5 py-1 text-xs text-background opacity-0 shadow transition-opacity duration-150",
-          "group-hover/tt:opacity-100 group-focus-within/tt:opacity-100",
-          side === "top" ? "bottom-full mb-2" : "top-full mt-2",
-        )}
-      >
-        {content}
-        <span className={cn("absolute left-1/2 size-2 -translate-x-1/2 rotate-45 bg-foreground", side === "top" ? "-bottom-1" : "-top-1")} />
-      </span>
-    </span>
-  );
+    <TooltipPrimitive.Provider
+      data-slot="tooltip-provider"
+      delayDuration={delayDuration}
+      {...props}
+    />
+  )
 }
+
+function Tooltip({
+  ...props
+}: React.ComponentProps<typeof TooltipPrimitive.Root>) {
+  return <TooltipPrimitive.Root data-slot="tooltip" {...props} />
+}
+
+function TooltipTrigger({
+  ...props
+}: React.ComponentProps<typeof TooltipPrimitive.Trigger>) {
+  return <TooltipPrimitive.Trigger data-slot="tooltip-trigger" {...props} />
+}
+
+function TooltipContent({
+  className,
+  sideOffset = 0,
+  children,
+  ...props
+}: React.ComponentProps<typeof TooltipPrimitive.Content>) {
+  return (
+    <TooltipPrimitive.Portal>
+      <TooltipPrimitive.Content
+        data-slot="tooltip-content"
+        sideOffset={sideOffset}
+        className={cn(
+          "z-50 inline-flex w-fit max-w-xs origin-(--radix-tooltip-content-transform-origin) items-center gap-1.5 rounded-md bg-foreground px-3 py-1.5 text-xs text-background has-data-[slot=kbd]:pe-1.5 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 **:data-[slot=kbd]:relative **:data-[slot=kbd]:isolate **:data-[slot=kbd]:z-50 **:data-[slot=kbd]:rounded-sm data-[state=delayed-open]:animate-in data-[state=delayed-open]:fade-in-0 data-[state=delayed-open]:zoom-in-95 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+          className
+        )}
+        {...props}
+      >
+        {children}
+        <TooltipPrimitive.Arrow className="z-50 size-2.5 translate-y-[calc(-50%_-_2px)] rotate-45 rounded-[2px] bg-foreground fill-foreground" />
+      </TooltipPrimitive.Content>
+    </TooltipPrimitive.Portal>
+  )
+}
+
+export { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger }

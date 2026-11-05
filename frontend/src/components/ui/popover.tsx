@@ -1,74 +1,88 @@
-"use client";
+"use client"
 
-import * as React from "react";
-import { cn } from "@/lib/utils";
-import { eventInside, FloatPortal, useFloat } from "@/lib/float";
+import * as React from "react"
+import { cn } from "@/lib/utils"
+import { Popover as PopoverPrimitive } from "radix-ui"
 
-export interface PopoverProps {
-  trigger: React.ReactNode;
-  /** نام دسترس‌پذیر دکمه‌ی بازکننده وقتی فقط آیکون دارد */
-  triggerLabel?: string;
-  children: React.ReactNode;
-  side?: "top" | "bottom";
-  align?: "start" | "center" | "end";
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
-  className?: string;
+function Popover({
+  ...props
+}: React.ComponentProps<typeof PopoverPrimitive.Root>) {
+  return <PopoverPrimitive.Root data-slot="popover" {...props} />
 }
 
-/**
- * پاپ‌آور. A small panel anchored to its trigger; closes on outside click and Escape.
- * Rendered into `document.body` so a parent with overflow hidden cannot clip it.
- * `align="start"` hugs the trigger's inline-start (right in RTL).
- */
-export function Popover({ trigger, triggerLabel, children, side = "bottom", align = "start", open, onOpenChange, className }: PopoverProps) {
-  const [internal, setInternal] = React.useState(false);
-  const isOpen = open ?? internal;
-  const set = (v: boolean) => { if (open === undefined) setInternal(v); onOpenChange?.(v); };
-  const root = React.useRef<HTMLDivElement>(null);
-  const id = React.useId();
-  const { mounted, style, theme, panel, update } = useFloat(isOpen, root, { side, align });
+function PopoverTrigger({
+  ...props
+}: React.ComponentProps<typeof PopoverPrimitive.Trigger>) {
+  return <PopoverPrimitive.Trigger data-slot="popover-trigger" {...props} />
+}
 
-  React.useEffect(() => {
-    if (!isOpen) return;
-    const onDoc = (e: MouseEvent) => { if (!eventInside(e, root.current, panel.current)) set(false); };
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && set(false);
-    document.addEventListener("mousedown", onDoc);
-    document.addEventListener("keydown", onKey);
-    return () => { document.removeEventListener("mousedown", onDoc); document.removeEventListener("keydown", onKey); };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen]);
-
+function PopoverContent({
+  className,
+  align = "center",
+  sideOffset = 4,
+  ...props
+}: React.ComponentProps<typeof PopoverPrimitive.Content>) {
   return (
-    <div ref={root} className="inline-block">
-      {/* nikyar: دکمه‌ی واقعی به‌جای span تا با صفحه‌کلید در دسترس باشد (axe: aria-allowed-attr) */}
-      <button
-        type="button"
-        onClick={() => { if (!isOpen) update(); set(!isOpen); }}
-        aria-haspopup="dialog"
-        aria-expanded={isOpen}
-        aria-controls={id}
-        aria-label={triggerLabel}
-        className="inline-flex cursor-pointer rounded-control"
-      >
-        {trigger}
-      </button>
-      <FloatPortal
-        open={isOpen}
-        mounted={mounted}
-        style={style}
-        theme={theme}
-        panelRef={panel}
-        id={id}
-        role="dialog"
+    <PopoverPrimitive.Portal>
+      <PopoverPrimitive.Content
+        data-slot="popover-content"
+        align={align}
+        sideOffset={sideOffset}
         className={cn(
-          "fixed z-50 min-w-56 rounded-overlay border-line border-border bg-popover p-4 text-sm text-popover-foreground shadow-overlay [backdrop-filter:var(--surface-filter)]",
-          "animate-fade-up [animation-duration:180ms]",
-          className,
+          "z-50 flex w-72 origin-(--radix-popover-content-transform-origin) flex-col gap-4 rounded-lg bg-popover p-2.5 text-xs text-popover-foreground shadow-md ring-1 ring-foreground/10 outline-hidden duration-100 data-[side=bottom]:slide-in-from-top-2 data-[side=left]:slide-in-from-right-2 data-[side=right]:slide-in-from-left-2 data-[side=top]:slide-in-from-bottom-2 data-open:animate-in data-open:fade-in-0 data-open:zoom-in-95 data-closed:animate-out data-closed:fade-out-0 data-closed:zoom-out-95",
+          className
         )}
-      >
-        {children}
-      </FloatPortal>
-    </div>
-  );
+        {...props}
+      />
+    </PopoverPrimitive.Portal>
+  )
+}
+
+function PopoverAnchor({
+  ...props
+}: React.ComponentProps<typeof PopoverPrimitive.Anchor>) {
+  return <PopoverPrimitive.Anchor data-slot="popover-anchor" {...props} />
+}
+
+function PopoverHeader({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="popover-header"
+      className={cn("flex flex-col gap-1 text-xs", className)}
+      {...props}
+    />
+  )
+}
+
+function PopoverTitle({ className, ...props }: React.ComponentProps<"h2">) {
+  return (
+    <div
+      data-slot="popover-title"
+      className={cn("text-sm font-medium", className)}
+      {...props}
+    />
+  )
+}
+
+function PopoverDescription({
+  className,
+  ...props
+}: React.ComponentProps<"p">) {
+  return (
+    <p
+      data-slot="popover-description"
+      className={cn("text-muted-foreground", className)}
+      {...props}
+    />
+  )
+}
+
+export {
+  Popover,
+  PopoverAnchor,
+  PopoverContent,
+  PopoverDescription,
+  PopoverHeader,
+  PopoverTitle,
+  PopoverTrigger,
 }

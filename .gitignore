@@ -1,14 +1,24 @@
+# Python
 .venv/
 __pycache__/
 *.pyc
-backend/db.sqlite3
-backend/staticfiles/
-backend/license.json
+.pytest_cache/
+
+# داده‌ی محلی هر نصب (پایگاه داده، کلید امنیتی، فایل‌ها)
+backend/data/
+
+# Frontend
 node_modules/
 frontend/dist/
+frontend/test-results/
+frontend/playwright-report/
+frontend/node_modules/.tmp/
+
+# محیط و ویرایشگر
 .env
 .DS_Store
-media/
-backend/media/
+.idea/
+.vscode/
+
+# کلید خصوصی لایسنس هرگز در مخزن نیست
 *.private.pem
-nikyar-private*.pem

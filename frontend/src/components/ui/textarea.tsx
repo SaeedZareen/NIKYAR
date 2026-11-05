@@ -1,56 +1,17 @@
-"use client";
+import * as React from "react"
+import { cn } from "@/lib/utils"
 
-import * as React from "react";
-import { cn, fa } from "@/lib/utils";
-
-export interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
-  /** Grow with content instead of scrolling. */
-  autoResize?: boolean;
-  /** Show a «۲۴ / ۱۲۰» counter (requires maxLength). */
-  showCount?: boolean;
-}
-
-/** متن چندخطی با شمارنده‌ی فارسی و ارتفاع خودکار. */
-export function Textarea({ className, autoResize, showCount, maxLength, onChange, value, defaultValue, ...props }: TextareaProps) {
-  const ref = React.useRef<HTMLTextAreaElement>(null);
-  const [len, setLen] = React.useState(String(value ?? defaultValue ?? "").length);
-
-  const resize = React.useCallback(() => {
-    const el = ref.current;
-    if (!el || !autoResize) return;
-    el.style.height = "auto";
-    el.style.height = `${el.scrollHeight}px`;
-  }, [autoResize]);
-
-  React.useEffect(resize, [resize, value]);
-
+function Textarea({ className, ...props }: React.ComponentProps<"textarea">) {
   return (
-    <div className="space-y-1">
-      <textarea
-        ref={ref}
-        value={value}
-        defaultValue={defaultValue}
-        maxLength={maxLength}
-        onChange={(e) => {
-          setLen(e.target.value.length);
-          resize();
-          onChange?.(e);
-        }}
-        className={cn(
-          "flex min-h-20 w-full rounded-field border-line-field border-input bg-field shadow-field px-3 py-2 text-sm leading-7 text-foreground",
-          "placeholder:text-muted-foreground/70 transition-colors",
-          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/60 focus-visible:border-transparent",
-          "disabled:cursor-not-allowed disabled:opacity-50",
-          autoResize ? "resize-none overflow-hidden" : "resize-y",
-          className,
-        )}
-        {...props}
-      />
-      {showCount && maxLength && (
-        <p className="text-end text-[11px] text-muted-foreground" aria-live="polite">
-          {fa(len)} / {fa(maxLength)}
-        </p>
+    <textarea
+      data-slot="textarea"
+      className={cn(
+        "flex field-sizing-content min-h-16 w-full resize-none rounded-md border border-input bg-input/20 px-2 py-2 text-sm transition-colors outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/30 disabled:cursor-not-allowed disabled:opacity-50 aria-invalid:border-destructive aria-invalid:ring-2 aria-invalid:ring-destructive/20 md:text-xs/relaxed dark:bg-input/30 dark:aria-invalid:border-destructive/50 dark:aria-invalid:ring-destructive/40",
+        className
       )}
-    </div>
-  );
+      {...props}
+    />
+  )
 }
+
+export { Textarea }

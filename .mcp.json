@@ -1,8 +1,9 @@
 {
   "mcpServers": {
-    "vibefarsi": {
-      "type": "http",
-      "url": "https://vibefarsi.ir/mcp"
+    "shadcn": {
+      "command": "npx",
+      "args": ["shadcn@latest", "mcp"],
+      "cwd": "frontend"
     }
   }
 }

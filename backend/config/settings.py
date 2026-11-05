@@ -1,45 +1,41 @@
 """
-تنظیمات اصلی نیک‌یار
+تنظیمات نیک‌یار. همه‌چیز از متغیرهای محیطی خوانده می‌شود تا روی هر سرور سازمان بدون تغییر کد نصب شود.
 
-همه‌ی تنظیمات حساس از «متغیرهای محیطی» خوانده می‌شوند تا روی سرور مشتری
-بدون تغییر کد قابل پیکربندی باشد.
+NIKYAR_DEBUG=1           حالت توسعه
+NIKYAR_SECRET_KEY        کلید امنیتی (اگر نباشد، یک‌بار ساخته و در data/secret_key نگه داشته می‌شود)
+NIKYAR_ALLOWED_HOSTS     نام‌ها/نشانی‌های مجاز، جداشده با ویرگول (پیش‌فرض: همه، برای شبکه‌ی داخلی)
+NIKYAR_DB_ENGINE         sqlite (پیش‌فرض) یا postgres
+NIKYAR_DB_NAME/USER/PASSWORD/HOST/PORT   برای PostgreSQL
 """
+
 import os
+import secrets
 from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+REPO_DIR = BASE_DIR.parent
+DATA_DIR = Path(os.environ.get("NIKYAR_DATA_DIR", BASE_DIR / "data"))
+DATA_DIR.mkdir(parents=True, exist_ok=True)
+FRONTEND_DIST = REPO_DIR / "frontend" / "dist"
 
 
-def env(name, default=None):
-    return os.environ.get(name, default)
+def env_bool(name: str, default: bool = False) -> bool:
+    return os.environ.get(name, str(int(default))).lower() in {"1", "true", "yes", "on"}
 
 
-SECRET_KEY = env("NIKYAR_SECRET_KEY", "dev-only-insecure-key-change-me")
-DEBUG = env("NIKYAR_DEBUG", "1") == "1"
-ALLOWED_HOSTS = env("NIKYAR_ALLOWED_HOSTS", "*").split(",")
-CSRF_TRUSTED_ORIGINS = [o for o in env("NIKYAR_CSRF_ORIGINS", "").split(",") if o]
+def secret_key() -> str:
+    if key := os.environ.get("NIKYAR_SECRET_KEY"):
+        return key
+    path = DATA_DIR / "secret_key"
+    if not path.exists():
+        path.write_text(secrets.token_urlsafe(50), encoding="utf-8")
+    return path.read_text(encoding="utf-8").strip()
 
-# ---------------------------------------------------------------------------
-# ماژول‌ها
-# هر ماژول نیک‌یار یک اپ جنگو داخل پوشه‌ی apps است. ماژول‌های هسته همیشه
-# فعال‌اند؛ ماژول‌های تجاری (انبار، حسابداری و ...) با لایسنس فعال می‌شوند.
-# ---------------------------------------------------------------------------
-NIKYAR_APPS = [
-    # هسته (همیشه فعال)
-    "core.kernel",
-    "core.accounts",
-    "core.org",
-    "core.audit",
-    "core.lookups",
-    "core.forms",
-    "core.files",
-    "core.numbering",
-    "core.notifications",
-    "core.orgsettings",
-    "core.workflow",
-    # ماژول‌های تجاری (با لایسنس فعال می‌شوند)
-    "modules.personnel",
-]
+
+SECRET_KEY = secret_key()
+DEBUG = env_bool("NIKYAR_DEBUG")
+ALLOWED_HOSTS = [h.strip() for h in os.environ.get("NIKYAR_ALLOWED_HOSTS", "*").split(",") if h.strip()]
+VERSION = "0.1.0"
 
 INSTALLED_APPS = [
     "django.contrib.admin",
@@ -49,15 +45,13 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
-    "rest_framework.authtoken",
-    "corsheaders",
-    *NIKYAR_APPS,
+    "drf_spectacular",
+    "drf_spectacular_sidecar",
 ]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
-    "corsheaders.middleware.CorsMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -67,6 +61,7 @@ MIDDLEWARE = [
 ]
 
 ROOT_URLCONF = "config.urls"
+WSGI_APPLICATION = "config.wsgi.application"
 
 TEMPLATES = [
     {
@@ -83,30 +78,32 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "config.wsgi.application"
-
-# پایگاه داده: در محیط واقعی PostgreSQL، در توسعه SQLite
-if env("POSTGRES_DB"):
+if os.environ.get("NIKYAR_DB_ENGINE", "sqlite") == "postgres":
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
-            "NAME": env("POSTGRES_DB"),
-            "USER": env("POSTGRES_USER", "nikyar"),
-            "PASSWORD": env("POSTGRES_PASSWORD", ""),
-            "HOST": env("POSTGRES_HOST", "localhost"),
-            "PORT": env("POSTGRES_PORT", "5432"),
+            "NAME": os.environ.get("NIKYAR_DB_NAME", "nikyar"),
+            "USER": os.environ.get("NIKYAR_DB_USER", "nikyar"),
+            "PASSWORD": os.environ.get("NIKYAR_DB_PASSWORD", ""),
+            "HOST": os.environ.get("NIKYAR_DB_HOST", "127.0.0.1"),
+            "PORT": os.environ.get("NIKYAR_DB_PORT", "5432"),
+            "CONN_MAX_AGE": 60,
         }
     }
 else:
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
+            "NAME": DATA_DIR / "nikyar.sqlite3",
+            "OPTIONS": {"init_command": "PRAGMA journal_mode=WAL;", "transaction_mode": "IMMEDIATE"},
         }
     }
 
 AUTH_PASSWORD_VALIDATORS = [
+    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
+    {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
+    {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
 ]
 
 LANGUAGE_CODE = "fa"
@@ -115,32 +112,28 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = "static/"
-STATIC_ROOT = BASE_DIR / "staticfiles"
-
-# فایل‌های ساخته‌شده‌ی فرانت‌اند (در نسخه‌ی Docker، کنار بک‌اند سرو می‌شوند)
-FRONTEND_DIST = Path(env("NIKYAR_FRONTEND_DIST", str(BASE_DIR.parent / "frontend" / "dist")))
-if FRONTEND_DIST.exists():
-    WHITENOISE_ROOT = FRONTEND_DIST
+STATIC_ROOT = DATA_DIR / "static"
+MEDIA_URL = "media/"
+MEDIA_ROOT = DATA_DIR / "media"
+# فایل‌های ساخته‌شده‌ی رابط کاربری (frontend/dist) از ریشه‌ی سایت سرو می‌شوند.
+WHITENOISE_ROOT = FRONTEND_DIST if FRONTEND_DIST.exists() else None
+STORAGES = {
+    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},
+}
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 
 REST_FRAMEWORK = {
-    "DEFAULT_AUTHENTICATION_CLASSES": [
-        "rest_framework.authentication.TokenAuthentication",
-    ],
-    "DEFAULT_PERMISSION_CLASSES": [
-        "rest_framework.permissions.IsAuthenticated",
-    ],
-    "EXCEPTION_HANDLER": "core.kernel.api.exception_handler_fa",
-    "DEFAULT_THROTTLE_RATES": {"anon": "60/min"},
+    "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
+    "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
 }
 
-CORS_ALLOWED_ORIGINS = [o for o in env("NIKYAR_CORS_ORIGINS", "http://localhost:5173").split(",") if o]
-
-MEDIA_URL = "media/"
-MEDIA_ROOT = Path(env("NIKYAR_MEDIA_ROOT", str(BASE_DIR / "media")))
-DATA_UPLOAD_MAX_MEMORY_SIZE = 25 * 1024 * 1024
-FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024
-
-# فایل لایسنس: فهرست ماژول‌های خریداری‌شده‌ی مشتری
-NIKYAR_LICENSE_FILE = env("NIKYAR_LICENSE_FILE", str(BASE_DIR / "license.json"))
+SPECTACULAR_SETTINGS = {
+    "TITLE": "NIKYAR API",
+    "VERSION": VERSION,
+    "SERVE_INCLUDE_SCHEMA": False,
+    "SWAGGER_UI_DIST": "SIDECAR",
+    "SWAGGER_UI_FAVICON_HREF": "SIDECAR",
+    "REDOC_DIST": "SIDECAR",
+}
