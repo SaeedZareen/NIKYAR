@@ -1,269 +1,181 @@
 @import "tailwindcss";
-@import "vazirmatn/Vazirmatn-Variable-font-face.css";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+@import "@fontsource-variable/vazirmatn";
 
-/* فونت به‌صورت محلی بسته‌بندی شده تا سامانه روی شبکه‌ی داخلی سازمان بدون اینترنت کار کند. */
-:root { --font-vazirmatn: "Vazirmatn"; }
+@custom-variant dark (&:is(.dark *));
 
-/* --- nikyar:theme ---
-   زبان طراحی «اداری» به سبک راهکاران سیستم: نوار بالای سرمه‌ای، آبی سازمانی، زمینه‌ی خاکستری‌آبی،
-   تراکم بالا (ریشه‌ی ۱۴px، کنترل‌ها ۱۳px). همه‌ی جفت‌رنگ‌ها کنتراست AA دارند (design-system/nikyar/MASTER.md).
-   ساختار متغیرها همان توکن‌های وایب‌فارسی است تا کامپوننت‌ها بدون تغییر کار کنند. */
+@theme inline {
+    --font-sans: "Vazirmatn Variable", Tahoma, sans-serif;
+    --font-heading: var(--font-sans);
+
+    /* مقیاس متن برای خط فارسی: کوچک‌ترین اندازه ۱۳px تا خوانا بماند */
+    --text-xs: 0.8125rem;
+    --text-xs--line-height: 1.6;
+    --text-sm: 0.875rem;
+    --text-sm--line-height: 1.6;
+
+    --color-header: var(--header);
+    --color-header-foreground: var(--header-foreground);
+    --color-header-muted: var(--header-muted);
+    --color-success: var(--success);
+    --color-success-foreground: var(--success-foreground);
+    --color-warning: var(--warning);
+    --color-warning-foreground: var(--warning-foreground);
+    --color-info: var(--info);
+    --color-info-foreground: var(--info-foreground);
+
+    --color-sidebar-ring: var(--sidebar-ring);
+    --color-sidebar-border: var(--sidebar-border);
+    --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+    --color-sidebar-accent: var(--sidebar-accent);
+    --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+    --color-sidebar-primary: var(--sidebar-primary);
+    --color-sidebar-foreground: var(--sidebar-foreground);
+    --color-sidebar: var(--sidebar);
+    --color-chart-5: var(--chart-5);
+    --color-chart-4: var(--chart-4);
+    --color-chart-3: var(--chart-3);
+    --color-chart-2: var(--chart-2);
+    --color-chart-1: var(--chart-1);
+    --color-ring: var(--ring);
+    --color-input: var(--input);
+    --color-border: var(--border);
+    --color-destructive: var(--destructive);
+    --color-accent-foreground: var(--accent-foreground);
+    --color-accent: var(--accent);
+    --color-muted-foreground: var(--muted-foreground);
+    --color-muted: var(--muted);
+    --color-secondary-foreground: var(--secondary-foreground);
+    --color-secondary: var(--secondary);
+    --color-primary-foreground: var(--primary-foreground);
+    --color-primary: var(--primary);
+    --color-popover-foreground: var(--popover-foreground);
+    --color-popover: var(--popover);
+    --color-card-foreground: var(--card-foreground);
+    --color-card: var(--card);
+    --color-foreground: var(--foreground);
+    --color-background: var(--background);
+    --radius-sm: calc(var(--radius) * 0.6);
+    --radius-md: calc(var(--radius) * 0.8);
+    --radius-lg: var(--radius);
+    --radius-xl: calc(var(--radius) * 1.4);
+    --radius-2xl: calc(var(--radius) * 1.8);
+    --radius-3xl: calc(var(--radius) * 2.2);
+    --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+/* تم روشن: آبی اداری، زمینه‌ی خاکستری‌آبی روشن */
 :root {
-  color-scheme: light;
-  --background: #EDF1F6;
-  --foreground: #16202C;
-  --card: #FFFFFF;
-  --card-foreground: #16202C;
-  --popover: #FFFFFF;
-  --popover-foreground: #16202C;
-  --primary: #1B5CA8;
-  --primary-foreground: #FFFFFF;
-  --secondary: #E6ECF3;
-  --secondary-foreground: #16202C;
-  --muted: #F3F6FA;
-  --muted-foreground: #4F5D6E;
-  --accent: #DCE8F7;
-  --accent-foreground: #16202C;
-  --destructive: #B42318;
-  --success: #16703A;
-  --warning: #975A06;
-  --border: #D3DCE6;
-  --input: #8794A6;
-  --ring: #1B5CA8;
-  --brand: #1B5CA8;
-  --brand-foreground: #FFFFFF;
-  --field: #FFFFFF;
-  --topbar: #0F3A68;
-  --topbar-foreground: #FFFFFF;
-  --topbar-muted: #B9CCE3;
-  --row-hover: #F3F7FC;
-  --depth-surface: 0 1px 2px 0 rgb(15 58 104 / 0.06);
-  --depth-overlay: 0 12px 32px -8px rgb(15 58 104 / 0.30);
+    --radius: 0.5rem;
+    --background: oklch(0.967 0.006 250);
+    --foreground: oklch(0.22 0.02 255);
+    --card: oklch(1 0 0);
+    --card-foreground: oklch(0.22 0.02 255);
+    --popover: oklch(1 0 0);
+    --popover-foreground: oklch(0.22 0.02 255);
+    --primary: oklch(0.48 0.15 255);
+    --primary-foreground: oklch(0.99 0 0);
+    --secondary: oklch(0.94 0.012 250);
+    --secondary-foreground: oklch(0.27 0.03 255);
+    --muted: oklch(0.955 0.008 250);
+    --muted-foreground: oklch(0.48 0.025 255);
+    --accent: oklch(0.93 0.03 250);
+    --accent-foreground: oklch(0.3 0.08 255);
+    --destructive: oklch(0.5 0.19 27);
+    --border: oklch(0.89 0.012 250);
+    --input: oklch(0.82 0.015 250);
+    --ring: oklch(0.48 0.15 255);
+    --header: oklch(0.33 0.09 255);
+    --header-foreground: oklch(0.99 0 0);
+    --header-muted: oklch(0.84 0.04 250);
+    --success: oklch(0.5 0.13 150);
+    --success-foreground: oklch(0.99 0 0);
+    --warning: oklch(0.5 0.12 60);
+    --warning-foreground: oklch(0.99 0 0);
+    --info: oklch(0.5 0.12 230);
+    --info-foreground: oklch(0.99 0 0);
+    --chart-1: oklch(0.48 0.15 255);
+    --chart-2: oklch(0.6 0.12 185);
+    --chart-3: oklch(0.65 0.15 65);
+    --chart-4: oklch(0.55 0.15 320);
+    --chart-5: oklch(0.6 0.13 150);
+    --sidebar: oklch(1 0 0);
+    --sidebar-foreground: oklch(0.27 0.03 255);
+    --sidebar-primary: oklch(0.48 0.15 255);
+    --sidebar-primary-foreground: oklch(0.99 0 0);
+    --sidebar-accent: oklch(0.93 0.03 250);
+    --sidebar-accent-foreground: oklch(0.3 0.08 255);
+    --sidebar-border: oklch(0.89 0.012 250);
+    --sidebar-ring: oklch(0.48 0.15 255);
+}
 
-  --radius: 0.375rem;
-  --type-display-weight: 700;
-  --shape-control: 0.25rem;
-  --shape-field: 0.25rem;
-  --shape-surface: 0.375rem;
-  --shape-overlay: 0.5rem;
-  --line: 1px;
-  --line-field: 1px;
-  --line-style: solid;
-  --depth-control: 0 0 #0000;
-  --depth-press: 0 0 #0000;
-  --depth-field: 0 0 #0000;
-  --surface-filter: none;
-  --press: none;
-  --motion: 120ms;
-  --motion-ease: cubic-bezier(0.2, 0, 0, 1);
-  --backdrop: none;
-  --spacing: 0.25rem;
-}
-:root[data-theme="dark"] {
-  color-scheme: dark;
-  --background: #0E1622;
-  --foreground: #E6EDF5;
-  --card: #152131;
-  --card-foreground: #E6EDF5;
-  --popover: #18263A;
-  --popover-foreground: #E6EDF5;
-  --primary: #5B9BE6;
-  --primary-foreground: #0E1622;
-  --secondary: #1E2D42;
-  --secondary-foreground: #E6EDF5;
-  --muted: #111C2B;
-  --muted-foreground: #9AAABD;
-  --accent: #1D3A5E;
-  --accent-foreground: #E6EDF5;
-  --destructive: #F87171;
-  --success: #4ADE80;
-  --warning: #FBBF24;
-  --border: #26364A;
-  --input: #6A7A8E;
-  --ring: #5B9BE6;
-  --brand: #5B9BE6;
-  --brand-foreground: #0E1622;
-  --field: #101B29;
-  --topbar: #0A2440;
-  --topbar-foreground: #FFFFFF;
-  --topbar-muted: #A7BBD3;
-  --row-hover: #1A2940;
-  --depth-surface: 0 0 0 0 #0000;
-  --depth-overlay: 0 16px 40px -12px rgb(0 0 0 / 0.7);
-}
-@media (prefers-color-scheme: dark) {
-  :root[data-theme="system"] {
-  color-scheme: dark;
-  --background: #0E1622;
-  --foreground: #E6EDF5;
-  --card: #152131;
-  --card-foreground: #E6EDF5;
-  --popover: #18263A;
-  --popover-foreground: #E6EDF5;
-  --primary: #5B9BE6;
-  --primary-foreground: #0E1622;
-  --secondary: #1E2D42;
-  --secondary-foreground: #E6EDF5;
-  --muted: #111C2B;
-  --muted-foreground: #9AAABD;
-  --accent: #1D3A5E;
-  --accent-foreground: #E6EDF5;
-  --destructive: #F87171;
-  --success: #4ADE80;
-  --warning: #FBBF24;
-  --border: #26364A;
-  --input: #6A7A8E;
-  --ring: #5B9BE6;
-  --brand: #5B9BE6;
-  --brand-foreground: #0E1622;
-  --field: #101B29;
-  --topbar: #0A2440;
-  --topbar-foreground: #FFFFFF;
-  --topbar-muted: #A7BBD3;
-  --row-hover: #1A2940;
-  --depth-surface: 0 0 0 0 #0000;
-  --depth-overlay: 0 16px 40px -12px rgb(0 0 0 / 0.7);
-  }
-}
-/* مقیاس متن فشرده: ریشه ۱۴px؛ همه‌ی فاصله‌ها (rem) هم به همین نسبت فشرده می‌شوند */
-html { font-size: 87.5%; }
-@theme {
-  --text-xs: 0.857rem;
-  --text-xs--line-height: 1.5;
-  --text-sm: 0.9286rem;
-  --text-sm--line-height: 1.6;
-  --text-base: 1rem;
-  --text-base--line-height: 1.75;
-  --text-lg: 1.143rem;
-  --text-lg--line-height: 1.5;
-  --text-xl: 1.286rem;
-  --text-xl--line-height: 1.4;
-  --text-2xl: 1.429rem;
-  --text-2xl--line-height: 1.3;
-}
-@theme inline {
-  --color-topbar: var(--topbar);
-  --color-topbar-foreground: var(--topbar-foreground);
-  --color-topbar-muted: var(--topbar-muted);
-  --color-row-hover: var(--row-hover);
-}
-/* --- nikyar:theme-end --- */
-
-/* --- vibefarsi:tailwind-map --- */
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-card: var(--card);
-  --color-card-foreground: var(--card-foreground);
-  --color-popover: var(--popover);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-primary: var(--primary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-secondary: var(--secondary);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-muted: var(--muted);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-accent: var(--accent);
-  --color-accent-foreground: var(--accent-foreground);
-  --color-destructive: var(--destructive);
-  --color-success: var(--success);
-  --color-warning: var(--warning);
-  --color-border: var(--border);
-  --color-input: var(--input);
-  --color-ring: var(--ring);
-  --color-brand: var(--brand);
-  --color-brand-foreground: var(--brand-foreground);
-  --radius-sm: calc(var(--radius) - 4px);
-  --radius-md: calc(var(--radius) - 2px);
-  --radius-lg: var(--radius);
-  --radius-xl: calc(var(--radius) + 4px);
-
-  /* Design language: type, shape, line, depth and motion of the active system. */
-  --radius-control: var(--shape-control);
-  --radius-field: var(--shape-field);
-  --radius-surface: var(--shape-surface);
-  --radius-overlay: var(--shape-overlay);
-  --border-width-line: var(--line);
-  --border-width-line-field: var(--line-field);
-  --color-field: var(--field);
-  --shadow-control: var(--depth-control);
-  --shadow-press: var(--depth-press);
-  --shadow-field: var(--depth-field);
-  --shadow-surface: var(--depth-surface);
-  --shadow-overlay: var(--depth-overlay);
-  --ease-motion: var(--motion-ease);
-  --font-display: var(--type-display);
+.dark {
+    --background: oklch(0.17 0.02 255);
+    --foreground: oklch(0.94 0.01 250);
+    --card: oklch(0.21 0.025 255);
+    --card-foreground: oklch(0.94 0.01 250);
+    --popover: oklch(0.23 0.025 255);
+    --popover-foreground: oklch(0.94 0.01 250);
+    --primary: oklch(0.68 0.13 252);
+    --primary-foreground: oklch(0.17 0.02 255);
+    --secondary: oklch(0.27 0.03 255);
+    --secondary-foreground: oklch(0.94 0.01 250);
+    --muted: oklch(0.25 0.025 255);
+    --muted-foreground: oklch(0.72 0.02 250);
+    --accent: oklch(0.32 0.06 255);
+    --accent-foreground: oklch(0.96 0.01 250);
+    --destructive: oklch(0.74 0.15 25);
+    --border: oklch(1 0 0 / 11%);
+    --input: oklch(1 0 0 / 18%);
+    --ring: oklch(0.68 0.13 252);
+    --header: oklch(0.24 0.06 255);
+    --header-foreground: oklch(0.97 0 0);
+    --header-muted: oklch(0.78 0.04 250);
+    --success: oklch(0.72 0.14 150);
+    --success-foreground: oklch(0.17 0.02 255);
+    --warning: oklch(0.78 0.13 75);
+    --warning-foreground: oklch(0.17 0.02 255);
+    --info: oklch(0.72 0.11 230);
+    --info-foreground: oklch(0.17 0.02 255);
+    --chart-1: oklch(0.68 0.13 252);
+    --chart-2: oklch(0.72 0.11 185);
+    --chart-3: oklch(0.78 0.13 75);
+    --chart-4: oklch(0.7 0.14 320);
+    --chart-5: oklch(0.72 0.14 150);
+    --sidebar: oklch(0.2 0.025 255);
+    --sidebar-foreground: oklch(0.9 0.01 250);
+    --sidebar-primary: oklch(0.68 0.13 252);
+    --sidebar-primary-foreground: oklch(0.17 0.02 255);
+    --sidebar-accent: oklch(0.3 0.05 255);
+    --sidebar-accent-foreground: oklch(0.96 0.01 250);
+    --sidebar-border: oklch(1 0 0 / 10%);
+    --sidebar-ring: oklch(0.68 0.13 252);
 }
 
 @layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+    -webkit-tap-highlight-color: transparent;
+  }
   body {
-    font-size: 1rem;
-    line-height: 1.75;
+    @apply bg-background text-sm text-foreground antialiased;
     letter-spacing: 0;
-    text-rendering: optimizeLegibility;
-    -webkit-font-smoothing: antialiased;
-    font-family: var(--type-body, inherit);
-    background-image: var(--backdrop, none);
   }
-
-  h1, h2, h3, h4 {
-    font-family: var(--type-display, inherit);
-    font-weight: var(--type-display-weight, 700);
-    /* Single-weight display faces (Lalezar) must not be faux-bolded. */
-    font-synthesis-weight: none;
+  button:not(:disabled), [role="button"]:not(:disabled) {
+    cursor: pointer;
   }
-
-  /* iOS Safari zooms into any focused field smaller than 16px; only iOS matches this query. */
-  @supports (-webkit-touch-callout: none) {
-    input, textarea, select {
-      --text-xs: 1rem;
-      --text-sm: 1rem;
-      font-size: max(1rem, 1em);
+  /* اعداد جدول‌ها و کدها هم‌عرض */
+  table, [data-slot="kbd"] {
+    font-variant-numeric: tabular-nums;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
     }
   }
 }
-/* --- vibefarsi:tailwind-map-end --- */
-
-/* --- vibefarsi:font --- */
-@theme inline {
-  --font-sans: var(--font-vazirmatn), "IRANSans", "IRANSansX", "Vazirmatn", ui-sans-serif, system-ui, sans-serif;
-}
-/* --- vibefarsi:font-end --- */
-
-/* --- nikyar: پایه‌ی دسترس‌پذیری (ui-ux-pro-max §1–§3) --- */
-@layer base {
-  /* حلقه‌ی فوکوس ۳ پیکسلی و پرکنتراست روی همه‌ی کنترل‌ها */
-  :where(a, button, input, select, textarea, summary, [role="button"], [role="switch"], [role="tab"], [tabindex]):focus-visible {
-    outline: 3px solid var(--ring);
-    outline-offset: 2px;
-  }
-  /* اعداد جدول‌ها و آمار هم‌عرض تا ستون‌ها نلرزند */
-  table, [data-numeric] { font-variant-numeric: tabular-nums; }
-  /* اندازه‌ی لمسی ۴۴ پیکسل روی صفحه‌های لمسی */
-  @media (pointer: coarse) {
-    button, [role="button"], [role="tab"], a.touch-target, select, input:not([type="checkbox"]):not([type="radio"]) { min-height: 44px; }
-  }
-  /* احترام به «کاهش حرکت» */
-  @media (prefers-reduced-motion: reduce) {
-    *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
-  }
-  html { scroll-padding-top: 5rem; }
-  ::selection { background: color-mix(in oklch, var(--brand) 25%, transparent); }
-}
-
-/* --- nikyar: bpmn-js در صفحه‌ی راست‌چین --- */
-/* اندازه‌گیری متن برچسب‌ها باید چپ‌به‌راست باشد وگرنه برچسب فارسی از شکل بیرون می‌زند */
-#helper-svg, #helper-svg text { direction: ltr; }
-.bpmn-surface { background-color: var(--card); border-radius: var(--shape-field); }
-.bpmn-surface .djs-container svg text { fill: var(--foreground) !important; }
-.bpmn-surface .djs-visual > rect, .bpmn-surface .djs-visual > circle, .bpmn-surface .djs-visual > polygon,
-.bpmn-surface .djs-visual > path { stroke: var(--foreground) !important; }
-.bpmn-surface .djs-visual > rect, .bpmn-surface .djs-visual > circle, .bpmn-surface .djs-visual > polygon { fill: var(--card) !important; }
-.bpmn-surface .djs-connection .djs-visual > path { stroke: var(--muted-foreground) !important; }
-.bpmn-surface .hl-done .djs-visual > :first-child { stroke: var(--success) !important; fill: color-mix(in oklch, var(--success) 14%, var(--card)) !important; }
-.bpmn-surface .hl-active .djs-visual > :first-child { stroke: var(--warning) !important; stroke-width: 3px !important; fill: color-mix(in oklch, var(--warning) 18%, var(--card)) !important; }
-.bpmn-surface .bjs-powered-by { opacity: 0.3; }
-.bpmn-surface .djs-palette { background: var(--popover); border-color: var(--border); }
-.bpmn-surface .djs-palette .entry, .bpmn-surface .djs-context-pad .entry { color: var(--foreground); }
-.bpmn-surface .djs-context-pad .entry { background: var(--popover); }
-.bpmn-surface .djs-popup { background: var(--popover); color: var(--popover-foreground); }

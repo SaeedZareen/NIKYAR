@@ -1,25 +1,34 @@
 from django.conf import settings
 from django.contrib import admin
-from django.http import FileResponse, HttpResponseNotFound
+from django.http import FileResponse, Http404, JsonResponse
 from django.urls import include, path, re_path
+from django.utils import timezone
+from django.views.decorators.cache import never_cache
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
 
-def spa(request):
-    """همه‌ی مسیرهای غیر API به برنامه‌ی فرانت‌اند داده می‌شوند."""
+def health(request):
+    """وضعیت سرویس؛ برای بررسی نصب و پایش."""
+    return JsonResponse({"status": "ok", "version": settings.VERSION, "time": timezone.now().isoformat()})
+
+
+@never_cache
+def spa(request, path=""):
+    """رابط کاربری تک‌صفحه‌ای: هر نشانی غیر از API به index.html برمی‌گردد و مسیریابی در مرورگر انجام می‌شود."""
     index = settings.FRONTEND_DIST / "index.html"
     if not index.exists():
-        return HttpResponseNotFound("فرانت‌اند ساخته نشده است.")
-    return FileResponse(open(index, "rb"), content_type="text/html; charset=utf-8")
+        raise Http404("رابط کاربری ساخته نشده است؛ ابتدا install.bat را اجرا کنید.")
+    return FileResponse(index.open("rb"), content_type="text/html; charset=utf-8")
 
 
-API = [
-    "core.kernel.urls", "core.accounts.urls", "core.org.urls", "core.audit.urls", "core.lookups.urls",
-    "core.forms.urls", "core.files.urls", "core.notifications.urls", "core.orgsettings.urls", "core.workflow.urls",
-    "modules.personnel.urls",
+api = [
+    path("health/", health, name="health"),
+    path("schema/", SpectacularAPIView.as_view(), name="schema"),
+    path("docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="docs"),
 ]
 
 urlpatterns = [
-    path("admin/", admin.site.urls),
-    *[path("api/", include(m)) for m in API],
-    re_path(r"^(?!api/|admin/|static/|media/).*$", spa),
+    path("api/", include(api)),
+    path("django-admin/", admin.site.urls),
+    re_path(r"^(?!api/|django-admin/|static/|media/).*$", spa, name="spa"),
 ]

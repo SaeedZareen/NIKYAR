@@ -1,54 +1,129 @@
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { cn, fa } from "@/lib/utils";
+import * as React from "react"
+import { cn } from "@/lib/utils"
 
-export interface PaginationProps {
-  page: number;
-  total: number;
-  onChange: (page: number) => void;
-  /** Pages shown around the current one. */
-  siblings?: number;
-  size?: "sm" | "md";
-  className?: string;
-}
+import { Button } from "@/components/ui/button"
+import { ChevronLeftIcon, ChevronRightIcon, MoreHorizontalIcon } from "lucide-react"
 
-function range(page: number, total: number, siblings: number): (number | "…")[] {
-  const pages = new Set<number>([1, total]);
-  for (let p = page - siblings; p <= page + siblings; p++) if (p >= 1 && p <= total) pages.add(p);
-  const sorted = Array.from(pages).sort((a, b) => a - b);
-  const out: (number | "…")[] = [];
-  sorted.forEach((p, i) => {
-    if (i > 0 && p - sorted[i - 1] > 1) out.push("…");
-    out.push(p);
-  });
-  return out;
-}
-
-/** صفحه‌بندی. «قبلی» points right and «بعدی» points left, as reading order demands. */
-export function Pagination({ page, total, onChange, siblings = 1, size = "md", className }: PaginationProps) {
-  const btn = cn(size === "sm" ? "size-8 text-xs" : "size-9 text-sm", "flex cursor-pointer items-center justify-center rounded-md border border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:cursor-not-allowed disabled:opacity-40");
+function Pagination({ className, ...props }: React.ComponentProps<"nav">) {
   return (
-    <nav aria-label="صفحه‌بندی" className={cn("flex items-center gap-1", className)}>
-      <button type="button" aria-label="صفحه‌ی قبل" disabled={page <= 1} onClick={() => onChange(page - 1)} className={btn}>
-        <ChevronRight className="size-4" />
-      </button>
-      {range(page, total, siblings).map((p, i) =>
-        p === "…" ? (
-          <span key={`e${i}`} className="px-1 text-muted-foreground">…</span>
-        ) : (
-          <button
-            key={p}
-            type="button"
-            aria-current={p === page ? "page" : undefined}
-            onClick={() => onChange(p)}
-            className={cn(btn, p === page && "border-primary bg-primary font-semibold text-primary-foreground hover:bg-primary hover:text-primary-foreground")}
-          >
-            {fa(p)}
-          </button>
-        ),
+    <nav
+      role="navigation"
+      aria-label="صفحه‌بندی"
+      data-slot="pagination"
+      className={cn("mx-auto flex w-full justify-center", className)}
+      {...props}
+    />
+  )
+}
+
+function PaginationContent({
+  className,
+  ...props
+}: React.ComponentProps<"ul">) {
+  return (
+    <ul
+      data-slot="pagination-content"
+      className={cn("flex items-center gap-0.5", className)}
+      {...props}
+    />
+  )
+}
+
+function PaginationItem({ ...props }: React.ComponentProps<"li">) {
+  return <li data-slot="pagination-item" {...props} />
+}
+
+type PaginationLinkProps = {
+  isActive?: boolean
+} & Pick<React.ComponentProps<typeof Button>, "size"> &
+  React.ComponentProps<"a">
+
+function PaginationLink({
+  className,
+  isActive,
+  size = "icon",
+  ...props
+}: PaginationLinkProps) {
+  return (
+    <Button
+      asChild
+      variant={isActive ? "outline" : "ghost"}
+      size={size}
+      className={cn(className)}
+    >
+      <a
+        aria-current={isActive ? "page" : undefined}
+        data-slot="pagination-link"
+        data-active={isActive}
+        {...props}
+      />
+    </Button>
+  )
+}
+
+function PaginationPrevious({
+  className,
+  text = "قبلی",
+  ...props
+}: React.ComponentProps<typeof PaginationLink> & { text?: string }) {
+  return (
+    <PaginationLink
+      aria-label="صفحه‌ی قبل"
+      size="default"
+      className={cn("ps-2!", className)}
+      {...props}
+    >
+      <ChevronLeftIcon data-icon="inline-start" className="rtl:rotate-180" />
+      <span className="hidden sm:block">{text}</span>
+    </PaginationLink>
+  )
+}
+
+function PaginationNext({
+  className,
+  text = "بعدی",
+  ...props
+}: React.ComponentProps<typeof PaginationLink> & { text?: string }) {
+  return (
+    <PaginationLink
+      aria-label="صفحه‌ی بعد"
+      size="default"
+      className={cn("pe-2!", className)}
+      {...props}
+    >
+      <span className="hidden sm:block">{text}</span>
+      <ChevronRightIcon data-icon="inline-end" className="rtl:rotate-180" />
+    </PaginationLink>
+  )
+}
+
+function PaginationEllipsis({
+  className,
+  ...props
+}: React.ComponentProps<"span">) {
+  return (
+    <span
+      aria-hidden
+      data-slot="pagination-ellipsis"
+      className={cn(
+        "flex size-7 items-center justify-center [&_svg:not([class*='size-'])]:size-3.5",
+        className
       )}
-      <button type="button" aria-label="صفحه‌ی بعد" disabled={page >= total} onClick={() => onChange(page + 1)} className={btn}>
-        <ChevronLeft className="size-4" />
-      </button>
-    </nav>
-  );
+      {...props}
+    >
+      <MoreHorizontalIcon
+      />
+      <span className="sr-only">صفحه‌های بیشتر</span>
+    </span>
+  )
+}
+
+export {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
 }

@@ -1,29 +1,27 @@
-import * as React from "react";
-import { cn } from "@/lib/utils";
+"use client"
 
-export interface SeparatorProps extends React.HTMLAttributes<HTMLDivElement> {
-  orientation?: "horizontal" | "vertical";
-  /** Text in the middle of a horizontal rule, e.g. «یا». */
-  label?: React.ReactNode;
-  /** Purely visual; screen readers skip it. */
-  decorative?: boolean;
-}
+import * as React from "react"
+import { cn } from "@/lib/utils"
+import { Separator as SeparatorPrimitive } from "radix-ui"
 
-/** جداکننده. A hairline from the border token; with `label` the text sits in the middle. */
-export function Separator({ orientation = "horizontal", label, decorative = true, className, ...props }: SeparatorProps) {
-  const a11y = decorative ? { role: "none" as const } : { role: "separator" as const, "aria-orientation": orientation };
-
-  if (orientation === "vertical") {
-    return <div {...a11y} className={cn("w-px self-stretch bg-border", className)} {...props} />;
-  }
-
-  if (!label) return <div {...a11y} className={cn("h-px w-full bg-border", className)} {...props} />;
-
+function Separator({
+  className,
+  orientation = "horizontal",
+  decorative = true,
+  ...props
+}: React.ComponentProps<typeof SeparatorPrimitive.Root>) {
   return (
-    <div {...a11y} className={cn("flex w-full items-center gap-3 text-xs text-muted-foreground", className)} {...props}>
-      <span className="h-px flex-1 bg-border" />
-      <span className="shrink-0">{label}</span>
-      <span className="h-px flex-1 bg-border" />
-    </div>
-  );
+    <SeparatorPrimitive.Root
+      data-slot="separator"
+      decorative={decorative}
+      orientation={orientation}
+      className={cn(
+        "shrink-0 bg-border data-horizontal:h-px data-horizontal:w-full data-vertical:w-px data-vertical:self-stretch",
+        className
+      )}
+      {...props}
+    />
+  )
 }
+
+export { Separator }

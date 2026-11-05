@@ -1,55 +1,54 @@
-import * as React from "react";
-import { cn } from "@/lib/utils";
+"use client"
 
-export interface ScrollAreaProps extends React.HTMLAttributes<HTMLDivElement> {
-  /** Which axes can scroll. Default vertical. */
-  orientation?: "vertical" | "horizontal" | "both";
-  /** Scrollbar thickness. thin ≈ 6px, md ≈ 8px. */
-  size?: "thin" | "md";
-}
+import * as React from "react"
+import { cn } from "@/lib/utils"
+import { ScrollArea as ScrollAreaPrimitive } from "radix-ui"
 
-const scrollbar = {
-  thin: cn(
-    "[scrollbar-width:thin]",
-    "[&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar]:h-1.5",
-  ),
-  md: cn(
-    "[scrollbar-width:auto]",
-    "[&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar]:h-2",
-  ),
-} as const;
-
-/**
- * ناحیه اسکرول. Overflow box with a theme-colored thin scrollbar so dark
- * UIs do not fall back to the OS (Windows) bar. Distinct from scroll-progress,
- * which is only a reading bar at the top of the page.
- */
-export function ScrollArea({
-  orientation = "vertical",
-  size = "thin",
+function ScrollArea({
   className,
   children,
   ...props
-}: ScrollAreaProps) {
+}: React.ComponentProps<typeof ScrollAreaPrimitive.Root>) {
   return (
-    <div
+    <ScrollAreaPrimitive.Root
       data-slot="scroll-area"
+      className={cn("relative", className)}
+      {...props}
+    >
+      <ScrollAreaPrimitive.Viewport
+        data-slot="scroll-area-viewport"
+        className="size-full rounded-[inherit] transition-[color,box-shadow] outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-1"
+      >
+        {children}
+      </ScrollAreaPrimitive.Viewport>
+      <ScrollBar />
+      <ScrollAreaPrimitive.Corner />
+    </ScrollAreaPrimitive.Root>
+  )
+}
+
+function ScrollBar({
+  className,
+  orientation = "vertical",
+  ...props
+}: React.ComponentProps<typeof ScrollAreaPrimitive.ScrollAreaScrollbar>) {
+  return (
+    <ScrollAreaPrimitive.ScrollAreaScrollbar
+      data-slot="scroll-area-scrollbar"
+      data-orientation={orientation}
+      orientation={orientation}
       className={cn(
-        "min-h-0 min-w-0",
-        orientation === "vertical" && "overflow-y-auto overflow-x-hidden",
-        orientation === "horizontal" && "overflow-x-auto overflow-y-hidden",
-        orientation === "both" && "overflow-auto",
-        "[scrollbar-color:var(--border)_transparent]",
-        "[&::-webkit-scrollbar-track]:bg-transparent",
-        "[&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-border",
-        "hover:[&::-webkit-scrollbar-thumb]:bg-muted-foreground/50",
-        "[&::-webkit-scrollbar-corner]:bg-transparent",
-        scrollbar[size],
-        className,
+        "flex touch-none p-px transition-colors select-none data-horizontal:h-2.5 data-horizontal:flex-col data-horizontal:border-t data-horizontal:border-t-transparent data-vertical:h-full data-vertical:w-2.5 data-vertical:border-s data-vertical:border-s-transparent",
+        className
       )}
       {...props}
     >
-      {children}
-    </div>
-  );
+      <ScrollAreaPrimitive.ScrollAreaThumb
+        data-slot="scroll-area-thumb"
+        className="relative flex-1 rounded-full bg-border"
+      />
+    </ScrollAreaPrimitive.ScrollAreaScrollbar>
+  )
 }
+
+export { ScrollArea, ScrollBar }

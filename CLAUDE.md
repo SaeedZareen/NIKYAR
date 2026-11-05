@@ -1,33 +1,22 @@
-@AGENTS.md
+# NIKYAR — guide for development sessions
 
-## Project guide (for development sessions)
+Modular Persian BPMS/ERP for on-premise installs in Iran. The product owner is not a developer: explain results in Persian, plainly. Read `docs/ROADMAP.md` and `docs/ARCHITECTURE.md` first. Work phase by phase; a phase is done only when every test passes in the browser and the owner approves.
 
-NIKYAR is a modular Persian BPMS/ERP platform. Read `docs/ARCHITECTURE.md` and `docs/ROADMAP.md` first.
+## Stack
+- Backend: Django 5.2 LTS + DRF + drf-spectacular, pytest. `backend/serve.py` (Waitress) serves API + built frontend on `0.0.0.0` for LAN use.
+- Frontend: React 19, TypeScript, Vite, Tailwind 4, shadcn/ui (RTL, `radix-mira` style, lucide icons), TanStack Query + Table v9, react-hook-form + zod, React Router, date-fns-jalali + @daypicker/persian.
+- shadcn MCP server is configured in `.mcp.json`. Add components only via `cd frontend && npx shadcn@latest add <name>` (needs `NODE_USE_ENV_PROXY=1` behind a proxy). After adding, check imports use `@/lib/utils` and translate any English user-facing strings.
+- TanStack Table v9 docs ship inside the package: `frontend/node_modules/@tanstack/*/skills/`.
 
-### Layout
-- `backend/core/*` — platform core (kernel, accounts, org, lookups, forms, workflow, audit, files, numbering, notifications). Core never imports from `modules/`.
-- `backend/modules/*` — business modules. Each declares a `ModuleSpec` as `nikyar_module` on its AppConfig (permissions, lookups, process actions, extensible entities, sequences) and is listed in `NIKYAR_APPS`.
-- `frontend/src/app` — shell, auth, API client, module registry. `frontend/src/core`, `frontend/src/modules` mirror the backend.
-- UI components come from vibefarsi (`src/components/ui`, `src/components/charts`). Add more with `NODE_USE_ENV_PROXY=1 npx vibefarsi add <slug>` from `frontend/`; the vibefarsi MCP server is configured in `.mcp.json`.
+## Rules
+- All user-facing text is formal Persian (labels, aria-labels, errors, toasts). Visible digits Persian; values/URLs/payloads Latin. Dates Jalali (`lib/format.ts`).
+- Logical Tailwind classes only (`ms-/me-/ps-/pe-/start-/end-/text-start`). Colors only from tokens in `src/index.css`.
+- Reuse the kits: `components/data-table`, `components/form`, `components/layout`. Do not hand-roll tables, fields or page headers.
+- No dead code, unused dependencies, orphaned files or speculative placeholders. Remove what a change makes obsolete.
+- Console/batch output is English (Windows consoles cannot render Persian); everything in the browser is Persian.
+- Windows scripts (`*.bat`) must keep CRLF line endings (`.gitattributes`).
 
-### UI/UX (mandatory for any frontend change)
-- Follow `design-system/nikyar/MASTER.md` (source of truth) and the installed skill `.claude/skills/ui-ux-pro-max` (rules: `references/quick-reference.md`). Use the shared primitives in `frontend/src/app/ui.tsx` and `frontend/src/app/list.tsx` instead of ad-hoc markup.
-- Style is dense Rahkaran-like office software (navy topbar, tree menu, page tabs, compact toolbars, dense grids, side labels). Check every change at 1093×600 @1.25 (a 1366×768 laptop at 125%), then 1920 and 375.
-- Lists are `ResponsiveList` with real links per row; list filters use `ListToolbar` + `ToolbarFilter` and live in the URL (`useUrlState`); read-only data is a definition list; failed submits show `ErrorSummary`; one primary action per screen.
-- Builders (form/process) are full-height workspaces: see the `WORKSPACE` list in `app/Shell.tsx`.
-
-### Rules
-- All user-facing text is formal Persian. API errors raise `core.kernel.api.BusinessError(message, fields)`.
-- Permissions: use `core.kernel.api.Perm` with a `perms` map on the view; frontend uses `useAuth().can()`.
-- System lookups (`LookupSpec(system=True)`) are locked; business rules may depend on their codes. Editable lookups are user data.
-- Forms: field types live in `backend/core/forms/fields.py` and `frontend/src/core/forms/FormRenderer.tsx`; keep both in sync.
-- Writes go through `AuditedViewSetMixin` (or `core.audit.service.record`) so every change is audited.
-- Dates: Jalali strings `YYYY/MM/DD` in the API, `JalaliDateField` in serializers.
-- Settings: modules add sections via `ModuleSpec.settings` (form-schema sections); read with `core.orgsettings.service.get(key)`. Secret keys go in `ModuleSpec.secret_settings`.
-- Notifications: call `core.notifications.models.notify(users, title, body, link)`; it fans out to SMS/email when enabled.
-- Background jobs: `python manage.py nikyar_scheduler --loop` (reminders, escalation).
-
-### Commands
-- Backend tests: `cd backend && python manage.py test tests`
-- Demo data: `python manage.py seed_demo` (password `nikyar123`)
-- Frontend type check: `cd frontend && npx tsc -b --noEmit`
+## Verify before reporting done
+- `cd frontend && npm run typecheck && npm run lint && npm test && npm run e2e` (Playwright: laptop 1093×600@1.25, desktop 1920, mobile; axe must show no serious/critical issues).
+- `cd backend && ../.venv/bin/python -m pytest`
+- `npm run build` then `python backend/serve.py` and open it once to confirm the production path works.

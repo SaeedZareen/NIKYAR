@@ -1,32 +1,75 @@
-import { AlertCircle, AlertTriangle, CheckCircle2, Info } from "lucide-react";
-import { cn } from "@/lib/utils";
+import * as React from "react"
+import { cva, type VariantProps } from "class-variance-authority"
+import { cn } from "@/lib/utils"
 
-type Variant = "info" | "success" | "warning" | "destructive";
+const alertVariants = cva(
+  "group/alert relative grid w-full gap-0.5 rounded-lg border px-2 py-1.5 text-start text-xs/relaxed has-data-[slot=alert-action]:relative has-data-[slot=alert-action]:pe-18 has-[>svg]:grid-cols-[auto_1fr] has-[>svg]:gap-x-1.5 *:[svg]:row-span-2 *:[svg]:translate-y-0.5 *:[svg]:text-current *:[svg:not([class*='size-'])]:size-3.5",
+  {
+    variants: {
+      variant: {
+        default: "bg-card text-card-foreground",
+        destructive:
+          "bg-card text-destructive *:data-[slot=alert-description]:text-destructive/90 *:[svg]:text-current",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+    },
+  }
+)
 
-const styles: Record<Variant, { box: string; icon: React.ComponentType<{ className?: string }>; iconColor: string }> = {
-  info: { box: "border-border bg-card", icon: Info, iconColor: "text-foreground" },
-  success: { box: "border-success/25 bg-success/10", icon: CheckCircle2, iconColor: "text-success" },
-  warning: { box: "border-warning/25 bg-warning/10", icon: AlertTriangle, iconColor: "text-warning" },
-  destructive: { box: "border-destructive/30 bg-destructive/10", icon: AlertCircle, iconColor: "text-destructive" },
-};
-
-export interface AlertProps extends Omit<React.HTMLAttributes<HTMLDivElement>, "title"> {
-  variant?: Variant;
-  title?: React.ReactNode;
-  icon?: React.ComponentType<{ className?: string }>;
-}
-
-/** هشدار درون‌صفحه‌ای. Icon at the inline-start; use `role="alert"` for errors that need announcing. */
-export function Alert({ variant = "info", title, icon, className, children, ...props }: AlertProps) {
-  const s = styles[variant];
-  const Icon = icon ?? s.icon;
+function Alert({
+  className,
+  variant,
+  ...props
+}: React.ComponentProps<"div"> & VariantProps<typeof alertVariants>) {
   return (
-    <div role={variant === "destructive" ? "alert" : "status"} className={cn("flex items-start gap-3 rounded-overlay border-line p-4 text-sm [--tw-border-style:var(--line-style)]", s.box, className)} {...props}>
-      <Icon className={cn("mt-0.5 size-4 shrink-0", s.iconColor)} />
-      <div className="min-w-0">
-        {title && <p className={cn("font-semibold", variant !== "info" && s.iconColor)}>{title}</p>}
-        {children && <div className={cn("text-foreground/80", title && "mt-0.5")}>{children}</div>}
-      </div>
-    </div>
-  );
+    <div
+      data-slot="alert"
+      role="alert"
+      className={cn(alertVariants({ variant }), className)}
+      {...props}
+    />
+  )
 }
+
+function AlertTitle({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="alert-title"
+      className={cn(
+        "font-medium group-has-[>svg]/alert:col-start-2 [&_a]:underline [&_a]:underline-offset-3 [&_a]:hover:text-foreground",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function AlertDescription({
+  className,
+  ...props
+}: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="alert-description"
+      className={cn(
+        "text-xs/relaxed text-balance text-muted-foreground md:text-pretty [&_a]:underline [&_a]:underline-offset-3 [&_a]:hover:text-foreground [&_p:not(:last-child)]:mb-4",
+        className
+      )}
+      {...props}
+    />
+  )
+}
+
+function AlertAction({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div
+      data-slot="alert-action"
+      className={cn("absolute top-1.5 end-2", className)}
+      {...props}
+    />
+  )
+}
+
+export { Alert, AlertTitle, AlertDescription, AlertAction }
