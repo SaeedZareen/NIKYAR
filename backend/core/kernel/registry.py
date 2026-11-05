@@ -5,6 +5,7 @@
 
     nikyar_permissions = {"accounts.users.view": "مشاهده‌ی کاربران", ...}
     nikyar_lookups = [LookupSpec(code="gender", name="جنسیت", system=True, items=[...])]
+    nikyar_settings = [SettingsSection(code="org-profile", title="مشخصات سازمان", serializer="core.org.sections.OrgProfileSettings")]
 
 فهرست کامل مجوزها از همین‌جا ساخته می‌شود و نقش‌ها فقط مجوزهای ثبت‌شده را می‌پذیرند.
 """
@@ -32,6 +33,20 @@ class LookupSpec:
 
 
 @dataclass(frozen=True)
+class SettingsSection:
+    """
+    بخش صفحه‌ی تنظیمات. serializer مسیر نقطه‌دار یک Serializer است که فیلدها، برچسب‌ها،
+    پیش‌فرض‌ها (هر فیلد باید default داشته باشد) و اعتبارسنجی بخش را تعریف می‌کند.
+    نشانی API بخش: /api/settings/<code>/
+    """
+
+    code: str
+    title: str
+    serializer: str
+    description: str = ""
+
+
+@dataclass(frozen=True)
 class PermissionGroup:
     app_label: str
     title: str
@@ -53,3 +68,7 @@ def all_permissions() -> dict[str, str]:
 
 def lookup_specs() -> list[LookupSpec]:
     return [spec for config in apps.get_app_configs() for spec in getattr(config, "nikyar_lookups", [])]
+
+
+def settings_sections() -> list[SettingsSection]:
+    return [spec for config in apps.get_app_configs() for spec in getattr(config, "nikyar_settings", [])]

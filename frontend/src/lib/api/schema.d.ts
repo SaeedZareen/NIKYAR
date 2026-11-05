@@ -276,6 +276,23 @@ export interface paths {
         patch: operations["org_assignments_partial_update"];
         trace?: never;
     };
+    "/api/org/branding/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description نام سازمان برای صفحه‌ی ورود و نوار بالا؛ بدون نیاز به ورود. */
+        get: operations["org_branding_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/org/positions/": {
         parameters: {
             query?: never;
@@ -350,6 +367,59 @@ export interface paths {
         head?: never;
         /** @description ایجاد، ویرایش و حذف را همراه با سابقه‌ی تغییر و در یک تراکنش انجام می‌دهد. */
         patch: operations["org_units_partial_update"];
+        trace?: never;
+    };
+    "/api/settings/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description فهرست بخش‌های صفحه‌ی تنظیمات، به ترتیب اعلام. */
+        get: operations["settings_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/settings/fiscal-year/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description خواندن و ذخیره‌ی یک بخش. برای هر بخش اعلام‌شده یک زیرکلاس با serializer همان بخش ساخته می‌شود (urls.py). */
+        get: operations["settings_fiscal_year_retrieve"];
+        /** @description خواندن و ذخیره‌ی یک بخش. برای هر بخش اعلام‌شده یک زیرکلاس با serializer همان بخش ساخته می‌شود (urls.py). */
+        put: operations["settings_fiscal_year_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/settings/org-profile/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description خواندن و ذخیره‌ی یک بخش. برای هر بخش اعلام‌شده یک زیرکلاس با serializer همان بخش ساخته می‌شود (urls.py). */
+        get: operations["settings_org_profile_retrieve"];
+        /** @description خواندن و ذخیره‌ی یک بخش. برای هر بخش اعلام‌شده یک زیرکلاس با serializer همان بخش ساخته می‌شود (urls.py). */
+        put: operations["settings_org_profile_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
 }
@@ -438,11 +508,29 @@ export interface components {
         };
         /** @enum {unknown} */
         BlankEnum: "";
+        Branding: {
+            name: string;
+            short_name: string;
+        };
         ChangePasswordRequest: {
             /** گذرواژه‌ی فعلی */
             current_password: string;
             /** گذرواژه‌ی جدید */
             new_password: string;
+        };
+        FiscalYearSettings: {
+            /**
+             * ماه آغاز سال مالی
+             * @default 1
+             */
+            start_month: components["schemas"]["StartMonthEnum"];
+        };
+        FiscalYearSettingsRequest: {
+            /**
+             * ماه آغاز سال مالی
+             * @default 1
+             */
+            start_month: components["schemas"]["StartMonthEnum"];
         };
         /**
          * @description * `male` - مرد
@@ -539,6 +627,98 @@ export interface components {
             is_superuser: boolean;
             readonly permissions: string[];
             readonly positions: string[];
+        };
+        OrgProfileSettings: {
+            /**
+             * نام کامل سازمان
+             * @default
+             */
+            name: string;
+            /**
+             * نام کوتاه
+             * @default
+             */
+            short_name: string;
+            /**
+             * شناسه‌ی ملی
+             * @default
+             */
+            national_id: string;
+            /**
+             * کد اقتصادی
+             * @default
+             */
+            economic_code: string;
+            /**
+             * شماره‌ی ثبت
+             * @default
+             */
+            registration_number: string;
+            /**
+             * تلفن
+             * @default
+             */
+            phone: string;
+            /** ایمیل */
+            email: string;
+            /** وب‌سایت */
+            website: string;
+            /**
+             * کد پستی
+             * @default
+             */
+            postal_code: string;
+            /**
+             * نشانی
+             * @default
+             */
+            address: string;
+        };
+        OrgProfileSettingsRequest: {
+            /**
+             * نام کامل سازمان
+             * @default
+             */
+            name: string;
+            /**
+             * نام کوتاه
+             * @default
+             */
+            short_name: string;
+            /**
+             * شناسه‌ی ملی
+             * @default
+             */
+            national_id: string;
+            /**
+             * کد اقتصادی
+             * @default
+             */
+            economic_code: string;
+            /**
+             * شماره‌ی ثبت
+             * @default
+             */
+            registration_number: string;
+            /**
+             * تلفن
+             * @default
+             */
+            phone: string;
+            /** ایمیل */
+            email?: string;
+            /** وب‌سایت */
+            website?: string;
+            /**
+             * کد پستی
+             * @default
+             */
+            postal_code: string;
+            /**
+             * نشانی
+             * @default
+             */
+            address: string;
         };
         OrgUnit: {
             readonly id: number;
@@ -736,6 +916,27 @@ export interface components {
             /** مجوزها */
             permissions?: string[];
         };
+        SectionInfo: {
+            code: string;
+            title: string;
+            description: string;
+        };
+        /**
+         * @description * `1` - فروردین
+         *     * `2` - اردیبهشت
+         *     * `3` - خرداد
+         *     * `4` - تیر
+         *     * `5` - مرداد
+         *     * `6` - شهریور
+         *     * `7` - مهر
+         *     * `8` - آبان
+         *     * `9` - آذر
+         *     * `10` - دی
+         *     * `11` - بهمن
+         *     * `12` - اسفند
+         * @enum {integer}
+         */
+        StartMonthEnum: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
         User: {
             readonly id: number;
             /**
@@ -1686,6 +1887,25 @@ export interface operations {
             };
         };
     };
+    org_branding_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Branding"];
+                };
+            };
+        };
+    };
     org_positions_list: {
         parameters: {
             query?: {
@@ -1980,6 +2200,113 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OrgUnit"];
+                };
+            };
+        };
+    };
+    settings_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SectionInfo"][];
+                };
+            };
+        };
+    };
+    settings_fiscal_year_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FiscalYearSettings"];
+                };
+            };
+        };
+    };
+    settings_fiscal_year_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["FiscalYearSettingsRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["FiscalYearSettingsRequest"];
+                "multipart/form-data": components["schemas"]["FiscalYearSettingsRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FiscalYearSettings"];
+                };
+            };
+        };
+    };
+    settings_org_profile_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgProfileSettings"];
+                };
+            };
+        };
+    };
+    settings_org_profile_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["OrgProfileSettingsRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["OrgProfileSettingsRequest"];
+                "multipart/form-data": components["schemas"]["OrgProfileSettingsRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OrgProfileSettings"];
                 };
             };
         };

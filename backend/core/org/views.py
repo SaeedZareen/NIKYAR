@@ -1,12 +1,14 @@
 from django.db.models import Count, Prefetch, Q
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema_field
-from rest_framework import filters, serializers
+from rest_framework import filters, generics, permissions, serializers
+from rest_framework.response import Response
 
 from core.audit.service import AuditedModelViewSet
 from core.kernel.api import BusinessError, HasPerm, MultiValueFilter
 from core.kernel.collation import PersianOrderingFilter
 from core.kernel.fields import JalaliDateField
+from core.settings import service as settings_service
 
 from .models import Assignment, OrgUnit, Position
 
@@ -129,3 +131,19 @@ class AssignmentViewSet(AuditedModelViewSet):
     filter_fields = {"user": "user_id", "position": "position_id"}
     pagination_class = None
     queryset = Assignment.objects.select_related("user", "position__unit")
+
+
+class BrandingSerializer(serializers.Serializer):
+    name = serializers.CharField()
+    short_name = serializers.CharField()
+
+
+class BrandingView(generics.GenericAPIView):
+    """نام سازمان برای صفحه‌ی ورود و نوار بالا؛ بدون نیاز به ورود."""
+
+    permission_classes = [permissions.AllowAny]
+    serializer_class = BrandingSerializer
+
+    def get(self, request):
+        profile = settings_service.read("org-profile")
+        return Response(self.get_serializer(profile).data)

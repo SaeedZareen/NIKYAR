@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     "core.org",
     "core.audit",
     "core.lookups",
+    "core.settings",
 ]
 
 AUTH_USER_MODEL = "accounts.User"
