@@ -17,8 +17,8 @@ rem and some packages have no ready-made builds for them, so a supported version
 rem a newer one is the default.
 call :find_python
 if not defined PY (
-  echo No supported Python found. Trying to install Python 3.13 with the Python install manager...
-  py install 3.13
+  echo No supported Python found. Installing Python 3.13 with the Python install manager...
+  where pymanager >nul 2>nul && pymanager install 3.13
   call :find_python
 )
 if not defined PY (
@@ -31,7 +31,7 @@ echo Using Python: %PY%
 
 echo [1/4] Python environment and backend packages...
 if exist ".venv\Scripts\python.exe" call :check_venv
-if not exist ".venv\Scripts\python.exe" %PY% -m venv .venv || goto :fail
+if not exist ".venv\Scripts\python.exe" "%PY%" -m venv .venv || goto :fail
 .venv\Scripts\python -m pip install --upgrade pip -q || goto :fail
 .venv\Scripts\python -m pip install --prefer-binary -r backend\requirements.txt -q || goto :fail
 
@@ -60,14 +60,22 @@ echo Installation failed. Read the message above.
 pause
 exit /b 1
 
-rem ---- Finds a supported Python and stores the command in PY ----
+rem ---- Finds a supported Python and stores the full path of python.exe in PY ----
 :find_python
 set "PY="
-for %%V in (3.14 3.13 3.12) do (
-  if not defined PY py -%%V -c "pass" >nul 2>nul && set "PY=py -%%V"
-)
-if defined PY exit /b 0
-python -c "import sys; sys.exit(not ((3, 12) <= sys.version_info[:2] <= (3, 14)))" >nul 2>nul && set "PY=python"
+for %%V in (3.14 3.13 3.12) do if not defined PY call :try_launcher -%%V
+for %%V in (3.14 3.13 3.12) do if not defined PY call :try_path "%LOCALAPPDATA%\Python\pythoncore-%%V-64\python.exe"
+for %%V in (314 313 312) do if not defined PY call :try_path "%LOCALAPPDATA%\Programs\Python\Python%%V\python.exe"
+for %%V in (314 313 312) do if not defined PY call :try_path "%ProgramFiles%\Python%%V\python.exe"
+if not defined PY call :try_path python
+exit /b 0
+
+:try_launcher
+for /f "delims=" %%P in ('py %1 -c "import sys; print(sys.executable)" 2^>nul') do call :try_path "%%P"
+exit /b 0
+
+:try_path
+"%~1" -c "import sys; sys.exit(not ((3, 12) <= sys.version_info[:2] <= (3, 14)))" >nul 2>nul && set "PY=%~1"
 exit /b 0
 
 rem ---- Removes a Python environment that was created with an unsupported Python ----
