@@ -10,7 +10,7 @@ def client_ip(request) -> str | None:
     return request.META.get("REMOTE_ADDR") if request else None
 
 
-def _display(value) -> str:
+def display_value(value) -> str:
     if value is None or value == "":
         return ""
     if isinstance(value, bool):
@@ -34,7 +34,7 @@ def snapshot(instance: models.Model) -> dict[str, tuple[str, str]]:
             value = getattr(instance, f"get_{f.name}_display")()
         else:
             value = getattr(instance, f.attname)
-        data[f.name] = (str(f.verbose_name), _display(value))
+        data[f.name] = (str(f.verbose_name), display_value(value))
     return data
 
 

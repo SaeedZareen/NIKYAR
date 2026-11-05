@@ -32,6 +32,7 @@ api = [
     path("org/", include("core.org.urls")),
     path("lookups/", include("core.lookups.urls")),
     path("audit/", include(audit_router.urls)),
+    path("settings/", include("core.settings.urls")),
     path("schema/", SpectacularAPIView.as_view(), name="schema"),
     path("docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="docs"),
 ]

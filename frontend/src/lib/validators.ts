@@ -13,6 +13,21 @@ export function isValidNationalId(value: string): boolean {
   return rem < 2 ? check === rem : check === 11 - rem
 }
 
+/** شناسه‌ی ملی اشخاص حقوقی: ۱۱ رقم با رقم کنترل (هم‌ارز validate_legal_national_id سرور). */
+export function isValidLegalNationalId(value: string): boolean {
+  const d = onlyDigits(value)
+  if (!/^\d{11}$/.test(d) || Number(d.slice(3, 9)) === 0) return false
+  const dec = Number(d[9]) + 2
+  const coefficients = [29, 27, 23, 19, 17, 29, 27, 23, 19, 17]
+  const sum = coefficients.reduce((acc, c, i) => acc + (Number(d[i]) + dec) * c, 0)
+  return (sum % 11) % 10 === Number(d[10])
+}
+
+/** تلفن ثابت با پیش‌شماره‌ی شهر: ۱۱ رقم که با ۰ شروع می‌شود. */
+export function isValidPhone(value: string): boolean {
+  return /^0\d{10}$/.test(onlyDigits(value))
+}
+
 /** موبایل یازده‌رقمی که با ۰۹ شروع می‌شود (پیش‌شماره‌ی +۹۸ پذیرفته می‌شود). */
 export function normalizeMobile(value: string): string {
   const d = onlyDigits(value)
@@ -80,6 +95,14 @@ export const schemas = {
     .string()
     .transform(normalizeIban)
     .refine(isValidIban, "شماره‌ی شبا معتبر نیست؛ IR و ۲۴ رقم را بررسی کنید."),
+  legalNationalId: z
+    .string()
+    .transform(onlyDigits)
+    .refine(isValidLegalNationalId, "شناسه‌ی ملی معتبر نیست؛ ۱۱ رقم را بررسی کنید."),
+  phone: z
+    .string()
+    .transform(onlyDigits)
+    .refine(isValidPhone, "تلفن را با پیش‌شماره‌ی شهر وارد کنید (۱۱ رقم، مثل ۰۲۱۸۸۰۰۰۰۰۰)."),
   email: z.email("نشانی ایمیل معتبر نیست."),
   /** تاریخ شمسی «1405/08/14»؛ رشته‌ی خالی یعنی واردنشده (الزامی بودن را با required جدا بسنجید). */
   jalaliDate: z.string().refine((v) => v === "" || parseJalali(v) !== undefined, "تاریخ معتبر نیست؛ به شکل ۱۴۰۵/۰۸/۱۴ وارد کنید."),

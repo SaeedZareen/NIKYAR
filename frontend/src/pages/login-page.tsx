@@ -3,6 +3,7 @@ import { Navigate, useNavigate, useSearchParams } from "react-router"
 import { z } from "zod"
 import { LogIn } from "lucide-react"
 import { useLogin, useSession } from "@/app/auth"
+import { useBranding } from "@/app/branding"
 import { ErrorSummary } from "@/components/form/error-summary"
 import { FormField } from "@/components/form/form-field"
 import { applyServerErrors } from "@/components/form/server-errors"
@@ -26,6 +27,7 @@ export default function LoginPage() {
   const [params] = useSearchParams()
   const navigate = useNavigate()
   const login = useLogin()
+  const { name: orgName } = useBranding()
   const form = useAppForm(schema, { username: "", password: "" })
   const next = safeNext(params.get("next"))
   React.useEffect(() => {
@@ -66,6 +68,7 @@ export default function LoginPage() {
       <div className="flex items-center justify-center p-6">
         <form onSubmit={onSubmit} noValidate className="flex w-full max-w-sm flex-col gap-4">
           <div>
+            {orgName && <p className="mb-1 text-sm font-semibold text-primary">{orgName}</p>}
             <h1 className="text-lg font-bold">ورود به سامانه</h1>
             <p className="mt-1 text-xs text-muted-foreground">با نام کاربری و گذرواژه‌ی سازمانی وارد شوید.</p>
           </div>

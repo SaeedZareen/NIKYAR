@@ -2,6 +2,7 @@ import * as React from "react"
 import { Link, useNavigate } from "react-router"
 import { KeyRound, LogOut, Monitor, Moon, Search, Sun } from "lucide-react"
 import { useAuth, useLogout } from "@/app/auth"
+import { useBranding } from "@/app/branding"
 import { useTheme, type Theme } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
 import {
@@ -26,11 +27,12 @@ const THEMES = [
   { value: "system", label: "مطابق سیستم", icon: Monitor },
 ] as const
 
-/** نوار بالای سرمه‌ای: منو، نام سامانه، جست‌وجوی سراسری، تاریخ، پوسته و منوی کاربر. */
+/** نوار بالای سرمه‌ای: منو، نام سامانه و سازمان، جست‌وجوی سراسری، تاریخ، پوسته و منوی کاربر. */
 export function AppHeader() {
   const [searchOpen, setSearchOpen] = React.useState(false)
   const [today] = React.useState(() => formatDate(new Date(), "full"))
   const { theme, setTheme } = useTheme()
+  const { name: orgName, shortName } = useBranding()
   const ThemeIcon = THEMES.find((t) => t.value === theme)?.icon ?? Monitor
 
   return (
@@ -42,6 +44,11 @@ export function AppHeader() {
         </span>
         <span className="text-sm font-bold">نیک‌یار</span>
       </Link>
+      {shortName && (
+        <span title={orgName} className="hidden max-w-60 truncate border-s border-header-foreground/25 ps-2 text-xs text-header-muted sm:inline">
+          {shortName}
+        </span>
+      )}
 
       <button
         type="button"

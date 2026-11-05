@@ -3,8 +3,10 @@ import { formatDate, formatMoney, formatNumber, parseJalali, toEnDigits, toFaDig
 import {
   isValidCardNumber,
   isValidIban,
+  isValidLegalNationalId,
   isValidMobile,
   isValidNationalId,
+  isValidPhone,
   isValidPostalCode,
   normalizeMobile,
   schemas,
@@ -31,6 +33,14 @@ describe("format", () => {
 })
 
 describe("validators", () => {
+  it("legal national id and phone", () => {
+    expect(isValidLegalNationalId("10100387221")).toBe(true)
+    expect(isValidLegalNationalId("۱۰۱۰۰۳۸۷۲۲۱")).toBe(true)
+    expect(isValidLegalNationalId("10100387222")).toBe(false)
+    expect(isValidLegalNationalId("10100000001")).toBe(false)
+    expect(isValidPhone("021-88000000")).toBe(true)
+    expect(isValidPhone("88000000")).toBe(false)
+  })
   it("national id", () => {
     expect(isValidNationalId("0084575948")).toBe(true)
     expect(isValidNationalId("۰۰۸۴۵۷۵۹۴۸")).toBe(true)

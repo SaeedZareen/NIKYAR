@@ -1,5 +1,5 @@
 """
-داده‌ی نمونه برای آزمایش: نقش‌ها، کاربران، ساختار سازمانی و چند فهرست پایه.
+داده‌ی نمونه برای آزمایش: مشخصات سازمان، نقش‌ها، کاربران، ساختار سازمانی و چند فهرست پایه.
 فقط وقتی اجرا می‌شود که هیچ کاربری وجود ندارد (نصب تازه)، پس داده‌ی واقعی را هرگز تغییر نمی‌دهد.
 
 گذرواژه‌ی همه‌ی کاربران نمونه: nikyar123
@@ -12,8 +12,11 @@ from django.db import transaction
 from core.accounts.models import Role, User
 from core.lookups.models import LookupItem, LookupList
 from core.org.models import Assignment, OrgUnit, Position
+from core.settings.models import SettingsValue
 
 PASSWORD = "nikyar123"
+
+ORG_PROFILE = {"name": "شرکت نمونه‌ی نیک‌یار (سهامی خاص)", "short_name": "شرکت نمونه", "phone": "02188000000", "address": "تهران، خیابان ولیعصر"}
 
 # (کد، عنوان، کد بالادست)
 UNITS = [
@@ -39,8 +42,8 @@ ROLES = {
     "مدیران": ("مشاهده‌ی کاربران و ساختار سازمانی", ["accounts.users.view", "org.view"]),
     "کارشناس منابع انسانی": ("نگهداری ساختار سازمانی و انتصاب‌ها", ["accounts.users.view", "org.view", "org.manage", "lookups.manage"]),
     "راهبر سامانه": (
-        "مدیریت کاربران، نقش‌ها و سوابق",
-        ["accounts.users.view", "accounts.users.manage", "accounts.roles.manage", "audit.view", "lookups.manage", "org.view", "org.manage"],
+        "مدیریت کاربران، نقش‌ها، تنظیمات و سوابق",
+        ["accounts.users.view", "accounts.users.manage", "accounts.roles.manage", "audit.view", "lookups.manage", "org.view", "org.manage", "settings.manage"],
     ),
 }
 
@@ -59,6 +62,7 @@ class Command(BaseCommand):
             self.stdout.write("Users already exist; demo data was not created.")
             return
 
+        SettingsValue.objects.create(section="org-profile", values=ORG_PROFILE)
         roles = {name: Role.objects.create(name=name, description=desc, permissions=perms) for name, (desc, perms) in ROLES.items()}
 
         units: dict[str, OrgUnit] = {}

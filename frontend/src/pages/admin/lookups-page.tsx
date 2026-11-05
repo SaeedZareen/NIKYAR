@@ -14,16 +14,15 @@ import { applyServerErrors } from "@/components/form/server-errors"
 import { useAppForm } from "@/components/form/use-app-form"
 import { PageHeader } from "@/components/layout/page-header"
 import { Section } from "@/components/layout/section"
+import { SectionNav } from "@/components/layout/section-nav"
 import { StatusBadge } from "@/components/status-badge"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
-import { Skeleton } from "@/components/ui/skeleton"
 import { Switch } from "@/components/ui/switch"
 import { api, errorMessage, unwrap, type Schemas } from "@/lib/api/client"
 import { formatNumber } from "@/lib/format"
-import { cn } from "@/lib/utils"
 import { schemas } from "@/lib/validators"
 
 type LookupList = Schemas["LookupList"]
@@ -117,35 +116,17 @@ export default function LookupsPage() {
       />
       <div className="grid items-start gap-4 lg:grid-cols-[18rem_minmax(0,1fr)]">
         <Section title="فهرست‌ها" contentClassName="p-2">
-          {lists.isPending ? (
-            <div className="flex flex-col gap-2 p-2">
-              {Array.from({ length: 4 }, (_, i) => (
-                <Skeleton key={i} className="h-6" />
-              ))}
-            </div>
-          ) : (
-            <nav aria-label="فهرست‌های پایه">
-              <ul className="flex flex-col gap-0.5">
-                {(lists.data ?? []).map((l) => (
-                  <li key={l.id}>
-                    <button
-                      type="button"
-                      aria-current={l.code === code ? "true" : undefined}
-                      onClick={() => setParams({ list: l.code }, { replace: true })}
-                      className={cn(
-                        "flex min-h-7 w-full items-center gap-2 rounded-md px-2 text-start text-xs outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring/40",
-                        l.code === code && "bg-accent font-semibold text-accent-foreground hover:bg-accent"
-                      )}
-                    >
-                      {l.is_system && <Lock className="size-3.5 text-muted-foreground" aria-label="سیستمی" />}
-                      <span className="flex-1">{l.name}</span>
-                      <span className="text-muted-foreground tabular-nums">{formatNumber(l.item_count)}</span>
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </nav>
-          )}
+          <SectionNav
+            label="فهرست‌های پایه"
+            items={lists.data?.map((l) => ({
+              key: l.code,
+              label: l.name,
+              icon: l.is_system ? <Lock className="size-3.5 text-muted-foreground" aria-label="سیستمی" /> : undefined,
+              meta: formatNumber(l.item_count),
+            }))}
+            current={code}
+            onSelect={(list) => setParams({ list }, { replace: true })}
+          />
         </Section>
 
         {list && (
