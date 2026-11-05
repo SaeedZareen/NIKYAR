@@ -1,5 +1,10 @@
 // حالت‌های عمومی مسیرها: در حال بارگذاری، صفحه‌ی ناموجود و خطای نمایش.
+import type * as React from "react"
 import { useRouteError } from "react-router"
+import { ShieldOff } from "lucide-react"
+import { useAuth } from "@/app/auth"
+import type { Access } from "@/app/navigation"
+import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import { PageHeader } from "@/components/layout/page-header"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -32,5 +37,26 @@ export function RouteError() {
         </AlertDescription>
       </Alert>
     </div>
+  )
+}
+
+/** نگهبان مجوز هر صفحه: بدون مجوز، پیام روشن به‌جای صفحه‌ی خالی یا خطای سرور. */
+export function RequireAccess({ access, children }: { access: Access; children: React.ReactNode }) {
+  const { user, can } = useAuth()
+  const allowed = access === undefined || (access === "superuser" ? !!user?.is_superuser : can(access))
+  if (allowed) return children
+  return (
+    <>
+      <PageHeader title="دسترسی ندارید" />
+      <Empty className="border border-dashed">
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <ShieldOff />
+          </EmptyMedia>
+          <EmptyTitle>برای مشاهده‌ی این بخش مجوز ندارید.</EmptyTitle>
+          <EmptyDescription>اگر به این بخش نیاز دارید، از راهبر سامانه بخواهید نقش مناسب را به شما بدهد.</EmptyDescription>
+        </EmptyHeader>
+      </Empty>
+    </>
   )
 }

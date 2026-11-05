@@ -1,8 +1,6 @@
 import type { Row, RowData } from "@tanstack/react-table"
 import type { DataTableFeatures, DataTableInstance } from "./use-data-table"
 
-const ACTION_COLUMNS = new Set(["select", "actions"])
-
 function csvCell(value: unknown): string {
   const s = value == null ? "" : String(value)
   return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
@@ -13,7 +11,8 @@ function csvCell(value: unknown): string {
  * ردیف‌های انتخاب‌شده اگر باشند، وگرنه همه‌ی ردیف‌های فیلترشده و مرتب‌شده.
  */
 export function exportTableToCsv<TData extends RowData>(table: DataTableInstance<TData>, fileName: string) {
-  const columns = table.getVisibleLeafColumns().filter((c) => !ACTION_COLUMNS.has(c.id))
+  // فقط ستون‌های داده (ستون‌های نمایشی مثل انتخاب و عملیات مقداری ندارند).
+  const columns = table.getVisibleLeafColumns().filter((c) => c.accessorFn)
   const selected = table.getSelectedRowModel().rows
   const rows: Row<DataTableFeatures, TData>[] = selected.length ? selected : table.getPrePaginatedRowModel().rows
   const lines = [

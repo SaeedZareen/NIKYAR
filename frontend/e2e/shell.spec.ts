@@ -5,9 +5,8 @@ test.describe("پوسته‌ی برنامه", () => {
   test("اولین Tab به «پرش به محتوا» می‌رسد و صفحه بدون خطا بالا می‌آید", async ({ page }) => {
     const errors = collectErrors(page)
     await page.goto("/")
-    await expect(page).toHaveURL(/\/ui-kit\/data-table$/)
-    await expect(page.getByRole("heading", { level: 1, name: "جدول داده" })).toBeVisible()
-    await expect(page).toHaveTitle("جدول داده · نیک‌یار")
+    await expect(page.getByRole("heading", { level: 1, name: "پیشخوان" })).toBeVisible()
+    await expect(page).toHaveTitle("پیشخوان · نیک‌یار")
     await page.keyboard.press("Tab")
     await expect(page.getByRole("link", { name: "پرش به محتوای اصلی" })).toBeFocused()
     expect(errors).toEqual([])
@@ -32,9 +31,10 @@ test.describe("پوسته‌ی برنامه", () => {
 
   test("جست‌وجوی سراسری با Ctrl+K به بخش موردنظر می‌برد", async ({ page }) => {
     await page.goto("/ui-kit/data-table")
+    await expect(page.getByRole("heading", { level: 1, name: "جدول داده" })).toBeVisible()
     await page.keyboard.press("Control+k")
     const dialog = page.getByRole("dialog")
-    await dialog.getByRole("combobox").fill("اجزای")
+    await dialog.getByRole("combobox").fill("اجزای پایه")
     await page.keyboard.press("Enter")
     await expect(page.getByRole("heading", { level: 1, name: "اجزای پایه" })).toBeVisible()
   })
@@ -65,7 +65,7 @@ test.describe("پوسته‌ی برنامه", () => {
   })
 
   test("هیچ صفحه‌ای اسکرول افقی ندارد", async ({ page }) => {
-    for (const path of ["/ui-kit/data-table", "/ui-kit/forms", "/ui-kit/components"]) {
+    for (const path of ["/", "/admin/users", "/admin/roles", "/admin/org", "/admin/lookups", "/admin/audit", "/ui-kit/data-table", "/ui-kit/forms", "/ui-kit/components"]) {
       await page.goto(path)
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible()
       const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth)
@@ -75,7 +75,18 @@ test.describe("پوسته‌ی برنامه", () => {
 })
 
 test.describe("دسترس‌پذیری", () => {
-  for (const path of ["/ui-kit/data-table", "/ui-kit/data-table/1", "/ui-kit/forms", "/ui-kit/components"]) {
+  for (const path of [
+    "/",
+    "/admin/users",
+    "/admin/roles",
+    "/admin/org",
+    "/admin/lookups?list=gender",
+    "/admin/audit",
+    "/ui-kit/data-table",
+    "/ui-kit/data-table/1",
+    "/ui-kit/forms",
+    "/ui-kit/components",
+  ]) {
     test(`axe ${path}`, async ({ page }) => {
       await page.goto(path)
       await expect(page.getByRole("heading", { level: 1 })).toBeVisible()

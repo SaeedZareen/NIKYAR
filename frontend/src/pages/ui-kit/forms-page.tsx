@@ -153,8 +153,9 @@ export default function FormsPage() {
               name="type"
               label="نوع استخدام"
               required
+              group
               render={({ field, id, aria }) => (
-                <RadioGroup id={id} value={field.value} onValueChange={field.onChange} className="flex min-h-7 flex-wrap items-center gap-4" {...aria}>
+                <RadioGroup id={id} tabIndex={-1} value={field.value} onValueChange={field.onChange} className="flex min-h-7 flex-wrap items-center gap-4" {...aria}>
                   {Object.entries(TYPE_LABELS).map(([value, label]) => (
                     <div key={value} className="flex items-center gap-2">
                       <RadioGroupItem value={value} id={`type-${value}`} />

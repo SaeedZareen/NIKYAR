@@ -9,8 +9,8 @@ type RenderArgs<TValues extends FieldValues, TName extends FieldPath<TValues>> =
   field: ControllerRenderProps<TValues, TName>
   id: string
   invalid: boolean
-  /** ویژگی‌های دسترس‌پذیری که باید روی کنترل گذاشته شود. */
-  aria: { "aria-invalid": boolean; "aria-describedby"?: string; "aria-required"?: boolean }
+  /** ویژگی‌های دسترس‌پذیری که باید روی کنترل (یا گروه) گذاشته شود. */
+  aria: { "aria-invalid": boolean; "aria-describedby"?: string; "aria-required"?: boolean; "aria-labelledby"?: string }
 }
 
 type Props<TValues extends FieldValues, TName extends FieldPath<TValues>> = {
@@ -21,6 +21,11 @@ type Props<TValues extends FieldValues, TName extends FieldPath<TValues>> = {
   description?: React.ReactNode
   /** side: برچسب کنار فیلد روی صفحه‌های بزرگ (سبک فرم‌های اداری)؛ stacked: برچسب بالای فیلد. */
   layout?: FieldLayout
+  /**
+   * گروه گزینه‌ها (چند چک‌باکس یا رادیو): برچسب به گروه با aria-labelledby وصل می‌شود، نه با for.
+   * گروه باید id و tabIndex={-1} بگیرد تا پیوند خلاصه‌ی خطا به آن برسد.
+   */
+  group?: boolean
   className?: string
   render: (args: RenderArgs<TValues, TName>) => React.ReactNode
 }
@@ -38,6 +43,7 @@ export function FormField<TValues extends FieldValues, TName extends FieldPath<T
   required,
   description,
   layout = "side",
+  group,
   className,
   render,
 }: Props<TValues, TName>) {
@@ -54,7 +60,11 @@ export function FormField<TValues extends FieldValues, TName extends FieldPath<T
             data-invalid={invalid}
             className={cn(layout === "side" && "md:grid md:grid-cols-[8rem_minmax(0,1fr)] md:items-start md:gap-x-3", className)}
           >
-            <FieldLabel htmlFor={id} className={cn(layout === "side" && "md:min-h-7 md:pt-1")}>
+            <FieldLabel
+              htmlFor={group ? undefined : id}
+              id={group ? `${id}-label` : undefined}
+              className={cn(layout === "side" && "md:min-h-7 md:pt-1")}
+            >
               <span>
                 {label}
                 {required && (
@@ -65,7 +75,17 @@ export function FormField<TValues extends FieldValues, TName extends FieldPath<T
               </span>
             </FieldLabel>
             <div className="flex min-w-0 flex-col gap-1.5">
-              {render({ field, id, invalid, aria: { "aria-invalid": invalid, "aria-describedby": describedBy, "aria-required": required || undefined } })}
+              {render({
+                field,
+                id,
+                invalid,
+                aria: {
+                  "aria-invalid": invalid,
+                  "aria-describedby": describedBy,
+                  "aria-required": required || undefined,
+                  "aria-labelledby": group ? `${id}-label` : undefined,
+                },
+              })}
               {description && <FieldDescription id={`${id}-description`}>{description}</FieldDescription>}
               <FieldError id={`${id}-error`} errors={[fieldState.error]} />
             </div>
