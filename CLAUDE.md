@@ -4,14 +4,14 @@ Modular Persian BPMS/ERP for on-premise installs in Iran. The product owner is n
 
 ## Stack
 - Backend: Django 5.2 LTS + DRF + drf-spectacular, pytest. `backend/serve.py` (Waitress) serves API + built frontend on `0.0.0.0` for LAN use.
-- Frontend: React 19, TypeScript, Vite, Tailwind 4, shadcn/ui (RTL, `radix-mira` style, lucide icons), TanStack Query + Table v9, react-hook-form + zod, React Router, date-fns-jalali + @daypicker/persian.
+- Frontend: React 19, TypeScript, Vite, Tailwind 4, shadcn/ui (RTL, `radix-mira` style, lucide icons), TanStack Query + Table v9, react-hook-form + zod, React Router, date-fns-jalali, Avan Persian Date Picker (`@avan-persian/react`, wrapped in `components/jalali-calendar.tsx`; its `--avan-*` variables are mapped to our tokens in `index.css`).
 - shadcn MCP server is configured in `.mcp.json`. Add components only via `cd frontend && npx shadcn@latest add <name>` (needs `NODE_USE_ENV_PROXY=1` behind a proxy). After adding, check imports use `@/lib/utils` and translate any English user-facing strings.
 - TanStack Table v9 docs ship inside the package: `frontend/node_modules/@tanstack/*/skills/`.
 
 ## Rules
 - All user-facing text is formal Persian (labels, aria-labels, errors, toasts). Visible digits Persian; values/URLs/payloads Latin. Dates Jalali (`lib/format.ts`).
 - Logical Tailwind classes only (`ms-/me-/ps-/pe-/start-/end-/text-start`). Colors only from tokens in `src/index.css`.
-- Reuse the kits: `components/data-table`, `components/form`, `components/layout`. Do not hand-roll tables, fields or page headers.
+- Reuse the kits: `components/data-table`, `components/form`, `components/layout`. Do not hand-roll tables, fields or page headers. Group page content with `Section`; lay out fields with `FormGrid`; pages use the full width (no max-width containers).
 - No dead code, unused dependencies, orphaned files or speculative placeholders. Remove what a change makes obsolete.
 - Console/batch output is English (Windows consoles cannot render Persian); everything in the browser is Persian.
 - Windows scripts (`*.bat`) must keep CRLF line endings (`.gitattributes`). Supported Python is 3.12–3.14 (Django 5.2); `install.bat` picks one via the `py` launcher.

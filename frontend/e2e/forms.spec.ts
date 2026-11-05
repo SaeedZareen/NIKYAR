@@ -24,6 +24,9 @@ test.describe("فرم‌ها", () => {
     await page.getByLabel("موبایل").fill("0912")
     await page.getByLabel("ایمیل").focus()
     await expect(page.getByText("شماره‌ی موبایل باید ۱۱ رقم باشد و با ۰۹ شروع شود.")).toBeVisible()
+    await page.getByRole("textbox", { name: "تاریخ تولد" }).fill("13701340")
+    await page.getByLabel("ایمیل").focus()
+    await expect(page.getByText("تاریخ معتبر نیست؛ به شکل ۱۴۰۵/۰۸/۱۴ وارد کنید.")).toBeVisible()
   })
 
   test("تکمیل کامل و ثبت موفق", async ({ page }) => {
@@ -32,11 +35,14 @@ test.describe("فرم‌ها", () => {
     await page.getByLabel("کد ملی").fill("0084575948")
     await page.getByLabel("موبایل").fill("09121234567")
 
-    await page.getByLabel("تاریخ تولد").click()
-    const calendar = page.locator("[data-slot=popover-content]")
-    await calendar.getByRole("combobox").last().selectOption("1370")
-    await calendar.getByRole("button", { name: /۱۵/ }).first().click()
-    await expect(page.getByLabel("تاریخ تولد")).toContainText("۱۳۷۰")
+    // تایپ مستقیم با ارقام فارسی؛ جداکننده‌ها خودکار گذاشته می‌شوند و روز هفته نمایش داده می‌شود.
+    const birth = page.getByRole("textbox", { name: "تاریخ تولد" })
+    await birth.fill("۱۳۷۰۰۶۱۵")
+    await expect(birth).toHaveValue("1370/06/15")
+    // انتخاب از تقویم آوان روی ماه همان تاریخ باز می‌شود.
+    await page.getByRole("button", { name: "انتخاب از تقویم" }).click()
+    await page.getByRole("gridcell", { name: "۱۳۷۰/۰۶/۲۰" }).click()
+    await expect(birth).toHaveValue("1370/06/20")
 
     await page.getByLabel("واحد سازمانی").click()
     await page.getByRole("option", { name: "امور مالی" }).click()
@@ -44,7 +50,7 @@ test.describe("فرم‌ها", () => {
     await expect(page.getByLabel("حقوق پایه")).toHaveValue("25,000,000")
     await page.getByRole("radio", { name: "قراردادی" }).click()
 
-    await page.getByLabel("بانک").fill("ملت")
+    await page.getByRole("combobox", { name: "بانک" }).fill("ملت")
     await page.getByRole("option", { name: "ملت" }).click()
     await page.getByLabel("شماره‌ی شبا").fill("062960000000100324200001")
 

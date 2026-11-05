@@ -1,3 +1,4 @@
+import * as React from "react"
 import type { Header, RowData } from "@tanstack/react-table"
 import { ArrowDown, ArrowLeftToLine, ArrowRightToLine, ArrowUp, ChevronsUpDown, EyeOff, PinOff, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -31,10 +32,14 @@ export function DataTableColumnHeader<TData extends RowData>({ header, sortCount
             <Button
               variant="ghost"
               size="sm"
-              className={cn("-ms-2 h-7 gap-1 px-2 font-semibold", column.columnDef.meta?.align === "end" && "ms-auto -me-2")}
+              // عنوان بلند در دو خط شکسته می‌شود تا جدول در عرض صفحه جا شود.
+              className={cn(
+                "-ms-2 h-auto min-h-7 gap-1 px-2 py-1 text-start font-semibold whitespace-normal",
+                column.columnDef.meta?.align === "end" && "ms-auto -me-2"
+              )}
               aria-label={`گزینه‌های ستون ${label}`}
             >
-              <span className="truncate">{label}</span>
+              <span>{label}</span>
               {sorted === "asc" ? (
                 <ArrowUp aria-label="صعودی" />
               ) : sorted === "desc" ? (
@@ -94,21 +99,62 @@ export function DataTableColumnHeader<TData extends RowData>({ header, sortCount
       ) : (
         <span className="font-semibold">{label}</span>
       )}
-      {column.getCanResize() && (
-        <div
-          role="separator"
-          aria-orientation="vertical"
-          aria-label={`تغییر عرض ستون ${label}`}
-          onMouseDown={header.getResizeHandler()}
-          onTouchStart={header.getResizeHandler()}
-          onDoubleClick={() => column.resetSize()}
-          className={cn(
-            "absolute inset-y-0 end-0 w-1.5 cursor-col-resize touch-none select-none hover:bg-primary/40",
-            column.getIsResizing() && "bg-primary"
-          )}
-        />
-      )}
+      {column.getCanResize() && <ResizeHandle header={header} label={label} />}
     </>
   )
 }
 
+
+/**
+ * دستگیره‌ی تغییر عرض: از عرض واقعی ستون شروع می‌کند (ستون‌ها به اندازه‌ی محتوا هستند).
+ * در راست‌به‌چپ دستگیره لبه‌ی چپ ستون است و کشیدن به چپ ستون را پهن‌تر می‌کند. دوبار کلیک: عرض خودکار.
+ */
+function ResizeHandle<TData extends RowData>({ header, label }: { header: Header<DataTableFeatures, TData, unknown>; label: string }) {
+  const { column } = header
+  const table = header.getContext().table
+  const [active, setActive] = React.useState(false)
+
+  const onPointerDown = (e: React.PointerEvent<HTMLDivElement>) => {
+    const handle = e.currentTarget
+    const th = handle.parentElement
+    if (!th) return
+    e.preventDefault()
+    const startX = e.clientX
+    const startWidth = th.getBoundingClientRect().width
+    const rtl = getComputedStyle(th).direction === "rtl"
+    const { minSize = 64, maxSize = 640 } = column.columnDef
+    handle.setPointerCapture(e.pointerId)
+    setActive(true)
+    const move = (ev: PointerEvent) => {
+      const delta = rtl ? startX - ev.clientX : ev.clientX - startX
+      const width = Math.round(Math.min(maxSize, Math.max(minSize, startWidth + delta)))
+      table.setColumnSizing((old) => ({ ...old, [column.id]: width }))
+    }
+    const end = () => {
+      handle.removeEventListener("pointermove", move)
+      handle.removeEventListener("pointerup", end)
+      handle.removeEventListener("pointercancel", end)
+      setActive(false)
+    }
+    handle.addEventListener("pointermove", move)
+    handle.addEventListener("pointerup", end)
+    handle.addEventListener("pointercancel", end)
+  }
+
+  return (
+    <div
+      role="separator"
+      aria-orientation="vertical"
+      aria-label={`تغییر عرض ستون ${label}`}
+      onPointerDown={onPointerDown}
+      onDoubleClick={() =>
+        table.setColumnSizing((old) => {
+          const next = { ...old }
+          delete next[column.id]
+          return next
+        })
+      }
+      className={cn("absolute inset-y-0 end-0 w-1.5 cursor-col-resize touch-none select-none hover:bg-primary/40", active && "bg-primary")}
+    />
+  )
+}

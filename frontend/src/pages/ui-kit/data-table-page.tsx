@@ -24,7 +24,7 @@ const columns = [
     id: "name",
     header: "نام و نام خانوادگی",
     size: 180,
-    meta: { label: "نام و نام خانوادگی", primary: true },
+    meta: { label: "نام و نام خانوادگی", primary: true, wrap: true },
   }),
   col.accessor("nationalId", {
     header: "کد ملی",
@@ -35,9 +35,9 @@ const columns = [
   col.accessor("unit", {
     header: "واحد سازمانی",
     size: 140,
-    meta: { label: "واحد سازمانی", filterOptions: UNIT_NAMES.map((u) => ({ value: u, label: u })) },
+    meta: { label: "واحد سازمانی", wrap: true, filterOptions: UNIT_NAMES.map((u) => ({ value: u, label: u })) },
   }),
-  col.accessor("position", { header: "سمت", size: 170, meta: { label: "سمت" } }),
+  col.accessor("position", { header: "سمت", size: 170, meta: { label: "سمت", wrap: true } }),
   col.accessor("type", {
     header: "نوع استخدام",
     size: 110,

@@ -52,15 +52,17 @@ export function FormField<TValues extends FieldValues, TName extends FieldPath<T
         return (
           <Field
             data-invalid={invalid}
-            className={cn(layout === "side" && "md:grid md:grid-cols-[10rem_minmax(0,1fr)] md:items-start md:gap-x-4", className)}
+            className={cn(layout === "side" && "md:grid md:grid-cols-[8rem_minmax(0,1fr)] md:items-start md:gap-x-3", className)}
           >
             <FieldLabel htmlFor={id} className={cn(layout === "side" && "md:min-h-7 md:pt-1")}>
-              {label}
-              {required && (
-                <span className="text-destructive" aria-hidden>
-                  *
-                </span>
-              )}
+              <span>
+                {label}
+                {required && (
+                  <span className="ms-0.5 text-destructive" aria-hidden>
+                    *
+                  </span>
+                )}
+              </span>
             </FieldLabel>
             <div className="flex min-w-0 flex-col gap-1.5">
               {render({ field, id, invalid, aria: { "aria-invalid": invalid, "aria-describedby": describedBy, "aria-required": required || undefined } })}

@@ -22,10 +22,14 @@ export function ErrorSummary<TValues extends FieldValues>({ errors, labels, subm
     .filter(([, e]) => e && typeof e === "object" && "message" in e && e.message)
     .map(([name, e]) => ({ name, label: labels[name as keyof TValues & string] ?? name, message: String((e as { message: string }).message) }))
 
+  // فوکوس فقط یک‌بار پس از هر ارسال ناموفق؛ نه با هر تغییر خطا هنگام تایپ.
+  const focusedFor = React.useRef(0)
   React.useEffect(() => {
-    if (submitCount > 0 && items.length) ref.current?.focus()
-    // فقط پس از هر ارسال؛ نه با هر تغییر خطا هنگام تایپ.
-  }, [submitCount])
+    if (submitCount > focusedFor.current && items.length > 0) {
+      focusedFor.current = submitCount
+      ref.current?.focus()
+    }
+  }, [submitCount, items.length])
 
   if (!items.length || submitCount === 0) return null
   return (

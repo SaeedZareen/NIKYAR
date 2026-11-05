@@ -181,10 +181,20 @@ function Toolbar<TData extends RowData>({ table, view, searchPlaceholder, toolba
   )
 }
 
-function pinStyle<TData extends RowData>(column: Column<DataTableFeatures, TData, unknown>): React.CSSProperties {
+/**
+ * عرض ستون: ستون‌های کوتاه به اندازه‌ی محتوا (width: 1%) و ستون‌های متنی (meta.wrap) بقیه‌ی عرض را می‌گیرند،
+ * تا جدول بدون نوار پیمایش در عرض صفحه جا شود.
+ * عرض ثابت فقط برای ستون‌های بدون تغییر عرض (انتخاب، عملیات)، ستون‌های سنجاق‌شده
+ * (تا جای ستون‌های چسبان دقیق محاسبه شود) و ستون‌هایی که کاربر عرضشان را تغییر داده است.
+ */
+function columnStyle<TData extends RowData>(column: Column<DataTableFeatures, TData, unknown>, resized: boolean): React.CSSProperties {
   const pinned = column.getIsPinned()
+  const fixed = resized || pinned || !column.getCanResize()
+  const width = fixed ? column.getSize() : column.columnDef.meta?.wrap ? undefined : "1%"
   return {
-    width: column.getSize(),
+    width,
+    minWidth: fixed ? width : undefined,
+    maxWidth: fixed ? width : undefined,
     position: pinned ? "sticky" : undefined,
     insetInlineStart: pinned === "start" ? column.getStart("start") : undefined,
     insetInlineEnd: pinned === "end" ? column.getAfter("end") : undefined,
@@ -208,17 +218,18 @@ function GridTable<TData extends RowData>({ table, view, caption, rows, loading,
   const compact = view.density === "compact"
   const headers = table.getHeaderGroups()[0].headers as Header<DataTableFeatures, TData, unknown>[]
   const skeletonRows = Math.min(table.state.pagination.pageSize, 8)
+  const sizing = table.state.columnSizing
 
   return (
     <div className="overflow-hidden rounded-lg border bg-card">
-      <Table containerClassName="max-h-[70dvh] overflow-auto" className="table-fixed" style={{ width: table.getTotalSize(), minWidth: "100%" }}>
+      <Table className="w-full">
         <caption className="sr-only">{caption}</caption>
-        <TableHeader className="sticky top-0 z-10 bg-muted">
+        <TableHeader className="bg-muted">
           <TableRow className="hover:bg-transparent">
             {headers.map((h) => (
               <TableHead
                 key={h.id}
-                style={pinStyle(h.column)}
+                style={columnStyle(h.column, h.column.id in sizing)}
                 aria-sort={h.column.getIsSorted() === "asc" ? "ascending" : h.column.getIsSorted() === "desc" ? "descending" : undefined}
                 className={cn(
                   "relative h-9 border-e bg-muted last:border-e-0",
@@ -255,9 +266,10 @@ function GridTable<TData extends RowData>({ table, view, caption, rows, loading,
                   {row.getVisibleCells().map((cell) => (
                     <TableCell
                       key={cell.id}
-                      style={pinStyle(cell.column)}
+                      style={columnStyle(cell.column, cell.column.id in sizing)}
                       className={cn(
-                        "truncate border-e last:border-e-0",
+                        "border-e last:border-e-0",
+                        cell.column.columnDef.meta?.wrap ? "break-words whitespace-normal" : "whitespace-nowrap",
                         compact ? "py-1" : "py-2.5",
                         cell.column.getIsPinned() && "bg-card group-hover:bg-muted group-data-[state=selected]:bg-muted",
                         alignClass[cell.column.columnDef.meta?.align ?? "start"]

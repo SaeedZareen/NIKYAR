@@ -49,6 +49,12 @@ describe("validators", () => {
     expect(isValidIban("IR062960000000100324200001")).toBe(true)
     expect(isValidIban("IR062960000000100324200002")).toBe(false)
   })
+  it("jalali date schema accepts empty or real dates", () => {
+    expect(schemas.jalaliDate.safeParse("").success).toBe(true)
+    expect(schemas.jalaliDate.safeParse("1405/08/14").success).toBe(true)
+    expect(schemas.jalaliDate.safeParse("1405/13/40").success).toBe(false)
+    expect(schemas.jalaliDate.safeParse("1405/08").success).toBe(false)
+  })
   it("schemas normalize and report Persian messages", () => {
     expect(schemas.mobile.parse("۰۹۱۲ ۱۲۳ ۴۵۶۷")).toBe("09121234567")
     const r = schemas.nationalId.safeParse("123")

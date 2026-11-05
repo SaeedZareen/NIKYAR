@@ -2,13 +2,13 @@
 import * as React from "react"
 import { useLocation, useNavigate } from "react-router"
 import { X } from "lucide-react"
-import { navigation } from "@/app/navigation"
 import { cn } from "@/lib/utils"
 
 type Tab = { key: string; path: string; title: string }
 type Ctx = { setTitle: (title: string) => void }
 
-const STORAGE_KEY = "nikyar:tabs"
+// نسخه در کلید: زبانه‌های ذخیره‌شده با ساختار قدیمی نادیده گرفته می‌شوند.
+const STORAGE_KEY = "nikyar:tabs:v2"
 const MAX_TABS = 12
 const APP_NAME = "نیک‌یار"
 const TabsContext = React.createContext<Ctx | null>(null)
@@ -22,29 +22,21 @@ function load(): Tab[] {
   }
 }
 
-/** عنوان اولیه‌ی زبانه از منو، تا پیش از بارگذاری صفحه هم نام درست داشته باشد. */
-const NAV_TITLES = new Map(navigation.flatMap((g) => g.items.map((i) => [i.url, i.title] as const)))
-
-/** زبانه‌ی مسیر را می‌سازد یا نشانی/عنوانش را به‌روز می‌کند؛ بدون تغییر، همان آرایه برمی‌گردد. */
-function upsert(tabs: Tab[], key: string, path: string, title?: string): Tab[] {
+/** زبانه را با عنوان صفحه می‌سازد یا به‌روز می‌کند؛ بدون تغییر، همان آرایه برمی‌گردد. */
+function upsert(tabs: Tab[], key: string, path: string, title: string): Tab[] {
   const i = tabs.findIndex((t) => t.key === key)
   if (i < 0) {
-    const next = [...tabs, { key, path, title: title ?? NAV_TITLES.get(key) ?? "…" }]
+    const next = [...tabs, { key, path, title }]
     return next.length > MAX_TABS ? next.slice(1) : next
   }
   const t = tabs[i]
-  if (t.path === path && (title === undefined || t.title === title)) return tabs
-  return tabs.map((x, j) => (j === i ? { ...x, path, title: title ?? x.title } : x))
+  if (t.path === path && t.title === title) return tabs
+  return tabs.map((x, j) => (j === i ? { ...x, path, title } : x))
 }
 
 export function PageTabsProvider({ children }: { children: React.ReactNode }) {
   const { pathname, search } = useLocation()
   const [tabs, setTabs] = React.useState<Tab[]>(load)
-
-  // هر مسیر یک زبانه؛ پارامترهای نشانی (فیلترها) داخل همان زبانه می‌مانند.
-  React.useEffect(() => {
-    setTabs((prev) => upsert(prev, pathname, pathname + search))
-  }, [pathname, search])
 
   React.useEffect(() => {
     try {
@@ -56,7 +48,8 @@ export function PageTabsProvider({ children }: { children: React.ReactNode }) {
 
   const ctx = React.useMemo<Ctx>(
     () => ({
-      // اثر عنوانِ صفحه (فرزند) پیش از اثر افزودن زبانه (والد) اجرا می‌شود؛ پس اینجا هم زبانه را می‌سازیم.
+      // هر صفحه با اعلام عنوانش زبانه‌ی خودش را می‌سازد (مسیرهای هدایت خودکار زبانه ندارند).
+      // پارامترهای نشانی (فیلترها) داخل همان زبانه می‌مانند، چون setTitle با تغییرشان دوباره اجرا می‌شود.
       setTitle: (title) => {
         document.title = `${title} · ${APP_NAME}`
         setTabs((prev) => upsert(prev, pathname, pathname + search, title))

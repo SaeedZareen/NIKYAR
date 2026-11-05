@@ -153,6 +153,39 @@
     --sidebar-ring: oklch(0.68 0.13 252);
 }
 
+/* تقویم آوان: رنگ‌ها از توکن‌های سامانه، تا در هر دو پوسته یکسان با بقیه‌ی رابط باشد. */
+:root {
+    --avan-font-family: var(--font-sans);
+    --avan-accent: var(--primary);
+    --avan-accent-foreground: var(--primary-foreground);
+    --avan-muted: var(--muted);
+    --avan-muted-foreground: var(--muted-foreground);
+    --avan-border: var(--border);
+    --avan-background: var(--popover);
+    --avan-foreground: var(--popover-foreground);
+    --avan-range-middle: var(--accent);
+    --avan-weekend-muted: var(--muted);
+    --avan-holiday-dot: var(--destructive);
+    --avan-availability-limited: var(--warning);
+    --avan-shadow: none;
+    --avan-day-radius: var(--radius-md);
+    --avan-day-size: 2rem;
+    --avan-day-inner-padding: 0.125rem;
+    --avan-holiday-dot-size: 0.3rem;
+    --avan-disabled-opacity: 0.4;
+    --avan-popover-z-index: 50;
+    --avan-calendar-max-width: 20rem;
+    --avan-calendar-2-max-width: 40rem;
+    --avan-calendar-4-max-width: 60rem;
+    --avan-calendar-padding: 0.75rem;
+    --avan-calendar-grid-gap: 0.25rem;
+    --avan-calendar-nav-size: 1.75rem;
+    --avan-calendar-font-size: 0.875rem;
+    --avan-calendar-text-xs: 0.75rem;
+    --avan-calendar-text-sm: 0.8125rem;
+    --avan-calendar-text-md: 0.875rem;
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

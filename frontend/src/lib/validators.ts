@@ -1,7 +1,7 @@
 // اعتبارسنجی شناسه‌های ایرانی و طرح‌های zod با پیام فارسی.
 // ورودی‌ها پیش از بررسی یکسان‌سازی می‌شوند (ارقام فارسی/عربی، فاصله و خط تیره).
 import { z } from "zod"
-import { onlyDigits, toEnDigits } from "@/lib/format"
+import { onlyDigits, parseJalali, toEnDigits } from "@/lib/format"
 
 /** کد ملی ده‌رقمی با رقم کنترل (پیمانه‌ی ۱۱). */
 export function isValidNationalId(value: string): boolean {
@@ -81,6 +81,8 @@ export const schemas = {
     .transform(normalizeIban)
     .refine(isValidIban, "شماره‌ی شبا معتبر نیست؛ IR و ۲۴ رقم را بررسی کنید."),
   email: z.email("نشانی ایمیل معتبر نیست."),
+  /** تاریخ شمسی «1405/08/14»؛ رشته‌ی خالی یعنی واردنشده (الزامی بودن را با required جدا بسنجید). */
+  jalaliDate: z.string().refine((v) => v === "" || parseJalali(v) !== undefined, "تاریخ معتبر نیست؛ به شکل ۱۴۰۵/۰۸/۱۴ وارد کنید."),
   /** متن الزامی با پیام «تکمیل «برچسب» الزامی است.» */
   required: (label: string) => z.string().trim().min(1, `تکمیل «${label}» الزامی است.`),
 }

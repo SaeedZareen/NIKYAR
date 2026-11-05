@@ -66,6 +66,11 @@ declare module "@tanstack/react-table" {
     primary?: boolean
     /** فیلتر چندانتخابی در نوار ابزار. */
     filterOptions?: FilterOption[]
+    /**
+     * ستون متنی بلند (نام، عنوان، شرح): فضای اضافه‌ی جدول را می‌گیرد و در کمبود جا شکسته می‌شود.
+     * بقیه‌ی ستون‌ها (کد، تاریخ، مبلغ، وضعیت) به اندازه‌ی محتوا و یک‌خطی‌اند.
+     */
+    wrap?: boolean
     /** ترازبندی (اعداد و مبالغ: end). */
     align?: "start" | "center" | "end"
     /** مقدار ستون در خروجی اکسل؛ پیش‌فرض مقدار خام ستون. */
@@ -100,8 +105,6 @@ export function useDataTable<TData extends RowData>({ view, columns, data, getRo
     enableMultiSort: true,
     // صفحه با تغییر جست‌وجو/فیلتر در useTableView صفر می‌شود؛ بازنشانی خودکار جدول نشانی صفحه را پاک می‌کرد.
     autoResetPageIndex: false,
-    columnResizeMode: "onChange",
-    columnResizeDirection: "rtl",
     globalFilterFn: "includesString",
     defaultColumn: { size: 160, minSize: 64, maxSize: 640, filterFn: "arrHas", sortFn: "alphanumeric" },
     state: { ...view.state, rowSelection },

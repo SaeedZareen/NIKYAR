@@ -16,6 +16,7 @@ test.describe("پوسته‌ی برنامه", () => {
   test("منوی کناری، زبانه‌های صفحه‌های باز و بستن زبانه", async ({ page }) => {
     test.skip(isMobile(page), "زبانه‌ها روی موبایل نمایش داده نمی‌شوند")
     await page.goto("/ui-kit/data-table")
+    await expect(page.getByRole("heading", { level: 1, name: "جدول داده" })).toBeVisible()
     const sidebar = page.locator("[data-slot=sidebar]")
     await sidebar.getByRole("link", { name: "فرم‌ها" }).click()
     await expect(page.getByRole("heading", { level: 1, name: "فرم‌ها" })).toBeVisible()

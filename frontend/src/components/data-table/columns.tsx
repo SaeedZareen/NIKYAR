@@ -12,6 +12,7 @@ export function selectColumn<TData extends RowData>(): DataTableColumn<TData> {
   return {
     id: "select",
     size: 36,
+    minSize: 36,
     enableSorting: false,
     enableHiding: false,
     enableResizing: false,
@@ -41,6 +42,7 @@ export function actionsColumn<TData extends RowData>(items: (row: TData) => Reac
   return {
     id: "actions",
     size: 44,
+    minSize: 44,
     enableSorting: false,
     enableHiding: false,
     enableResizing: false,

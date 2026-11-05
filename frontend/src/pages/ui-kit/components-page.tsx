@@ -2,7 +2,9 @@ import * as React from "react"
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
 import { Bell, Info, Plus, Save, Trash2 } from "lucide-react"
 import { toast } from "sonner"
+import { JalaliCalendar } from "@/components/jalali-calendar"
 import { PageHeader } from "@/components/layout/page-header"
+import { Section as PageSection } from "@/components/layout/section"
 import { StatusBadge } from "@/components/status-badge"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {
@@ -18,8 +20,6 @@ import {
 } from "@/components/ui/alert-dialog"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Calendar } from "@/components/ui/calendar"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart"
 import { Progress } from "@/components/ui/progress"
 import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
@@ -32,17 +32,12 @@ import { employees, UNIT_NAMES } from "./sample-data"
 const chartData = UNIT_NAMES.map((unit) => ({ unit, count: employees.filter((e) => e.unit === unit && e.status === "active").length }))
 const chartConfig = { count: { label: "پرسنل شاغل", color: "var(--chart-1)" } } satisfies ChartConfig
 
+/** نمونه‌ی هر گروه از اجزا؛ محتوا در یک ردیف شکسته‌شونده. */
 function Section({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>
-          <h2>{title}</h2>
-        </CardTitle>
-        {description && <CardDescription>{description}</CardDescription>}
-      </CardHeader>
-      <CardContent className="flex flex-wrap items-start gap-3">{children}</CardContent>
-    </Card>
+    <PageSection title={title} description={description} contentClassName="flex flex-wrap items-start gap-3">
+      {children}
+    </PageSection>
   )
 }
 
@@ -150,7 +145,7 @@ export default function ComponentsPage() {
         </Section>
 
         <Section title="تقویم شمسی" description={date ? `انتخاب‌شده: ${formatDate(date, "full")}` : "روزی انتخاب نشده است."}>
-          <Calendar mode="single" selected={date} onSelect={setDate} captionLayout="dropdown" className="rounded-lg border" />
+          <JalaliCalendar value={date ?? null} onChange={(d) => setDate(d ?? undefined)} showTodayButton className="rounded-lg border" />
         </Section>
 
         <Section title="نمودار" description="پرسنل شاغل به تفکیک واحد">

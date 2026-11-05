@@ -57,15 +57,15 @@ export function toJalaliString(date: Date | null | undefined): string {
 /**
  * نمایش تاریخ شمسی با ارقام فارسی.
  * ورودی: Date، رشته‌ی ISO، یا رشته‌ی شمسی API.
- * سبک‌ها: short «۱۴۰۵/۰۸/۱۴»، long «۱۴ آبان ۱۴۰۵»، full «چهارشنبه ۱۴ آبان ۱۴۰۵».
+ * سبک‌ها: short «۱۴۰۵/۰۸/۱۴»، long «۱۴ آبان ۱۴۰۵»، full «چهارشنبه ۱۴ آبان ۱۴۰۵»، weekday «چهارشنبه».
  */
 export function formatDate(
   value: Date | string | null | undefined,
-  style: "short" | "long" | "full" = "short"
+  style: "short" | "long" | "full" | "weekday" = "short"
 ): string {
   const date = typeof value === "string" ? (parseJalali(value) ?? new Date(value)) : value
   if (!date || !isValid(date)) return "—"
-  const pattern = style === "short" ? API_DATE_FORMAT : style === "long" ? "d MMMM yyyy" : "EEEE d MMMM yyyy"
+  const pattern = { short: API_DATE_FORMAT, long: "d MMMM yyyy", full: "EEEE d MMMM yyyy", weekday: "EEEE" }[style]
   return toFaDigits(formatJalali(date, pattern))
 }
 

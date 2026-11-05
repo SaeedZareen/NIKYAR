@@ -2,8 +2,8 @@ import { useParams } from "react-router"
 import { FileQuestion } from "lucide-react"
 import { DescriptionList } from "@/components/description-list"
 import { PageHeader } from "@/components/layout/page-header"
+import { Section } from "@/components/layout/section"
 import { StatusBadge } from "@/components/status-badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import { formatDate, formatMoney, toFaDigits } from "@/lib/format"
 import { employees, STATUS_LABELS, TYPE_LABELS } from "./sample-data"
@@ -42,14 +42,8 @@ export default function EmployeePage() {
         }
         breadcrumbs={[{ label: "جدول داده", to: "/ui-kit/data-table" }]}
       />
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            <h2>مشخصات</h2>
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <DescriptionList
+      <Section title="مشخصات">
+        <DescriptionList
             items={[
               { label: "نام", value: e.firstName },
               { label: "نام خانوادگی", value: e.lastName },
@@ -62,9 +56,8 @@ export default function EmployeePage() {
               { label: "حقوق پایه", value: formatMoney(e.salary) },
               { label: "نشانی", value: null },
             ]}
-          />
-        </CardContent>
-      </Card>
+        />
+      </Section>
     </>
   )
 }
