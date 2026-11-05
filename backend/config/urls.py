@@ -5,6 +5,12 @@ from django.urls import include, path, re_path
 from django.utils import timezone
 from django.views.decorators.cache import never_cache
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
+from rest_framework.routers import DefaultRouter
+
+from core.audit.views import AuditLogViewSet
+
+audit_router = DefaultRouter(trailing_slash=True)
+audit_router.register("logs", AuditLogViewSet, basename="audit-log")
 
 
 def health(request):
@@ -23,6 +29,10 @@ def spa(request, path=""):
 
 api = [
     path("health/", health, name="health"),
+    path("auth/", include("core.accounts.urls")),
+    path("org/", include("core.org.urls")),
+    path("lookups/", include("core.lookups.urls")),
+    path("audit/", include(audit_router.urls)),
     path("schema/", SpectacularAPIView.as_view(), name="schema"),
     path("docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="docs"),
 ]

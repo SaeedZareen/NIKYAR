@@ -5,3 +5,4 @@ drf-spectacular>=0.28,<1
 drf-spectacular-sidecar>=2025.1
 whitenoise>=6.9,<7
 waitress>=3.0,<4
+jdatetime>=5.2,<6

@@ -47,7 +47,15 @@ INSTALLED_APPS = [
     "rest_framework",
     "drf_spectacular",
     "drf_spectacular_sidecar",
+    # هسته‌ی نیک‌یار (هسته هرگز به ماژول‌ها وابسته نیست)
+    "core.kernel",
+    "core.accounts",
+    "core.org",
+    "core.audit",
+    "core.lookups",
 ]
+
+AUTH_USER_MODEL = "accounts.User"
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
@@ -94,7 +102,7 @@ else:
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
-            "NAME": DATA_DIR / "nikyar.sqlite3",
+            "NAME": DATA_DIR / "nikyar.db",
             "OPTIONS": {"init_command": "PRAGMA journal_mode=WAL;", "transaction_mode": "IMMEDIATE"},
         }
     }
@@ -127,7 +135,19 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
     "DEFAULT_RENDERER_CLASSES": ["rest_framework.renderers.JSONRenderer"],
+    # رابط کاربری از همان نشانی سرو می‌شود؛ نشست Django + محافظت CSRF.
+    "DEFAULT_AUTHENTICATION_CLASSES": ["rest_framework.authentication.SessionAuthentication"],
+    "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
+    "DEFAULT_PAGINATION_CLASS": "core.kernel.api.Pagination",
+    "EXCEPTION_HANDLER": "core.kernel.api.exception_handler_fa",
+    "DEFAULT_THROTTLE_RATES": {"login": "10/min"},
+    "SEARCH_PARAM": "search",
+    "ORDERING_PARAM": "ordering",
 }
+
+SESSION_COOKIE_AGE = 60 * 60 * 10  # یک روز کاری
+SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_SAMESITE = SESSION_COOKIE_SAMESITE = "Lax"
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "NIKYAR API",
