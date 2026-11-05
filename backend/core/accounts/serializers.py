@@ -35,8 +35,22 @@ class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = [
-            "id", "username", "first_name", "last_name", "full_name", "gender", "email", "mobile",
-            "is_active", "is_superuser", "roles", "role_names", "positions", "last_login", "date_joined", "password",
+            "id",
+            "username",
+            "first_name",
+            "last_name",
+            "full_name",
+            "gender",
+            "email",
+            "mobile",
+            "is_active",
+            "is_superuser",
+            "roles",
+            "role_names",
+            "positions",
+            "last_login",
+            "date_joined",
+            "password",
         ]
         read_only_fields = ["last_login", "date_joined"]
         extra_kwargs = {

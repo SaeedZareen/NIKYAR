@@ -38,7 +38,10 @@ USERS = [
 ROLES = {
     "مدیران": ("مشاهده‌ی کاربران و ساختار سازمانی", ["accounts.users.view", "org.view"]),
     "کارشناس منابع انسانی": ("نگهداری ساختار سازمانی و انتصاب‌ها", ["accounts.users.view", "org.view", "org.manage", "lookups.manage"]),
-    "راهبر سامانه": ("مدیریت کاربران، نقش‌ها و سوابق", ["accounts.users.view", "accounts.users.manage", "accounts.roles.manage", "audit.view", "lookups.manage", "org.view", "org.manage"]),
+    "راهبر سامانه": (
+        "مدیریت کاربران، نقش‌ها و سوابق",
+        ["accounts.users.view", "accounts.users.manage", "accounts.roles.manage", "audit.view", "lookups.manage", "org.view", "org.manage"],
+    ),
 }
 
 LOOKUPS = {

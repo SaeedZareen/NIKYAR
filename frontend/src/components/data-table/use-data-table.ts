@@ -39,7 +39,7 @@ const sortFn_persian = constructSortFn({
 })
 
 /** همه‌ی قابلیت‌های جدول نیک‌یار؛ یک‌بار و در سطح ماژول تعریف می‌شود. */
-export const dataTableFeatures = tableFeatures({
+const dataTableFeatures = tableFeatures({
   columnFilteringFeature,
   globalFilteringFeature,
   filteredRowModel: createFilteredRowModel(),

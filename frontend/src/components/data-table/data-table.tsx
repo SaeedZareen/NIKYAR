@@ -20,7 +20,7 @@ import { exportTableToCsv } from "./export"
 import type { DataTableFeatures, DataTableInstance } from "./use-data-table"
 import type { TableView } from "./use-table-view"
 
-export type DataTableProps<TData extends RowData> = {
+type DataTableProps<TData extends RowData> = {
   table: DataTableInstance<TData>
   view: TableView
   /** عنوان جدول برای صفحه‌خوان‌ها. */

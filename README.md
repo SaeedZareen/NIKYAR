@@ -55,6 +55,7 @@ cd frontend && npm ci
 | اجرای سرور API | `cd backend && ../.venv/bin/python manage.py runserver` |
 | اجرای رابط کاربری (با بارگذاری خودکار) | `cd frontend && npm run dev` |
 | آزمون‌های سرور | `cd backend && ../.venv/bin/python -m pytest` |
+| بررسی و قالب‌بندی کد سرور | `cd backend && ../.venv/bin/ruff check . && ../.venv/bin/ruff format .` |
 | آزمون واحد رابط کاربری | `cd frontend && npm test` |
 | آزمون مرورگر (لپ‌تاپ، مانیتور بزرگ، موبایل) | `cd frontend && npm run e2e` |
 | بررسی نوع‌ها و کیفیت کد | `cd frontend && npm run typecheck && npm run lint` |

@@ -6,7 +6,6 @@ from core.kernel.collation import PersianOrderingFilter
 
 from .models import AuditLog
 
-
 CHANGES_SCHEMA = {
     "type": "object",
     "additionalProperties": {

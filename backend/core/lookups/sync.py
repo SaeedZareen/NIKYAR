@@ -6,7 +6,7 @@ from .models import LookupItem, LookupList
 
 
 def sync_lookups(**kwargs):
-    for order_base, spec in enumerate(lookup_specs()):
+    for spec in lookup_specs():
         lst, created = LookupList.objects.update_or_create(
             code=spec.code,
             defaults={"name": spec.name, "description": spec.description, "is_system": spec.system},

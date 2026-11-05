@@ -39,11 +39,9 @@ ALLOWED_HOSTS = [h.strip() for h in os.environ.get("NIKYAR_ALLOWED_HOSTS", "*").
 VERSION = "0.1.0"
 
 INSTALLED_APPS = [
-    "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
-    "django.contrib.messages",
     "django.contrib.staticfiles",
     "rest_framework",
     "drf_spectacular",
@@ -65,7 +63,6 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "django.contrib.messages.middleware.MessageMiddleware",
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
@@ -81,7 +78,6 @@ TEMPLATES = [
             "context_processors": [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
-                "django.contrib.messages.context_processors.messages",
             ],
         },
     },
@@ -155,6 +151,8 @@ SPECTACULAR_SETTINGS = {
     "TITLE": "NIKYAR API",
     "VERSION": VERSION,
     "SERVE_INCLUDE_SCHEMA": False,
+    # سند API فقط برای کاربر واردشده
+    "SERVE_PERMISSIONS": ["rest_framework.permissions.IsAuthenticated"],
     # نوع جداگانه برای بدنه‌ی درخواست (بدون فیلدهای فقط‌خواندنی) تا نوع‌های رابط کاربری دقیق باشند.
     "COMPONENT_SPLIT_REQUEST": True,
     "POSTPROCESSING_HOOKS": [

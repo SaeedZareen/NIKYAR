@@ -23,4 +23,3 @@ def normalize_mobile(value: str) -> str:
 def validate_mobile(value: str) -> None:
     if not re.fullmatch(r"09\d{9}", normalize_mobile(value)):
         raise serializers.ValidationError("شماره‌ی موبایل باید ۱۱ رقم باشد و با ۰۹ شروع شود.")
-

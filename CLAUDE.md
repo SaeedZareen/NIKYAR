@@ -24,5 +24,5 @@ Modular Persian BPMS/ERP for on-premise installs in Iran. The product owner is n
 
 ## Verify before reporting done
 - `cd frontend && npm run typecheck && npm run lint && npm test && npm run e2e` (Playwright: laptop 1093×600@1.25, desktop 1920, mobile; axe must show no serious/critical issues).
-- `cd backend && ../.venv/bin/python -m pytest`
+- `cd backend && ../.venv/bin/ruff check . && ../.venv/bin/ruff format --check . && ../.venv/bin/python -m pytest`
 - `npm run build` then `python backend/serve.py` and open it once to confirm the production path works.
