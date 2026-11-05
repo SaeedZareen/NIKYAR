@@ -8,7 +8,7 @@
 
 پیش‌نیازها (یک‌بار):
 
-- [Python 3.12 یا جدیدتر](https://www.python.org/downloads/) — هنگام نصب گزینه‌ی «Add python.exe to PATH» را بزنید.
+- [Python 3.13](https://www.python.org/downloads/) (نسخه‌های ۳٫۱۲ تا ۳٫۱۴ پذیرفته است؛ ۳٫۱۵ هنوز پشتیبانی نمی‌شود). اگر نسخه‌ی دیگری هم نصب دارید اشکالی ندارد؛ `install.bat` نسخه‌ی مناسب را خودش انتخاب می‌کند.
 - [Node.js 22 LTS یا جدیدتر](https://nodejs.org/)
 - [Git](https://git-scm.com/download/win)
 

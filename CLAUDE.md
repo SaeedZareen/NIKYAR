@@ -14,7 +14,7 @@ Modular Persian BPMS/ERP for on-premise installs in Iran. The product owner is n
 - Reuse the kits: `components/data-table`, `components/form`, `components/layout`. Do not hand-roll tables, fields or page headers.
 - No dead code, unused dependencies, orphaned files or speculative placeholders. Remove what a change makes obsolete.
 - Console/batch output is English (Windows consoles cannot render Persian); everything in the browser is Persian.
-- Windows scripts (`*.bat`) must keep CRLF line endings (`.gitattributes`).
+- Windows scripts (`*.bat`) must keep CRLF line endings (`.gitattributes`). Supported Python is 3.12–3.14 (Django 5.2); `install.bat` picks one via the `py` launcher.
 
 ## Verify before reporting done
 - `cd frontend && npm run typecheck && npm run lint && npm test && npm run e2e` (Playwright: laptop 1093×600@1.25, desktop 1920, mobile; axe must show no serious/critical issues).
