@@ -60,7 +60,7 @@ export default function LoginPage() {
           <li>هر کار بر اساس ساختار سازمانی به کارتابل فرد درست می‌رسد.</li>
           <li>ماژول‌ها را به‌تدریج اضافه کنید: پرونده‌ی پرسنلی امروز، حقوق و انبار فردا.</li>
         </ul>
-        <p className="text-xs text-header-muted">نسخه‌ی ۰٫۱</p>
+        <p className="text-xs text-header-muted">نسخه‌ی ۰٫۲</p>
       </section>
 
       <div className="flex items-center justify-center p-6">
