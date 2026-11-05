@@ -1,8 +1,8 @@
 import pytest
 from rest_framework.test import APIClient
 
-from core.audit.models import AuditLog
 from core.accounts.models import Role, User
+from core.audit.models import AuditLog
 
 
 @pytest.mark.django_db
@@ -82,7 +82,9 @@ class TestUsers:
 
     def test_only_superuser_can_grant_superuser(self, make_user, client_for):
         manager = client_for(make_user("mgr", permissions=["accounts.users.manage"]))
-        r = manager.post("/api/auth/users/", {"username": "boss", "first_name": "ب", "last_name": "ب", "password": "Strong-Pass-1", "is_superuser": True}, format="json")
+        r = manager.post(
+            "/api/auth/users/", {"username": "boss", "first_name": "ب", "last_name": "ب", "password": "Strong-Pass-1", "is_superuser": True}, format="json"
+        )
         assert r.status_code == 400 and "is_superuser" in r.json()["fields"]
 
     def test_cannot_deactivate_self(self, api, admin):

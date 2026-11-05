@@ -45,7 +45,7 @@ export function isValidCardNumber(value: string): boolean {
 }
 
 /** شبا: IR و ۲۴ رقم، با بررسی پیمانه‌ی ۹۷. */
-export function normalizeIban(value: string): string {
+function normalizeIban(value: string): string {
   return toEnDigits(value).toUpperCase().replace(/[^0-9A-Z]/g, "").replace(/^(?!IR)/, "IR")
 }
 export function isValidIban(value: string): boolean {

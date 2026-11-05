@@ -1,5 +1,4 @@
 from django.conf import settings
-from django.contrib import admin
 from django.http import FileResponse, Http404, JsonResponse
 from django.urls import include, path, re_path
 from django.utils import timezone
@@ -39,6 +38,5 @@ api = [
 
 urlpatterns = [
     path("api/", include(api)),
-    path("django-admin/", admin.site.urls),
-    re_path(r"^(?!api/|django-admin/|static/|media/).*$", spa, name="spa"),
+    re_path(r"^(?!api/|static/|media/).*$", spa, name="spa"),
 ]

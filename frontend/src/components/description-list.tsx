@@ -1,7 +1,7 @@
 import * as React from "react"
 import { cn } from "@/lib/utils"
 
-export type DescriptionItem = { label: string; value: React.ReactNode; ltr?: boolean; span?: "full" }
+type DescriptionItem = { label: string; value: React.ReactNode; ltr?: boolean; span?: "full" }
 
 /** نمایش فقط‌خواندنی برچسب/مقدار؛ به‌جای فیلد غیرفعال که با فیلد قابل ویرایش اشتباه گرفته می‌شود. */
 export function DescriptionList({ items, className }: { items: DescriptionItem[]; className?: string }) {

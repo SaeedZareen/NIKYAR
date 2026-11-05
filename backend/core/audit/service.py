@@ -40,9 +40,7 @@ def snapshot(instance: models.Model) -> dict[str, tuple[str, str]]:
 
 def diff(before: dict, after: dict) -> dict:
     return {
-        name: {"label": label, "old": before.get(name, ("", ""))[1], "new": new}
-        for name, (label, new) in after.items()
-        if before.get(name, ("", ""))[1] != new
+        name: {"label": label, "old": before.get(name, ("", ""))[1], "new": new} for name, (label, new) in after.items() if before.get(name, ("", ""))[1] != new
     }
 
 

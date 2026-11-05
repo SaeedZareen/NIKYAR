@@ -3,7 +3,7 @@ import { Controller, type Control, type ControllerRenderProps, type FieldPath, t
 import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field"
 import { cn } from "@/lib/utils"
 
-export type FieldLayout = "side" | "stacked"
+type FieldLayout = "side" | "stacked"
 
 type RenderArgs<TValues extends FieldValues, TName extends FieldPath<TValues>> = {
   field: ControllerRenderProps<TValues, TName>

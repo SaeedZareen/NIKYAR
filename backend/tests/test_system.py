@@ -9,8 +9,9 @@ def test_health(client):
     assert r.json()["version"] == settings.VERSION
 
 
-def test_openapi_schema(client):
-    r = client.get("/api/schema/")
+def test_openapi_schema_requires_sign_in(client, api):
+    assert client.get("/api/schema/").status_code == 403
+    r = api.get("/api/schema/")
     assert r.status_code == 200
     assert b"NIKYAR API" in r.content
 

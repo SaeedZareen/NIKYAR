@@ -2,7 +2,7 @@
 import { toJalaliString } from "@/lib/format"
 
 export type EmploymentStatus = "active" | "leave" | "terminated"
-export type EmploymentType = "permanent" | "contract" | "project"
+type EmploymentType = "permanent" | "contract" | "project"
 
 export type Employee = {
   id: string
@@ -47,7 +47,7 @@ function nationalIdFrom(nine: string) {
   return nine + (r < 2 ? r : 11 - r)
 }
 
-export function makeEmployees(count: number): Employee[] {
+function makeEmployees(count: number): Employee[] {
   const rnd = random(1405)
   const pick = <T,>(xs: T[]) => xs[Math.floor(rnd() * xs.length)]
   return Array.from({ length: count }, (_, i) => {

@@ -1,8 +1,8 @@
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
 from django.db.models import Count, Prefetch
 from django.utils import timezone
-from django.views.decorators.csrf import ensure_csrf_cookie
 from django.utils.decorators import method_decorator
+from django.views.decorators.csrf import ensure_csrf_cookie
 from drf_spectacular.utils import extend_schema
 from rest_framework import filters, permissions, status
 from rest_framework.authentication import SessionAuthentication
@@ -79,7 +79,9 @@ class PermissionCatalogView(APIView):
 
     @extend_schema(responses=PermissionGroupSerializer(many=True))
     def get(self, request):
-        groups = [{"app": g.app_label, "title": g.title, "permissions": [{"code": c, "label": l} for c, l in g.permissions.items()]} for g in permission_groups()]
+        groups = [
+            {"app": g.app_label, "title": g.title, "permissions": [{"code": c, "label": l} for c, l in g.permissions.items()]} for g in permission_groups()
+        ]
         return Response(PermissionGroupSerializer(groups, many=True).data)
 
 

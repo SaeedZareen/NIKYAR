@@ -34,13 +34,9 @@ export function formatMoney(value: number | null | undefined): string {
   return value == null ? "—" : `${formatNumber(value)} تومان`
 }
 
-/** درصد: «۴۵٪». */
-export function formatPercent(value: number | null | undefined): string {
-  return value == null ? "—" : `${formatNumber(value)}٪`
-}
 
 /** قالب تاریخ در API: «۱۴۰۵/۰۸/۱۴» با ارقام لاتین. */
-export const API_DATE_FORMAT = "yyyy/MM/dd"
+const API_DATE_FORMAT = "yyyy/MM/dd"
 
 /** رشته‌ی تاریخ شمسی API را به Date تبدیل می‌کند؛ نامعتبر ← undefined. */
 export function parseJalali(value: string | null | undefined): Date | undefined {
@@ -70,7 +66,7 @@ export function formatDate(
 }
 
 /** زمان «۱۴:۰۵». */
-export function formatTime(value: Date | string | null | undefined): string {
+function formatTime(value: Date | string | null | undefined): string {
   const date = typeof value === "string" ? new Date(value) : value
   if (!date || !isValid(date)) return "—"
   return toFaDigits(formatJalali(date, "HH:mm"))

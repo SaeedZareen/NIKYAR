@@ -1,0 +1,9 @@
+# پیکربندی ابزار بررسی و قالب‌بندی کد پایتون (ruff)
+[tool.ruff]
+target-version = "py312"
+line-length = 160
+extend-exclude = ["*/migrations/*"]
+
+[tool.ruff.lint]
+# خطاهای واقعی، باگ‌های رایج، نحو قدیمی، ترتیب importها و قواعد جنگو
+select = ["F", "E9", "B", "UP", "I", "DJ", "SIM"]

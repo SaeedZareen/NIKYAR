@@ -44,7 +44,7 @@ const parseSort = (s: string): SortingState =>
 const serializeSort = (s: SortingState) => s.map((x) => (x.desc ? "-" : "") + x.id).join(",")
 
 /** پارامترهای استاندارد درخواست به سرور، ساخته‌شده از وضعیت نما. */
-export type TableQuery = { page: number; page_size: number; search?: string; ordering?: string } & Record<string, string | number | undefined>
+type TableQuery = { page: number; page_size: number; search?: string; ordering?: string } & Record<string, string | number | undefined>
 
 export type TableView = ReturnType<typeof useTableView>
 

@@ -6,10 +6,10 @@ import { Building2, Component, FormInput, History, LayoutDashboard, ListTree, Sh
 /** مجوز مورد نیاز؛ "superuser" یعنی فقط مدیر کل (برای بخش‌های راهنمای توسعه). */
 export type Access = string | "superuser" | undefined
 
-export type NavItem = { title: string; url: string; icon: LucideIcon; access?: Access; keywords?: string }
-export type NavGroup = { title: string; items: NavItem[] }
+type NavItem = { title: string; url: string; icon: LucideIcon; access?: Access; keywords?: string }
+type NavGroup = { title: string; items: NavItem[] }
 
-export const navigation: NavGroup[] = [
+const navigation: NavGroup[] = [
   {
     title: "عمومی",
     items: [{ title: "پیشخوان", url: "/", icon: LayoutDashboard, keywords: "خانه داشبورد" }],
