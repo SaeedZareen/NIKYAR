@@ -18,13 +18,16 @@ type BaseProps = Omit<React.ComponentProps<"input">, "value" | "onChange" | "typ
 
 const DIGIT_KINDS = {
   nationalId: { maxLength: 10, autoComplete: "off" },
+  legalNationalId: { maxLength: 11, autoComplete: "off" },
+  economicCode: { maxLength: 12, autoComplete: "off" },
+  registrationNumber: { maxLength: 20, autoComplete: "off" },
   mobile: { maxLength: 11, autoComplete: "tel" },
   phone: { maxLength: 11, autoComplete: "tel" },
   postalCode: { maxLength: 10, autoComplete: "postal-code" },
   cardNumber: { maxLength: 16, autoComplete: "cc-number" },
 } as const
 
-/** ورودی رقمی چپ‌به‌راست (کد ملی، موبایل، کد پستی، کارت)؛ ارقام فارسی را می‌پذیرد. */
+/** ورودی رقمی چپ‌به‌راست (کد ملی، شناسه‌ی ملی، موبایل، تلفن، کد پستی، کارت)؛ ارقام فارسی را می‌پذیرد. */
 export function DigitsInput({ kind, value, onChange, className, ...props }: BaseProps & { kind: keyof typeof DIGIT_KINDS }) {
   const k = DIGIT_KINDS[kind]
   return (
