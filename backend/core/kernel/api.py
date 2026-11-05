@@ -1,7 +1,8 @@
 """
 پایه‌ی مشترک API: خطاهای کسب‌وکار، قالب یکسان خطا، مجوزها، صفحه‌بندی و فیلترها.
 
-قالب هر پاسخ خطا:  {"detail": "پیام کلی فارسی", "fields": {"نام_فیلد": "پیام مشخص"}}
+قالب هر پاسخ خطا:  {"detail": "پیام کلی فارسی", "fields": {"نام_فیلد": "پیام مشخص"}, "code": "کد ماشینی"}
+کدهای مهم برای رابط کاربری: not_authenticated (نشست تمام شده)، csrf_failed، permission_denied، invalid، business_error.
 """
 
 from django.core.exceptions import PermissionDenied as DjangoPermissionDenied
@@ -51,13 +52,15 @@ def exception_handler_fa(exc, context):
     elif isinstance(exc, exceptions.NotAuthenticated):
         response.data = {"detail": "ابتدا وارد سامانه شوید.", "fields": {}}
     elif isinstance(exc, exceptions.PermissionDenied):
-        csrf = str(exc.detail).startswith("CSRF Failed")
-        message = "نشست کاری منقضی شده است؛ صفحه را دوباره بارگذاری کنید." if csrf else "برای این کار مجوز ندارید."
-        response.data = {"detail": message, "fields": {}}
+        if str(exc.detail).startswith("CSRF Failed"):
+            response.data = {"detail": "نشست کاری منقضی شده است؛ صفحه را دوباره بارگذاری کنید.", "fields": {}, "code": "csrf_failed"}
+            return response
+        response.data = {"detail": "برای این کار مجوز ندارید.", "fields": {}}
     elif isinstance(exc, exceptions.Throttled):
         response.data = {"detail": "تعداد تلاش‌ها زیاد بود؛ کمی بعد دوباره امتحان کنید.", "fields": {}}
     else:
         response.data = {"detail": _first_message(response.data.get("detail", response.data)), "fields": {}}
+    response.data["code"] = "invalid" if isinstance(exc, exceptions.ValidationError) else exc.default_code
     return response
 
 
@@ -108,6 +111,12 @@ class MultiValueFilter(filters.BaseFilterBackend):
     """
 
     TRUE = {"true", "1", "yes"}
+
+    def get_schema_operation_parameters(self, view):
+        return [
+            {"name": param, "in": "query", "required": False, "description": "چند مقدار با ویرگول جدا می‌شود.", "schema": {"type": "string"}}
+            for param in getattr(view, "filter_fields", {})
+        ]
 
     def filter_queryset(self, request, queryset, view):
         crosses_relation = False

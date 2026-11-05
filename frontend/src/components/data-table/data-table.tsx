@@ -236,7 +236,8 @@ function GridTable<TData extends RowData>({ table, view, caption, rows, loading,
                   alignClass[h.column.columnDef.meta?.align ?? "start"]
                 )}
               >
-                {h.isPlaceholder ? null : h.column.id === "select" || h.column.id === "actions" ? (
+                {/* ستون‌های نمایشی (انتخاب، عملیات، دکمه‌ها) سرستون خودشان را دارند؛ ستون‌های داده منوی مرتب‌سازی و سنجاق. */}
+                {h.isPlaceholder ? null : !h.column.accessorFn ? (
                   <table.FlexRender header={h} />
                 ) : (
                   <DataTableColumnHeader header={h} sortCount={table.state.sorting.length} />

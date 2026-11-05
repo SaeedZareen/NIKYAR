@@ -51,16 +51,20 @@ class Position(models.Model):
 
 class AssignmentQuerySet(models.QuerySet):
     def current(self, on_date):
-        return self.filter(start_date__lte=on_date).filter(Q(end_date__isnull=True) | Q(end_date__gte=on_date))
+        # بازه‌ی [شروع، پایان): از تاریخ پایان به بعد، فرد دیگر در سمت نیست.
+        return self.filter(start_date__lte=on_date).filter(Q(end_date__isnull=True) | Q(end_date__gt=on_date))
 
 
 class Assignment(models.Model):
-    """انتصاب کاربر به سمت در یک بازه‌ی زمانی؛ تاریخچه حفظ می‌شود (پایان انتصاب به‌جای حذف)."""
+    """
+    انتصاب کاربر به سمت در بازه‌ی [تاریخ شروع، تاریخ پایان)؛ تاریخ پایان نخستین روزی است که فرد دیگر در سمت نیست.
+    تاریخچه حفظ می‌شود (پایان انتصاب به‌جای حذف).
+    """
 
     user = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name="کاربر", on_delete=models.PROTECT, related_name="assignments")
     position = models.ForeignKey(Position, verbose_name="سمت", on_delete=models.PROTECT, related_name="assignments")
     start_date = models.DateField("تاریخ شروع")
-    end_date = models.DateField("تاریخ پایان", null=True, blank=True)
+    end_date = models.DateField("تاریخ پایان", null=True, blank=True, help_text="از این تاریخ، فرد دیگر در این سمت نیست.")
     is_primary = models.BooleanField("سمت اصلی", default=True)
 
     objects = AssignmentQuerySet.as_manager()

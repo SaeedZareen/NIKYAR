@@ -1,7 +1,9 @@
 import pytest
 from django.core.management import call_command
+from django.utils import timezone
 
 from core.audit.models import AuditLog
+from core.kernel.fields import JalaliDateField
 from core.lookups.models import LookupList
 from core.org.models import Assignment, OrgUnit, Position
 
@@ -85,3 +87,23 @@ def test_seed_demo_runs_once():
     call_command("seed_demo")
     assert User.objects.count() == count == 8
     assert OrgUnit.objects.get(code="finance").parent.code == "ceo"
+
+
+@pytest.mark.django_db
+def test_persian_alphabetical_ordering(api, make_user):
+    for last in ["یزدانی", "کریمی", "احمدی", "پاکزاد", "رضایی"]:
+        make_user(f"u-{last}", last_name=last)
+    names = [u["last_name"] for u in api.get("/api/auth/users/?ordering=last_name&search=u-").json()["results"]]
+    assert names == ["احمدی", "پاکزاد", "رضایی", "کریمی", "یزدانی"]
+    names = [u["last_name"] for u in api.get("/api/auth/users/?ordering=-last_name&search=u-").json()["results"]]
+    assert names[0] == "یزدانی"
+
+
+@pytest.mark.django_db
+def test_assignment_ending_today_is_no_longer_current(api, make_user):
+    unit = OrgUnit.objects.create(name="مالی")
+    pos = Position.objects.create(title="حسابدار", unit=unit)
+    a = api.post("/api/org/assignments/", {"user": make_user("u").id, "position": pos.id, "start_date": "1404/01/01"}, format="json").json()
+    today = JalaliDateField().to_representation(timezone.localdate())
+    assert api.patch(f"/api/org/assignments/{a['id']}/", {"end_date": today}, format="json").status_code == 200
+    assert api.get(f"/api/org/positions/?unit={unit.id}").json()[0]["holders"] == []

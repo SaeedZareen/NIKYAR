@@ -8,6 +8,12 @@ Modular Persian BPMS/ERP for on-premise installs in Iran. The product owner is n
 - shadcn MCP server is configured in `.mcp.json`. Add components only via `cd frontend && npx shadcn@latest add <name>` (needs `NODE_USE_ENV_PROXY=1` behind a proxy). After adding, check imports use `@/lib/utils` and translate any English user-facing strings.
 - TanStack Table v9 docs ship inside the package: `frontend/node_modules/@tanstack/*/skills/`.
 
+## Backend conventions
+- Apps live in `backend/core/<app>` (modules later in `backend/modules/<module>`); each declares `nikyar_permissions` and `nikyar_lookups` on its AppConfig.
+- Writable viewsets extend `core.audit.service.AuditedModelViewSet`; permissions via `HasPerm` + `perms = {action: code}`; list filters via `MultiValueFilter.filter_fields`; text ordering via `PersianOrderingFilter`; business rule errors via `BusinessError(message, fields)`.
+- After any API change run `cd frontend && npm run api:types` and commit `src/lib/api/schema.d.ts`.
+- E2E runs its own Django on port 8100 with a fresh temp database (`frontend/e2e/start-backend.mjs`); never point tests at `backend/data`.
+
 ## Rules
 - All user-facing text is formal Persian (labels, aria-labels, errors, toasts). Visible digits Persian; values/URLs/payloads Latin. Dates Jalali (`lib/format.ts`).
 - Logical Tailwind classes only (`ms-/me-/ps-/pe-/start-/end-/text-start`). Colors only from tokens in `src/index.css`.

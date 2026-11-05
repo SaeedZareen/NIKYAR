@@ -1,9 +1,11 @@
 """فیلد تاریخ شمسی برای سریالایزرها: در API رشته‌ی «1405/08/14»، در پایگاه داده تاریخ میلادی."""
 
 import jdatetime
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 
+@extend_schema_field({"type": "string", "pattern": r"^\d{4}/\d{2}/\d{2}$", "example": "1405/08/14"})
 class JalaliDateField(serializers.Field):
     default_error_messages = {"invalid": "تاریخ معتبر نیست؛ به شکل ۱۴۰۵/۰۸/۱۴ وارد کنید."}
 

@@ -11,7 +11,7 @@ class TestSession:
         make_user("reza", permissions=["org.view"], first_name="رضا", last_name="احمدی", gender="male")
         c = APIClient(enforce_csrf_checks=True)
         r = c.get("/api/auth/session/")
-        assert r.status_code == 403 and r.json()["detail"] == "ابتدا وارد سامانه شوید."
+        assert r.status_code == 204  # واردنشده: بدون محتوا، ولی کوکی CSRF تنظیم می‌شود
         token = r.cookies["csrftoken"].value
 
         assert c.post("/api/auth/session/", {"username": "reza", "password": "Pass-1234!"}, format="json").status_code == 403  # بدون توکن CSRF
@@ -22,7 +22,9 @@ class TestSession:
 
         token = c.cookies["csrftoken"].value  # Django پس از ورود توکن را عوض می‌کند
         assert c.delete("/api/auth/session/", HTTP_X_CSRFTOKEN=token).status_code == 204
-        assert c.get("/api/auth/session/").status_code == 403
+        assert c.get("/api/auth/session/").status_code == 204
+        r = c.get("/api/auth/users/")
+        assert r.status_code == 403 and r.json()["code"] == "not_authenticated"
         assert list(AuditLog.objects.values_list("action", flat=True)) == ["logout", "login"]
 
     def test_wrong_password_is_persian_and_audited(self, make_user):
@@ -73,6 +75,10 @@ class TestUsers:
         assert r.json()["mobile"] == "09121234567" and r.json()["role_names"] == ["ناظر"]
         log = AuditLog.objects.get(action="create")
         assert log.object_repr == "علی رضایی" and "password" not in log.changes and log.changes["roles"]["new"] == "ناظر"
+
+    def test_duplicate_username_message(self, api, admin):
+        r = api.post("/api/auth/users/", {"username": "admin", "first_name": "ا", "last_name": "ب", "password": "Strong-Pass-1"}, format="json")
+        assert r.json()["fields"]["username"] == "این نام کاربری قبلاً برای کاربر دیگری ثبت شده است."
 
     def test_only_superuser_can_grant_superuser(self, make_user, client_for):
         manager = client_for(make_user("mgr", permissions=["accounts.users.manage"]))

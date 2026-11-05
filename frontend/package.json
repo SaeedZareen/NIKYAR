@@ -9,7 +9,8 @@
     "typecheck": "tsc -b --noEmit",
     "lint": "oxlint",
     "test": "vitest run",
-    "e2e": "playwright test"
+    "e2e": "playwright test",
+    "api:types": "cd ../backend && ../.venv/bin/python manage.py spectacular --file ../frontend/node_modules/.tmp/openapi.yaml && cd ../frontend && npx --yes openapi-typescript@7 node_modules/.tmp/openapi.yaml -o src/lib/api/schema.d.ts"
   },
   "dependencies": {
     "@avan-persian/react": "^0.1.2",
@@ -24,6 +25,7 @@
     "date-fns-jalali": "^4.1.0-0",
     "input-otp": "^1.5.0",
     "lucide-react": "^1.68.0",
+    "openapi-fetch": "^0.17.0",
     "radix-ui": "^1.8.1",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",

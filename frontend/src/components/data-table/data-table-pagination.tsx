@@ -23,9 +23,11 @@ export function DataTablePagination<TData extends RowData>({ table }: { table: D
           : `نمایش ${formatNumber(from)} تا ${formatNumber(to)} از ${formatNumber(total)}`}
         {selected > 0 && ` · ${formatNumber(selected)} ردیف انتخاب‌شده`}
       </p>
-      <div className="flex items-center gap-4">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
         <div className="flex items-center gap-2">
-          <span id="page-size-label">تعداد در صفحه</span>
+          <span id="page-size-label" className="whitespace-nowrap">
+            <span className="sr-only sm:not-sr-only">تعداد در صفحه</span>
+          </span>
           <Select value={String(pageSize)} onValueChange={(v) => table.setPageSize(Number(v))}>
             <SelectTrigger className="w-16" aria-labelledby="page-size-label">
               <SelectValue />
@@ -39,7 +41,7 @@ export function DataTablePagination<TData extends RowData>({ table }: { table: D
             </SelectContent>
           </Select>
         </div>
-        <span className="text-foreground">
+        <span className="whitespace-nowrap text-foreground">
           صفحه‌ی {formatNumber(pageIndex + 1)} از {formatNumber(pageCount)}
         </span>
         <nav className="flex items-center gap-1" aria-label="صفحه‌بندی">

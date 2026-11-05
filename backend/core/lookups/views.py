@@ -5,6 +5,7 @@ from rest_framework import serializers
 
 from core.audit.service import AuditedModelViewSet
 from core.kernel.api import BusinessError, HasPerm, MultiValueFilter
+from core.kernel.collation import PersianOrderingFilter
 
 from .models import LookupItem, LookupList
 
@@ -55,6 +56,9 @@ class LookupListViewSet(AuditedModelViewSet):
     serializer_class = LookupListSerializer
     permission_classes = [HasPerm]
     perms = {"list": None, "retrieve": None, "*": "lookups.manage"}
+    filter_backends = [PersianOrderingFilter]
+    ordering_fields = ["name"]
+    ordering = ["name"]
     pagination_class = None
 
     def get_queryset(self):

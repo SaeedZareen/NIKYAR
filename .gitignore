@@ -22,3 +22,6 @@ frontend/node_modules/.tmp/
 
 # کلید خصوصی لایسنس هرگز در مخزن نیست
 *.private.pem
+
+# نشست ورود آزمون مرورگر
+frontend/e2e/.auth/

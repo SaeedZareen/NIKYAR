@@ -1,5 +1,8 @@
 from django.contrib.auth import password_validation
+from django.contrib.auth.validators import UnicodeUsernameValidator
+from django.utils import timezone
 from rest_framework import serializers
+from rest_framework.validators import UniqueValidator
 
 from core.kernel.registry import all_permissions
 from core.kernel.validators import normalize_mobile, validate_mobile
@@ -9,6 +12,7 @@ from .models import Role, User
 
 class RoleSerializer(serializers.ModelSerializer):
     user_count = serializers.IntegerField(read_only=True)
+    permissions = serializers.ListField(child=serializers.CharField(), required=False, label="مجوزها")
 
     class Meta:
         model = Role
@@ -35,7 +39,16 @@ class UserSerializer(serializers.ModelSerializer):
             "is_active", "is_superuser", "roles", "role_names", "positions", "last_login", "date_joined", "password",
         ]
         read_only_fields = ["last_login", "date_joined"]
-        extra_kwargs = {"first_name": {"required": True, "allow_blank": False}, "last_name": {"required": True, "allow_blank": False}}
+        extra_kwargs = {
+            "first_name": {"required": True, "allow_blank": False},
+            "last_name": {"required": True, "allow_blank": False},
+            "username": {
+                "validators": [
+                    UnicodeUsernameValidator(),
+                    UniqueValidator(queryset=User.objects.all(), message="این نام کاربری قبلاً برای کاربر دیگری ثبت شده است."),
+                ]
+            },
+        }
 
     def get_fields(self):
         fields = super().get_fields()
@@ -87,10 +100,15 @@ class UserSerializer(serializers.ModelSerializer):
 class MeSerializer(serializers.ModelSerializer):
     full_name = serializers.CharField(source="get_full_name", read_only=True)
     permissions = serializers.SerializerMethodField()
+    positions = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ["id", "username", "first_name", "last_name", "full_name", "title", "gender", "email", "mobile", "is_superuser", "permissions"]
+        fields = ["id", "username", "first_name", "last_name", "full_name", "title", "gender", "email", "mobile", "is_superuser", "permissions", "positions"]
+
+    def get_positions(self, obj) -> list[str]:
+        today = timezone.localdate()
+        return [str(a.position) for a in obj.assignments.current(today).select_related("position__unit")]
 
     def get_permissions(self, obj) -> list[str]:
         return sorted(all_permissions()) if obj.is_superuser else sorted(obj.permission_codes())
@@ -113,3 +131,14 @@ class ChangePasswordSerializer(serializers.Serializer):
     def validate_new_password(self, value):
         password_validation.validate_password(value, self.context["request"].user)
         return value
+
+
+class PermissionItemSerializer(serializers.Serializer):
+    code = serializers.CharField()
+    label = serializers.CharField()
+
+
+class PermissionGroupSerializer(serializers.Serializer):
+    app = serializers.CharField()
+    title = serializers.CharField()
+    permissions = PermissionItemSerializer(many=True)

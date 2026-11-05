@@ -1,9 +1,11 @@
 from django.db.models import Count, Prefetch, Q
 from django.utils import timezone
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import filters, serializers
 
 from core.audit.service import AuditedModelViewSet
 from core.kernel.api import BusinessError, HasPerm, MultiValueFilter
+from core.kernel.collation import PersianOrderingFilter
 from core.kernel.fields import JalaliDateField
 
 from .models import Assignment, OrgUnit, Position
@@ -43,6 +45,12 @@ class AssignmentSerializer(serializers.ModelSerializer):
         return attrs
 
 
+class HolderSerializer(serializers.Serializer):
+    assignment = serializers.IntegerField()
+    user = serializers.IntegerField()
+    name = serializers.CharField()
+
+
 class PositionSerializer(serializers.ModelSerializer):
     unit_name = serializers.CharField(source="unit.name", read_only=True)
     holders = serializers.SerializerMethodField()
@@ -52,7 +60,8 @@ class PositionSerializer(serializers.ModelSerializer):
         fields = ["id", "title", "unit", "unit_name", "is_manager", "is_active", "holders"]
         validators = []  # یکتایی مدیر را با پیام فارسی در validate بررسی می‌کنیم.
 
-    def get_holders(self, obj) -> list[dict]:
+    @extend_schema_field(HolderSerializer(many=True))
+    def get_holders(self, obj):
         return [{"assignment": a.id, "user": a.user_id, "name": str(a.user)} for a in getattr(obj, "current_assignments", [])]
 
     def validate(self, attrs):
@@ -70,12 +79,15 @@ class OrgUnitViewSet(AuditedModelViewSet):
     serializer_class = OrgUnitSerializer
     permission_classes = [HasPerm]
     perms = PERMS
+    filter_backends = [PersianOrderingFilter]
+    ordering_fields = ["order", "name"]
+    ordering = ["order", "name"]
     pagination_class = None
 
     def get_queryset(self):
         today = timezone.localdate()
         current = Q(positions__assignments__start_date__lte=today) & (
-            Q(positions__assignments__end_date__isnull=True) | Q(positions__assignments__end_date__gte=today)
+            Q(positions__assignments__end_date__isnull=True) | Q(positions__assignments__end_date__gt=today)
         )
         return OrgUnit.objects.annotate(
             position_count=Count("positions", filter=Q(positions__is_active=True), distinct=True),
@@ -92,9 +104,11 @@ class PositionViewSet(AuditedModelViewSet):
     serializer_class = PositionSerializer
     permission_classes = [HasPerm]
     perms = PERMS
-    filter_backends = [filters.SearchFilter, MultiValueFilter]
+    filter_backends = [filters.SearchFilter, PersianOrderingFilter, MultiValueFilter]
     search_fields = ["title", "unit__name"]
     filter_fields = {"unit": "unit_id", "is_active": "is_active"}
+    ordering_fields = ["title", "is_manager"]
+    ordering = ["-is_manager", "title"]
     pagination_class = None
 
     def get_queryset(self):

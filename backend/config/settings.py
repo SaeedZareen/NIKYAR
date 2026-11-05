@@ -6,6 +6,7 @@ NIKYAR_SECRET_KEY        کلید امنیتی (اگر نباشد، یک‌با�
 NIKYAR_ALLOWED_HOSTS     نام‌ها/نشانی‌های مجاز، جداشده با ویرگول (پیش‌فرض: همه، برای شبکه‌ی داخلی)
 NIKYAR_DB_ENGINE         sqlite (پیش‌فرض) یا postgres
 NIKYAR_DB_NAME/USER/PASSWORD/HOST/PORT   برای PostgreSQL
+NIKYAR_LOGIN_RATE        سقف تلاش ورود از هر IP (پیش‌فرض 10/min)
 """
 
 import os
@@ -140,7 +141,8 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
     "DEFAULT_PAGINATION_CLASS": "core.kernel.api.Pagination",
     "EXCEPTION_HANDLER": "core.kernel.api.exception_handler_fa",
-    "DEFAULT_THROTTLE_RATES": {"login": "10/min"},
+    # سقف تلاش ورود از هر نشانی IP (در برابر حدس گذرواژه)
+    "DEFAULT_THROTTLE_RATES": {"login": os.environ.get("NIKYAR_LOGIN_RATE", "10/min")},
     "SEARCH_PARAM": "search",
     "ORDERING_PARAM": "ordering",
 }
@@ -153,6 +155,12 @@ SPECTACULAR_SETTINGS = {
     "TITLE": "NIKYAR API",
     "VERSION": VERSION,
     "SERVE_INCLUDE_SCHEMA": False,
+    # نوع جداگانه برای بدنه‌ی درخواست (بدون فیلدهای فقط‌خواندنی) تا نوع‌های رابط کاربری دقیق باشند.
+    "COMPONENT_SPLIT_REQUEST": True,
+    "POSTPROCESSING_HOOKS": [
+        "drf_spectacular.hooks.postprocess_schema_enums",
+        "core.kernel.schema.require_response_fields",
+    ],
     "SWAGGER_UI_DIST": "SIDECAR",
     "SWAGGER_UI_FAVICON_HREF": "SIDECAR",
     "REDOC_DIST": "SIDECAR",

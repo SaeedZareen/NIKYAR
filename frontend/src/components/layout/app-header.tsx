@@ -1,12 +1,23 @@
 import * as React from "react"
-import { Link } from "react-router"
-import { Monitor, Moon, Search, Sun } from "lucide-react"
+import { Link, useNavigate } from "react-router"
+import { KeyRound, LogOut, Monitor, Moon, Search, Sun } from "lucide-react"
+import { useAuth, useLogout } from "@/app/auth"
 import { useTheme, type Theme } from "@/components/theme-provider"
 import { Button } from "@/components/ui/button"
-import { DropdownMenu, DropdownMenuContent, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuRadioGroup,
+  DropdownMenuRadioItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { Kbd } from "@/components/ui/kbd"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { formatDate } from "@/lib/format"
+import { ChangePasswordDialog } from "./change-password-dialog"
 import { CommandMenu } from "./command-menu"
 
 const THEMES = [
@@ -15,7 +26,7 @@ const THEMES = [
   { value: "system", label: "مطابق سیستم", icon: Monitor },
 ] as const
 
-/** نوار بالای سرمه‌ای: منو، نام سامانه، جست‌وجوی سراسری، تاریخ و پوسته. */
+/** نوار بالای سرمه‌ای: منو، نام سامانه، جست‌وجوی سراسری، تاریخ، پوسته و منوی کاربر. */
 export function AppHeader() {
   const [searchOpen, setSearchOpen] = React.useState(false)
   const [today] = React.useState(() => formatDate(new Date(), "full"))
@@ -72,7 +83,55 @@ export function AppHeader() {
         </DropdownMenuContent>
       </DropdownMenu>
 
+      <UserMenu />
       <CommandMenu open={searchOpen} onOpenChange={setSearchOpen} />
     </header>
+  )
+}
+
+function UserMenu() {
+  const { user } = useAuth()
+  const logout = useLogout()
+  const navigate = useNavigate()
+  const [passwordOpen, setPasswordOpen] = React.useState(false)
+  if (!user) return null
+  const initial = (user.first_name || user.username).charAt(0)
+
+  return (
+    <>
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            variant="ghost"
+            className="h-8 gap-2 px-1.5 text-header-foreground hover:bg-header-foreground/10 hover:text-header-foreground"
+            aria-label={`حساب کاربری: ${user.full_name}`}
+          >
+            <span aria-hidden className="grid size-6 place-items-center rounded-full bg-header-foreground/20 text-xs font-bold">
+              {initial}
+            </span>
+            <span className="hidden text-xs md:inline">{user.full_name}</span>
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-56">
+          <DropdownMenuLabel className="flex flex-col gap-0.5">
+            <span className="text-foreground">{user.title}</span>
+            <span className="font-normal" dir="ltr">
+              {user.username}
+            </span>
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onSelect={() => setPasswordOpen(true)}>
+            <KeyRound /> تغییر گذرواژه
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            variant="destructive"
+            onSelect={() => logout.mutate(undefined, { onSettled: () => navigate("/login", { replace: true }) })}
+          >
+            <LogOut /> خروج
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+      <ChangePasswordDialog open={passwordOpen} onOpenChange={setPasswordOpen} />
+    </>
   )
 }

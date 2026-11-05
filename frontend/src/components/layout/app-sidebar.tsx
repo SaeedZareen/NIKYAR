@@ -13,17 +13,20 @@ import {
   SidebarRail,
   useSidebar,
 } from "@/components/ui/sidebar"
-import { navigation } from "@/app/navigation"
+import { useAuth } from "@/app/auth"
+import { visibleNavigation } from "@/app/navigation"
 
 /** منوی درختی اصلی: گروه‌ها باز و بسته می‌شوند؛ در حالت جمع‌شده فقط آیکون‌ها دیده می‌شوند. */
 export function AppSidebar() {
   const { pathname } = useLocation()
   const { isMobile, setOpenMobile } = useSidebar()
+  const { user, can } = useAuth()
+  const groups = visibleNavigation(can, !!user?.is_superuser)
 
   return (
     <Sidebar side="right" collapsible="icon" className="top-(--header-height) h-[calc(100svh-var(--header-height))]">
       <SidebarContent>
-        {navigation.map((group) => (
+        {groups.map((group) => (
           <Collapsible key={group.title} defaultOpen className="group/collapsible">
             <SidebarGroup>
               <SidebarGroupLabel asChild>
@@ -37,7 +40,7 @@ export function AppSidebar() {
                   <SidebarMenu>
                     {group.items.map((item) => (
                       <SidebarMenuItem key={item.url}>
-                        <SidebarMenuButton asChild isActive={pathname.startsWith(item.url)} tooltip={item.title}>
+                        <SidebarMenuButton asChild isActive={item.url === "/" ? pathname === "/" : pathname.startsWith(item.url)} tooltip={item.title}>
                           <NavLink to={item.url} onClick={() => isMobile && setOpenMobile(false)}>
                             <item.icon aria-hidden />
                             <span>{item.title}</span>

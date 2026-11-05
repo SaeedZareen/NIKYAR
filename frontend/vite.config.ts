@@ -8,6 +8,11 @@ export default defineConfig({
   resolve: { alias: { "@": path.resolve(import.meta.dirname, "./src") } },
   server: {
     host: true,
-    proxy: { "/api": "http://127.0.0.1:8000", "/media": "http://127.0.0.1:8000" },
+    // Host درخواست حفظ می‌شود (changeOrigin: false) تا بررسی Origin در محافظت CSRF جنگو درست کار کند.
+    // NIKYAR_API: نشانی سرور جنگو (آزمون مرورگر سرور جداگانه‌ی خودش را می‌دهد).
+    proxy: {
+      "/api": { target: process.env.NIKYAR_API ?? "http://127.0.0.1:8000", changeOrigin: false },
+      "/media": { target: process.env.NIKYAR_API ?? "http://127.0.0.1:8000", changeOrigin: false },
+    },
   },
 })

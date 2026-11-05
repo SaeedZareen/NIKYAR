@@ -18,9 +18,8 @@ import {
   rowPaginationFeature,
   rowSelectionFeature,
   rowSortingFeature,
-  sortFn_alphanumeric,
+  constructSortFn,
   sortFn_basic,
-  sortFn_text,
   tableFeatures,
   useTable,
   type ColumnDef,
@@ -28,6 +27,16 @@ import {
   type RowSelectionState,
 } from "@tanstack/react-table"
 import type { TableView } from "./use-table-view"
+
+const collator = new Intl.Collator("fa", { numeric: true, sensitivity: "base" })
+
+/**
+ * مرتب‌سازی متن به ترتیب الفبای فارسی (پ، چ، ژ، ک، گ، ی در جای درست؛ «۲» پیش از «۱۰»).
+ * مقایسه‌ی پیش‌فرض بر اساس کد یونیکد است و این حروف را آخر می‌گذارد.
+ */
+const sortFn_persian = constructSortFn({
+  sort: (a, b) => collator.compare(String(a ?? ""), String(b ?? "")),
+})
 
 /** همه‌ی قابلیت‌های جدول نیک‌یار؛ یک‌بار و در سطح ماژول تعریف می‌شود. */
 export const dataTableFeatures = tableFeatures({
@@ -40,7 +49,7 @@ export const dataTableFeatures = tableFeatures({
   facetedUniqueValues: createFacetedUniqueValues(),
   rowSortingFeature,
   sortedRowModel: createSortedRowModel(),
-  sortFns: { alphanumeric: sortFn_alphanumeric, text: sortFn_text, basic: sortFn_basic },
+  sortFns: { persian: sortFn_persian, basic: sortFn_basic },
   rowPaginationFeature,
   paginatedRowModel: createPaginatedRowModel(),
   rowSelectionFeature,
@@ -106,7 +115,7 @@ export function useDataTable<TData extends RowData>({ view, columns, data, getRo
     // صفحه با تغییر جست‌وجو/فیلتر در useTableView صفر می‌شود؛ بازنشانی خودکار جدول نشانی صفحه را پاک می‌کرد.
     autoResetPageIndex: false,
     globalFilterFn: "includesString",
-    defaultColumn: { size: 160, minSize: 64, maxSize: 640, filterFn: "arrHas", sortFn: "alphanumeric" },
+    defaultColumn: { size: 160, minSize: 64, maxSize: 640, filterFn: "arrHas", sortFn: "persian" },
     state: { ...view.state, rowSelection },
     ...view.handlers,
     onRowSelectionChange: setRowSelection,

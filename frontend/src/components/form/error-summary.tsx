@@ -13,29 +13,31 @@ type Props<TValues extends FieldValues> = {
 }
 
 /**
- * خلاصه‌ی خطا پس از ارسال ناموفق: فهرست خطاها با پیوند به هر فیلد.
+ * خلاصه‌ی خطا پس از ارسال ناموفق: خطای کلی سرور (اگر باشد) و فهرست خطاها با پیوند به هر فیلد.
  * فوکوس به خلاصه منتقل می‌شود تا صفحه‌خوان آن را بخواند.
  */
 export function ErrorSummary<TValues extends FieldValues>({ errors, labels, submitCount }: Props<TValues>) {
   const ref = React.useRef<HTMLDivElement>(null)
+  const general = errors.root?.server?.message
   const items = Object.entries(errors)
-    .filter(([, e]) => e && typeof e === "object" && "message" in e && e.message)
+    .filter(([name, e]) => name !== "root" && e && typeof e === "object" && "message" in e && e.message)
     .map(([name, e]) => ({ name, label: labels[name as keyof TValues & string] ?? name, message: String((e as { message: string }).message) }))
 
   // فوکوس فقط یک‌بار پس از هر ارسال ناموفق؛ نه با هر تغییر خطا هنگام تایپ.
   const focusedFor = React.useRef(0)
   React.useEffect(() => {
-    if (submitCount > focusedFor.current && items.length > 0) {
+    if (submitCount > focusedFor.current && (items.length > 0 || general)) {
       focusedFor.current = submitCount
       ref.current?.focus()
     }
-  }, [submitCount, items.length])
+  }, [submitCount, items.length, general])
 
-  if (!items.length || submitCount === 0) return null
+  if ((!items.length && !general) || submitCount === 0) return null
   return (
     <Alert variant="destructive" ref={ref} tabIndex={-1} className="outline-none focus-visible:ring-2 focus-visible:ring-destructive/40">
       <AlertCircle />
-      <AlertTitle>لطفاً این موارد را اصلاح کنید:</AlertTitle>
+      <AlertTitle>{general ?? "لطفاً این موارد را اصلاح کنید:"}</AlertTitle>
+      {items.length > 0 && (
       <AlertDescription>
         <ul className="list-disc ps-4">
           {items.map((i) => (
@@ -55,6 +57,7 @@ export function ErrorSummary<TValues extends FieldValues>({ errors, labels, subm
           ))}
         </ul>
       </AlertDescription>
+      )}
     </Alert>
   )
 }

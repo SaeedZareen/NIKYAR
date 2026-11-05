@@ -1,12 +1,30 @@
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import filters, serializers, viewsets
 
 from core.kernel.api import HasPerm, MultiValueFilter
+from core.kernel.collation import PersianOrderingFilter
 
 from .models import AuditLog
 
 
+CHANGES_SCHEMA = {
+    "type": "object",
+    "additionalProperties": {
+        "type": "object",
+        "properties": {"label": {"type": "string"}, "old": {"type": "string"}, "new": {"type": "string"}},
+        "required": ["label", "old", "new"],
+    },
+}
+
+
+@extend_schema_field(CHANGES_SCHEMA)
+class ChangesField(serializers.JSONField):
+    """{"field": {"label": "...", "old": "...", "new": "..."}}"""
+
+
 class AuditLogSerializer(serializers.ModelSerializer):
     user_name = serializers.SerializerMethodField()
+    changes = ChangesField(read_only=True)
     action_label = serializers.CharField(source="get_action_display", read_only=True)
 
     class Meta:
@@ -22,7 +40,8 @@ class AuditLogViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = AuditLogSerializer
     permission_classes = [HasPerm]
     perms = {"*": "audit.view"}
-    filter_backends = [filters.SearchFilter, filters.OrderingFilter, MultiValueFilter]
+    filter_backends = [filters.SearchFilter, PersianOrderingFilter, MultiValueFilter]
     search_fields = ["object_repr", "user__username", "user__first_name", "user__last_name", "model_label"]
     ordering_fields = ["at", "action", "model_label", "object_repr"]
+    ordering = ["-at", "-id"]
     filter_fields = {"action": "action", "model": "model", "user": "user_id", "object_id": "object_id"}

@@ -13,16 +13,17 @@ from rest_framework.views import APIView
 from core.audit.models import AuditLog
 from core.audit.service import AuditedModelViewSet, record
 from core.kernel.api import BusinessError, HasPerm, MultiValueFilter
+from core.kernel.collation import PersianOrderingFilter
 from core.kernel.registry import permission_groups
 from core.org.models import Assignment
 
 from .models import Role, User
-from .serializers import ChangePasswordSerializer, LoginSerializer, MeSerializer, RoleSerializer, UserSerializer
+from .serializers import ChangePasswordSerializer, LoginSerializer, MeSerializer, PermissionGroupSerializer, RoleSerializer, UserSerializer
 
 
 @method_decorator(ensure_csrf_cookie, name="get")
 class SessionView(APIView):
-    """GET: کاربر فعلی (یا ۴۰۳ اگر وارد نشده) و تنظیم کوکی CSRF. POST: ورود. DELETE: خروج."""
+    """GET: کاربر فعلی (یا ۲۰۴ بدون محتوا اگر وارد نشده) و تنظیم کوکی CSRF. POST: ورود. DELETE: خروج."""
 
     permission_classes = [permissions.AllowAny]
     throttle_scope = "login"
@@ -30,10 +31,10 @@ class SessionView(APIView):
     def get_throttles(self):
         return [ScopedRateThrottle()] if self.request.method == "POST" else []
 
-    @extend_schema(responses=MeSerializer)
+    @extend_schema(responses={200: MeSerializer, 204: None})
     def get(self, request):
         if not request.user.is_authenticated:
-            return Response({"detail": "ابتدا وارد سامانه شوید.", "fields": {}}, status=status.HTTP_403_FORBIDDEN)
+            return Response(status=status.HTTP_204_NO_CONTENT)
         return Response(MeSerializer(request.user).data)
 
     @extend_schema(request=LoginSerializer, responses=MeSerializer)
@@ -50,6 +51,7 @@ class SessionView(APIView):
         record(request, AuditLog.Action.LOGIN, user, user=user)
         return Response(MeSerializer(user).data)
 
+    @extend_schema(responses={204: None})
     def delete(self, request):
         if request.user.is_authenticated:
             record(request, AuditLog.Action.LOGOUT, request.user)
@@ -58,7 +60,7 @@ class SessionView(APIView):
 
 
 class ChangePasswordView(APIView):
-    @extend_schema(request=ChangePasswordSerializer, responses=None)
+    @extend_schema(request=ChangePasswordSerializer, responses={204: None})
     def post(self, request):
         s = ChangePasswordSerializer(data=request.data, context={"request": request})
         s.is_valid(raise_exception=True)
@@ -75,19 +77,20 @@ class PermissionCatalogView(APIView):
     permission_classes = [HasPerm]
     perms = {"get": "accounts.roles.manage"}
 
+    @extend_schema(responses=PermissionGroupSerializer(many=True))
     def get(self, request):
-        return Response(
-            [{"app": g.app_label, "title": g.title, "permissions": [{"code": c, "label": l} for c, l in g.permissions.items()]} for g in permission_groups()]
-        )
+        groups = [{"app": g.app_label, "title": g.title, "permissions": [{"code": c, "label": l} for c, l in g.permissions.items()]} for g in permission_groups()]
+        return Response(PermissionGroupSerializer(groups, many=True).data)
 
 
 class RoleViewSet(AuditedModelViewSet):
     serializer_class = RoleSerializer
     permission_classes = [HasPerm]
     perms = {"list": "accounts.users.view", "retrieve": "accounts.users.view", "*": "accounts.roles.manage"}
-    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    filter_backends = [filters.SearchFilter, PersianOrderingFilter]
     search_fields = ["name", "description"]
     ordering_fields = ["name", "user_count"]
+    ordering = ["name"]
     pagination_class = None
 
     def get_queryset(self):
@@ -103,7 +106,7 @@ class UserViewSet(AuditedModelViewSet):
     serializer_class = UserSerializer
     permission_classes = [HasPerm]
     perms = {"list": "accounts.users.view", "retrieve": "accounts.users.view", "*": "accounts.users.manage"}
-    filter_backends = [filters.SearchFilter, filters.OrderingFilter, MultiValueFilter]
+    filter_backends = [filters.SearchFilter, PersianOrderingFilter, MultiValueFilter]
     search_fields = ["username", "first_name", "last_name", "email", "mobile"]
     ordering_fields = ["username", "first_name", "last_name", "last_login", "date_joined"]
     ordering = ["last_name", "first_name"]
