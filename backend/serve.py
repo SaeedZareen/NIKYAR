@@ -42,6 +42,7 @@ def main() -> None:
     from waitress import serve
 
     from config.wsgi import application
+    from core.jobs.worker import start_in_background
 
     if not (settings.FRONTEND_DIST / "index.html").exists():
         sys.exit("Frontend is not built. Run install.bat first.")
@@ -51,7 +52,10 @@ def main() -> None:
     print(f"  On this computer:        http://localhost:{args.port}")
     for ip in lan_addresses():
         print(f"  From other devices (LAN): http://{ip}:{args.port}")
+    print("Background jobs (daily backup, cleanup) run in this window too.")
     print("Press Ctrl+C to stop.\n", flush=True)
+
+    start_in_background()
 
     serve(application, listen=f"0.0.0.0:{args.port}", threads=args.threads, ident="NIKYAR")
 

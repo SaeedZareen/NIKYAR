@@ -12,7 +12,7 @@ def _upload_path(instance, filename):
 class StoredFile(models.Model):
     """
     فایل بارگذاری‌شده. تا وقتی رکوردی آن را «تصاحب» نکرده (claimed=False) موقت است
-    و فرمان cleanup_files پس از ۲۴ ساعت پاکش می‌کند.
+    و کار روزانه‌ی «پاک‌سازی فایل‌های بی‌استفاده» (files.cleanup) پس از ۲۴ ساعت پاکش می‌کند.
     """
 
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
