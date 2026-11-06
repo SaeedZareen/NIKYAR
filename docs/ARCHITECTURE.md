@@ -25,9 +25,10 @@
 | `core/notifications/` | اعلان‌ها: نوع‌ها با `nikyar_notifications` (`NotificationKind`: متن پیش‌فرض و جای‌گذارها با مقدار نمونه)، `notify(users, code, url=..., **data)` پس از ثبت قطعی تراکنش، متن هنگام ساخت ذخیره می‌شود؛ متن سفارشی سازمان (بخش تنظیمات «متن اعلان‌ها»، با بررسی جای‌گذارها)؛ API اعلان‌های کاربر (شمار خوانده‌نشده، خوانده کردن یکی یا همه)؛ کانال‌های بیرونی هر نوع: اعلام در کد (`channels`) ← پیش‌فرض سازمان ← انتخاب هر کاربر (`NotificationPreference`) |
 | `core/messaging/` | پیامک و ایمیل: بخش تنظیمات «پیامک و ایمیل» (کلید و گذرواژه با `SecretField` رمزشده و هرگز برگردانده نمی‌شوند)، درگاه‌های پیامک افزونه‌ای (`providers.SMS_PROVIDERS`: کاوه‌نگار)، SMTP، ارسال از صف کارها با تلاش دوباره (`queue()`، کار `messaging.send`)، سابقه‌ی ارسال‌ها (`Delivery`)، ارسال آزمایشی بی‌درنگ؛ در آزمون‌ها `NIKYAR_FAKE_DELIVERY` ارسال را در فایل می‌نویسد |
 | `core/delegation/` | جانشینی در بازه‌ی [از، تا] (هر دو سر شامل)، بدون هم‌پوشانی برای یک اصیل؛ هر کاربر برای خودش و دارنده‌ی `delegation.manage` برای همه؛ لغو: آینده حذف، جاری از امروز پایان؛ اعلان به جانشین؛ خدمت `actors_for(user)` و `principals_of(user)` برای گردش کار |
+| `core/licensing/` | لایسنس: فایل امضاشده با Ed25519 (`signing.py`؛ کلید عمومی مالک در `owner_public_key.pem`)، شناسه‌ی نصب در `data/install_id`، دوره‌ی آزمایشی ۳۰ روزه، سقف کاربر فعال (`check_user_capacity`)، فرمان مالک `license keygen/issue/show` (`license-tool.bat`؛ راهنما: `docs/LICENSE-GUIDE.md`) |
 | `core/settings/` | چارچوب تنظیمات: ذخیره‌ی مقدار هر بخش، API خواندن/ذخیره‌ی هر بخش، ثبت تغییر در سوابق |
 
-- هر برنامه مجوزها (`nikyar_permissions`)، فهرست‌های پایه (`nikyar_lookups`)، بخش‌های تنظیمات (`nikyar_settings`)، نوع‌های سند شماره‌دار (`nikyar_numbering`) و نوع‌های اعلان (`nikyar_notifications`) را روی AppConfig اعلام می‌کند؛ هسته هرگز به ماژول‌ها وابسته نیست.
+- هر برنامه مجوزها (`nikyar_permissions`)، فهرست‌های پایه (`nikyar_lookups`)، بخش‌های تنظیمات (`nikyar_settings`)، نوع‌های سند شماره‌دار (`nikyar_numbering`) و نوع‌های اعلان (`nikyar_notifications`) را روی AppConfig اعلام می‌کند؛ ماژول‌های قابل فروش `nikyar_module` (`ModuleSpec`) هم دارند؛ هسته هرگز به ماژول‌ها وابسته نیست.
 
 ### تنظیمات
 
@@ -45,6 +46,7 @@ nikyar_settings = [SettingsSection(code="org-profile", title="مشخصات سا�
 در رابط کاربری، فرم هر بخش در `pages/admin/settings/` ساخته و در `SECTION_FORMS` صفحه‌ی تنظیمات ثبت می‌شود (قاب مشترک: `SettingsForm`). نام سازمان بدون ورود از `/api/org/branding/` خوانده می‌شود (`useBranding`).
 - آزمون مرورگر اجراکننده‌ی کارها را هم اجرا می‌کند (هر ثانیه)؛ آزمون بازیابی پشتیبان در پروژه‌ی جدای `restore` پس از همه‌ی آزمون‌ها و به‌تنهایی اجرا می‌شود.
 - آزمون‌های سرور روی پایگاه SQLite فایلی اجرا می‌شوند (نه حافظه)، مثل نصب واقعی؛ آزمون‌های هم‌زمانی واقعی‌اند.
+- `HasPerm` لایسنس را هم اعمال می‌کند: نمای ماژولی که در لایسنس نیست ۴۰۳ با کد `module_disabled`، و پس از انقضا هر نوشتن ۴۰۳ با کد `license_expired` (مگر نماهای `license_exempt = True`: بارگذاری لایسنس، پشتیبان‌گیری، خوانده کردن اعلان، تنظیم دریافت اعلان).
 - نوع‌های TypeScript رابط کاربری از سند OpenAPI سرور ساخته می‌شوند: `cd frontend && npm run api:types` (پس از هر تغییر API).
 
 ## رابط کاربری (`frontend/src`)
@@ -55,12 +57,13 @@ nikyar_settings = [SettingsSection(code="org-profile", title="مشخصات سا�
 | `components/data-table/` | جدول داده‌ی کامل روی TanStack Table v9 |
 | `components/form/` | فرم استاندارد (`useAppForm`)، `FormField`، فیلدهای ایرانی، `ErrorSummary` |
 | `components/layout/` | پوسته: نوار بالا، منوی کناری، زبانه‌های صفحه، جست‌وجوی سراسری، `PageHeader`، `Section` (جعبه‌ی گروه یکسان همه‌ی صفحه‌ها)، `SectionNav` (فهرست بخش‌ها در ستون کناری) |
-| `components/files/` | `FileDropzone` (کشیدن و رها کردن، پیشرفت، لغو، بررسی پیش از ارسال)، `AttachmentList` (پیش‌نمایش، دانلود، حذف)، `ImageInput` (لوگو و امضا)؛ بارگذاری در `lib/files.ts` |
+| `components/files/` | `FilePicker` (انتخاب یک فایل برای API خاص، بدون input انگلیسی مرورگر)، `FileDropzone` (کشیدن و رها کردن، پیشرفت، لغو، بررسی پیش از ارسال)، `AttachmentList` (پیش‌نمایش، دانلود، حذف)، `ImageInput` (لوگو و امضا)؛ بارگذاری در `lib/files.ts` |
 | `components/jalali-calendar.tsx` | تقویم شمسی آوان (شنبه اول هفته) با تعطیلات و روزهای غیرکاری همین سازمان از `useWorkCalendar` (`app/work-calendar.ts`)؛ شماره‌ی روز تعطیل قرمز؛ رنگ‌ها از توکن‌ها |
 | `lib/format.ts` | ارقام فارسی، مبلغ، تاریخ شمسی (date-fns-jalali) |
 | `lib/validators.ts` | کد ملی، موبایل، شبا، کارت، کد پستی + طرح‌های zod با پیام فارسی |
 | `lib/api/` | کارخواه API با نوع‌های خودکار (`schema.d.ts`)، `unwrap` و `ApiError` با پیام فارسی |
 | `app/` | نشست و نگهبان ورود (`auth.tsx`)، مسیرها با نگهبان مجوز، منو با مجوز هر بخش، QueryClient |
+| `components/layout/license-banner.tsx` | نوار وضعیت لایسنس: پس از انقضا برای همه، دوره‌ی آزمایشی و ۳۰ روز آخر برای مدیر لایسنس |
 | `components/layout/notification-bell.tsx` | زنگوله‌ی نوار بالا: شمار خوانده‌نشده (هر ۳۰ ثانیه)، آخرین اعلان‌ها، رفتن به صفحه‌ی مرتبط؛ هوک‌ها در `app/notifications.ts` |
 | `components/form/token-input.tsx` | فیلد متن با دکمه‌های درج نشانه/جای‌گذار در جای مکان‌نما (الگوی شماره، متن اعلان) |
 | `components/form/section-form.tsx` | `SectionForm`: بخش فرم‌دار صفحه (Section + خلاصه‌ی خطا + ذخیره/بازگردانی + هشدار تغییر ذخیره‌نشده)؛ تنظیمات و «حساب من» |

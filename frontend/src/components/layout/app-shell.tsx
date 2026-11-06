@@ -3,6 +3,7 @@ import { Outlet, useLocation, useNavigationType } from "react-router"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { AppHeader } from "./app-header"
 import { AppSidebar } from "./app-sidebar"
+import { LicenseBanner } from "./license-banner"
 import { PageTabsProvider } from "./page-tabs"
 
 /**
@@ -47,6 +48,7 @@ export function AppShell() {
           <SidebarInset className="min-w-0">
             <PageTabsProvider>
               <main id="main" ref={main} tabIndex={-1} className="flex min-w-0 flex-1 flex-col gap-4 p-3 outline-none md:p-4">
+                <LicenseBanner />
                 <Outlet />
               </main>
             </PageTabsProvider>

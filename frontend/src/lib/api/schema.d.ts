@@ -554,6 +554,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/license/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description GET: وضعیت لایسنس برای هر کاربر واردشده (نوار هشدار، منو). POST: بارگذاری فایل لایسنس تازه. */
+        get: operations["license_retrieve"];
+        put?: never;
+        /** @description GET: وضعیت لایسنس برای هر کاربر واردشده (نوار هشدار، منو). POST: بارگذاری فایل لایسنس تازه. */
+        post: operations["license_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/lookups/items/": {
         parameters: {
             query?: never;
@@ -1306,6 +1324,18 @@ export interface components {
              */
             keep: number;
         };
+        BackupUploadRequest: {
+            /**
+             * تأیید
+             * @description نام سازمان (یا «بازیابی» اگر نام سازمان ثبت نشده)
+             */
+            confirm: string;
+            /**
+             * فایل پشتیبان
+             * Format: binary
+             */
+            file: string;
+        };
         /** @enum {unknown} */
         BlankEnum: "";
         Branding: {
@@ -1331,12 +1361,6 @@ export interface components {
             /** گذرواژه‌ی جدید */
             new_password: string;
         };
-        /**
-         * @description * `sms` - پیامک
-         *     * `email` - ایمیل
-         * @enum {string}
-         */
-        ChannelEnum: "sms" | "email";
         ChannelStatus: {
             channel: string;
             label: string;
@@ -1345,12 +1369,6 @@ export interface components {
             /** @description شماره یا ایمیل کاربر؛ خالی یعنی ثبت نشده */
             address: string;
         };
-        /**
-         * @description * `sms` - پیامک
-         *     * `email` - ایمیل
-         * @enum {string}
-         */
-        ChannelsEnum: "sms" | "email";
         Delegation: {
             readonly id: number;
             /** اصیل */
@@ -1395,7 +1413,7 @@ export interface components {
         Delivery: {
             readonly id: number;
             /** کانال */
-            channel: components["schemas"]["ChannelEnum"];
+            channel: components["schemas"]["NotificationChannelEnum"];
             readonly channel_label: string;
             /** گیرنده */
             to: string;
@@ -1527,9 +1545,15 @@ export interface components {
             /** عنوان */
             title: string;
             /** نوع */
-            kind: components["schemas"]["KindEnum"];
+            kind: components["schemas"]["HolidayKindEnum"];
             readonly kind_label: string;
         };
+        /**
+         * @description * `official` - رسمی
+         *     * `organization` - خاص سازمان
+         * @enum {string}
+         */
+        HolidayKindEnum: "official" | "organization";
         HolidayRequest: {
             /**
              * تاریخ
@@ -1539,7 +1563,7 @@ export interface components {
             /** عنوان */
             title: string;
             /** نوع */
-            kind?: components["schemas"]["KindEnum"];
+            kind?: components["schemas"]["HolidayKindEnum"];
         };
         ImportError: {
             line: number;
@@ -1608,18 +1632,43 @@ export interface components {
             /** متن اعلان */
             template: string;
             /** کانال‌های پیش‌فرض */
-            channels: components["schemas"]["ChannelsEnum"][];
+            channels: components["schemas"]["NotificationChannelEnum"][];
             readonly default_template: string;
             readonly is_custom: boolean;
             readonly placeholders: components["schemas"]["Placeholder"][];
             readonly preview: string;
         };
+        LicenseStatus: {
+            kind: components["schemas"]["LicenseStatusKindEnum"];
+            /** @example 1405/08/14 */
+            expires_on: string;
+            /** @description منفی یعنی منقضی */
+            days_left: number;
+            expired: boolean;
+            /** @description کمتر از ۳۰ روز مانده یا منقضی */
+            warn: boolean;
+            max_users: number;
+            active_users: number;
+            org_name: string;
+            modules: components["schemas"]["Module"][];
+            /** @description خالی برای کاربران بدون مجوز مدیریت لایسنس */
+            install_id: string;
+            license_id: string;
+            problems: string[];
+        };
         /**
-         * @description * `official` - رسمی
-         *     * `organization` - خاص سازمان
+         * @description * `trial` - آزمایشی
+         *     * `licensed` - لایسنس
          * @enum {string}
          */
-        KindEnum: "official" | "organization";
+        LicenseStatusKindEnum: "trial" | "licensed";
+        LicenseUploadRequest: {
+            /**
+             * فایل لایسنس
+             * Format: binary
+             */
+            file: string;
+        };
         LoadOfficialResult: {
             created: number;
             /** @description false یعنی فقط تعطیلات ثابت شمسی؛ تعطیلات قمری باید اضافه شوند. */
@@ -1818,6 +1867,12 @@ export interface components {
             /** نشانی سامانه */
             site_url?: string;
         };
+        Module: {
+            code: string;
+            title: string;
+            description: string;
+            enabled: boolean;
+        };
         Notification: {
             readonly id: number;
             /** نوع */
@@ -1833,6 +1888,12 @@ export interface components {
             readonly created_at: string;
             readonly is_read: boolean;
         };
+        /**
+         * @description * `sms` - پیامک
+         *     * `email` - ایمیل
+         * @enum {string}
+         */
+        NotificationChannelEnum: "sms" | "email";
         OrgProfileSettings: {
             /**
              * نام کامل سازمان
@@ -2017,13 +2078,13 @@ export interface components {
             /** عنوان */
             title?: string;
             /** نوع */
-            kind?: components["schemas"]["KindEnum"];
+            kind?: components["schemas"]["HolidayKindEnum"];
         };
         PatchedKindRequest: {
             /** متن اعلان */
             template?: string;
             /** کانال‌های پیش‌فرض */
-            channels?: components["schemas"]["ChannelsEnum"][];
+            channels?: components["schemas"]["NotificationChannelEnum"][];
         };
         PatchedLookupItemRequest: {
             /** فهرست */
@@ -2075,7 +2136,7 @@ export interface components {
         };
         PatchedPreferenceRequest: {
             /** کانال‌ها */
-            channels?: components["schemas"]["ChannelsEnum"][];
+            channels?: components["schemas"]["NotificationChannelEnum"][];
         };
         /** @description آنچه هر کاربر خودش در «حساب من» تغییر می‌دهد؛ نام و نقش را راهبر سامانه تعیین می‌کند. */
         PatchedProfileRequest: {
@@ -2183,7 +2244,7 @@ export interface components {
             readonly kind: string;
             readonly title: string;
             /** کانال‌ها */
-            channels: components["schemas"]["ChannelsEnum"][];
+            channels: components["schemas"]["NotificationChannelEnum"][];
             /** @description false یعنی پیش‌فرض سازمان */
             readonly is_custom: boolean;
         };
@@ -2330,15 +2391,12 @@ export interface components {
         };
         UploadRequest: {
             /**
-             * تأیید
-             * @description نام سازمان (یا «بازیابی» اگر نام سازمان ثبت نشده)
-             */
-            confirm: string;
-            /**
-             * فایل پشتیبان
+             * فایل
              * Format: binary
              */
             file: string;
+            /** @default false */
+            images_only: boolean;
         };
         User: {
             readonly id: number;
@@ -3097,7 +3155,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "multipart/form-data": components["schemas"]["UploadRequest"];
+                "multipart/form-data": components["schemas"]["BackupUploadRequest"];
             };
         };
         responses: {
@@ -3573,6 +3631,48 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Job"];
+                };
+            };
+        };
+    };
+    license_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LicenseStatus"];
+                };
+            };
+        };
+    };
+    license_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["LicenseUploadRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LicenseStatus"];
                 };
             };
         };

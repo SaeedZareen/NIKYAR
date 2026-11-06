@@ -1,6 +1,7 @@
 import * as React from "react"
 import { useMutation } from "@tanstack/react-query"
 import { ArchiveRestore, CircleCheck } from "lucide-react"
+import { FilePicker } from "@/components/files"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import {
   AlertDialog,
@@ -83,7 +84,7 @@ export function UploadRestoreDialog({
         <div className="flex flex-col gap-3">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor={fileId}>فایل پشتیبان (ZIP)</Label>
-            <Input id={fileId} type="file" accept=".zip,application/zip" disabled={upload.isPending} onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+            <FilePicker id={fileId} value={file} onChange={setFile} accept=".zip,application/zip" disabled={upload.isPending} label="انتخاب فایل پشتیبان" />
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor={confirmId} className="font-normal">

@@ -36,6 +36,8 @@ class MyNotificationViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 
     serializer_class = NotificationSerializer
     lookup_value_regex = r"\d+"
+    # پس از انقضای لایسنس هم کار می‌کند (پشتیبان‌گیری و خوانده کردن اعلان داده‌ای را تغییر نمی‌دهد).
+    license_exempt = True
     permission_classes = [HasPerm]
     perms = {"*": None}
 
@@ -199,6 +201,7 @@ class PreferencesView(APIView):
 
 
 class PreferenceDetailView(APIView):
+    license_exempt = True
     permission_classes = [HasPerm]
     perms = {"*": None}
 

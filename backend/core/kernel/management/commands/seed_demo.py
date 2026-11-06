@@ -59,6 +59,7 @@ ROLES = {
             "backup.manage",
             "jobs.manage",
             "delegation.manage",
+            "license.manage",
         ],
     ),
 }
