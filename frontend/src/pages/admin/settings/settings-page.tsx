@@ -7,6 +7,7 @@ import { SectionNav } from "@/components/layout/section-nav"
 import { api, unwrap } from "@/lib/api/client"
 import { FilesSection } from "./files-section"
 import { FiscalYearSection } from "./fiscal-year-section"
+import { NumberingSection } from "./numbering-section"
 import { OrgProfileSection } from "./org-profile-section"
 import { WorkWeekSection } from "./work-week-section"
 import type { SectionInfo } from "./settings-form"
@@ -17,6 +18,7 @@ const SECTION_FORMS: Record<string, (section: SectionInfo) => React.ReactNode> =
   "fiscal-year": (s) => <FiscalYearSection section={s} />,
   files: (s) => <FilesSection section={s} />,
   "work-week": (s) => <WorkWeekSection section={s} />,
+  numbering: (s) => <NumberingSection section={s} />,
 }
 
 export default function SettingsPage() {

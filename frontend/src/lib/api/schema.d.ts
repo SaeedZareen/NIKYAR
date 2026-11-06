@@ -401,6 +401,75 @@ export interface paths {
         patch: operations["lookups_lists_partial_update"];
         trace?: never;
     };
+    "/api/numbering/sequences/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description شمارنده‌های اسناد: مشاهده و تغییر الگو، شروع دوباره و شماره‌ی بعدی (با ثبت در سوابق). */
+        get: operations["numbering_sequences_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/numbering/sequences/{code}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description شمارنده‌های اسناد: مشاهده و تغییر الگو، شروع دوباره و شماره‌ی بعدی (با ثبت در سوابق). */
+        get: operations["numbering_sequences_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** @description شمارنده‌های اسناد: مشاهده و تغییر الگو، شروع دوباره و شماره‌ی بعدی (با ثبت در سوابق). */
+        patch: operations["numbering_sequences_partial_update"];
+        trace?: never;
+    };
+    "/api/numbering/sequences/{code}/preview/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description پیش‌نمایش شماره‌ی بعدی با الگوی پیشنهادی، پیش از ذخیره. */
+        post: operations["numbering_sequences_preview_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/numbering/sequences/sample/issue/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description صدور آزمایشی شماره‌ی «سند نمونه» برای کیت رابط کاربری (فقط مدیر کل). */
+        post: operations["numbering_sequences_sample_issue_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/org/assignments/": {
         parameters: {
             query?: never;
@@ -871,6 +940,9 @@ export interface components {
             updated: number;
             errors: components["schemas"]["ImportError"][];
         };
+        Issued: {
+            number: string;
+        };
         /**
          * @description * `official` - رسمی
          *     * `organization` - خاص سازمان
@@ -1197,6 +1269,14 @@ export interface components {
             /** مجوزها */
             permissions?: string[];
         };
+        PatchedSequenceRequest: {
+            /** الگوی شماره */
+            pattern?: string;
+            /** شروع دوباره */
+            reset?: components["schemas"]["ResetEnum"];
+            /** شماره‌ی بعدی */
+            next_number?: number;
+        };
         PatchedUserRequest: {
             /**
              * نام کاربری
@@ -1260,6 +1340,21 @@ export interface components {
             /** فعال */
             is_active?: boolean;
         };
+        PreviewRequest: {
+            pattern: string;
+            reset: components["schemas"]["ResetEnum"];
+            next_number?: number;
+        };
+        PreviewResult: {
+            example: string;
+        };
+        /**
+         * @description * `never` - هرگز (ادامه‌دار)
+         *     * `year` - آغاز هر سال شمسی
+         *     * `fiscal` - آغاز هر سال مالی
+         * @enum {string}
+         */
+        ResetEnum: "never" | "year" | "fiscal";
         Role: {
             readonly id: number;
             /** عنوان */
@@ -1282,6 +1377,20 @@ export interface components {
             code: string;
             title: string;
             description: string;
+        };
+        Sequence: {
+            /** نوع سند */
+            readonly code: string;
+            readonly title: string;
+            /** الگوی شماره */
+            pattern: string;
+            /** شروع دوباره */
+            reset: components["schemas"]["ResetEnum"];
+            readonly reset_label: string;
+            /** @description آخرین شماره‌ی صادرشده در دوره‌ی جاری؛ ۰ یعنی هنوز صادر نشده. */
+            readonly last_number: number;
+            /** @description شماره‌ای که سند بعدی می‌گیرد. */
+            readonly next_preview: string;
         };
         /**
          * @description * `1` - فروردین
@@ -2506,6 +2615,122 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LookupList"];
+                };
+            };
+        };
+    };
+    numbering_sequences_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Sequence"][];
+                };
+            };
+        };
+    };
+    numbering_sequences_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description یک مقدار یکتا که این شمارنده را شناسایی میکند. */
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Sequence"];
+                };
+            };
+        };
+    };
+    numbering_sequences_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description یک مقدار یکتا که این شمارنده را شناسایی میکند. */
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedSequenceRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedSequenceRequest"];
+                "multipart/form-data": components["schemas"]["PatchedSequenceRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Sequence"];
+                };
+            };
+        };
+    };
+    numbering_sequences_preview_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description یک مقدار یکتا که این شمارنده را شناسایی میکند. */
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PreviewRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["PreviewRequest"];
+                "multipart/form-data": components["schemas"]["PreviewRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PreviewResult"];
+                };
+            };
+        };
+    };
+    numbering_sequences_sample_issue_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Issued"];
                 };
             };
         };
