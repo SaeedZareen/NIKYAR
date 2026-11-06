@@ -20,11 +20,13 @@ echo ==========================================
 echo   1. Create my signing key (only once)
 echo   2. Issue a license for a customer
 echo   3. Check a license file
+echo   4. Re-create my signing key (only if no licenses were issued yet)
 echo.
 set "CHOICE="
-set /p "CHOICE=Choose 1, 2 or 3: "
+set /p "CHOICE=Choose 1, 2, 3 or 4: "
 if "%CHOICE%"=="1" ..\.venv\Scripts\python manage.py license keygen
 if "%CHOICE%"=="2" ..\.venv\Scripts\python manage.py license issue
+if "%CHOICE%"=="4" ..\.venv\Scripts\python manage.py license keygen --force
 if "%CHOICE%"=="3" (
   set /p "FILE=Drag the license file here and press Enter: "
   call ..\.venv\Scripts\python manage.py license show %%FILE%%
