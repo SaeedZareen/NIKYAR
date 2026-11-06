@@ -8,6 +8,7 @@ import { api, unwrap } from "@/lib/api/client"
 import { FilesSection } from "./files-section"
 import { FiscalYearSection } from "./fiscal-year-section"
 import { OrgProfileSection } from "./org-profile-section"
+import { WorkWeekSection } from "./work-week-section"
 import type { SectionInfo } from "./settings-form"
 
 /** فرم هر بخش اعلام‌شده در سرور (nikyar_settings)؛ ماژول‌ها بخش خودشان را اینجا اضافه می‌کنند. */
@@ -15,6 +16,7 @@ const SECTION_FORMS: Record<string, (section: SectionInfo) => React.ReactNode> =
   "org-profile": (s) => <OrgProfileSection section={s} />,
   "fiscal-year": (s) => <FiscalYearSection section={s} />,
   files: (s) => <FilesSection section={s} />,
+  "work-week": (s) => <WorkWeekSection section={s} />,
 }
 
 export default function SettingsPage() {

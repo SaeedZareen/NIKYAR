@@ -12,6 +12,7 @@ const RolesPage = lazy(() => import("@/pages/admin/roles-page"))
 const OrgPage = lazy(() => import("@/pages/admin/org-page"))
 const LookupsPage = lazy(() => import("@/pages/admin/lookups-page"))
 const AuditPage = lazy(() => import("@/pages/admin/audit-page"))
+const CalendarPage = lazy(() => import("@/pages/admin/calendar/calendar-page"))
 const SettingsPage = lazy(() => import("@/pages/admin/settings/settings-page"))
 const DataTablePage = lazy(() => import("@/pages/ui-kit/data-table-page"))
 const EmployeePage = lazy(() => import("@/pages/ui-kit/employee-page"))
@@ -40,6 +41,7 @@ export const router = createBrowserRouter([
           { path: "admin/org", element: page(<OrgPage />, "org.view") },
           { path: "admin/lookups", element: page(<LookupsPage />, "lookups.manage") },
           { path: "admin/audit", element: page(<AuditPage />, "audit.view") },
+          { path: "admin/calendar", element: page(<CalendarPage />, "workcalendar.manage") },
           { path: "admin/settings", element: page(<SettingsPage />, "settings.manage") },
           { path: "ui-kit/data-table", element: page(<DataTablePage />, "superuser") },
           { path: "ui-kit/data-table/:id", element: page(<EmployeePage />, "superuser") },

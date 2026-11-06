@@ -15,6 +15,8 @@ type Props = {
   submitLabel?: string
   /** پهنای پانل: عادی برای فرم‌های کوتاه، پهن برای فرم‌های چندستونه. */
   size?: "default" | "wide"
+  /** اقدام فرعی در انتهای نوار پایین (مثل حذف همین رکورد). */
+  secondaryAction?: React.ReactNode
   children: React.ReactNode
 }
 
@@ -22,7 +24,7 @@ type Props = {
  * پانل کناری ویرایش (از سمت چپ، روبه‌روی منو): سربرگ، بدنه‌ی پیمایش‌پذیر و دکمه‌های ثابت پایین.
  * فرم‌های ایجاد و ویرایش همه‌ی بخش‌ها از همین استفاده می‌کنند.
  */
-export function FormSheet({ open, onOpenChange, title, description, onSubmit, submitting, submitLabel = "ذخیره", size = "default", children }: Props) {
+export function FormSheet({ open, onOpenChange, title, description, onSubmit, submitting, submitLabel = "ذخیره", size = "default", secondaryAction, children }: Props) {
   const id = React.useId()
   return (
     <Sheet open={open} onOpenChange={(o) => !submitting && onOpenChange(o)}>
@@ -46,6 +48,7 @@ export function FormSheet({ open, onOpenChange, title, description, onSubmit, su
           <Button type="button" variant="ghost" disabled={submitting} onClick={() => onOpenChange(false)}>
             انصراف
           </Button>
+          {secondaryAction && <div className="ms-auto">{secondaryAction}</div>}
         </SheetFooter>
       </SheetContent>
     </Sheet>

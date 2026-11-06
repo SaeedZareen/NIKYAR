@@ -6,8 +6,8 @@ import { fieldId } from "./form-field"
 
 type Props<TValues extends FieldValues> = {
   errors: FieldErrors<TValues>
-  /** برچسب فارسی هر فیلد. */
-  labels: Partial<Record<keyof TValues & string, string>>
+  /** برچسب فارسی هر فیلد؛ فیلدهای تودرتو با مسیر نقطه‌دار، مثل «days.2.start». */
+  labels: Record<string, string>
   /** شمارنده‌ی تلاش ارسال؛ با هر ارسال ناموفق، فوکوس به خلاصه می‌رود. */
   submitCount: number
 }
@@ -19,9 +19,7 @@ type Props<TValues extends FieldValues> = {
 export function ErrorSummary<TValues extends FieldValues>({ errors, labels, submitCount }: Props<TValues>) {
   const ref = React.useRef<HTMLDivElement>(null)
   const general = errors.root?.server?.message
-  const items = Object.entries(errors)
-    .filter(([name, e]) => name !== "root" && e && typeof e === "object" && "message" in e && e.message)
-    .map(([name, e]) => ({ name, label: labels[name as keyof TValues & string] ?? name, message: String((e as { message: string }).message) }))
+  const items = flatten(errors).map(({ name, message }) => ({ name, label: labels[name] ?? name, message }))
 
   // فوکوس فقط یک‌بار پس از هر ارسال ناموفق؛ نه با هر تغییر خطا هنگام تایپ.
   const focusedFor = React.useRef(0)
@@ -60,4 +58,14 @@ export function ErrorSummary<TValues extends FieldValues>({ errors, labels, subm
       )}
     </Alert>
   )
+}
+
+/** خطاهای تودرتو (ردیف‌های جدول، گروه‌ها) به فهرست تخت با مسیر نقطه‌دار؛ خطای کل آرایه با نام همان آرایه. */
+function flatten(errors: object, prefix = ""): { name: string; message: string }[] {
+  return Object.entries(errors).flatMap(([key, e]) => {
+    if (!e || typeof e !== "object" || (prefix === "" && key === "root")) return []
+    const name = key === "root" ? prefix.slice(0, -1) : `${prefix}${key}`
+    if ("message" in e && typeof e.message === "string" && e.message) return [{ name, message: e.message }]
+    return flatten(e, `${name}.`)
+  })
 }
