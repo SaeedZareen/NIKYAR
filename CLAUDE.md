@@ -1,6 +1,6 @@
 # NIKYAR — guide for development sessions
 
-Modular Persian BPMS/ERP for on-premise installs in Iran. The product owner is not a developer: explain results in Persian, plainly. Read `docs/ROADMAP.md` and `docs/ARCHITECTURE.md` first. Work one work package (`docs/ROADMAP.md`, e.g. `2b.1`) per session on branch `wp/<id>`; commit and push often so an interrupted session can resume from the branch. Merge to `main` when the package meets the roadmap's definition of done and update its status there. A phase ends with its release package (`X.R`) and the owner's approval.
+Modular Persian BPMS/ERP for on-premise installs in Iran. The product owner is not a developer: explain results in Persian, plainly. Read `docs/ROADMAP.md` and `docs/ARCHITECTURE.md` first. Work one work package (`docs/ROADMAP.md`, e.g. `2b.1`) per session on branch `wp/<id>`; commit and push often so an interrupted session can resume from the branch. Merge to `main` when the package meets the roadmap's definition of done and update its status there. Keep docs current without being asked (owner rule): every package updates `ROADMAP.md` (status, scope decisions, waiting list), `ARCHITECTURE.md` and `README.md` as needed; when the owner approves a package, record the approval date in `ROADMAP.md` before starting the next one. A phase ends with its release package (`X.R`) and the owner's approval.
 
 ## Stack
 - Backend: Django 5.2 LTS + DRF + drf-spectacular, pytest. `backend/serve.py` (Waitress) serves API + built frontend on `0.0.0.0` for LAN use.
