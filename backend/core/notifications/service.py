@@ -5,7 +5,7 @@
     notify([user], "accounts.password_changed", url="/", when="۱۴۰۵/۰۸/۱۶ ۱۰:۲۰")
 
 اعلان درون سامانه پس از ثبت قطعی تراکنش ساخته می‌شود (اگر کار اصلی برگشت بخورد، اعلانی نمی‌ماند).
-کانال‌های پیامک و ایمیل در 2b.7 از همین‌جا و از طریق صف کارها می‌روند.
+افزون بر اعلان درون سامانه، بر اساس انتخاب کاربر (یا پیش‌فرض سازمان) پیامک و ایمیل هم در صف کارها گذاشته می‌شود.
 """
 
 import re
@@ -15,8 +15,9 @@ from django.db import transaction
 from rest_framework import serializers
 
 from core.kernel.registry import NotificationKind, notification_kinds
+from core.messaging.service import queue
 
-from .models import Notification, NotificationTemplate
+from .models import Notification, NotificationPreference, NotificationTemplate
 
 PLACEHOLDER = re.compile(r"\{(\w+)\}")
 
@@ -25,9 +26,24 @@ def kind(code: str) -> NotificationKind | None:
     return next((k for k in notification_kinds() if k.code == code), None)
 
 
+CHANNELS = ("sms", "email")
+
+
 def template_of(code: str) -> str:
     custom = NotificationTemplate.objects.filter(kind=code).values_list("template", flat=True).first()
     return custom or kind(code).template
+
+
+def org_channels(code: str) -> list[str]:
+    """کانال‌های پیش‌فرض سازمان برای این نوع اعلان."""
+    custom = NotificationTemplate.objects.filter(kind=code).values_list("channels", flat=True).first()
+    return list(custom if custom is not None else kind(code).channels)
+
+
+def user_channels(user, code: str, default: list[str] | None = None) -> list[str]:
+    """انتخاب خود کاربر، یا پیش‌فرض سازمان."""
+    chosen = NotificationPreference.objects.filter(user=user, kind=code).values_list("channels", flat=True).first()
+    return list(chosen) if chosen is not None else (default if default is not None else org_channels(code))
 
 
 def render(template: str, data: dict) -> str:
@@ -59,6 +75,10 @@ def notify(users: Iterable, code: str, *, url: str = "", **data) -> None:
     def create():
         text = render(template_of(code), data)[:500]
         Notification.objects.bulk_create(Notification(user_id=pk, kind=code, text=text, url=url) for pk in recipients)
+        default = org_channels(code)
+        for user in recipients.values():
+            for channel in user_channels(user, code, default):
+                queue(channel, user, text, kind=code, title=kind(code).title, url=url)
 
     if recipients:
         transaction.on_commit(create)

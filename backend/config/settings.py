@@ -59,6 +59,7 @@ INSTALLED_APPS = [
     "core.jobs",
     "core.backup",
     "core.notifications",
+    "core.messaging",
 ]
 
 AUTH_USER_MODEL = "accounts.User"

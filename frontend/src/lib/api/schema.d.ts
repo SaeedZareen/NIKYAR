@@ -555,6 +555,74 @@ export interface paths {
         patch: operations["lookups_lists_partial_update"];
         trace?: never;
     };
+    "/api/messaging/deliveries/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description گزارش ارسال‌های پیامک و ایمیل، و ارسال آزمایشی با تنظیمات ذخیره‌شده. */
+        get: operations["messaging_deliveries_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/messaging/deliveries/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description گزارش ارسال‌های پیامک و ایمیل، و ارسال آزمایشی با تنظیمات ذخیره‌شده. */
+        get: operations["messaging_deliveries_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/messaging/deliveries/test-email/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description گزارش ارسال‌های پیامک و ایمیل، و ارسال آزمایشی با تنظیمات ذخیره‌شده. */
+        post: operations["messaging_deliveries_test_email_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/messaging/deliveries/test-sms/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description گزارش ارسال‌های پیامک و ایمیل، و ارسال آزمایشی با تنظیمات ذخیره‌شده. */
+        post: operations["messaging_deliveries_test_sms_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/notifications/": {
         parameters: {
             query?: never;
@@ -596,7 +664,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description نوع‌های اعلان و متن هر کدام (تنظیمات › متن اعلان‌ها). */
+        /** @description نوع‌های اعلان: متن و کانال‌های پیش‌فرض سازمان (تنظیمات › متن اعلان‌ها). */
         get: operations["notifications_kinds_list"];
         put?: never;
         post?: never;
@@ -619,8 +687,43 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** @description نوع‌های اعلان و متن هر کدام (تنظیمات › متن اعلان‌ها). */
+        /** @description نوع‌های اعلان: متن و کانال‌های پیش‌فرض سازمان (تنظیمات › متن اعلان‌ها). */
         patch: operations["notifications_kinds_partial_update"];
+        trace?: never;
+    };
+    "/api/notifications/preferences/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description انتخاب هر کاربر برای دریافت اعلان‌ها با پیامک و ایمیل (اعلان درون سامانه همیشه هست). */
+        get: operations["notifications_preferences_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notifications/preferences/{kind}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** @description بازگشت به پیش‌فرض سازمان برای این نوع اعلان. */
+        delete: operations["notifications_preferences_destroy"];
+        options?: never;
+        head?: never;
+        /** @description انتخاب هر کاربر برای دریافت اعلان‌ها با پیامک و ایمیل (اعلان درون سامانه همیشه هست). */
+        patch: operations["notifications_preferences_partial_update"];
         trace?: never;
     };
     "/api/notifications/read-all/": {
@@ -928,6 +1031,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/settings/messaging/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description خواندن و ذخیره‌ی یک بخش. برای هر بخش اعلام‌شده یک زیرکلاس با serializer همان بخش ساخته می‌شود (urls.py). */
+        get: operations["settings_messaging_retrieve"];
+        /** @description خواندن و ذخیره‌ی یک بخش. برای هر بخش اعلام‌شده یک زیرکلاس با serializer همان بخش ساخته می‌شود (urls.py). */
+        put: operations["settings_messaging_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/settings/org-profile/": {
         parameters: {
             query?: never;
@@ -1136,6 +1257,68 @@ export interface components {
             /** گذرواژه‌ی جدید */
             new_password: string;
         };
+        /**
+         * @description * `sms` - پیامک
+         *     * `email` - ایمیل
+         * @enum {string}
+         */
+        ChannelEnum: "sms" | "email";
+        ChannelStatus: {
+            channel: string;
+            label: string;
+            /** @description درگاه یا سرور این کانال در سامانه تنظیم شده است */
+            available: boolean;
+            /** @description شماره یا ایمیل کاربر؛ خالی یعنی ثبت نشده */
+            address: string;
+        };
+        /**
+         * @description * `sms` - پیامک
+         *     * `email` - ایمیل
+         * @enum {string}
+         */
+        ChannelsEnum: "sms" | "email";
+        Delivery: {
+            readonly id: number;
+            /** کانال */
+            channel: components["schemas"]["ChannelEnum"];
+            readonly channel_label: string;
+            /** گیرنده */
+            to: string;
+            readonly user_name: string;
+            /** نوع اعلان */
+            kind: string;
+            /** موضوع */
+            subject: string;
+            /** متن */
+            text: string;
+            /** وضعیت */
+            status: components["schemas"]["DeliveryStatusEnum"];
+            readonly status_label: string;
+            /**
+             * تلاش‌ها
+             * Format: int64
+             */
+            attempts: number;
+            /** خطا */
+            error: string;
+            /**
+             * زمان
+             * Format: date-time
+             */
+            readonly created_at: string;
+            /**
+             * زمان ارسال
+             * Format: date-time
+             */
+            sent_at: string | null;
+        };
+        /**
+         * @description * `queued` - در صف
+         *     * `sent` - ارسال شد
+         *     * `failed` - ناموفق
+         * @enum {string}
+         */
+        DeliveryStatusEnum: "queued" | "sent" | "failed";
         FilePolicy: {
             /** @description بایت */
             max_size: number;
@@ -1268,7 +1451,7 @@ export interface components {
             name: string;
             readonly title: string;
             /** وضعیت */
-            status: components["schemas"]["StatusEnum"];
+            status: components["schemas"]["JobStatusEnum"];
             readonly status_label: string;
             /**
              * تلاش‌ها
@@ -1296,11 +1479,21 @@ export interface components {
             error: string;
             readonly created_by_name: string;
         };
+        /**
+         * @description * `queued` - در صف
+         *     * `running` - در حال اجرا
+         *     * `done` - انجام شد
+         *     * `failed` - ناموفق
+         * @enum {string}
+         */
+        JobStatusEnum: "queued" | "running" | "done" | "failed";
         Kind: {
             readonly code: string;
             readonly title: string;
             /** متن اعلان */
             template: string;
+            /** کانال‌های پیش‌فرض */
+            channels: components["schemas"]["ChannelsEnum"][];
             readonly default_template: string;
             readonly is_custom: boolean;
             readonly placeholders: components["schemas"]["Placeholder"][];
@@ -1401,6 +1594,112 @@ export interface components {
             is_superuser: boolean;
             readonly permissions: string[];
             readonly positions: string[];
+        };
+        MessagingSettings: {
+            /**
+             * درگاه پیامک
+             * @default
+             */
+            sms_provider: components["schemas"]["SmsProviderEnum"] | components["schemas"]["BlankEnum"];
+            /**
+             * کلید درگاه پیامک
+             * @description رمز ذخیره‌شده به شکل «••••••••» برمی‌گردد؛ فرستادن همین مقدار یعنی بدون تغییر.
+             * @default
+             */
+            sms_api_key: string;
+            /**
+             * شماره‌ی فرستنده
+             * @default
+             */
+            sms_sender: string;
+            /**
+             * ایمیل
+             * @default false
+             */
+            email_enabled: boolean;
+            /**
+             * سرور SMTP
+             * @default
+             */
+            smtp_host: string;
+            /**
+             * درگاه SMTP
+             * @default 587
+             */
+            smtp_port: number;
+            /**
+             * امنیت اتصال
+             * @default starttls
+             */
+            smtp_security: components["schemas"]["SmtpSecurityEnum"];
+            /**
+             * نام کاربری SMTP
+             * @default
+             */
+            smtp_username: string;
+            /**
+             * گذرواژه‌ی SMTP
+             * @description رمز ذخیره‌شده به شکل «••••••••» برمی‌گردد؛ فرستادن همین مقدار یعنی بدون تغییر.
+             * @default
+             */
+            smtp_password: string;
+            /** نشانی فرستنده */
+            from_email: string;
+            /** نشانی سامانه */
+            site_url: string;
+        };
+        MessagingSettingsRequest: {
+            /**
+             * درگاه پیامک
+             * @default
+             */
+            sms_provider: components["schemas"]["SmsProviderEnum"] | components["schemas"]["BlankEnum"];
+            /**
+             * کلید درگاه پیامک
+             * @description رمز ذخیره‌شده به شکل «••••••••» برمی‌گردد؛ فرستادن همین مقدار یعنی بدون تغییر.
+             * @default
+             */
+            sms_api_key: string;
+            /**
+             * شماره‌ی فرستنده
+             * @default
+             */
+            sms_sender: string;
+            /**
+             * ایمیل
+             * @default false
+             */
+            email_enabled: boolean;
+            /**
+             * سرور SMTP
+             * @default
+             */
+            smtp_host: string;
+            /**
+             * درگاه SMTP
+             * @default 587
+             */
+            smtp_port: number;
+            /**
+             * امنیت اتصال
+             * @default starttls
+             */
+            smtp_security: components["schemas"]["SmtpSecurityEnum"];
+            /**
+             * نام کاربری SMTP
+             * @default
+             */
+            smtp_username: string;
+            /**
+             * گذرواژه‌ی SMTP
+             * @description رمز ذخیره‌شده به شکل «••••••••» برمی‌گردد؛ فرستادن همین مقدار یعنی بدون تغییر.
+             * @default
+             */
+            smtp_password: string;
+            /** نشانی فرستنده */
+            from_email?: string;
+            /** نشانی سامانه */
+            site_url?: string;
         };
         Notification: {
             readonly id: number;
@@ -1558,6 +1857,10 @@ export interface components {
             count: number;
             results: components["schemas"]["AuditLog"][];
         };
+        PaginatedDeliveryList: {
+            count: number;
+            results: components["schemas"]["Delivery"][];
+        };
         PaginatedJobList: {
             count: number;
             results: components["schemas"]["Job"][];
@@ -1602,6 +1905,8 @@ export interface components {
         PatchedKindRequest: {
             /** متن اعلان */
             template?: string;
+            /** کانال‌های پیش‌فرض */
+            channels?: components["schemas"]["ChannelsEnum"][];
         };
         PatchedLookupItemRequest: {
             /** فهرست */
@@ -1650,6 +1955,10 @@ export interface components {
             is_manager?: boolean;
             /** فعال */
             is_active?: boolean;
+        };
+        PatchedPreferenceRequest: {
+            /** کانال‌ها */
+            channels?: components["schemas"]["ChannelsEnum"][];
         };
         PatchedRoleRequest: {
             /** عنوان */
@@ -1740,6 +2049,18 @@ export interface components {
             /** فعال */
             is_active?: boolean;
         };
+        Preference: {
+            readonly kind: string;
+            readonly title: string;
+            /** کانال‌ها */
+            channels: components["schemas"]["ChannelsEnum"][];
+            /** @description false یعنی پیش‌فرض سازمان */
+            readonly is_custom: boolean;
+        };
+        Preferences: {
+            channels: components["schemas"]["ChannelStatus"][];
+            kinds: components["schemas"]["Preference"][];
+        };
         PreviewRequest: {
             pattern: string;
             reset: components["schemas"]["ResetEnum"];
@@ -1805,6 +2126,19 @@ export interface components {
             readonly next_preview: string;
         };
         /**
+         * @description * `` - بدون پیامک
+         *     * `kavenegar` - کاوه‌نگار
+         * @enum {string}
+         */
+        SmsProviderEnum: "kavenegar";
+        /**
+         * @description * `starttls` - STARTTLS
+         *     * `ssl` - SSL/TLS
+         *     * `none` - بدون رمزگذاری
+         * @enum {string}
+         */
+        SmtpSecurityEnum: "starttls" | "ssl" | "none";
+        /**
          * @description * `1` - فروردین
          *     * `2` - اردیبهشت
          *     * `3` - خرداد
@@ -1820,14 +2154,6 @@ export interface components {
          * @enum {integer}
          */
         StartMonthEnum: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
-        /**
-         * @description * `queued` - در صف
-         *     * `running` - در حال اجرا
-         *     * `done` - انجام شد
-         *     * `failed` - ناموفق
-         * @enum {string}
-         */
-        StatusEnum: "queued" | "running" | "done" | "failed";
         StoredFile: {
             /** Format: uuid */
             readonly id: string;
@@ -1857,6 +2183,17 @@ export interface components {
             /** Format: date-time */
             next_run: string | null;
             last_job: components["schemas"]["Job"] | null;
+        };
+        TestEmailRequest: {
+            /**
+             * نشانی ایمیل
+             * Format: email
+             */
+            email: string;
+        };
+        TestSmsRequest: {
+            /** شماره‌ی موبایل */
+            mobile: string;
         };
         UnreadCount: {
             unread: number;
@@ -3282,6 +3619,110 @@ export interface operations {
             };
         };
     };
+    messaging_deliveries_list: {
+        parameters: {
+            query?: {
+                /** @description چند مقدار با ویرگول جدا می‌شود. */
+                channel?: string;
+                /** @description کدام فیلد باید هنگام مرتب‌سازی نتایج استفاده شود. */
+                ordering?: string;
+                /** @description یک شماره صفحه‌ در مجموعه نتایج صفحه‌بندی شده. */
+                page?: number;
+                /** @description تعداد نتایج برای نمایش در هر صفحه. */
+                page_size?: number;
+                /** @description یک عبارت جستجو. */
+                search?: string;
+                /** @description چند مقدار با ویرگول جدا می‌شود. */
+                status?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedDeliveryList"];
+                };
+            };
+        };
+    };
+    messaging_deliveries_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description یک مقداد عدد یکتا که این ارسال را شناسایی میکند. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Delivery"];
+                };
+            };
+        };
+    };
+    messaging_deliveries_test_email_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TestEmailRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["TestEmailRequest"];
+                "multipart/form-data": components["schemas"]["TestEmailRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Delivery"];
+                };
+            };
+        };
+    };
+    messaging_deliveries_test_sms_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TestSmsRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["TestSmsRequest"];
+                "multipart/form-data": components["schemas"]["TestSmsRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Delivery"];
+                };
+            };
+        };
+    };
     notifications_list: {
         parameters: {
             query?: {
@@ -3370,6 +3811,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Kind"];
+                };
+            };
+        };
+    };
+    notifications_preferences_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Preferences"][];
+                };
+            };
+        };
+    };
+    notifications_preferences_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                kind: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    notifications_preferences_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                kind: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedPreferenceRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedPreferenceRequest"];
+                "multipart/form-data": components["schemas"]["PatchedPreferenceRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Preferences"];
                 };
             };
         };
@@ -4140,6 +4647,50 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FiscalYearSettings"];
+                };
+            };
+        };
+    };
+    settings_messaging_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessagingSettings"];
+                };
+            };
+        };
+    };
+    settings_messaging_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["MessagingSettingsRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["MessagingSettingsRequest"];
+                "multipart/form-data": components["schemas"]["MessagingSettingsRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MessagingSettings"];
                 };
             };
         };

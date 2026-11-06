@@ -23,10 +23,11 @@ class Notification(models.Model):
 
 
 class NotificationTemplate(models.Model):
-    """متن سفارشی سازمان برای یک نوع اعلان؛ نبودنش یعنی متن پیش‌فرض."""
+    """تنظیم سازمان برای یک نوع اعلان: متن سفارشی (خالی = پیش‌فرض) و کانال‌های پیش‌فرض (null = اعلام‌شده در کد)."""
 
     kind = models.CharField("نوع", max_length=60, primary_key=True)
-    template = models.CharField("متن", max_length=500)
+    template = models.CharField("متن", max_length=500, blank=True)
+    channels = models.JSONField("کانال‌های پیش‌فرض", null=True, blank=True)
 
     class Meta:
         verbose_name = "متن اعلان"
@@ -37,3 +38,17 @@ class NotificationTemplate(models.Model):
 
         found = kind(self.kind)
         return found.title if found else self.kind
+
+
+class NotificationPreference(models.Model):
+    """انتخاب هر کاربر: هر نوع اعلان علاوه بر سامانه از کدام کانال‌ها («sms»، «email») برسد."""
+
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="notification_preferences")
+    kind = models.CharField("نوع", max_length=60)
+    channels = models.JSONField("کانال‌ها", default=list)
+
+    class Meta:
+        constraints = [models.UniqueConstraint(fields=["user", "kind"], name="unique_user_kind_preference")]
+
+    def __str__(self):
+        return f"{self.user_id}:{self.kind}"

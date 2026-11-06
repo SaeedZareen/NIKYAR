@@ -39,6 +39,7 @@ api = [
     path("jobs/", include("core.jobs.urls")),
     path("backups/", include("core.backup.urls")),
     path("notifications/", include("core.notifications.urls")),
+    path("messaging/", include("core.messaging.urls")),
     path("schema/", SpectacularAPIView.as_view(), name="schema"),
     path("docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="docs"),
 ]
