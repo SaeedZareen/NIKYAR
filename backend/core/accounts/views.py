@@ -1,4 +1,5 @@
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
+from django.db import transaction
 from django.db.models import Count, Prefetch
 from django.utils import timezone
 from django.utils.decorators import method_decorator
@@ -11,7 +12,7 @@ from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
 from core.audit.models import AuditLog
-from core.audit.service import AuditedModelViewSet, record
+from core.audit.service import AuditedModelViewSet, diff, record, snapshot
 from core.kernel.api import BusinessError, HasPerm, MultiValueFilter
 from core.kernel.collation import PersianOrderingFilter
 from core.kernel.registry import permission_groups
@@ -20,7 +21,7 @@ from core.notifications.service import notify
 from core.org.models import Assignment
 
 from .models import Role, User
-from .serializers import ChangePasswordSerializer, LoginSerializer, MeSerializer, PermissionGroupSerializer, RoleSerializer, UserSerializer
+from .serializers import ChangePasswordSerializer, LoginSerializer, MeSerializer, PermissionGroupSerializer, ProfileSerializer, RoleSerializer, UserSerializer
 
 
 @method_decorator(ensure_csrf_cookie, name="get")
@@ -59,6 +60,23 @@ class SessionView(APIView):
             record(request, AuditLog.Action.LOGOUT, request.user)
         logout(request)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ProfileView(APIView):
+    """«حساب من»: ایمیل، موبایل و تصویر امضای کاربر واردشده (با ثبت در سوابق)."""
+
+    @extend_schema(request=ProfileSerializer, responses=MeSerializer)
+    @transaction.atomic
+    def patch(self, request):
+        user = request.user
+        s = ProfileSerializer(user, data=request.data, partial=True)
+        s.is_valid(raise_exception=True)
+        before = snapshot(user)
+        s.save()
+        changes = diff(before, snapshot(user))
+        if changes:
+            record(request, AuditLog.Action.UPDATE, user, changes)
+        return Response(MeSerializer(user).data)
 
 
 class ChangePasswordView(APIView):

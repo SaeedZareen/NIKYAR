@@ -4,6 +4,8 @@ from django.utils import timezone
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 
+from core.files.fields import FileRefField
+from core.files.types import IMAGE_EXTENSIONS
 from core.kernel.registry import all_permissions
 from core.kernel.validators import normalize_mobile, validate_mobile
 
@@ -113,12 +115,30 @@ class UserSerializer(serializers.ModelSerializer):
 
 class MeSerializer(serializers.ModelSerializer):
     full_name = serializers.CharField(source="get_full_name", read_only=True)
+    signature = serializers.SerializerMethodField(help_text="شناسه‌ی فایل تصویر امضا؛ خالی یعنی ثبت نشده.")
     permissions = serializers.SerializerMethodField()
     positions = serializers.SerializerMethodField()
 
     class Meta:
         model = User
-        fields = ["id", "username", "first_name", "last_name", "full_name", "title", "gender", "email", "mobile", "is_superuser", "permissions", "positions"]
+        fields = [
+            "id",
+            "username",
+            "first_name",
+            "last_name",
+            "full_name",
+            "title",
+            "gender",
+            "email",
+            "mobile",
+            "signature",
+            "is_superuser",
+            "permissions",
+            "positions",
+        ]
+
+    def get_signature(self, obj) -> str:
+        return str(obj.signature_id) if obj.signature_id else ""
 
     def get_positions(self, obj) -> list[str]:
         today = timezone.localdate()
@@ -156,3 +176,31 @@ class PermissionGroupSerializer(serializers.Serializer):
     app = serializers.CharField()
     title = serializers.CharField()
     permissions = PermissionItemSerializer(many=True)
+
+
+class ProfileSerializer(serializers.ModelSerializer):
+    """آنچه هر کاربر خودش در «حساب من» تغییر می‌دهد؛ نام و نقش را راهبر سامانه تعیین می‌کند."""
+
+    signature = FileRefField(label="تصویر امضا", extensions=IMAGE_EXTENSIONS)
+
+    class Meta:
+        model = User
+        fields = ["email", "mobile", "signature"]
+        extra_kwargs = {"email": {"error_messages": {"invalid": "نشانی ایمیل معتبر نیست."}}}
+
+    def validate_mobile(self, value):
+        if not value:
+            return ""
+        validate_mobile(value)
+        return normalize_mobile(value)
+
+    def to_representation(self, instance):
+        return {"email": instance.email, "mobile": instance.mobile, "signature": str(instance.signature_id) if instance.signature_id else ""}
+
+    def update(self, instance, validated):
+        old = str(instance.signature_id) if instance.signature_id else ""
+        new = validated.pop("signature", old)
+        if new != old:
+            self.fields["signature"].on_change(old, new)
+            instance.signature_id = new or None
+        return super().update(instance, validated)

@@ -60,6 +60,7 @@ INSTALLED_APPS = [
     "core.backup",
     "core.notifications",
     "core.messaging",
+    "core.delegation",
 ]
 
 AUTH_USER_MODEL = "accounts.User"

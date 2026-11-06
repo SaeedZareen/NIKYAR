@@ -126,6 +126,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/session/profile/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** @description «حساب من»: ایمیل، موبایل و تصویر امضای کاربر واردشده (با ثبت در سوابق). */
+        patch: operations["auth_session_profile_partial_update"];
+        trace?: never;
+    };
     "/api/auth/users/": {
         parameters: {
             query?: never;
@@ -335,6 +352,47 @@ export interface paths {
         /** @description افزودن تعطیلات رسمی یک سال (روزهای از قبل ثبت‌شده دست نمی‌خورند). */
         post: operations["calendar_holidays_load_official_create"];
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/delegations/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description جانشینی‌ها. هر کاربر جانشینی‌های خودش (به‌عنوان اصیل یا جانشین) را می‌بیند و برای خودش جانشین تعیین می‌کند؛
+         *     دارنده‌ی مجوز «تعیین جانشین برای دیگران» همه را می‌بیند (scope=all) و برای هر کسی تعیین می‌کند.
+         */
+        get: operations["delegations_list"];
+        put?: never;
+        /**
+         * @description جانشینی‌ها. هر کاربر جانشینی‌های خودش (به‌عنوان اصیل یا جانشین) را می‌بیند و برای خودش جانشین تعیین می‌کند؛
+         *     دارنده‌ی مجوز «تعیین جانشین برای دیگران» همه را می‌بیند (scope=all) و برای هر کسی تعیین می‌کند.
+         */
+        post: operations["delegations_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/delegations/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** @description لغو: جانشینی آینده حذف می‌شود؛ جانشینی جاری از امروز پایان می‌یابد (سابقه‌اش می‌ماند). */
+        delete: operations["delegations_destroy"];
         options?: never;
         head?: never;
         patch?: never;
@@ -1276,6 +1334,47 @@ export interface components {
          * @enum {string}
          */
         ChannelsEnum: "sms" | "email";
+        Delegation: {
+            readonly id: number;
+            /** اصیل */
+            principal: number;
+            readonly principal_name: string;
+            /** جانشین */
+            delegate: number;
+            readonly delegate_name: string;
+            /**
+             * از تاریخ
+             * @example 1405/08/14
+             */
+            start_date: string;
+            /**
+             * تا تاریخ
+             * @example 1405/08/14
+             */
+            end_date: string;
+            /** علت */
+            reason: string;
+            /** @description active، upcoming یا past */
+            readonly status: string;
+        };
+        DelegationRequest: {
+            /** اصیل */
+            principal?: number;
+            /** جانشین */
+            delegate: number;
+            /**
+             * از تاریخ
+             * @example 1405/08/14
+             */
+            start_date: string;
+            /**
+             * تا تاریخ
+             * @example 1405/08/14
+             */
+            end_date: string;
+            /** علت */
+            reason?: string;
+        };
         Delivery: {
             readonly id: number;
             /** کانال */
@@ -1586,6 +1685,8 @@ export interface components {
             email: string;
             /** موبایل */
             mobile: string;
+            /** @description شناسه‌ی فایل تصویر امضا؛ خالی یعنی ثبت نشده. */
+            readonly signature: string;
             /**
              * ابرکاربر
              * @description نشان می‌دهد که این کاربر همهٔ اجازه‌ها را دارد بدون آنکه به صراحت به او اختصاص داده شده باشد.
@@ -1958,6 +2059,19 @@ export interface components {
         PatchedPreferenceRequest: {
             /** کانال‌ها */
             channels?: components["schemas"]["ChannelsEnum"][];
+        };
+        /** @description آنچه هر کاربر خودش در «حساب من» تغییر می‌دهد؛ نام و نقش را راهبر سامانه تعیین می‌کند. */
+        PatchedProfileRequest: {
+            /** آدرس ایمیل */
+            email?: string;
+            /** موبایل */
+            mobile?: string;
+            /**
+             * تصویر امضا
+             * @description شناسه‌ی فایل بارگذاری‌شده؛ رشته‌ی خالی یعنی بدون فایل.
+             * @default
+             */
+            signature: string;
         };
         PatchedRoleRequest: {
             /** عنوان */
@@ -2690,6 +2804,31 @@ export interface operations {
             };
         };
     };
+    auth_session_profile_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedProfileRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedProfileRequest"];
+                "multipart/form-data": components["schemas"]["PatchedProfileRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Me"];
+                };
+            };
+        };
+    };
     auth_users_list: {
         parameters: {
             query?: {
@@ -3136,6 +3275,73 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["LoadOfficialResult"];
                 };
+            };
+        };
+    };
+    delegations_list: {
+        parameters: {
+            query?: {
+                /** @description all فقط با مجوز تعیین جانشین برای دیگران */
+                scope?: "all" | "mine";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Delegation"][];
+                };
+            };
+        };
+    };
+    delegations_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DelegationRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["DelegationRequest"];
+                "multipart/form-data": components["schemas"]["DelegationRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Delegation"];
+                };
+            };
+        };
+    };
+    delegations_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
