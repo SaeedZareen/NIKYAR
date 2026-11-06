@@ -12,7 +12,6 @@ export default defineConfig({
     // NIKYAR_API: نشانی سرور جنگو (آزمون مرورگر سرور جداگانه‌ی خودش را می‌دهد).
     proxy: {
       "/api": { target: process.env.NIKYAR_API ?? "http://127.0.0.1:8000", changeOrigin: false },
-      "/media": { target: process.env.NIKYAR_API ?? "http://127.0.0.1:8000", changeOrigin: false },
     },
   },
 })

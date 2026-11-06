@@ -4,6 +4,8 @@ import re
 
 from rest_framework import serializers
 
+from core.files.fields import FileRefField
+from core.files.types import IMAGE_EXTENSIONS
 from core.kernel.validators import only_digits, validate_legal_national_id, validate_phone, validate_postal_code
 
 JALALI_MONTHS = ["فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"]
@@ -17,6 +19,7 @@ def _optional(validator):
 class OrgProfileSettings(serializers.Serializer):
     name = serializers.CharField(label="نام کامل سازمان", max_length=200, default="", error_messages={"blank": "تکمیل «نام کامل سازمان» الزامی است."})
     short_name = serializers.CharField(label="نام کوتاه", max_length=40, default="", allow_blank=True)
+    logo = FileRefField(label="لوگو", extensions=IMAGE_EXTENSIONS, public=True)
     national_id = serializers.CharField(label="شناسه‌ی ملی", default="", allow_blank=True)
     economic_code = serializers.CharField(label="کد اقتصادی", default="", allow_blank=True)
     registration_number = serializers.CharField(label="شماره‌ی ثبت", max_length=20, default="", allow_blank=True)

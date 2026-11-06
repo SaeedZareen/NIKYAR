@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     "core.audit",
     "core.lookups",
     "core.settings",
+    "core.files",
 ]
 
 AUTH_USER_MODEL = "accounts.User"
@@ -119,7 +120,6 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 STATIC_ROOT = DATA_DIR / "static"
-MEDIA_URL = "media/"
 MEDIA_ROOT = DATA_DIR / "media"
 # فایل‌های ساخته‌شده‌ی رابط کاربری (frontend/dist) از ریشه‌ی سایت سرو می‌شوند.
 WHITENOISE_ROOT = FRONTEND_DIST if FRONTEND_DIST.exists() else None

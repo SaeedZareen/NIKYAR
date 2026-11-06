@@ -6,10 +6,12 @@ from core.accounts.models import Role, User
 
 
 @pytest.fixture(autouse=True)
-def _fast_tests(settings):
+def _fast_tests(settings, tmp_path):
     # درهم‌سازی سریع گذرواژه فقط در آزمون‌ها؛ و پاک‌کردن شمارنده‌ی محدودیت تلاش ورود.
     settings.PASSWORD_HASHERS = ["django.contrib.auth.hashers.MD5PasswordHasher"]
     cache.clear()
+    # فایل‌های بارگذاری‌شده‌ی آزمون در پوشه‌ی موقت
+    settings.MEDIA_ROOT = tmp_path / "media"
 
 
 @pytest.fixture

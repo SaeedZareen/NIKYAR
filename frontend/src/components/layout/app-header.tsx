@@ -18,6 +18,7 @@ import {
 import { Kbd } from "@/components/ui/kbd"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { formatDate } from "@/lib/format"
+import { BrandMark } from "./brand-mark"
 import { ChangePasswordDialog } from "./change-password-dialog"
 import { CommandMenu } from "./command-menu"
 
@@ -39,9 +40,7 @@ export function AppHeader() {
     <header className="sticky top-0 z-20 flex h-(--header-height) shrink-0 items-center gap-2 bg-header px-2 text-header-foreground">
       <SidebarTrigger className="text-header-foreground hover:bg-header-foreground/10 hover:text-header-foreground" />
       <Link to="/" className="flex items-center gap-2 rounded-md px-1 outline-none focus-visible:ring-2 focus-visible:ring-header-foreground/60">
-        <span aria-hidden className="grid size-7 place-items-center rounded-md bg-header-foreground text-sm font-bold text-header">
-          ن
-        </span>
+        <BrandMark className="size-7 text-sm" />
         <span className="text-sm font-bold">نیک‌یار</span>
       </Link>
       {shortName && (
