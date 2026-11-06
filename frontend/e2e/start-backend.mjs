@@ -11,7 +11,11 @@ const dataDir = path.join(tmpdir(), "nikyar-e2e")
 const port = process.env.E2E_API_PORT ?? "8100"
 // آزمون‌های هم‌زمان بارها وارد می‌شوند؛ سقف تلاش ورود برای این سرور بالا برده می‌شود.
 // اجراکننده‌ی کارهای پس‌زمینه هر ثانیه صف را بررسی می‌کند (در نصب واقعی هر ۱۵ ثانیه).
-const env = { ...process.env, NIKYAR_DATA_DIR: dataDir, NIKYAR_DEBUG: "1", NIKYAR_LOGIN_RATE: "1000/min", NIKYAR_WORKER_INTERVAL: "1" }
+const env = {
+  ...process.env, NIKYAR_DATA_DIR: dataDir, NIKYAR_DEBUG: "1", NIKYAR_LOGIN_RATE: "1000/min", NIKYAR_WORKER_INTERVAL: "1",
+  // پیامک و ایمیل به‌جای ارسال واقعی در فایل نوشته می‌شوند.
+  NIKYAR_FAKE_DELIVERY: path.join(dataDir, "outbox"),
+}
 
 rmSync(dataDir, { recursive: true, force: true })
 for (const args of [["migrate", "-v", "0"], ["seed_demo"]]) {

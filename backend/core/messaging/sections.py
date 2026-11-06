@@ -39,7 +39,7 @@ class MessagingSettings(serializers.Serializer):
     )
     sms_api_key = SecretField(label="کلید درگاه پیامک")
     sms_sender = serializers.CharField(label="شماره‌ی فرستنده", max_length=20, default="", allow_blank=True)
-    email_enabled = serializers.BooleanField(label="ایمیل", default=False)
+    email_enabled = serializers.BooleanField(label="ارسال ایمیل", default=False)
     smtp_host = serializers.CharField(label="سرور SMTP", max_length=200, default="", allow_blank=True)
     smtp_port = serializers.IntegerField(
         label="درگاه SMTP",

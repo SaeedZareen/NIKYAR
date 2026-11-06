@@ -698,8 +698,8 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description انتخاب هر کاربر برای دریافت اعلان‌ها با پیامک و ایمیل (اعلان درون سامانه همیشه هست). */
-        get: operations["notifications_preferences_list"];
+        /** @description انتخاب‌های کاربر برای دریافت اعلان‌ها با پیامک و ایمیل (اعلان درون سامانه همیشه هست). */
+        get: operations["notifications_preferences_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -722,7 +722,6 @@ export interface paths {
         delete: operations["notifications_preferences_destroy"];
         options?: never;
         head?: never;
-        /** @description انتخاب هر کاربر برای دریافت اعلان‌ها با پیامک و ایمیل (اعلان درون سامانه همیشه هست). */
         patch: operations["notifications_preferences_partial_update"];
         trace?: never;
     };
@@ -1613,7 +1612,7 @@ export interface components {
              */
             sms_sender: string;
             /**
-             * ایمیل
+             * ارسال ایمیل
              * @default false
              */
             email_enabled: boolean;
@@ -1666,7 +1665,7 @@ export interface components {
              */
             sms_sender: string;
             /**
-             * ایمیل
+             * ارسال ایمیل
              * @default false
              */
             email_enabled: boolean;
@@ -3815,7 +3814,7 @@ export interface operations {
             };
         };
     };
-    notifications_preferences_list: {
+    notifications_preferences_retrieve: {
         parameters: {
             query?: never;
             header?: never;
@@ -3829,7 +3828,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Preferences"][];
+                    "application/json": components["schemas"]["Preferences"];
                 };
             };
         };
@@ -3845,12 +3844,13 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description No response body */
-            204: {
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["Preferences"];
+                };
             };
         };
     };

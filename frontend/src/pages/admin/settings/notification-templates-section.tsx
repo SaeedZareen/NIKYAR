@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Pencil, RotateCcw } from "lucide-react"
 import { z } from "zod"
 import { toast } from "sonner"
+import { CHANNELS, channelsLabel, type Channel } from "@/app/notifications"
 import { actionsColumn, columnHelper, DataTable, useDataTable, useTableView, type DataTableColumn } from "@/components/data-table"
 import { ErrorSummary } from "@/components/form/error-summary"
 import { FormField } from "@/components/form/form-field"
@@ -14,6 +15,8 @@ import { useAppForm } from "@/components/form/use-app-form"
 import { Section } from "@/components/layout/section"
 import { StatusBadge } from "@/components/status-badge"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Label } from "@/components/ui/label"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { api, unwrap, type Schemas } from "@/lib/api/client"
 import { schemas } from "@/lib/validators"
@@ -38,6 +41,7 @@ export function NotificationTemplatesSection({ section }: { section: SectionInfo
     () => [
       col.accessor("title", { header: "نوع اعلان", meta: { label: "نوع اعلان", primary: true } }),
       col.accessor("preview", { header: "نمونه‌ی متن", enableSorting: false, meta: { label: "نمونه‌ی متن", wrap: true } }),
+      col.accessor((k) => channelsLabel(k.channels), { id: "channels", header: "ارسال با", enableSorting: false, meta: { label: "ارسال با" } }),
       col.accessor((k) => (k.is_custom ? "سفارشی" : "پیش‌فرض"), {
         id: "is_custom",
         header: "متن",
@@ -73,11 +77,14 @@ export function NotificationTemplatesSection({ section }: { section: SectionInfo
   )
 }
 
-const schema = z.object({ template: schemas.required("متن اعلان").pipe(z.string().max(500, "متن حداکثر ۵۰۰ نویسه است.")) })
+const schema = z.object({
+  template: schemas.required("متن اعلان").pipe(z.string().max(500, "متن حداکثر ۵۰۰ نویسه است.")),
+  channels: z.array(z.enum(["sms", "email"])),
+})
 
 function TemplateSheet({ kind, ...sheet }: { kind: Kind; open: boolean; onOpenChange: (open: boolean) => void }) {
   const qc = useQueryClient()
-  const form = useAppForm(schema, { template: kind.template })
+  const form = useAppForm(schema, { template: kind.template, channels: kind.channels as Channel[] })
   const template = form.watch("template")
   const save = useMutation({
     mutationFn: (body: Schemas["PatchedKindRequest"]) => unwrap(api.PATCH("/api/notifications/kinds/{code}/", { params: { path: { code: kind.code } }, body })),
@@ -110,7 +117,7 @@ function TemplateSheet({ kind, ...sheet }: { kind: Kind; open: boolean; onOpenCh
         )
       }
     >
-      <ErrorSummary errors={form.formState.errors} labels={{ template: "متن اعلان" }} submitCount={form.formState.submitCount} />
+      <ErrorSummary errors={form.formState.errors} labels={{ template: "متن اعلان", channels: "ارسال پیش‌فرض با" }} submitCount={form.formState.submitCount} />
       <FormGrid>
         <FormField
           control={form.control}
@@ -136,6 +143,29 @@ function TemplateSheet({ kind, ...sheet }: { kind: Kind; open: boolean; onOpenCh
               maxLength={500}
               {...aria}
             />
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="channels"
+          label="ارسال پیش‌فرض با"
+          group
+          description="اعلان درون سامانه همیشه فرستاده می‌شود؛ پیامک و ایمیل فقط اگر در «پیامک و ایمیل» تنظیم شده باشند. هر کاربر می‌تواند انتخاب خودش را داشته باشد."
+          render={({ field, id, aria: { "aria-required": _required, ...aria } }) => (
+            <div id={id} tabIndex={-1} role="group" className="flex min-h-7 flex-wrap items-center gap-4 outline-none" {...aria}>
+              {CHANNELS.map((c) => (
+                <div key={c.value} className="flex items-center gap-2">
+                  <Checkbox
+                    id={`${id}-${c.value}`}
+                    checked={field.value.includes(c.value)}
+                    onCheckedChange={(v) => field.onChange(v ? [...field.value, c.value] : field.value.filter((x) => x !== c.value))}
+                  />
+                  <Label htmlFor={`${id}-${c.value}`} className="font-normal">
+                    {c.label}
+                  </Label>
+                </div>
+              ))}
+            </div>
           )}
         />
       </FormGrid>

@@ -44,8 +44,6 @@ test.describe("فایل‌ها و پیوست‌ها", () => {
     const summary = page.getByRole("alert").filter({ hasText: "لطفاً این موارد را اصلاح کنید" })
     await expect(summary).toContainText("حجم باید بین ۱ تا ۲۰۰ مگابایت باشد.")
     await expect(summary).toContainText("دست‌کم یک نوع فایل را مجاز کنید.")
-    // بالای صفحه: پس از پیمایش، نوار بالای ثابت روی دکمه‌ی راهنمای عنوان می‌افتد و axe آن را کوچک می‌شمارد.
-    await page.evaluate(() => window.scrollTo(0, 0))
     await expectAccessible(page)
   })
 

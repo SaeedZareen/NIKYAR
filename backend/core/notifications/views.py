@@ -4,6 +4,7 @@ from rest_framework import mixins, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from core.audit.models import AuditLog
 from core.audit.service import record
@@ -173,42 +174,50 @@ class PreferencesSerializer(serializers.Serializer):
     kinds = PreferenceSerializer(many=True)
 
 
-class PreferenceViewSet(viewsets.ViewSet):
-    """انتخاب هر کاربر برای دریافت اعلان‌ها با پیامک و ایمیل (اعلان درون سامانه همیشه هست)."""
+def preferences_of(user) -> dict:
+    saved = dict(NotificationPreference.objects.filter(user=user).values_list("kind", "channels"))
+    return {
+        "channels": [
+            {"channel": c, "label": label, "available": messaging.available(c), "address": messaging.address(c, user)} for c, label in CHANNEL_CHOICES
+        ],
+        "kinds": [
+            {"kind": k.code, "title": k.title, "channels": saved.get(k.code, service.org_channels(k.code)), "is_custom": k.code in saved}
+            for k in notification_kinds()
+        ],
+    }
+
+
+class PreferencesView(APIView):
+    """انتخاب‌های کاربر برای دریافت اعلان‌ها با پیامک و ایمیل (اعلان درون سامانه همیشه هست)."""
 
     permission_classes = [HasPerm]
     perms = {"*": None}
-    lookup_field = "kind"
-    lookup_value_regex = r"[\w.-]+"
-
-    def _data(self, user):
-        saved = dict(NotificationPreference.objects.filter(user=user).values_list("kind", "channels"))
-        return {
-            "channels": [
-                {"channel": c, "label": label, "available": messaging.available(c), "address": messaging.address(c, user)} for c, label in CHANNEL_CHOICES
-            ],
-            "kinds": [
-                {"kind": k.code, "title": k.title, "channels": saved.get(k.code, service.org_channels(k.code)), "is_custom": k.code in saved}
-                for k in notification_kinds()
-            ],
-        }
 
     @extend_schema(responses=PreferencesSerializer)
-    def list(self, request):
-        return Response(PreferencesSerializer(self._data(request.user)).data)
+    def get(self, request):
+        return Response(PreferencesSerializer(preferences_of(request.user)).data)
 
-    @extend_schema(request=PreferenceSerializer, responses=PreferencesSerializer)
-    def partial_update(self, request, kind=None):
+
+class PreferenceDetailView(APIView):
+    permission_classes = [HasPerm]
+    perms = {"*": None}
+
+    def _check(self, kind):
         if service.kind(kind) is None:
             raise NotFound()
+
+    @extend_schema(request=PreferenceSerializer, responses=PreferencesSerializer)
+    def patch(self, request, kind):
+        self._check(kind)
         s = PreferenceSerializer(data=request.data)
         s.is_valid(raise_exception=True)
         channels = [c for c in service.CHANNELS if c in s.validated_data["channels"]]
         NotificationPreference.objects.update_or_create(user=request.user, kind=kind, defaults={"channels": channels})
-        return Response(PreferencesSerializer(self._data(request.user)).data)
+        return Response(PreferencesSerializer(preferences_of(request.user)).data)
 
-    @extend_schema(responses=PreferencesSerializer)
-    def destroy(self, request, kind=None):
+    @extend_schema(responses={200: PreferencesSerializer})
+    def delete(self, request, kind):
         """بازگشت به پیش‌فرض سازمان برای این نوع اعلان."""
+        self._check(kind)
         NotificationPreference.objects.filter(user=request.user, kind=kind).delete()
-        return Response(PreferencesSerializer(self._data(request.user)).data)
+        return Response(PreferencesSerializer(preferences_of(request.user)).data)
