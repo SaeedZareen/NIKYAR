@@ -6,6 +6,8 @@ from datetime import timedelta
 
 from django.utils import timezone
 
+from core.kernel.validators import fa_digits
+
 from .models import Job, ScheduleState
 from .registry import TASKS
 
@@ -66,7 +68,19 @@ def run_next(now=None) -> Job | None:
             job.status = Job.Status.FAILED
     job.finished_at = timezone.now()
     job.save()
+    if job.status == Job.Status.FAILED:
+        _alert_failure(job, spec)
     return job
+
+
+def _alert_failure(job: Job, spec) -> None:
+    """راهبران سامانه از کار ناموفق (مثلاً پشتیبان روزانه‌ی گرفته‌نشده) با اعلان باخبر می‌شوند."""
+    from core.accounts.models import users_with_perm
+    from core.notifications.service import notify
+
+    notify(
+        users_with_perm("jobs.manage"), "jobs.failed", url="/admin/jobs?status=failed", task=spec.title if spec else job.name, attempts=fa_digits(job.attempts)
+    )
 
 
 def recover_interrupted() -> int:

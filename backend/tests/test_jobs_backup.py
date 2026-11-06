@@ -9,14 +9,7 @@ from core.accounts.models import User
 from core.backup import service as backup
 from core.jobs import service as jobs
 from core.jobs.models import Job
-from core.jobs.registry import TASKS, Daily, task
-
-
-@task("tests.flaky", "کار آزمایشی ناپایدار", max_attempts=2)
-def flaky(fail: bool = False) -> str:
-    if fail:
-        raise RuntimeError("boom")
-    return "ok"
+from core.jobs.registry import TASKS, Daily
 
 
 def local(hh, mm=0, day=0):

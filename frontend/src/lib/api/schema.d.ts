@@ -555,6 +555,108 @@ export interface paths {
         patch: operations["lookups_lists_partial_update"];
         trace?: never;
     };
+    "/api/notifications/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description اعلان‌های کاربر واردشده (هر کاربر فقط اعلان‌های خودش). */
+        get: operations["notifications_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notifications/{id}/read/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description اعلان‌های کاربر واردشده (هر کاربر فقط اعلان‌های خودش). */
+        post: operations["notifications_read_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notifications/kinds/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description نوع‌های اعلان و متن هر کدام (تنظیمات › متن اعلان‌ها). */
+        get: operations["notifications_kinds_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notifications/kinds/{code}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** @description نوع‌های اعلان و متن هر کدام (تنظیمات › متن اعلان‌ها). */
+        patch: operations["notifications_kinds_partial_update"];
+        trace?: never;
+    };
+    "/api/notifications/read-all/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description اعلان‌های کاربر واردشده (هر کاربر فقط اعلان‌های خودش). */
+        post: operations["notifications_read_all_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/notifications/unread-count/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description اعلان‌های کاربر واردشده (هر کاربر فقط اعلان‌های خودش). */
+        get: operations["notifications_unread_count_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/numbering/sequences/": {
         parameters: {
             query?: never;
@@ -1194,6 +1296,16 @@ export interface components {
             error: string;
             readonly created_by_name: string;
         };
+        Kind: {
+            readonly code: string;
+            readonly title: string;
+            /** متن اعلان */
+            template: string;
+            readonly default_template: string;
+            readonly is_custom: boolean;
+            readonly placeholders: components["schemas"]["Placeholder"][];
+            readonly preview: string;
+        };
         /**
          * @description * `official` - رسمی
          *     * `organization` - خاص سازمان
@@ -1289,6 +1401,21 @@ export interface components {
             is_superuser: boolean;
             readonly permissions: string[];
             readonly positions: string[];
+        };
+        Notification: {
+            readonly id: number;
+            /** نوع */
+            kind: string;
+            /** متن */
+            text: string;
+            /** پیوند */
+            url: string;
+            /**
+             * زمان
+             * Format: date-time
+             */
+            readonly created_at: string;
+            readonly is_read: boolean;
         };
         OrgProfileSettings: {
             /**
@@ -1435,6 +1562,10 @@ export interface components {
             count: number;
             results: components["schemas"]["Job"][];
         };
+        PaginatedNotificationList: {
+            count: number;
+            results: components["schemas"]["Notification"][];
+        };
         PaginatedUserList: {
             count: number;
             results: components["schemas"]["User"][];
@@ -1467,6 +1598,10 @@ export interface components {
             title?: string;
             /** نوع */
             kind?: components["schemas"]["KindEnum"];
+        };
+        PatchedKindRequest: {
+            /** متن اعلان */
+            template?: string;
         };
         PatchedLookupItemRequest: {
             /** فهرست */
@@ -1571,6 +1706,16 @@ export interface components {
         PermissionItem: {
             code: string;
             label: string;
+        };
+        Placeholder: {
+            name: string;
+            label: string;
+            sample: string;
+        };
+        PlaceholderRequest: {
+            name: string;
+            label: string;
+            sample: string;
         };
         Position: {
             readonly id: number;
@@ -1712,6 +1857,9 @@ export interface components {
             /** Format: date-time */
             next_run: string | null;
             last_job: components["schemas"]["Job"] | null;
+        };
+        UnreadCount: {
+            unread: number;
         };
         UploadRequest: {
             /**
@@ -3130,6 +3278,136 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LookupList"];
+                };
+            };
+        };
+    };
+    notifications_list: {
+        parameters: {
+            query?: {
+                /** @description یک شماره صفحه‌ در مجموعه نتایج صفحه‌بندی شده. */
+                page?: number;
+                /** @description تعداد نتایج برای نمایش در هر صفحه. */
+                page_size?: number;
+                /** @description فقط خوانده‌نشده‌ها */
+                unread?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedNotificationList"];
+                };
+            };
+        };
+    };
+    notifications_read_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    notifications_kinds_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Kind"][];
+                };
+            };
+        };
+    };
+    notifications_kinds_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedKindRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedKindRequest"];
+                "multipart/form-data": components["schemas"]["PatchedKindRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Kind"];
+                };
+            };
+        };
+    };
+    notifications_read_all_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnreadCount"];
+                };
+            };
+        };
+    };
+    notifications_unread_count_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnreadCount"];
                 };
             };
         };
