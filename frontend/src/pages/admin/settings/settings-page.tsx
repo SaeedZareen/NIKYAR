@@ -8,6 +8,7 @@ import { api, unwrap } from "@/lib/api/client"
 import { BackupSection } from "./backup-section"
 import { FilesSection } from "./files-section"
 import { FiscalYearSection } from "./fiscal-year-section"
+import { NotificationTemplatesSection } from "./notification-templates-section"
 import { NumberingSection } from "./numbering-section"
 import { OrgProfileSection } from "./org-profile-section"
 import { WorkWeekSection } from "./work-week-section"
@@ -21,6 +22,7 @@ const SECTION_FORMS: Record<string, (section: SectionInfo) => React.ReactNode> =
   "work-week": (s) => <WorkWeekSection section={s} />,
   numbering: (s) => <NumberingSection section={s} />,
   backup: (s) => <BackupSection section={s} />,
+  "notification-templates": (s) => <NotificationTemplatesSection section={s} />,
 }
 
 export default function SettingsPage() {

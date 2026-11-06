@@ -3,6 +3,15 @@ from django.core.cache import cache
 from rest_framework.test import APIClient
 
 from core.accounts.models import Role, User
+from core.jobs.registry import task
+
+
+@task("tests.flaky", "کار آزمایشی ناپایدار", max_attempts=2)
+def flaky(fail: bool = False) -> str:
+    """کار آزمایشی برای صف کارها: با fail=True هر بار خطا می‌دهد."""
+    if fail:
+        raise RuntimeError("boom")
+    return "ok"
 
 
 @pytest.fixture(scope="session")

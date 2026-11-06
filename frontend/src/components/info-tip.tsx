@@ -41,6 +41,7 @@ export function InfoTip({ label, children, className }: Props) {
       </PopoverTrigger>
       <PopoverContent
         side="top"
+        aria-label={label}
         className="w-auto max-w-72 border-0 bg-foreground ring-0 px-3 py-1.5 text-2xs text-background shadow-md"
         onOpenAutoFocus={(e) => e.preventDefault()}
         onCloseAutoFocus={(e) => e.preventDefault()}

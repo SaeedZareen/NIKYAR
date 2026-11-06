@@ -8,10 +8,10 @@ import { ErrorSummary } from "@/components/form/error-summary"
 import { FormField } from "@/components/form/form-field"
 import { FormGrid } from "@/components/form/form-grid"
 import { FormSheet } from "@/components/form/form-sheet"
+import { TokenInput } from "@/components/form/token-input"
 import { applyServerErrors } from "@/components/form/server-errors"
 import { useAppForm } from "@/components/form/use-app-form"
 import { Section } from "@/components/layout/section"
-import { Button } from "@/components/ui/button"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -105,9 +105,6 @@ function useDebounced<T>(value: T, ms = 300) {
 function SequenceSheet({ sequence, ...sheet }: { sequence: Sequence; open: boolean; onOpenChange: (open: boolean) => void }) {
   const qc = useQueryClient()
   const form = useAppForm(schema, { pattern: sequence.pattern, reset: sequence.reset, next_number: "" })
-  // آخرین جای مکان‌نما در فیلد الگو؛ تا کاربر در فیلد کلیک نکرده، نشانه به انتها افزوده می‌شود.
-  const caret = React.useRef<{ start: number; end: number } | null>(null)
-  const remember = (el: HTMLInputElement) => (caret.current = { start: el.selectionStart ?? el.value.length, end: el.selectionEnd ?? el.value.length })
   const [pattern, reset, nextNumber] = form.watch(["pattern", "reset", "next_number"])
   const draft = useDebounced({ pattern, reset, next_number: nextNumber ? Number(nextNumber) : undefined })
   const preview = useQuery({
@@ -135,14 +132,6 @@ function SequenceSheet({ sequence, ...sheet }: { sequence: Sequence; open: boole
     }
   })
 
-  /** نشانه در آخرین جای مکان‌نما (یا انتهای الگو) درج می‌شود؛ پس از آن، نشانه‌ی بعدی پشت همین یکی می‌آید. */
-  const insert = (token: string) => {
-    const value = form.getValues("pattern")
-    const { start, end } = caret.current ?? { start: value.length, end: value.length }
-    caret.current = { start: start + token.length, end: start + token.length }
-    form.setValue("pattern", value.slice(0, start) + token + value.slice(end), { shouldDirty: true, shouldValidate: form.formState.submitCount > 0 })
-  }
-
   return (
     <FormSheet {...sheet} title={`شماره‌گذاری «${sequence.title}»`} onSubmit={onSubmit} submitting={save.isPending}>
       <ErrorSummary errors={form.formState.errors} labels={LABELS} submitCount={form.formState.submitCount} />
@@ -168,29 +157,7 @@ function SequenceSheet({ sequence, ...sheet }: { sequence: Sequence; open: boole
             </span>
           }
           render={({ field, id, aria }) => (
-            <div className="flex flex-col gap-2">
-              <Input
-                id={id}
-                {...field}
-                onChange={(e) => {
-                  field.onChange(e)
-                  remember(e.currentTarget)
-                }}
-                onSelect={(e) => remember(e.currentTarget)}
-                onKeyUp={(e) => remember(e.currentTarget)}
-                onClick={(e) => remember(e.currentTarget)}
-                dir="auto"
-                autoComplete="off"
-                {...aria}
-              />
-              <div role="group" aria-label="افزودن نشانه به الگو" className="flex flex-wrap gap-1.5">
-                {TOKENS.map((t) => (
-                  <Button key={t.token} type="button" variant="outline" size="sm" onClick={() => insert(t.token)}>
-                    {t.label}
-                  </Button>
-                ))}
-              </div>
-            </div>
+            <TokenInput id={id} value={field.value} onChange={field.onChange} onBlur={field.onBlur} tokens={TOKENS} tokensLabel="افزودن نشانه به الگو" {...aria} />
           )}
         />
         <FormField

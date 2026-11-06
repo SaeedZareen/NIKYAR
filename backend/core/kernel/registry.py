@@ -63,6 +63,19 @@ class NumberingSpec:
 
 
 @dataclass(frozen=True)
+class NotificationKind:
+    """
+    نوع اعلان. template متن پیش‌فرض با جای‌گذارهای {name}؛ سازمان آن را در «تنظیمات › متن اعلان‌ها» تغییر می‌دهد.
+    placeholders: {نام: (شرح فارسی، مقدار نمونه برای پیش‌نمایش)}. ارسال: core.notifications.service.notify(...)
+    """
+
+    code: str
+    title: str
+    template: str
+    placeholders: dict[str, tuple[str, str]] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
 class PermissionGroup:
     app_label: str
     title: str
@@ -92,3 +105,7 @@ def settings_sections() -> list[SettingsSection]:
 
 def numbering_specs() -> list[NumberingSpec]:
     return [spec for config in apps.get_app_configs() for spec in getattr(config, "nikyar_numbering", [])]
+
+
+def notification_kinds() -> list[NotificationKind]:
+    return [kind for config in apps.get_app_configs() for kind in getattr(config, "nikyar_notifications", [])]

@@ -15,6 +15,8 @@ from core.audit.service import AuditedModelViewSet, record
 from core.kernel.api import BusinessError, HasPerm, MultiValueFilter
 from core.kernel.collation import PersianOrderingFilter
 from core.kernel.registry import permission_groups
+from core.kernel.validators import jalali_now
+from core.notifications.service import notify
 from core.org.models import Assignment
 
 from .models import Role, User
@@ -66,6 +68,7 @@ class ChangePasswordView(APIView):
         s.is_valid(raise_exception=True)
         request.user.set_password(s.validated_data["new_password"])
         request.user.save(update_fields=["password"])
+        notify([request.user], "accounts.password_changed", when=jalali_now(), by="خودتان")
         update_session_auth_hash(request, request.user)
         record(request, AuditLog.Action.UPDATE, request.user, {"password": {"label": "گذرواژه", "old": "", "new": "تغییر کرد"}})
         return Response(status=status.HTTP_204_NO_CONTENT)
@@ -120,7 +123,16 @@ class UserViewSet(AuditedModelViewSet):
         current = Assignment.objects.current(today).select_related("position__unit")
         return User.objects.prefetch_related("roles", Prefetch("assignments", queryset=current, to_attr="current_assignments"))
 
+    def perform_create(self, serializer):
+        super().perform_create(serializer)
+        user = serializer.instance
+        notify([user], "accounts.created", name=user.title, username=user.username)
+
     def perform_update(self, serializer):
         if serializer.instance == self.request.user and serializer.validated_data.get("is_active") is False:
             raise BusinessError("نمی‌توانید حساب کاربری خودتان را غیرفعال کنید.", {"is_active": "حساب خودتان را نمی‌توانید غیرفعال کنید."})
+        password_changed = bool(serializer.validated_data.get("password"))
         super().perform_update(serializer)
+        if password_changed:
+            by = "خودتان" if serializer.instance == self.request.user else self.request.user.get_full_name() or self.request.user.username
+            notify([serializer.instance], "accounts.password_changed", when=jalali_now(), by=by)

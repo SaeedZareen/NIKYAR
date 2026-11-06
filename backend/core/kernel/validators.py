@@ -2,6 +2,8 @@
 
 import re
 
+import jdatetime
+from django.utils import timezone
 from rest_framework import serializers
 
 _FA = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
@@ -10,6 +12,11 @@ _FA = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "012345678901234
 def fa_digits(value) -> str:
     """ارقام لاتین را برای متن نمایشی فارسی می‌کند."""
     return str(value).translate(str.maketrans("0123456789", "۰۱۲۳۴۵۶۷۸۹"))
+
+
+def jalali_now() -> str:
+    """زمان فعلی برای متن اعلان‌ها: «۱۴۰۵/۰۸/۱۶ ۱۰:۲۰»."""
+    return fa_digits(jdatetime.datetime.fromgregorian(datetime=timezone.localtime()).strftime("%Y/%m/%d %H:%M"))
 
 
 def only_digits(value: str) -> str:

@@ -50,3 +50,9 @@ class User(AbstractUser):
         """نام با عنوان خطاب: «آقای رضا احمدی»."""
         prefix = {"male": "آقای ", "female": "خانم "}.get(self.gender, "")
         return f"{prefix}{self}"
+
+
+def users_with_perm(code: str):
+    """کاربران فعالی که مجوز code را دارند (مدیر کل همه‌ی مجوزها را دارد)؛ برای گیرندگان اعلان."""
+    users = User.objects.filter(is_active=True).prefetch_related("roles")
+    return [u for u in users if u.is_superuser or code in u.permission_codes()]
