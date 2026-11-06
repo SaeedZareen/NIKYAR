@@ -73,6 +73,8 @@ class NotificationKind:
     title: str
     template: str
     placeholders: dict[str, tuple[str, str]] = field(default_factory=dict)
+    # کانال‌های بیرونی پیش‌فرض («sms»، «email»)؛ اعلان درون سامانه همیشه هست. سازمان و هر کاربر می‌توانند تغییرش دهند.
+    channels: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)

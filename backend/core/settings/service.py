@@ -59,6 +59,10 @@ def write(request, code: str, values: dict) -> dict:
     fields = _fields(code)
     before = read(code)
     after = {name: values.get(name, before[name]) for name in fields}
+    # فیلدهایی که مقدار تازه را با مقدار قبلی می‌سنجند (مثل رمز: «بدون تغییر» یعنی همان مقدار قبلی)
+    for name, f in fields.items():
+        if hasattr(f, "resolve"):
+            after[name] = f.resolve(before[name], after[name])
     obj, _ = SettingsValue.objects.select_for_update().get_or_create(section=code)
     obj.values = after
     obj.save()

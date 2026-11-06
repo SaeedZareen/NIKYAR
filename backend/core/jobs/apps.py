@@ -15,6 +15,7 @@ class JobsConfig(AppConfig):
             title="ناموفق ماندن کار سامانه",
             template="کار «{task}» پس از {attempts} تلاش ناموفق ماند (مثلاً پشتیبان روزانه گرفته نشده است). جزئیات در «کارهای سامانه».",
             placeholders={"task": ("نام کار", "پشتیبان کامل روزانه"), "attempts": ("تعداد تلاش", "۲")},
+            channels=("email",),
         ),
     ]
 

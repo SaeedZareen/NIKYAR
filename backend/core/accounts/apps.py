@@ -27,11 +27,13 @@ class AccountsConfig(AppConfig):
             title="ایجاد حساب کاربری",
             template="{name}، حساب کاربری شما در نیک‌یار ساخته شد. نام کاربری: {username}",
             placeholders={"name": ("نام کاربر با عنوان", "خانم زهرا موسوی"), "username": ("نام کاربری", "zmousavi")},
+            channels=("email",),
         ),
         NotificationKind(
             code="accounts.password_changed",
             title="تغییر گذرواژه",
             template="گذرواژه‌ی شما در {when} توسط {by} تغییر کرد. اگر این کار شما نبوده، به راهبر سامانه خبر دهید.",
             placeholders={"when": ("زمان تغییر", "۱۴۰۵/۰۸/۱۶ ۱۰:۲۰"), "by": ("تغییردهنده", "خودتان")},
+            channels=("sms", "email"),
         ),
     ]

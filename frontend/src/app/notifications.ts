@@ -3,6 +3,21 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { api, unwrap, type Schemas } from "@/lib/api/client"
 
 export type Notification = Schemas["Notification"]
+
+/** کانال‌های بیرونی اعلان؛ اعلان درون سامانه همیشه فرستاده می‌شود. */
+export const CHANNELS = [
+  { value: "sms", label: "پیامک" },
+  { value: "email", label: "ایمیل" },
+] as const
+export type Channel = (typeof CHANNELS)[number]["value"]
+
+export function channelsLabel(channels: readonly string[]) {
+  return (
+    CHANNELS.filter((c) => channels.includes(c.value))
+      .map((c) => c.label)
+      .join("، ") || "فقط درون سامانه"
+  )
+}
 export const NOTIFICATIONS_KEY = ["notifications"] as const
 
 /** هر ۳۰ ثانیه و با برگشتن به زبانه‌ی مرورگر تازه می‌شود. */

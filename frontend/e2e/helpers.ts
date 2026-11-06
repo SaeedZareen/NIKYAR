@@ -14,6 +14,8 @@ export async function expectAccessible(page: Page) {
   // حالت عادی صفحه سنجیده می‌شود: نشانگر از روی دکمه‌ی تازه‌زده‌شده کنار می‌رود (رنگ hover) و اعلان‌های گذرا
   // که در حال محو شدن‌اند (شفافیت نیمه) کنار گذاشته می‌شوند.
   await page.mouse.move(0, 0)
+  // از بالای صفحه: پس از پیمایش، نوار بالای ثابت روی دکمه‌های سربرگ صفحه می‌افتد و axe آن‌ها را «کوچک» می‌شمارد.
+  await page.evaluate(() => window.scrollTo(0, 0))
   const result = await new AxeBuilder({ page }).exclude("[data-sonner-toaster]").withTags(["wcag2a", "wcag2aa", "wcag22aa", "best-practice"]).analyze()
   const serious = result.violations.filter((v) => v.impact === "serious" || v.impact === "critical")
   expect(

@@ -4,14 +4,16 @@ from rest_framework import mixins, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from core.audit.models import AuditLog
 from core.audit.service import record
 from core.kernel.api import HasPerm
 from core.kernel.registry import notification_kinds
+from core.messaging import service as messaging
 
 from . import service
-from .models import Notification, NotificationTemplate
+from .models import Notification, NotificationPreference, NotificationTemplate
 
 
 class NotificationSerializer(serializers.ModelSerializer):
@@ -71,14 +73,23 @@ class PlaceholderSerializer(serializers.Serializer):
     sample = serializers.CharField()
 
 
+CHANNEL_CHOICES = [("sms", "پیامک"), ("email", "ایمیل")]
+
+
 class KindSerializer(serializers.Serializer):
     code = serializers.CharField(read_only=True)
     title = serializers.CharField(read_only=True)
-    template = serializers.CharField(max_length=500, label="متن اعلان", error_messages={"blank": "تکمیل «متن اعلان» الزامی است."})
+    template = serializers.CharField(max_length=500, label="متن اعلان", required=False, error_messages={"blank": "تکمیل «متن اعلان» الزامی است."})
+    channels = serializers.MultipleChoiceField(choices=CHANNEL_CHOICES, required=False, label="کانال‌های پیش‌فرض")
     default_template = serializers.CharField(read_only=True)
     is_custom = serializers.BooleanField(read_only=True)
     placeholders = PlaceholderSerializer(many=True, read_only=True)
     preview = serializers.CharField(read_only=True)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data["channels"] = [c for c in service.CHANNELS if c in data["channels"]]
+        return data
 
 
 def _kind_data(code: str) -> dict:
@@ -87,6 +98,7 @@ def _kind_data(code: str) -> dict:
         "code": spec.code,
         "title": spec.title,
         "template": service.template_of(code),
+        "channels": service.org_channels(code),
         "default_template": spec.template,
         "is_custom": NotificationTemplate.objects.filter(kind=code).exists(),
         "placeholders": [{"name": n, "label": label, "sample": sample} for n, (label, sample) in spec.placeholders.items()],
@@ -94,18 +106,18 @@ def _kind_data(code: str) -> dict:
     }
 
 
+def _channels_label(channels) -> str:
+    labels = dict(CHANNEL_CHOICES)
+    return "، ".join(labels[c] for c in service.CHANNELS if c in channels) or "فقط درون سامانه"
+
+
 class KindViewSet(viewsets.ViewSet):
-    """نوع‌های اعلان و متن هر کدام (تنظیمات › متن اعلان‌ها)."""
+    """نوع‌های اعلان: متن و کانال‌های پیش‌فرض سازمان (تنظیمات › متن اعلان‌ها)."""
 
     permission_classes = [HasPerm]
     perms = {"*": "settings.manage"}
     lookup_field = "code"
     lookup_value_regex = r"[\w.-]+"
-
-    def _get(self, code):
-        if service.kind(code) is None:
-            raise NotFound()
-        return code
 
     @extend_schema(responses=KindSerializer(many=True))
     def list(self, request):
@@ -113,18 +125,99 @@ class KindViewSet(viewsets.ViewSet):
 
     @extend_schema(request=KindSerializer, responses=KindSerializer)
     def partial_update(self, request, code=None):
-        self._get(code)
+        spec = service.kind(code)
+        if spec is None:
+            raise NotFound()
         s = KindSerializer(data=request.data, partial=True)
         s.is_valid(raise_exception=True)
-        template = s.validated_data["template"].strip()
+        before = _kind_data(code)
+        template = s.validated_data.get("template", before["template"]).strip()
+        channels = [c for c in service.CHANNELS if c in s.validated_data.get("channels", before["channels"])]
         service.validate_template(code, template)
-        before = service.template_of(code)
-        spec = service.kind(code)
-        if template == spec.template:
+        custom_template = "" if template == spec.template else template
+        custom_channels = None if channels == list(spec.channels) else channels
+        if not custom_template and custom_channels is None:
             NotificationTemplate.objects.filter(kind=code).delete()
         else:
-            NotificationTemplate.objects.update_or_create(kind=code, defaults={"template": template})
-        if before != template:
-            obj = NotificationTemplate(kind=code, template=template)
-            record(request, AuditLog.Action.UPDATE, obj, {"template": {"label": "متن اعلان", "old": before, "new": template}})
+            NotificationTemplate.objects.update_or_create(kind=code, defaults={"template": custom_template, "channels": custom_channels})
+        changes = {}
+        if before["template"] != template:
+            changes["template"] = {"label": "متن اعلان", "old": before["template"], "new": template}
+        if before["channels"] != channels:
+            changes["channels"] = {"label": "کانال‌های پیش‌فرض", "old": _channels_label(before["channels"]), "new": _channels_label(channels)}
+        if changes:
+            record(request, AuditLog.Action.UPDATE, NotificationTemplate(kind=code), changes)
         return Response(KindSerializer(_kind_data(code)).data)
+
+
+class PreferenceSerializer(serializers.Serializer):
+    kind = serializers.CharField(read_only=True)
+    title = serializers.CharField(read_only=True)
+    channels = serializers.MultipleChoiceField(choices=CHANNEL_CHOICES, allow_empty=True, label="کانال‌ها")
+    is_custom = serializers.BooleanField(read_only=True, help_text="false یعنی پیش‌فرض سازمان")
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data["channels"] = [c for c in service.CHANNELS if c in data["channels"]]
+        return data
+
+
+class ChannelStatusSerializer(serializers.Serializer):
+    channel = serializers.CharField()
+    label = serializers.CharField()
+    available = serializers.BooleanField(help_text="درگاه یا سرور این کانال در سامانه تنظیم شده است")
+    address = serializers.CharField(help_text="شماره یا ایمیل کاربر؛ خالی یعنی ثبت نشده")
+
+
+class PreferencesSerializer(serializers.Serializer):
+    channels = ChannelStatusSerializer(many=True)
+    kinds = PreferenceSerializer(many=True)
+
+
+def preferences_of(user) -> dict:
+    saved = dict(NotificationPreference.objects.filter(user=user).values_list("kind", "channels"))
+    return {
+        "channels": [
+            {"channel": c, "label": label, "available": messaging.available(c), "address": messaging.address(c, user)} for c, label in CHANNEL_CHOICES
+        ],
+        "kinds": [
+            {"kind": k.code, "title": k.title, "channels": saved.get(k.code, service.org_channels(k.code)), "is_custom": k.code in saved}
+            for k in notification_kinds()
+        ],
+    }
+
+
+class PreferencesView(APIView):
+    """انتخاب‌های کاربر برای دریافت اعلان‌ها با پیامک و ایمیل (اعلان درون سامانه همیشه هست)."""
+
+    permission_classes = [HasPerm]
+    perms = {"*": None}
+
+    @extend_schema(responses=PreferencesSerializer)
+    def get(self, request):
+        return Response(PreferencesSerializer(preferences_of(request.user)).data)
+
+
+class PreferenceDetailView(APIView):
+    permission_classes = [HasPerm]
+    perms = {"*": None}
+
+    def _check(self, kind):
+        if service.kind(kind) is None:
+            raise NotFound()
+
+    @extend_schema(request=PreferenceSerializer, responses=PreferencesSerializer)
+    def patch(self, request, kind):
+        self._check(kind)
+        s = PreferenceSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        channels = [c for c in service.CHANNELS if c in s.validated_data["channels"]]
+        NotificationPreference.objects.update_or_create(user=request.user, kind=kind, defaults={"channels": channels})
+        return Response(PreferencesSerializer(preferences_of(request.user)).data)
+
+    @extend_schema(responses={200: PreferencesSerializer})
+    def delete(self, request, kind):
+        """بازگشت به پیش‌فرض سازمان برای این نوع اعلان."""
+        self._check(kind)
+        NotificationPreference.objects.filter(user=request.user, kind=kind).delete()
+        return Response(PreferencesSerializer(preferences_of(request.user)).data)
