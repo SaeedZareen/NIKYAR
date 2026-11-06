@@ -78,6 +78,18 @@ class NotificationKind:
 
 
 @dataclass(frozen=True)
+class ModuleSpec:
+    """
+    ماژول قابل فروش (دبیرخانه، پرسنلی و…)، اعلام‌شده با nikyar_module روی AppConfig ماژول.
+    ماژولی که در لایسنس نیست از منو و API حذف می‌شود؛ هسته همیشه فعال است.
+    """
+
+    code: str
+    title: str
+    description: str = ""
+
+
+@dataclass(frozen=True)
 class PermissionGroup:
     app_label: str
     title: str
@@ -111,3 +123,13 @@ def numbering_specs() -> list[NumberingSpec]:
 
 def notification_kinds() -> list[NotificationKind]:
     return [kind for config in apps.get_app_configs() for kind in getattr(config, "nikyar_notifications", [])]
+
+
+def module_specs() -> list[ModuleSpec]:
+    return [config.nikyar_module for config in apps.get_app_configs() if getattr(config, "nikyar_module", None)]
+
+
+def module_of(app_label: str) -> str | None:
+    """کد ماژولی که برنامه‌ی app_label جزو آن است؛ None یعنی هسته."""
+    module = getattr(apps.get_app_config(app_label), "nikyar_module", None)
+    return module.code if module else None

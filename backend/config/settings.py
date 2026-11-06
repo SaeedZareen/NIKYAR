@@ -61,6 +61,7 @@ INSTALLED_APPS = [
     "core.notifications",
     "core.messaging",
     "core.delegation",
+    "core.licensing",
 ]
 
 AUTH_USER_MODEL = "accounts.User"

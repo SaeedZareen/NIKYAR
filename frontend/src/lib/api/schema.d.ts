@@ -554,6 +554,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/license/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description GET: وضعیت لایسنس برای هر کاربر واردشده (نوار هشدار، منو). POST: بارگذاری فایل لایسنس تازه. */
+        get: operations["license_retrieve"];
+        put?: never;
+        /** @description GET: وضعیت لایسنس برای هر کاربر واردشده (نوار هشدار، منو). POST: بارگذاری فایل لایسنس تازه. */
+        post: operations["license_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/lookups/items/": {
         parameters: {
             query?: never;
@@ -1527,9 +1545,15 @@ export interface components {
             /** عنوان */
             title: string;
             /** نوع */
-            kind: components["schemas"]["KindEnum"];
+            kind: components["schemas"]["HolidayKindEnum"];
             readonly kind_label: string;
         };
+        /**
+         * @description * `official` - رسمی
+         *     * `organization` - خاص سازمان
+         * @enum {string}
+         */
+        HolidayKindEnum: "official" | "organization";
         HolidayRequest: {
             /**
              * تاریخ
@@ -1539,7 +1563,7 @@ export interface components {
             /** عنوان */
             title: string;
             /** نوع */
-            kind?: components["schemas"]["KindEnum"];
+            kind?: components["schemas"]["HolidayKindEnum"];
         };
         ImportError: {
             line: number;
@@ -1614,12 +1638,30 @@ export interface components {
             readonly placeholders: components["schemas"]["Placeholder"][];
             readonly preview: string;
         };
+        LicenseStatus: {
+            kind: components["schemas"]["LicenseStatusKindEnum"];
+            /** @example 1405/08/14 */
+            expires_on: string;
+            /** @description منفی یعنی منقضی */
+            days_left: number;
+            expired: boolean;
+            /** @description کمتر از ۳۰ روز مانده یا منقضی */
+            warn: boolean;
+            max_users: number;
+            active_users: number;
+            org_name: string;
+            modules: components["schemas"]["Module"][];
+            /** @description خالی برای کاربران بدون مجوز مدیریت لایسنس */
+            install_id: string;
+            license_id: string;
+            problems: string[];
+        };
         /**
-         * @description * `official` - رسمی
-         *     * `organization` - خاص سازمان
+         * @description * `trial` - آزمایشی
+         *     * `licensed` - لایسنس
          * @enum {string}
          */
-        KindEnum: "official" | "organization";
+        LicenseStatusKindEnum: "trial" | "licensed";
         LoadOfficialResult: {
             created: number;
             /** @description false یعنی فقط تعطیلات ثابت شمسی؛ تعطیلات قمری باید اضافه شوند. */
@@ -1817,6 +1859,12 @@ export interface components {
             from_email?: string;
             /** نشانی سامانه */
             site_url?: string;
+        };
+        Module: {
+            code: string;
+            title: string;
+            description: string;
+            enabled: boolean;
         };
         Notification: {
             readonly id: number;
@@ -2017,7 +2065,7 @@ export interface components {
             /** عنوان */
             title?: string;
             /** نوع */
-            kind?: components["schemas"]["KindEnum"];
+            kind?: components["schemas"]["HolidayKindEnum"];
         };
         PatchedKindRequest: {
             /** متن اعلان */
@@ -3573,6 +3621,48 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Job"];
+                };
+            };
+        };
+    };
+    license_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LicenseStatus"];
+                };
+            };
+        };
+    };
+    license_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["UploadRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LicenseStatus"];
                 };
             };
         };

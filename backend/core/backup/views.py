@@ -50,6 +50,8 @@ class RestoreResultSerializer(serializers.Serializer):
 class BackupViewSet(viewsets.ViewSet):
     """پشتیبان‌ها: فهرست، ساخت دستی، دانلود، حذف و بازیابی (از فهرست یا فایل بارگذاری‌شده)."""
 
+    # پس از انقضای لایسنس هم کار می‌کند (پشتیبان‌گیری و خوانده کردن اعلان داده‌ای را تغییر نمی‌دهد).
+    license_exempt = True
     permission_classes = [HasPerm]
     perms = {"*": "backup.manage"}
     lookup_field = "name"

@@ -5,6 +5,7 @@
 کدهای مهم برای رابط کاربری: not_authenticated (نشست تمام شده)، csrf_failed، permission_denied، invalid، business_error.
 """
 
+from django.apps import apps as django_apps
 from django.core.exceptions import PermissionDenied as DjangoPermissionDenied
 from django.http import Http404
 from rest_framework import exceptions, filters, pagination, permissions
@@ -72,16 +73,31 @@ def has_perm(user, code: str) -> bool:
     return code in user.permission_codes()
 
 
+class LicenseBlocked(exceptions.APIException):
+    """کار مجاز نیست چون لایسنس منقضی شده یا ماژول در لایسنس نیست؛ پیام فارسی همراه کد ماشینی."""
+
+    status_code = 403
+    default_code = "license_expired"
+
+    def __init__(self, message: str, code: str = "license_expired"):
+        super().__init__(message)
+        self.default_code = code
+
+
 class HasPerm(permissions.BasePermission):
     """
     مجوز هر عمل از نقشه‌ی perms روی نما خوانده می‌شود:
         perms = {"list": "accounts.users.view", "create": "accounts.users.manage", ...}
     کلید "*" پیش‌فرض بقیه‌ی عمل‌هاست؛ مقدار None یعنی هر کاربر واردشده.
+
+    لایسنس هم همین‌جا اعمال می‌شود: نمای ماژولی که در لایسنس نیست در دسترس نیست، و پس از انقضای لایسنس
+    فقط خواندن مجاز است (مگر نماهایی با license_exempt = True، مثل بارگذاری لایسنس و پشتیبان‌گیری).
     """
 
     def has_permission(self, request, view):
         if not request.user or not request.user.is_authenticated:
             return False
+        self._check_license(request, view)
         perms = getattr(view, "perms", {})
         action = getattr(view, "action", None) or request.method.lower()
         code = perms[action] if action in perms else perms.get("*")
@@ -90,6 +106,18 @@ class HasPerm(permissions.BasePermission):
         if code not in all_permissions():
             raise RuntimeError(f"Unknown permission code: {code}")
         return has_perm(request.user, code)
+
+    @staticmethod
+    def _check_license(request, view):
+        # وارد کردن درون تابع: licensing خودش به kernel وابسته است.
+        from core.licensing.service import module_enabled, status
+
+        config = django_apps.get_containing_app_config(type(view).__module__)
+        module = getattr(config, "nikyar_module", None) if config else None
+        if module and not module_enabled(module.code):
+            raise LicenseBlocked(f"ماژول «{module.title}» در لایسنس این سازمان فعال نیست.", code="module_disabled")
+        if request.method not in permissions.SAFE_METHODS and not getattr(view, "license_exempt", False) and status().expired:
+            raise LicenseBlocked("اعتبار لایسنس سامانه تمام شده و فقط مشاهده‌ی اطلاعات ممکن است؛ برای تمدید با راهبر سامانه تماس بگیرید.")
 
 
 class Pagination(pagination.PageNumberPagination):

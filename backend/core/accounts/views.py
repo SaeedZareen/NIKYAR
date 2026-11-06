@@ -17,6 +17,7 @@ from core.kernel.api import BusinessError, HasPerm, MultiValueFilter
 from core.kernel.collation import PersianOrderingFilter
 from core.kernel.registry import permission_groups
 from core.kernel.validators import jalali_now
+from core.licensing.service import check_user_capacity
 from core.notifications.service import notify
 from core.org.models import Assignment
 
@@ -167,6 +168,8 @@ class UserViewSet(AuditedModelViewSet):
         return User.objects.prefetch_related("roles", Prefetch("assignments", queryset=current, to_attr="current_assignments"))
 
     def perform_create(self, serializer):
+        if serializer.validated_data.get("is_active", True):
+            check_user_capacity()
         super().perform_create(serializer)
         user = serializer.instance
         notify([user], "accounts.created", name=user.title, username=user.username)
@@ -174,6 +177,8 @@ class UserViewSet(AuditedModelViewSet):
     def perform_update(self, serializer):
         if serializer.instance == self.request.user and serializer.validated_data.get("is_active") is False:
             raise BusinessError("نمی‌توانید حساب کاربری خودتان را غیرفعال کنید.", {"is_active": "حساب خودتان را نمی‌توانید غیرفعال کنید."})
+        if serializer.validated_data.get("is_active") and not serializer.instance.is_active:
+            check_user_capacity()
         password_changed = bool(serializer.validated_data.get("password"))
         super().perform_update(serializer)
         if password_changed:

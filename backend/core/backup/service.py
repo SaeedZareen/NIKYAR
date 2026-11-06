@@ -74,6 +74,9 @@ def path_of(name: str) -> Path:
 
 def create(kind: str, user=None) -> BackupInfo:
     _require_sqlite()
+    if connection.in_atomic_block:
+        # API پشتیبان SQLite روی اتصالی که تغییر ثبت‌نشده دارد تمام نمی‌شود؛ خطای روشن بهتر از قفل شدن است.
+        raise RuntimeError("Backup must not run inside a database transaction.")
     now = timezone.localtime()
     name = f"nikyar-{now:%Y%m%d-%H%M%S}-{kind}.zip"
     target = backup_dir() / name
