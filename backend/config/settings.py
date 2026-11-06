@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     "core.lookups",
     "core.settings",
     "core.files",
+    "core.workcalendar",
 ]
 
 AUTH_USER_MODEL = "accounts.User"

@@ -34,6 +34,7 @@ api = [
     path("audit/", include(audit_router.urls)),
     path("settings/", include("core.settings.urls")),
     path("files/", include("core.files.urls")),
+    path("calendar/", include("core.workcalendar.urls")),
     path("schema/", SpectacularAPIView.as_view(), name="schema"),
     path("docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="docs"),
 ]
