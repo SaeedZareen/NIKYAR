@@ -11,9 +11,20 @@ export function collectErrors(page: Page) {
 
 /** بررسی دسترس‌پذیری با axe؛ هیچ خطای جدی یا بحرانی مجاز نیست. */
 export async function expectAccessible(page: Page) {
-  const result = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag22aa", "best-practice"]).analyze()
+  // حالت عادی صفحه سنجیده می‌شود: نشانگر از روی دکمه‌ی تازه‌زده‌شده کنار می‌رود (رنگ hover) و اعلان‌های گذرا
+  // که در حال محو شدن‌اند (شفافیت نیمه) کنار گذاشته می‌شوند.
+  await page.mouse.move(0, 0)
+  const result = await new AxeBuilder({ page }).exclude("[data-sonner-toaster]").withTags(["wcag2a", "wcag2aa", "wcag22aa", "best-practice"]).analyze()
   const serious = result.violations.filter((v) => v.impact === "serious" || v.impact === "critical")
-  expect(serious.map((v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).slice(0, 3).join(" | ")}`)).toEqual([])
+  expect(
+    serious.map(
+      (v) =>
+        `${v.id}: ${v.nodes
+          .map((n) => n.target.join(" "))
+          .slice(0, 3)
+          .join(" | ")}`,
+    ),
+  ).toEqual([])
 }
 
 export const isMobile = (page: Page) => (page.viewportSize()?.width ?? 0) < 768

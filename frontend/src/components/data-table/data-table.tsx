@@ -38,12 +38,14 @@ type DataTableProps<TData extends RowData> = {
   empty?: { title: string; description?: string; action?: React.ReactNode }
   /** نام فایل خروجی؛ نبودنش یعنی دکمه‌ی خروجی نمایش داده نشود. */
   exportFileName?: string
+  /** فهرست کوتاه و ثابت (چند ردیف): بدون نوار ابزار و صفحه‌بندی. */
+  compact?: boolean
 }
 
 const INTERACTIVE = "a, button, input, select, textarea, [role=checkbox], [role=menuitem], [data-slot=dropdown-menu-content]"
 
 export function DataTable<TData extends RowData>(props: DataTableProps<TData>) {
-  const { table, view, caption, loading, error, onRetry, rowHref, bulkActions, empty } = props
+  const { table, view, caption, loading, error, onRetry, rowHref, bulkActions, empty, compact } = props
   const isMobile = useIsMobile()
   const navigate = useNavigate()
   const rows = table.getRowModel().rows
@@ -102,7 +104,7 @@ export function DataTable<TData extends RowData>(props: DataTableProps<TData>) {
 
   return (
     <div className="flex flex-col gap-2">
-      <Toolbar {...props} />
+      {!compact && <Toolbar {...props} />}
       {selectedRows.length > 0 && bulkActions && (
         <div className="flex flex-wrap items-center gap-2 rounded-lg border border-primary/30 bg-accent px-2 py-1.5 text-xs" role="region" aria-label="عملیات گروهی">
           <span className="font-medium text-accent-foreground">{formatNumber(selectedRows.length)} ردیف انتخاب‌شده</span>
@@ -116,7 +118,7 @@ export function DataTable<TData extends RowData>(props: DataTableProps<TData>) {
         </div>
       )}
       {body}
-      {!error && rows.length > 0 && <DataTablePagination table={table} />}
+      {!compact && !error && rows.length > 0 && <DataTablePagination table={table} />}
     </div>
   )
 }

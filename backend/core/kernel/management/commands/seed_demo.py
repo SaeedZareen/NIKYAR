@@ -53,6 +53,8 @@ ROLES = {
             "org.manage",
             "settings.manage",
             "workcalendar.manage",
+            "backup.manage",
+            "jobs.manage",
         ],
     ),
 }

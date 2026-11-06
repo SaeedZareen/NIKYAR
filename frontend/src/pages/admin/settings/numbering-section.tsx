@@ -105,9 +105,9 @@ function useDebounced<T>(value: T, ms = 300) {
 function SequenceSheet({ sequence, ...sheet }: { sequence: Sequence; open: boolean; onOpenChange: (open: boolean) => void }) {
   const qc = useQueryClient()
   const form = useAppForm(schema, { pattern: sequence.pattern, reset: sequence.reset, next_number: "" })
-  const patternInput = React.useRef<HTMLInputElement>(null)
   // آخرین جای مکان‌نما در فیلد الگو؛ تا کاربر در فیلد کلیک نکرده، نشانه به انتها افزوده می‌شود.
   const caret = React.useRef<{ start: number; end: number } | null>(null)
+  const remember = (el: HTMLInputElement) => (caret.current = { start: el.selectionStart ?? el.value.length, end: el.selectionEnd ?? el.value.length })
   const [pattern, reset, nextNumber] = form.watch(["pattern", "reset", "next_number"])
   const draft = useDebounced({ pattern, reset, next_number: nextNumber ? Number(nextNumber) : undefined })
   const preview = useQuery({
@@ -135,17 +135,12 @@ function SequenceSheet({ sequence, ...sheet }: { sequence: Sequence; open: boole
     }
   })
 
-  /** نشانه در جای مکان‌نما درج می‌شود. */
+  /** نشانه در آخرین جای مکان‌نما (یا انتهای الگو) درج می‌شود؛ پس از آن، نشانه‌ی بعدی پشت همین یکی می‌آید. */
   const insert = (token: string) => {
-    const el = patternInput.current
     const value = form.getValues("pattern")
     const { start, end } = caret.current ?? { start: value.length, end: value.length }
     caret.current = { start: start + token.length, end: start + token.length }
     form.setValue("pattern", value.slice(0, start) + token + value.slice(end), { shouldDirty: true, shouldValidate: form.formState.submitCount > 0 })
-    requestAnimationFrame(() => {
-      el?.focus()
-      el?.setSelectionRange(start + token.length, start + token.length)
-    })
   }
 
   return (
@@ -177,8 +172,13 @@ function SequenceSheet({ sequence, ...sheet }: { sequence: Sequence; open: boole
               <Input
                 id={id}
                 {...field}
-                ref={patternInput}
-                onSelect={(e) => (caret.current = { start: e.currentTarget.selectionStart ?? 0, end: e.currentTarget.selectionEnd ?? 0 })}
+                onChange={(e) => {
+                  field.onChange(e)
+                  remember(e.currentTarget)
+                }}
+                onSelect={(e) => remember(e.currentTarget)}
+                onKeyUp={(e) => remember(e.currentTarget)}
+                onClick={(e) => remember(e.currentTarget)}
                 dir="auto"
                 autoComplete="off"
                 {...aria}
