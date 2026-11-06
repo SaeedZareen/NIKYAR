@@ -37,7 +37,7 @@ class LicenseStatusSerializer(serializers.Serializer):
     problems = serializers.ListField(child=serializers.CharField())
 
 
-class UploadSerializer(serializers.Serializer):
+class LicenseUploadSerializer(serializers.Serializer):
     file = serializers.FileField(label="فایل لایسنس", error_messages={"required": "فایل لایسنس را انتخاب کنید."})
 
 
@@ -72,9 +72,9 @@ class LicenseView(APIView):
     def get(self, request):
         return Response(LicenseStatusSerializer(_status_data(request.user)).data)
 
-    @extend_schema(request={"multipart/form-data": UploadSerializer}, responses=LicenseStatusSerializer)
+    @extend_schema(request={"multipart/form-data": LicenseUploadSerializer}, responses=LicenseStatusSerializer)
     def post(self, request):
-        s = UploadSerializer(data=request.data)
+        s = LicenseUploadSerializer(data=request.data)
         s.is_valid(raise_exception=True)
         try:
             text = s.validated_data["file"].read().decode("utf-8")

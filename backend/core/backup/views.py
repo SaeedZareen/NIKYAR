@@ -38,7 +38,7 @@ class RestoreSerializer(serializers.Serializer):
         return value
 
 
-class UploadSerializer(RestoreSerializer):
+class BackupUploadSerializer(RestoreSerializer):
     file = serializers.FileField(label="فایل پشتیبان", error_messages={"required": "فایل پشتیبان را انتخاب کنید."})
 
 
@@ -85,10 +85,10 @@ class BackupViewSet(viewsets.ViewSet):
         path = service.path_of(name)
         return self._restore(request, path)
 
-    @extend_schema(request={"multipart/form-data": UploadSerializer}, responses=RestoreResultSerializer)
+    @extend_schema(request={"multipart/form-data": BackupUploadSerializer}, responses=RestoreResultSerializer)
     @action(detail=False, methods=["post"], url_path="upload-restore", parser_classes=[parsers.MultiPartParser])
     def upload_restore(self, request):
-        s = UploadSerializer(data=request.data)
+        s = BackupUploadSerializer(data=request.data)
         s.is_valid(raise_exception=True)
         return self._restore(request, service.store_upload(s.validated_data["file"]))
 
