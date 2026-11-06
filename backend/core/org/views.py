@@ -136,14 +136,16 @@ class AssignmentViewSet(AuditedModelViewSet):
 class BrandingSerializer(serializers.Serializer):
     name = serializers.CharField()
     short_name = serializers.CharField()
+    logo_url = serializers.CharField(help_text="نشانی تصویر لوگو؛ خالی یعنی بدون لوگو.")
 
 
 class BrandingView(generics.GenericAPIView):
-    """نام سازمان برای صفحه‌ی ورود و نوار بالا؛ بدون نیاز به ورود."""
+    """نام و لوگوی سازمان برای صفحه‌ی ورود و نوار بالا؛ بدون نیاز به ورود."""
 
     permission_classes = [permissions.AllowAny]
     serializer_class = BrandingSerializer
 
     def get(self, request):
         profile = settings_service.read("org-profile")
-        return Response(self.get_serializer(profile).data)
+        logo_url = f"/api/files/{profile['logo']}/download/?inline=1" if profile["logo"] else ""
+        return Response(self.get_serializer({**profile, "logo_url": logo_url}).data)

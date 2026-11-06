@@ -162,6 +162,77 @@ export interface paths {
         patch: operations["auth_users_partial_update"];
         trace?: never;
     };
+    "/api/files/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description بارگذاری یک فایل. فایل تا وصل شدن به رکوردی موقت است. */
+        post: operations["files_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/files/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** @description حذف فایل موقت توسط بارگذارنده (فایل در حال استفاده را رکورد صاحبش آزاد می‌کند). */
+        delete: operations["files_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/files/{id}/download/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description دریافت فایل. فایل عمومی (لوگو) بدون ورود؛ بقیه فقط برای کاربر واردشده.
+         *     نوع محتوا از نوع تشخیص‌داده‌شده تعیین می‌شود و فقط تصویر و PDF درون مرورگر باز می‌شوند.
+         */
+        get: operations["files_download_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/files/policy/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description سقف حجم و نوع‌های مجاز، برای بررسی پیش از بارگذاری در مرورگر. */
+        get: operations["files_policy_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/lookups/items/": {
         parameters: {
             query?: never;
@@ -283,7 +354,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description نام سازمان برای صفحه‌ی ورود و نوار بالا؛ بدون نیاز به ورود. */
+        /** @description نام و لوگوی سازمان برای صفحه‌ی ورود و نوار بالا؛ بدون نیاز به ورود. */
         get: operations["org_branding_retrieve"];
         put?: never;
         post?: never;
@@ -386,6 +457,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/settings/files/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description خواندن و ذخیره‌ی یک بخش. برای هر بخش اعلام‌شده یک زیرکلاس با serializer همان بخش ساخته می‌شود (urls.py). */
+        get: operations["settings_files_retrieve"];
+        /** @description خواندن و ذخیره‌ی یک بخش. برای هر بخش اعلام‌شده یک زیرکلاس با serializer همان بخش ساخته می‌شود (urls.py). */
+        put: operations["settings_files_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/settings/fiscal-year/": {
         parameters: {
             query?: never;
@@ -436,6 +525,24 @@ export interface components {
          * @enum {string}
          */
         ActionEnum: "create" | "update" | "delete" | "login" | "logout" | "login_failed";
+        /**
+         * @description * `pdf` - PDF (.pdf)
+         *     * `jpg` - تصویر JPEG (.jpg)
+         *     * `jpeg` - تصویر JPEG (.jpeg)
+         *     * `png` - تصویر PNG (.png)
+         *     * `webp` - تصویر WebP (.webp)
+         *     * `gif` - تصویر GIF (.gif)
+         *     * `docx` - Word (.docx)
+         *     * `xlsx` - Excel (.xlsx)
+         *     * `pptx` - PowerPoint (.pptx)
+         *     * `doc` - Word قدیمی (.doc)
+         *     * `xls` - Excel قدیمی (.xls)
+         *     * `zip` - فشرده‌ی ZIP (.zip)
+         *     * `txt` - متن ساده (.txt)
+         *     * `csv` - CSV (.csv)
+         * @enum {string}
+         */
+        AllowedExtensionsEnum: "pdf" | "jpg" | "jpeg" | "png" | "webp" | "gif" | "docx" | "xlsx" | "pptx" | "doc" | "xls" | "zip" | "txt" | "csv";
         Assignment: {
             readonly id: number;
             /** کاربر */
@@ -511,12 +618,60 @@ export interface components {
         Branding: {
             name: string;
             short_name: string;
+            /** @description نشانی تصویر لوگو؛ خالی یعنی بدون لوگو. */
+            logo_url: string;
         };
         ChangePasswordRequest: {
             /** گذرواژه‌ی فعلی */
             current_password: string;
             /** گذرواژه‌ی جدید */
             new_password: string;
+        };
+        FileSettings: {
+            /**
+             * حداکثر حجم هر فایل (مگابایت)
+             * @default 10
+             */
+            max_size_mb: number;
+            /**
+             * نوع‌های مجاز
+             * @default [
+             *       "pdf",
+             *       "jpg",
+             *       "jpeg",
+             *       "png",
+             *       "docx",
+             *       "xlsx",
+             *       "doc",
+             *       "xls",
+             *       "zip",
+             *       "txt"
+             *     ]
+             */
+            allowed_extensions: components["schemas"]["AllowedExtensionsEnum"][];
+        };
+        FileSettingsRequest: {
+            /**
+             * حداکثر حجم هر فایل (مگابایت)
+             * @default 10
+             */
+            max_size_mb: number;
+            /**
+             * نوع‌های مجاز
+             * @default [
+             *       "pdf",
+             *       "jpg",
+             *       "jpeg",
+             *       "png",
+             *       "docx",
+             *       "xlsx",
+             *       "doc",
+             *       "xls",
+             *       "zip",
+             *       "txt"
+             *     ]
+             */
+            allowed_extensions: components["schemas"]["AllowedExtensionsEnum"][];
         };
         FiscalYearSettings: {
             /**
@@ -640,6 +795,12 @@ export interface components {
              */
             short_name: string;
             /**
+             * لوگو
+             * @description شناسه‌ی فایل بارگذاری‌شده؛ رشته‌ی خالی یعنی بدون فایل.
+             * @default
+             */
+            logo: string;
+            /**
              * شناسه‌ی ملی
              * @default
              */
@@ -685,6 +846,12 @@ export interface components {
              * @default
              */
             short_name: string;
+            /**
+             * لوگو
+             * @description شناسه‌ی فایل بارگذاری‌شده؛ رشته‌ی خالی یعنی بدون فایل.
+             * @default
+             */
+            logo: string;
             /**
              * شناسه‌ی ملی
              * @default
@@ -875,6 +1042,12 @@ export interface components {
             code: string;
             label: string;
         };
+        Policy: {
+            /** @description بایت */
+            max_size: number;
+            extensions: string[];
+            image_extensions: string[];
+        };
         Position: {
             readonly id: number;
             /** عنوان سمت */
@@ -937,6 +1110,36 @@ export interface components {
          * @enum {integer}
          */
         StartMonthEnum: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
+        StoredFile: {
+            /** Format: uuid */
+            readonly id: string;
+            /** نام فایل */
+            name: string;
+            /** نوع */
+            extension: string;
+            /**
+             * حجم
+             * Format: int64
+             */
+            size: number;
+            /**
+             * زمان بارگذاری
+             * Format: date-time
+             */
+            uploaded_at: string;
+            readonly url: string;
+            readonly is_image: boolean;
+            readonly previewable: boolean;
+        };
+        UploadRequest: {
+            /**
+             * فایل
+             * Format: binary
+             */
+            file: string;
+            /** @default false */
+            images_only: boolean;
+        };
         User: {
             readonly id: number;
             /**
@@ -1441,6 +1644,92 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["User"];
+                };
+            };
+        };
+    };
+    files_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["UploadRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoredFile"];
+                };
+            };
+        };
+    };
+    files_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    files_download_retrieve: {
+        parameters: {
+            query?: {
+                /** @description نمایش در مرورگر (فقط تصویر و PDF) */
+                inline?: boolean;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/octet-stream": string;
+                };
+            };
+        };
+    };
+    files_policy_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Policy"];
                 };
             };
         };
@@ -2219,6 +2508,50 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SectionInfo"][];
+                };
+            };
+        };
+    };
+    settings_files_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileSettings"];
+                };
+            };
+        };
+    };
+    settings_files_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["FileSettingsRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["FileSettingsRequest"];
+                "multipart/form-data": components["schemas"]["FileSettingsRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FileSettings"];
                 };
             };
         };

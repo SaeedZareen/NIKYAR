@@ -43,7 +43,12 @@ def read(code: str) -> dict:
 
 
 def _shown(f: drf_fields.Field, value) -> str:
-    if isinstance(f, drf_fields.ChoiceField):
+    """مقدار نمایشی برای سوابق: برچسب گزینه‌ها، یا display() خود فیلد (مثل نام فایل به‌جای شناسه)."""
+    if hasattr(f, "display"):
+        return f.display(value)
+    if isinstance(f, drf_fields.MultipleChoiceField):
+        value = [f.choices.get(v, v) for v in value]
+    elif isinstance(f, drf_fields.ChoiceField):
         value = f.choices.get(value, value)
     return display_value(value)
 
@@ -57,6 +62,10 @@ def write(request, code: str, values: dict) -> dict:
     obj, _ = SettingsValue.objects.select_for_update().get_or_create(section=code)
     obj.values = after
     obj.save()
+    # فیلدهایی که با تغییر مقدار کاری دارند (مثل تصاحب فایل جدید و حذف فایل قبلی)
+    for name, f in fields.items():
+        if hasattr(f, "on_change") and before[name] != after[name]:
+            f.on_change(before[name], after[name])
     changes = {
         name: {"label": str(f.label or name), "old": _shown(f, before[name]), "new": _shown(f, after[name])}
         for name, f in fields.items()

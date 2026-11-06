@@ -7,6 +7,11 @@ from rest_framework import serializers
 _FA = str.maketrans("۰۱۲۳۴۵۶۷۸۹٠١٢٣٤٥٦٧٨٩", "01234567890123456789")
 
 
+def fa_digits(value) -> str:
+    """ارقام لاتین را برای متن نمایشی فارسی می‌کند."""
+    return str(value).translate(str.maketrans("0123456789", "۰۱۲۳۴۵۶۷۸۹"))
+
+
 def only_digits(value: str) -> str:
     return re.sub(r"\D", "", str(value).translate(_FA))
 
