@@ -224,7 +224,7 @@ export default function FormsPage() {
               name="notes"
               label="توضیحات"
               className="col-span-full"
-              description={`${(form.watch("notes") ?? "").length.toLocaleString("fa-IR")} از ۵۰۰ نویسه`}
+              hint={`${(form.watch("notes") ?? "").length.toLocaleString("fa-IR")} از ۵۰۰ نویسه`}
               render={({ field, id, aria }) => <Textarea id={id} rows={3} {...field} {...aria} />}
             />
           </FormGrid>

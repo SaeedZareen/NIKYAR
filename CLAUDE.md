@@ -16,6 +16,7 @@ Modular Persian BPMS/ERP for on-premise installs in Iran. The product owner is n
 
 ## Rules
 - All user-facing text is formal Persian (labels, aria-labels, errors, toasts). Visible digits Persian; values/URLs/payloads Latin. Dates Jalali (`lib/format.ts`).
+- Text hierarchy (owner rule): helper text is never the same size as main text. Main text (labels, inputs, buttons, values) is `text-xs` (13px); secondary text (help, hints, meta, file sizes, timestamps) is `text-2xs` (12px) and muted. Explanatory help is collapsed into an ⓘ `InfoTip` by default: `description` on `FormField`, `Section` and `PageHeader` renders as ⓘ (screen readers still get it via `aria-describedby`). Only information that must always be visible — dynamic values, counters, calculation results, record status — is shown inline via `hint` (`FormField`) or `meta` (`Section`, `PageHeader`).
 - Logical Tailwind classes only (`ms-/me-/ps-/pe-/start-/end-/text-start`). Colors only from tokens in `src/index.css`.
 - Reuse the kits: `components/data-table`, `components/form`, `components/layout`. Do not hand-roll tables, fields or page headers. Group page content with `Section`; lay out fields with `FormGrid`; pages use the full width (no max-width containers).
 - No dead code, unused dependencies, orphaned files or speculative placeholders. Remove what a change makes obsolete.

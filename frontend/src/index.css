@@ -9,7 +9,10 @@
     --font-sans: "Vazirmatn Variable", Tahoma, sans-serif;
     --font-heading: var(--font-sans);
 
-    /* مقیاس متن برای خط فارسی: کوچک‌ترین اندازه ۱۳px تا خوانا بماند */
+    /* مقیاس متن برای خط فارسی. متن اصلی (برچسب، فیلد، دکمه) ۱۳px و متن کمکی (توضیح، راهنما، اطلاعات جانبی)
+       یک پله کوچک‌تر ۱۲px، همیشه با رنگ کم‌رنگ؛ کوچک‌تر از این برای خط فارسی خوانا نیست. */
+    --text-2xs: 0.75rem;
+    --text-2xs--line-height: 1.6;
     --text-xs: 0.8125rem;
     --text-xs--line-height: 1.6;
     --text-sm: 0.875rem;

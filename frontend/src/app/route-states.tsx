@@ -20,7 +20,7 @@ export function PageFallback() {
 }
 
 export function NotFound() {
-  return <PageHeader title="صفحه پیدا نشد" description="نشانی واردشده در سامانه وجود ندارد. از منو بخش موردنظر را انتخاب کنید." />
+  return <PageHeader title="صفحه پیدا نشد" meta="نشانی واردشده در سامانه وجود ندارد. از منو بخش موردنظر را انتخاب کنید." />
 }
 
 export function RouteError() {

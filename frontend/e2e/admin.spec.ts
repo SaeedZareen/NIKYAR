@@ -17,11 +17,11 @@ test.describe("ورود و نشست", () => {
   test("بدون نشست به صفحه‌ی ورود می‌رود و پس از ورود برمی‌گردد", async ({ page }) => {
     await page.goto("/admin/users?q=ceo")
     await expect(page).toHaveURL(/\/login\?next=/)
-    await page.getByLabel("نام کاربری").fill("admin")
-    await page.getByLabel("گذرواژه").fill("اشتباه")
+    await page.getByLabel("نام کاربری", { exact: true }).fill("admin")
+    await page.getByLabel("گذرواژه", { exact: true }).fill("اشتباه")
     await page.getByRole("button", { name: "ورود" }).click()
     await expect(page.getByRole("alert").filter({ hasText: "نام کاربری یا گذرواژه درست نیست." })).toBeFocused()
-    await page.getByLabel("گذرواژه").fill("nikyar123")
+    await page.getByLabel("گذرواژه", { exact: true }).fill("nikyar123")
     await page.getByRole("button", { name: "ورود" }).click()
     await expect(page).toHaveURL(/\/admin\/users\?q=ceo$/)
     await expect(rows(page)).toHaveCount(1)
@@ -30,8 +30,8 @@ test.describe("ورود و نشست", () => {
 
   test("کاربر بدون نقش فقط پیشخوان را می‌بیند و صفحه‌ی مدیریت پیام دسترسی دارد", async ({ page }) => {
     await page.goto("/login")
-    await page.getByLabel("نام کاربری").fill("developer")
-    await page.getByLabel("گذرواژه").fill("nikyar123")
+    await page.getByLabel("نام کاربری", { exact: true }).fill("developer")
+    await page.getByLabel("گذرواژه", { exact: true }).fill("nikyar123")
     await page.getByRole("button", { name: "ورود" }).click()
     await expect(page.getByText("آقای حسین نوری، خوش آمدید", { exact: false })).toBeVisible()
     await expect(page.getByText("برنامه‌نویس (فناوری اطلاعات)")).toBeVisible()
@@ -42,8 +42,8 @@ test.describe("ورود و نشست", () => {
 
   test("خروج از منوی کاربر", async ({ page }) => {
     await page.goto("/login")
-    await page.getByLabel("نام کاربری").fill("accountant")
-    await page.getByLabel("گذرواژه").fill("nikyar123")
+    await page.getByLabel("نام کاربری", { exact: true }).fill("accountant")
+    await page.getByLabel("گذرواژه", { exact: true }).fill("nikyar123")
     await page.getByRole("button", { name: "ورود" }).click()
     await page.getByRole("button", { name: /حساب کاربری/ }).click()
     await page.getByRole("menuitem", { name: "خروج" }).click()

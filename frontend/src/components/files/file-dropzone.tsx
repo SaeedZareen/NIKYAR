@@ -73,7 +73,7 @@ export function FileDropzone({ id, multiple, imagesOnly, disabled, onUploaded, c
             {multiple ? "فایل‌ها را انتخاب کنید" : "فایل را انتخاب کنید"}
           </Button>
         </p>
-        <p id={hintId} className="text-xs text-muted-foreground">
+        <p id={hintId} className="text-2xs text-muted-foreground">
           {policy ? `${allowedLabels(allowed)} · حداکثر ${formatFileSize(policy.max_size)}` : " "}
         </p>
         <input

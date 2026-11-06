@@ -36,9 +36,9 @@ const chartData = UNIT_NAMES.map((unit) => ({ unit, count: employees.filter((e) 
 const chartConfig = { count: { label: "پرسنل شاغل", color: "var(--chart-1)" } } satisfies ChartConfig
 
 /** نمونه‌ی هر گروه از اجزا؛ محتوا در یک ردیف شکسته‌شونده. */
-function Section({ title, description, children }: { title: string; description?: string; children: React.ReactNode }) {
+function Section({ title, description, meta, children }: { title: string; description?: string; meta?: string; children: React.ReactNode }) {
   return (
-    <PageSection title={title} description={description} contentClassName="flex flex-wrap items-start gap-3">
+    <PageSection title={title} description={description} meta={meta} contentClassName="flex flex-wrap items-start gap-3">
       {children}
     </PageSection>
   )
@@ -147,7 +147,7 @@ export default function ComponentsPage() {
           </Alert>
         </Section>
 
-        <Section title="تقویم شمسی" description={date ? `انتخاب‌شده: ${formatDate(date, "full")}` : "روزی انتخاب نشده است."}>
+        <Section title="تقویم شمسی" meta={date ? `انتخاب‌شده: ${formatDate(date, "full")}` : "روزی انتخاب نشده است."}>
           <JalaliCalendar value={date ?? null} onChange={(d) => setDate(d ?? undefined)} showTodayButton className="rounded-lg border" />
         </Section>
 

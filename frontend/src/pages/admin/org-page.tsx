@@ -173,7 +173,7 @@ export default function OrgPage() {
           <div className="flex min-w-0 flex-col gap-4">
             <Section
               title={selected.name}
-              description={selected.is_active ? undefined : "بایگانی‌شده"}
+              meta={selected.is_active ? undefined : "بایگانی‌شده"}
               actions={
                 canManage && (
                   <>
