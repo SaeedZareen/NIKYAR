@@ -1,16 +1,12 @@
-// قاب مشترک فرم هر بخش تنظیمات: بارگذاری، خلاصه‌ی خطا، دکمه‌های ذخیره/بازگردانی و هشدار تغییرهای ذخیره‌نشده.
+// قاب مشترک هر بخش تنظیمات: بارگذاری مقدارها و فرم بخش (SectionForm) با عنوان و راهنمای اعلام‌شده در سرور.
 import type * as React from "react"
 import type { UseQueryResult } from "@tanstack/react-query"
-import type { FieldValues, UseFormReturn } from "react-hook-form"
-import { RotateCcw, Save } from "lucide-react"
-import { ErrorSummary } from "@/components/form/error-summary"
-import { FormGrid } from "@/components/form/form-grid"
-import { UnsavedChangesGuard } from "@/components/form/unsaved-changes-guard"
+import type { FieldValues } from "react-hook-form"
+import { SectionForm } from "@/components/form/section-form"
 import { Section } from "@/components/layout/section"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
-import { Spinner } from "@/components/ui/spinner"
 import { errorMessage, type Schemas } from "@/lib/api/client"
 
 export type SectionInfo = Schemas["SectionInfo"]
@@ -40,43 +36,9 @@ export function SettingsLoader<T>({ section, query, children }: { section: Secti
   )
 }
 
-type Props<T extends FieldValues, O extends FieldValues> = {
-  section: SectionInfo
-  form: UseFormReturn<T, unknown, O>
-  labels: Record<string, string>
-  /** false: محتوا خودش چیدمان دارد (مثل جدول ساعت کاری) و در FormGrid قرار نمی‌گیرد. */
-  grid?: boolean
-  onSubmit: (e: React.FormEvent) => void
-  saving: boolean
-  children: React.ReactNode
-}
+type SettingsFormProps<T extends FieldValues, O extends FieldValues> = Omit<React.ComponentProps<typeof SectionForm<T, O>>, "title" | "description"> & { section: SectionInfo }
 
-export function SettingsForm<T extends FieldValues, O extends FieldValues>({ section, form, labels, onSubmit, saving, grid = true, children }: Props<T, O>) {
-  const dirty = form.formState.isDirty
-  return (
-    <form onSubmit={onSubmit} noValidate>
-      <Section
-        title={section.title}
-        description={section.description}
-        footer={
-          <>
-            <Button type="submit" disabled={saving || !dirty}>
-              {saving ? <Spinner /> : <Save />}
-              {saving ? "در حال ذخیره…" : "ذخیره‌ی تغییرات"}
-            </Button>
-            <Button type="button" variant="ghost" disabled={saving || !dirty} onClick={() => form.reset()}>
-              <RotateCcw /> بازگردانی
-            </Button>
-            {dirty && !saving && <span className="text-2xs text-muted-foreground">تغییرهای ذخیره‌نشده دارید.</span>}
-          </>
-        }
-      >
-        <div className="flex flex-col gap-4">
-          <ErrorSummary errors={form.formState.errors} labels={labels} submitCount={form.formState.submitCount} />
-          {grid ? <FormGrid>{children}</FormGrid> : children}
-        </div>
-      </Section>
-      <UnsavedChangesGuard when={dirty && !saving} />
-    </form>
-  )
+/** فرم یک بخش تنظیمات: عنوان و راهنما از اعلام بخش در سرور. */
+export function SettingsForm<T extends FieldValues, O extends FieldValues>({ section, ...props }: SettingsFormProps<T, O>) {
+  return <SectionForm title={section.title} description={section.description} {...props} />
 }

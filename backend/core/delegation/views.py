@@ -78,6 +78,7 @@ class DelegationViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, mixins.D
     """
 
     serializer_class = DelegationSerializer
+    queryset = Delegation.objects.all()  # برای نوع شناسه در سند API؛ get_queryset محدودش می‌کند.
     permission_classes = [HasPerm]
     perms = {"*": None}
     pagination_class = None

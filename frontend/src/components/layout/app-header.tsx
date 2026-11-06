@@ -1,6 +1,6 @@
 import * as React from "react"
 import { Link, useNavigate } from "react-router"
-import { KeyRound, LogOut, Monitor, Moon, Search, Sun } from "lucide-react"
+import { LogOut, UserRound, Monitor, Moon, Search, Sun } from "lucide-react"
 import { useAuth, useLogout } from "@/app/auth"
 import { useBranding } from "@/app/branding"
 import { useTheme, type Theme } from "@/components/theme-provider"
@@ -19,7 +19,6 @@ import { Kbd } from "@/components/ui/kbd"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { formatDate } from "@/lib/format"
 import { BrandMark } from "./brand-mark"
-import { ChangePasswordDialog } from "./change-password-dialog"
 import { CommandMenu } from "./command-menu"
 import { NotificationBell } from "./notification-bell"
 
@@ -101,7 +100,6 @@ function UserMenu() {
   const { user } = useAuth()
   const logout = useLogout()
   const navigate = useNavigate()
-  const [passwordOpen, setPasswordOpen] = React.useState(false)
   if (!user) return null
   const initial = (user.first_name || user.username).charAt(0)
 
@@ -128,8 +126,10 @@ function UserMenu() {
             </span>
           </DropdownMenuLabel>
           <DropdownMenuSeparator />
-          <DropdownMenuItem onSelect={() => setPasswordOpen(true)}>
-            <KeyRound /> تغییر گذرواژه
+          <DropdownMenuItem asChild>
+            <Link to="/account">
+              <UserRound /> حساب من
+            </Link>
           </DropdownMenuItem>
           <DropdownMenuItem
             variant="destructive"
@@ -139,7 +139,6 @@ function UserMenu() {
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
-      <ChangePasswordDialog open={passwordOpen} onOpenChange={setPasswordOpen} />
     </>
   )
 }

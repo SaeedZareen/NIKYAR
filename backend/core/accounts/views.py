@@ -5,7 +5,7 @@ from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import ensure_csrf_cookie
 from drf_spectacular.utils import extend_schema
-from rest_framework import filters, permissions, status
+from rest_framework import filters, generics, permissions, serializers, status
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
@@ -60,6 +60,31 @@ class SessionView(APIView):
             record(request, AuditLog.Action.LOGOUT, request.user)
         logout(request)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class UserLookupSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    full_name = serializers.CharField()
+    username = serializers.CharField()
+
+
+class UserLookupView(generics.ListAPIView):
+    """جست‌وجوی کاربران فعال برای انتخاب در فرم‌ها (جانشین، گیرنده)؛ برای هر کاربر واردشده، فقط نام و نام کاربری."""
+
+    permission_classes = [HasPerm]
+    perms = {"*": None}
+    serializer_class = UserLookupSerializer
+    pagination_class = None
+    filter_backends = [filters.SearchFilter, PersianOrderingFilter]
+    search_fields = ["username", "first_name", "last_name", "mobile"]
+    ordering = ["last_name", "first_name"]
+
+    def get_queryset(self):
+        return User.objects.filter(is_active=True)
+
+    def list(self, request, *args, **kwargs):
+        users = self.filter_queryset(self.get_queryset())[:20]
+        return Response([{"id": u.id, "full_name": u.get_full_name() or u.username, "username": u.username} for u in users])
 
 
 class ProfileView(APIView):

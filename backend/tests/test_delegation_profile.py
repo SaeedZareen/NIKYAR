@@ -91,3 +91,12 @@ class TestProfile:
         user.refresh_from_db()
         assert user.first_name == "کاربر" and not user.is_superuser
         assert c.get("/api/auth/session/").json()["signature"] == first
+
+
+@pytest.mark.django_db
+def test_user_lookup_for_any_signed_in_user(make_user, client_for):
+    make_user("zahra", first_name="زهرا", last_name="موسوی")
+    make_user("gone", is_active=False)
+    r = client_for(make_user("clerk")).get("/api/auth/user-lookup/?search=زهرا").json()
+    assert r == [{"id": r[0]["id"], "full_name": "زهرا موسوی", "username": "zahra"}]
+    assert client_for(make_user("c2")).get("/api/auth/user-lookup/?search=gone").json() == []

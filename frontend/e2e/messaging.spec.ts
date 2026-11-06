@@ -43,9 +43,9 @@ test.describe("پیامک و ایمیل", () => {
 
   test("انتخاب کاربر برای دریافت اعلان با پیامک و ایمیل", async ({ page }) => {
     await page.goto("/notifications")
-    await page.getByRole("button", { name: "دریافت با پیامک و ایمیل" }).click()
-    const sheet = page.getByRole("dialog", { name: "دریافت اعلان با پیامک و ایمیل" })
-    const kinds = sheet.getByRole("list", { name: "نوع‌های اعلان" })
+    await page.getByRole("link", { name: "دریافت با پیامک و ایمیل" }).click()
+    await expect(page).toHaveURL(/\/account\?tab=notifications$/)
+    const kinds = page.getByRole("region", { name: "دریافت اعلان با پیامک و ایمیل" }).getByRole("list", { name: "نوع‌های اعلان" })
     await expect(kinds).toContainText("تغییر گذرواژه")
     await expect(kinds.getByRole("switch", { name: "پیامک برای «تغییر گذرواژه»" })).toBeVisible()
     await expectAccessible(page)

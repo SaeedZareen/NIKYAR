@@ -1,5 +1,5 @@
 import * as React from "react"
-import { useNavigate } from "react-router"
+import { Link, useNavigate } from "react-router"
 import { keepPreviousData, useQuery } from "@tanstack/react-query"
 import { BellRing, Check, CheckCheck, ExternalLink } from "lucide-react"
 import { NOTIFICATIONS_KEY, useMarkAllRead, useMarkRead, useUnreadCount, type Notification } from "@/app/notifications"
@@ -11,7 +11,6 @@ import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { api, unwrap } from "@/lib/api/client"
 import { formatDateTime, formatNumber } from "@/lib/format"
 import { cn } from "@/lib/utils"
-import { NotificationPreferencesSheet } from "./notification-preferences-sheet"
 
 const EMPTY: Notification[] = []
 const col = columnHelper<Notification>()
@@ -27,7 +26,6 @@ export default function NotificationsPage() {
   const unread = useUnreadCount().data ?? 0
   const markRead = useMarkRead()
   const markAll = useMarkAllRead()
-  const [prefsOpen, setPrefsOpen] = React.useState(false)
   const read = markRead.mutate
   const go = navigate
 
@@ -86,8 +84,10 @@ export default function NotificationsPage() {
             <Button variant="outline" disabled={!unread || markAll.isPending} onClick={() => markAll.mutate()}>
               <CheckCheck /> همه خوانده شد
             </Button>
-            <Button variant="ghost" onClick={() => setPrefsOpen(true)}>
-              <BellRing /> دریافت با پیامک و ایمیل
+            <Button variant="ghost" asChild>
+              <Link to="/account?tab=notifications">
+                <BellRing /> دریافت با پیامک و ایمیل
+              </Link>
             </Button>
           </>
         }
@@ -102,7 +102,6 @@ export default function NotificationsPage() {
         exportFileName="اعلان‌ها"
         empty={{ title: "اعلانی ندارید" }}
       />
-      <NotificationPreferencesSheet open={prefsOpen} onOpenChange={setPrefsOpen} />
     </>
   )
 }

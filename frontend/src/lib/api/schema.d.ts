@@ -143,6 +143,23 @@ export interface paths {
         patch: operations["auth_session_profile_partial_update"];
         trace?: never;
     };
+    "/api/auth/user-lookup/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description جست‌وجوی کاربران فعال برای انتخاب در فرم‌ها (جانشین، گیرنده)؛ برای هر کاربر واردشده، فقط نام و نام کاربری. */
+        get: operations["auth_user_lookup_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/users/": {
         parameters: {
             query?: never;
@@ -2366,6 +2383,11 @@ export interface components {
              */
             readonly date_joined: string;
         };
+        UserLookup: {
+            id: number;
+            full_name: string;
+            username: string;
+        };
         UserRequest: {
             /**
              * نام کاربری
@@ -2825,6 +2847,30 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Me"];
+                };
+            };
+        };
+    };
+    auth_user_lookup_list: {
+        parameters: {
+            query?: {
+                /** @description کدام فیلد باید هنگام مرتب‌سازی نتایج استفاده شود. */
+                ordering?: string;
+                /** @description یک عبارت جستجو. */
+                search?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserLookup"][];
                 };
             };
         };
@@ -3330,7 +3376,8 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                id: string;
+                /** @description یک مقداد عدد یکتا که این جانشینی را شناسایی میکند. */
+                id: number;
             };
             cookie?: never;
         };
