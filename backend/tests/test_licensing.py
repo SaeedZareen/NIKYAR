@@ -21,6 +21,7 @@ def owner_key(tmp_path, monkeypatch):
     monkeypatch.setattr(signing, "PUBLIC_KEY_FILE", public)
     monkeypatch.setattr(license_cmd, "PUBLIC_KEY_FILE", public)
     monkeypatch.setattr(license_cmd.getpass, "getpass", lambda prompt="": "")
+    monkeypatch.setattr("builtins.input", lambda prompt="": "y")  # بدون عبارت عبور، با تأیید
     key = tmp_path / "keys" / "owner.private.pem"
     call_command("license", "keygen", "--key", str(key))
     return key
@@ -100,6 +101,18 @@ class TestLicense:
         assert r.status_code == 403 and r.json()["code"] == "module_disabled" and "ماژول آزمایشی" in r.json()["detail"]
         upload(api, issue(owner_key, tmp_path, modules="lookups-demo"))
         assert api.get("/api/lookups/lists/").status_code == 200
+
+    def test_keygen_existing_key_and_passphrase(self, owner_key, tmp_path, monkeypatch):
+        from django.core.management.base import CommandError
+
+        with pytest.raises(CommandError, match="nothing is broken"):
+            call_command("license", "keygen", "--key", str(owner_key))
+        answers = iter(["secret-1", "secret-2", "secret-1", "secret-1"])
+        monkeypatch.setattr(license_cmd.getpass, "getpass", lambda prompt="": next(answers))
+        call_command("license", "keygen", "--key", str(owner_key), "--force")
+        assert b"ENCRYPTED" in owner_key.read_bytes()
+        monkeypatch.setattr(license_cmd.getpass, "getpass", lambda prompt="": "secret-1")
+        assert issue(owner_key, tmp_path)
 
     def test_keygen_refuses_inside_repository(self, owner_key, monkeypatch):
         from django.core.management.base import CommandError

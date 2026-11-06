@@ -49,10 +49,13 @@ class Command(BaseCommand):
     # ---------------------------------------------------------------- keygen
     def keygen(self, key: Path, force: bool, **_):
         if key.exists() and not force:
-            raise CommandError(f"A private key already exists at {key}. Use --force only if you really want a new key.")
+            raise CommandError(
+                f"Your signing key already exists at {key} - nothing is broken, you can issue licenses with it. "
+                "To create a new one (only before issuing licenses; old licenses stop working), choose option 4 in the menu."
+            )
         if key.resolve().is_relative_to(Path(__file__).resolve().parents[5]):
             raise CommandError("The private key must not be saved inside the NIKYAR folder (it could end up in the repository).")
-        passphrase = getpass.getpass("Passphrase to protect the private key (recommended, Enter for none): ").encode()
+        passphrase = self._new_passphrase()
         private = Ed25519PrivateKey.generate()
         encryption = serialization.BestAvailableEncryption(passphrase) if passphrase else serialization.NoEncryption()
         key.parent.mkdir(parents=True, exist_ok=True)
@@ -63,6 +66,19 @@ class Command(BaseCommand):
         self.stdout.write("Keep it safe and make a backup copy (USB). Anyone with this file can issue licenses.")
         self.stdout.write(f"Public key written to: {PUBLIC_KEY_FILE}")
         self.stdout.write("Commit and push the public key so every installation can verify your licenses.")
+
+    def _new_passphrase(self) -> bytes:
+        """عبارت عبور دوبار پرسیده می‌شود؛ خالی گذاشتن فقط با تأیید صریح."""
+        self.stdout.write("Choose a passphrase for the key. Nothing is shown while you type - that is normal.")
+        while True:
+            first = getpass.getpass("Passphrase: ")
+            if not first:
+                if input("No passphrase: anyone who copies the key file can issue licenses. Continue without one? (y/N): ").strip().lower() == "y":
+                    return b""
+                continue
+            if getpass.getpass("Repeat the passphrase: ") == first:
+                return first.encode()
+            self.stdout.write(self.style.WARNING("The two passphrases are different. Try again."))
 
     # ---------------------------------------------------------------- issue
     def _load_key(self, key: Path) -> Ed25519PrivateKey:
