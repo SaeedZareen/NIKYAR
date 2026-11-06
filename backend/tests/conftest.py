@@ -5,6 +5,16 @@ from rest_framework.test import APIClient
 from core.accounts.models import Role, User
 
 
+@pytest.fixture(scope="session")
+def django_db_modify_db_settings(tmp_path_factory):
+    # پایگاه آزمون روی فایل (مثل نصب واقعی، با WAL و قفل نوشتن)، نه حافظه‌ی مشترک؛ تا آزمون هم‌زمانی واقعی باشد.
+    from django.conf import settings
+
+    db = settings.DATABASES["default"]
+    if db["ENGINE"].endswith("sqlite3"):
+        db["TEST"] = {**db.get("TEST", {}), "NAME": str(tmp_path_factory.mktemp("db") / "test.sqlite3")}
+
+
 @pytest.fixture(autouse=True)
 def _fast_tests(settings, tmp_path):
     # درهم‌سازی سریع گذرواژه فقط در آزمون‌ها؛ و پاک‌کردن شمارنده‌ی محدودیت تلاش ورود.

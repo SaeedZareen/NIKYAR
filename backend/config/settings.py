@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     "core.settings",
     "core.files",
     "core.workcalendar",
+    "core.numbering",
 ]
 
 AUTH_USER_MODEL = "accounts.User"

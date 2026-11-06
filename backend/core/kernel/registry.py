@@ -6,6 +6,7 @@
     nikyar_permissions = {"accounts.users.view": "مشاهده‌ی کاربران", ...}
     nikyar_lookups = [LookupSpec(code="gender", name="جنسیت", system=True, items=[...])]
     nikyar_settings = [SettingsSection(code="org-profile", title="مشخصات سازمان", serializer="core.org.sections.OrgProfileSettings")]
+    nikyar_numbering = [NumberingSpec(code="leave", title="درخواست مرخصی", default_pattern="{year}/مرخصی/{seq:5}")]
 
 فهرست کامل مجوزها از همین‌جا ساخته می‌شود و نقش‌ها فقط مجوزهای ثبت‌شده را می‌پذیرند.
 """
@@ -36,14 +37,29 @@ class LookupSpec:
 class SettingsSection:
     """
     بخش صفحه‌ی تنظیمات. serializer مسیر نقطه‌دار یک Serializer است که فیلدها، برچسب‌ها،
-    پیش‌فرض‌ها (هر فیلد باید default داشته باشد) و اعتبارسنجی بخش را تعریف می‌کند.
+    پیش‌فرض‌ها (هر فیلد باید default داشته باشد) و اعتبارسنجی بخش را تعریف می‌کند؛
     نشانی API بخش: /api/settings/<code>/
+    بخشی که داده‌ی خودش را دارد (مثل فهرست شمارنده‌ها) serializer ندارد و API و فرمش را خودش می‌سازد.
     """
 
     code: str
     title: str
-    serializer: str
+    serializer: str = ""
     description: str = ""
+
+
+@dataclass(frozen=True)
+class NumberingSpec:
+    """
+    نوع سندی که شماره‌ی یکتا می‌گیرد (درخواست، نامه، کد پرسنلی). الگو و شروع دوباره را سازمان
+    در «تنظیمات › شماره‌گذاری اسناد» تغییر می‌دهد؛ این‌ها فقط مقدار اولیه‌اند.
+    صدور شماره: core.numbering.service.allocate("<code>")
+    """
+
+    code: str
+    title: str
+    default_pattern: str = "{year}/{seq:5}"
+    default_reset: str = "year"
 
 
 @dataclass(frozen=True)
@@ -72,3 +88,7 @@ def lookup_specs() -> list[LookupSpec]:
 
 def settings_sections() -> list[SettingsSection]:
     return [spec for config in apps.get_app_configs() for spec in getattr(config, "nikyar_settings", [])]
+
+
+def numbering_specs() -> list[NumberingSpec]:
+    return [spec for config in apps.get_app_configs() for spec in getattr(config, "nikyar_numbering", [])]

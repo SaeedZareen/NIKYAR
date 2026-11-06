@@ -6,5 +6,5 @@ from . import views
 
 urlpatterns = [
     path("", views.SectionListView.as_view(), name="settings-sections"),
-    *(path(f"{s.code}/", views.section_view(s.code).as_view(), name=f"settings-{s.code}") for s in settings_sections()),
+    *(path(f"{s.code}/", views.section_view(s.code).as_view(), name=f"settings-{s.code}") for s in settings_sections() if s.serializer),
 ]
