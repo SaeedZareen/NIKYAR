@@ -29,6 +29,8 @@ class User(AbstractUser):
     gender = models.CharField("جنسیت", max_length=10, choices=Gender.choices, blank=True)
     mobile = models.CharField("موبایل", max_length=11, blank=True)
     roles = models.ManyToManyField(Role, verbose_name="نقش‌ها", blank=True, related_name="users")
+    # تصویر امضا برای چاپ‌ها (فرم‌ها و نامه‌ها)؛ فقط برای کاربران واردشده دریافت‌شدنی است.
+    signature = models.ForeignKey("files.StoredFile", verbose_name="تصویر امضا", null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
 
     class Meta:
         ordering = ["last_name", "first_name", "username"]

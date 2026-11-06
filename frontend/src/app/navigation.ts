@@ -1,7 +1,7 @@
 // ساختار منوی اصلی. هر مورد مجوز لازم را اعلام می‌کند و فقط به کاربر دارای مجوز نمایش داده می‌شود.
 // ماژول‌ها در فازهای بعد گروه خودشان را اضافه می‌کنند.
 import type { LucideIcon } from "lucide-react"
-import { Bell, Building2, CalendarDays, Component, DatabaseBackup, ListChecks, FormInput, History, LayoutDashboard, ListTree, Settings, ShieldCheck, Table2, Users } from "lucide-react"
+import { Bell, Building2, UserRound, UserRoundCog, CalendarDays, Component, DatabaseBackup, ListChecks, FormInput, History, LayoutDashboard, ListTree, Settings, ShieldCheck, Table2, Users } from "lucide-react"
 
 /** مجوز مورد نیاز؛ "superuser" یعنی فقط مدیر کل (برای بخش‌های راهنمای توسعه). */
 export type Access = string | "superuser" | undefined
@@ -15,6 +15,7 @@ const navigation: NavGroup[] = [
     items: [
       { title: "پیشخوان", url: "/", icon: LayoutDashboard, keywords: "خانه داشبورد" },
       { title: "اعلان‌ها", url: "/notifications", icon: Bell, keywords: "اعلان پیام زنگوله" },
+      { title: "حساب من", url: "/account", icon: UserRound, keywords: "گذرواژه امضا جانشین پروفایل" },
     ],
   },
   {
@@ -24,6 +25,7 @@ const navigation: NavGroup[] = [
       { title: "نقش‌ها و مجوزها", url: "/admin/roles", icon: ShieldCheck, access: "accounts.roles.manage", keywords: "نقش مجوز دسترسی" },
       { title: "ساختار سازمانی", url: "/admin/org", icon: Building2, access: "org.view", keywords: "واحد سمت چارت انتصاب" },
       { title: "فهرست‌های پایه", url: "/admin/lookups", icon: ListTree, access: "lookups.manage", keywords: "فهرست مقدار پایه" },
+      { title: "جانشینی‌ها", url: "/admin/delegations", icon: UserRoundCog, access: "delegation.manage", keywords: "جانشین مرخصی نیابت" },
       { title: "تقویم کاری", url: "/admin/calendar", icon: CalendarDays, access: "workcalendar.manage", keywords: "تعطیلات تقویم روز کاری" },
       { title: "سوابق تغییرات", url: "/admin/audit", icon: History, access: "audit.view", keywords: "سابقه لاگ تغییر" },
       { title: "پشتیبان‌گیری", url: "/admin/backups", icon: DatabaseBackup, access: "backup.manage", keywords: "پشتیبان بک‌آپ بازیابی" },

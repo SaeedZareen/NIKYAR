@@ -1,17 +1,18 @@
 from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
+from django.db import transaction
 from django.db.models import Count, Prefetch
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import ensure_csrf_cookie
 from drf_spectacular.utils import extend_schema
-from rest_framework import filters, permissions, status
+from rest_framework import filters, generics, permissions, serializers, status
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.response import Response
 from rest_framework.throttling import ScopedRateThrottle
 from rest_framework.views import APIView
 
 from core.audit.models import AuditLog
-from core.audit.service import AuditedModelViewSet, record
+from core.audit.service import AuditedModelViewSet, diff, record, snapshot
 from core.kernel.api import BusinessError, HasPerm, MultiValueFilter
 from core.kernel.collation import PersianOrderingFilter
 from core.kernel.registry import permission_groups
@@ -20,7 +21,7 @@ from core.notifications.service import notify
 from core.org.models import Assignment
 
 from .models import Role, User
-from .serializers import ChangePasswordSerializer, LoginSerializer, MeSerializer, PermissionGroupSerializer, RoleSerializer, UserSerializer
+from .serializers import ChangePasswordSerializer, LoginSerializer, MeSerializer, PermissionGroupSerializer, ProfileSerializer, RoleSerializer, UserSerializer
 
 
 @method_decorator(ensure_csrf_cookie, name="get")
@@ -59,6 +60,48 @@ class SessionView(APIView):
             record(request, AuditLog.Action.LOGOUT, request.user)
         logout(request)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class UserLookupSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    full_name = serializers.CharField()
+    username = serializers.CharField()
+
+
+class UserLookupView(generics.ListAPIView):
+    """جست‌وجوی کاربران فعال برای انتخاب در فرم‌ها (جانشین، گیرنده)؛ برای هر کاربر واردشده، فقط نام و نام کاربری."""
+
+    permission_classes = [HasPerm]
+    perms = {"*": None}
+    serializer_class = UserLookupSerializer
+    pagination_class = None
+    filter_backends = [filters.SearchFilter, PersianOrderingFilter]
+    search_fields = ["username", "first_name", "last_name", "mobile"]
+    ordering = ["last_name", "first_name"]
+
+    def get_queryset(self):
+        return User.objects.filter(is_active=True)
+
+    def list(self, request, *args, **kwargs):
+        users = self.filter_queryset(self.get_queryset())[:20]
+        return Response([{"id": u.id, "full_name": u.get_full_name() or u.username, "username": u.username} for u in users])
+
+
+class ProfileView(APIView):
+    """«حساب من»: ایمیل، موبایل و تصویر امضای کاربر واردشده (با ثبت در سوابق)."""
+
+    @extend_schema(request=ProfileSerializer, responses=MeSerializer)
+    @transaction.atomic
+    def patch(self, request):
+        user = request.user
+        s = ProfileSerializer(user, data=request.data, partial=True)
+        s.is_valid(raise_exception=True)
+        before = snapshot(user)
+        s.save()
+        changes = diff(before, snapshot(user))
+        if changes:
+            record(request, AuditLog.Action.UPDATE, user, changes)
+        return Response(MeSerializer(user).data)
 
 
 class ChangePasswordView(APIView):

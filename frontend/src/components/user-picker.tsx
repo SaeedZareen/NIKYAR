@@ -17,7 +17,7 @@ type Props = {
   placeholder?: string
 } & Pick<React.AriaAttributes, "aria-invalid" | "aria-describedby">
 
-/** انتخاب کاربر فعال با جست‌وجو در سرور (نام، نام کاربری، موبایل). */
+/** انتخاب کاربر فعال با جست‌وجو در سرور (نام، نام کاربری، موبایل)؛ برای هر کاربر واردشده (بدون مجوز فهرست کاربران). */
 export function UserPicker({ id, value, onChange, placeholder = "انتخاب کاربر", ...aria }: Props) {
   const [open, setOpen] = React.useState(false)
   const [search, setSearch] = React.useState("")
@@ -29,7 +29,7 @@ export function UserPicker({ id, value, onChange, placeholder = "انتخاب ک
 
   const users = useQuery({
     queryKey: ["users", "picker", debounced],
-    queryFn: () => unwrap(api.GET("/api/auth/users/", { params: { query: { search: debounced || undefined, is_active: "true", page_size: 20 } } })),
+    queryFn: () => unwrap(api.GET("/api/auth/user-lookup/", { params: { query: { search: debounced || undefined } } })),
     enabled: open,
     placeholderData: keepPreviousData,
   })
@@ -48,7 +48,7 @@ export function UserPicker({ id, value, onChange, placeholder = "انتخاب ک
           <CommandList>
             <CommandEmpty>{users.isFetching ? "در حال جست‌وجو…" : "کاربری پیدا نشد."}</CommandEmpty>
             <CommandGroup>
-              {(users.data?.results ?? []).map((u) => (
+              {(users.data ?? []).map((u) => (
                 <CommandItem
                   key={u.id}
                   value={String(u.id)}

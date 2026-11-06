@@ -8,6 +8,8 @@ import { NotFound, PageFallback, RequireAccess, RouteError } from "./route-state
 const LoginPage = lazy(() => import("@/pages/login-page"))
 const HomePage = lazy(() => import("@/pages/home-page"))
 const NotificationsPage = lazy(() => import("@/pages/notifications-page"))
+const AccountPage = lazy(() => import("@/pages/account/account-page"))
+const DelegationsPage = lazy(() => import("@/pages/admin/delegations-page"))
 const UsersPage = lazy(() => import("@/pages/admin/users-page"))
 const RolesPage = lazy(() => import("@/pages/admin/roles-page"))
 const OrgPage = lazy(() => import("@/pages/admin/org-page"))
@@ -40,6 +42,8 @@ export const router = createBrowserRouter([
         children: [
           { index: true, element: page(<HomePage />) },
           { path: "notifications", element: page(<NotificationsPage />) },
+          { path: "account", element: page(<AccountPage />) },
+          { path: "admin/delegations", element: page(<DelegationsPage />, "delegation.manage") },
           { path: "admin/users", element: page(<UsersPage />, "accounts.users.view") },
           { path: "admin/roles", element: page(<RolesPage />, "accounts.roles.manage") },
           { path: "admin/org", element: page(<OrgPage />, "org.view") },
