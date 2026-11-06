@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/layout/page-header"
 import { Section } from "@/components/layout/section"
 import { SectionNav } from "@/components/layout/section-nav"
 import { api, unwrap } from "@/lib/api/client"
+import { BackupSection } from "./backup-section"
 import { FilesSection } from "./files-section"
 import { FiscalYearSection } from "./fiscal-year-section"
 import { NumberingSection } from "./numbering-section"
@@ -19,6 +20,7 @@ const SECTION_FORMS: Record<string, (section: SectionInfo) => React.ReactNode> =
   files: (s) => <FilesSection section={s} />,
   "work-week": (s) => <WorkWeekSection section={s} />,
   numbering: (s) => <NumberingSection section={s} />,
+  backup: (s) => <BackupSection section={s} />,
 }
 
 export default function SettingsPage() {

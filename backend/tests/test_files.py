@@ -3,12 +3,17 @@ from datetime import timedelta
 
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.core.management import call_command
 from django.utils import timezone
 from rest_framework.test import APIClient
 
 from core.audit.models import AuditLog
 from core.files.models import StoredFile
+from core.jobs.registry import TASKS
+
+
+def run_task(name):
+    return TASKS[name].func()
+
 
 PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 64
 PDF = b"%PDF-1.7\n" + b"x" * 64
@@ -84,7 +89,7 @@ class TestFiles:
         fresh = upload(api, "new.pdf", PDF).json()["id"]
         StoredFile.objects.filter(pk=old).update(uploaded_at=timezone.now() - timedelta(hours=25))
         path = StoredFile.objects.get(pk=old).file.path
-        call_command("cleanup_files")
+        assert "۱ فایل" in run_task("files.cleanup")
         assert [str(pk) for pk in StoredFile.objects.values_list("pk", flat=True)] == [fresh]
         assert not os.path.exists(path)
 

@@ -10,7 +10,8 @@ const python = path.resolve(backend, "..", ".venv", process.platform === "win32"
 const dataDir = path.join(tmpdir(), "nikyar-e2e")
 const port = process.env.E2E_API_PORT ?? "8100"
 // آزمون‌های هم‌زمان بارها وارد می‌شوند؛ سقف تلاش ورود برای این سرور بالا برده می‌شود.
-const env = { ...process.env, NIKYAR_DATA_DIR: dataDir, NIKYAR_DEBUG: "1", NIKYAR_LOGIN_RATE: "1000/min" }
+// اجراکننده‌ی کارهای پس‌زمینه هر ثانیه صف را بررسی می‌کند (در نصب واقعی هر ۱۵ ثانیه).
+const env = { ...process.env, NIKYAR_DATA_DIR: dataDir, NIKYAR_DEBUG: "1", NIKYAR_LOGIN_RATE: "1000/min", NIKYAR_WORKER_INTERVAL: "1" }
 
 rmSync(dataDir, { recursive: true, force: true })
 for (const args of [["migrate", "-v", "0"], ["seed_demo"]]) {
@@ -18,5 +19,10 @@ for (const args of [["migrate", "-v", "0"], ["seed_demo"]]) {
   if (r.status !== 0) process.exit(r.status ?? 1)
 }
 const server = spawn(python, ["manage.py", "runserver", `127.0.0.1:${port}`, "--noreload"], { cwd: backend, env, stdio: "inherit" })
-for (const signal of ["SIGINT", "SIGTERM"]) process.on(signal, () => server.kill(signal))
+const worker = spawn(python, ["manage.py", "run_worker"], { cwd: backend, env, stdio: "inherit" })
+for (const signal of ["SIGINT", "SIGTERM"])
+  process.on(signal, () => {
+    worker.kill(signal)
+    server.kill(signal)
+  })
 server.on("exit", (code) => process.exit(code ?? 0))

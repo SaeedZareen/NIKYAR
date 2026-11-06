@@ -22,6 +22,8 @@ def _fast_tests(settings, tmp_path):
     cache.clear()
     # فایل‌های بارگذاری‌شده‌ی آزمون در پوشه‌ی موقت
     settings.MEDIA_ROOT = tmp_path / "media"
+    # پشتیبان‌ها و داده‌ی هر آزمون در پوشه‌ی موقت (هرگز backend/data)
+    settings.DATA_DIR = tmp_path
 
 
 @pytest.fixture

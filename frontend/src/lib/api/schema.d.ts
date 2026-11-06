@@ -162,6 +162,92 @@ export interface paths {
         patch: operations["auth_users_partial_update"];
         trace?: never;
     };
+    "/api/backups/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description پشتیبان‌ها: فهرست، ساخت دستی، دانلود، حذف و بازیابی (از فهرست یا فایل بارگذاری‌شده). */
+        get: operations["backups_list"];
+        put?: never;
+        /** @description پشتیبان‌ها: فهرست، ساخت دستی، دانلود، حذف و بازیابی (از فهرست یا فایل بارگذاری‌شده). */
+        post: operations["backups_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/backups/{name}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** @description پشتیبان‌ها: فهرست، ساخت دستی، دانلود، حذف و بازیابی (از فهرست یا فایل بارگذاری‌شده). */
+        delete: operations["backups_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/backups/{name}/download/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description پشتیبان‌ها: فهرست، ساخت دستی، دانلود، حذف و بازیابی (از فهرست یا فایل بارگذاری‌شده). */
+        get: operations["backups_download_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/backups/{name}/restore/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description پشتیبان‌ها: فهرست، ساخت دستی، دانلود، حذف و بازیابی (از فهرست یا فایل بارگذاری‌شده). */
+        post: operations["backups_restore_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/backups/upload-restore/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description پشتیبان‌ها: فهرست، ساخت دستی، دانلود، حذف و بازیابی (از فهرست یا فایل بارگذاری‌شده). */
+        post: operations["backups_upload_restore_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/calendar/": {
         parameters: {
             query?: never;
@@ -319,6 +405,74 @@ export interface paths {
         get: operations["files_policy_retrieve"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description سابقه‌ی اجرای کارهای پس‌زمینه و فهرست کارهای دوره‌ای با امکان اجرای فوری. */
+        get: operations["jobs_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description سابقه‌ی اجرای کارهای پس‌زمینه و فهرست کارهای دوره‌ای با امکان اجرای فوری. */
+        get: operations["jobs_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/tasks/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description سابقه‌ی اجرای کارهای پس‌زمینه و فهرست کارهای دوره‌ای با امکان اجرای فوری. */
+        get: operations["jobs_tasks_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/jobs/tasks/{task_name}/run/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description اجرای فوری یک کار؛ اجراکننده در چند ثانیه آن را برمی‌دارد. */
+        post: operations["jobs_tasks_run_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -618,6 +772,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/settings/backup/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description خواندن و ذخیره‌ی یک بخش. برای هر بخش اعلام‌شده یک زیرکلاس با serializer همان بخش ساخته می‌شود (urls.py). */
+        get: operations["settings_backup_retrieve"];
+        /** @description خواندن و ذخیره‌ی یک بخش. برای هر بخش اعلام‌شده یک زیرکلاس با serializer همان بخش ساخته می‌شود (urls.py). */
+        put: operations["settings_backup_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/settings/files/": {
         parameters: {
             query?: never;
@@ -792,6 +964,51 @@ export interface components {
             /** نشانی IP */
             ip: string | null;
         };
+        Backup: {
+            name: string;
+            kind: string;
+            readonly kind_label: string;
+            /** Format: date-time */
+            created_at: string;
+            size: number;
+            version: string;
+            org_name: string;
+            created_by: string;
+        };
+        BackupSettings: {
+            /**
+             * پشتیبان روزانه
+             * @default true
+             */
+            daily: boolean;
+            /**
+             * ساعت پشتیبان روزانه
+             * @default 02:00
+             */
+            daily_time: string;
+            /**
+             * تعداد نسخه‌های نگهداری‌شده
+             * @default 7
+             */
+            keep: number;
+        };
+        BackupSettingsRequest: {
+            /**
+             * پشتیبان روزانه
+             * @default true
+             */
+            daily: boolean;
+            /**
+             * ساعت پشتیبان روزانه
+             * @default 02:00
+             */
+            daily_time: string;
+            /**
+             * تعداد نسخه‌های نگهداری‌شده
+             * @default 7
+             */
+            keep: number;
+        };
         /** @enum {unknown} */
         BlankEnum: "";
         Branding: {
@@ -942,6 +1159,40 @@ export interface components {
         };
         Issued: {
             number: string;
+        };
+        Job: {
+            readonly id: number;
+            /** کار */
+            name: string;
+            readonly title: string;
+            /** وضعیت */
+            status: components["schemas"]["StatusEnum"];
+            readonly status_label: string;
+            /**
+             * تلاش‌ها
+             * Format: int64
+             */
+            attempts: number;
+            /**
+             * ایجاد
+             * Format: date-time
+             */
+            readonly created_at: string;
+            /**
+             * شروع
+             * Format: date-time
+             */
+            started_at: string | null;
+            /**
+             * پایان
+             * Format: date-time
+             */
+            finished_at: string | null;
+            /** نتیجه */
+            result: string;
+            /** خطا */
+            error: string;
+            readonly created_by_name: string;
         };
         /**
          * @description * `official` - رسمی
@@ -1180,6 +1431,10 @@ export interface components {
             count: number;
             results: components["schemas"]["AuditLog"][];
         };
+        PaginatedJobList: {
+            count: number;
+            results: components["schemas"]["Job"][];
+        };
         PaginatedUserList: {
             count: number;
             results: components["schemas"]["User"][];
@@ -1355,6 +1610,18 @@ export interface components {
          * @enum {string}
          */
         ResetEnum: "never" | "year" | "fiscal";
+        RestoreRequest: {
+            /**
+             * تأیید
+             * @description نام سازمان (یا «بازیابی» اگر نام سازمان ثبت نشده)
+             */
+            confirm: string;
+        };
+        RestoreResult: {
+            restored: components["schemas"]["Backup"];
+            /** @description پشتیبانی که پیش از بازیابی از وضع قبلی گرفته شد. */
+            safety: components["schemas"]["Backup"];
+        };
         Role: {
             readonly id: number;
             /** عنوان */
@@ -1408,6 +1675,14 @@ export interface components {
          * @enum {integer}
          */
         StartMonthEnum: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
+        /**
+         * @description * `queued` - در صف
+         *     * `running` - در حال اجرا
+         *     * `done` - انجام شد
+         *     * `failed` - ناموفق
+         * @enum {string}
+         */
+        StatusEnum: "queued" | "running" | "done" | "failed";
         StoredFile: {
             /** Format: uuid */
             readonly id: string;
@@ -1429,14 +1704,26 @@ export interface components {
             readonly is_image: boolean;
             readonly previewable: boolean;
         };
+        TaskInfo: {
+            name: string;
+            title: string;
+            /** @description شرح زمان‌بندی؛ خالی یعنی فقط اجرای دستی یا درخواستی. */
+            schedule: string;
+            /** Format: date-time */
+            next_run: string | null;
+            last_job: components["schemas"]["Job"] | null;
+        };
         UploadRequest: {
             /**
-             * فایل
+             * تأیید
+             * @description نام سازمان (یا «بازیابی» اگر نام سازمان ثبت نشده)
+             */
+            confirm: string;
+            /**
+             * فایل پشتیبان
              * Format: binary
              */
             file: string;
-            /** @default false */
-            images_only: boolean;
         };
         User: {
             readonly id: number;
@@ -2026,6 +2313,135 @@ export interface operations {
             };
         };
     };
+    backups_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Backup"][];
+                };
+            };
+        };
+    };
+    backups_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Backup"];
+                };
+            };
+        };
+    };
+    backups_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    backups_download_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/zip": string;
+                };
+            };
+        };
+    };
+    backups_restore_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RestoreRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["RestoreRequest"];
+                "multipart/form-data": components["schemas"]["RestoreRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RestoreResult"];
+                };
+            };
+        };
+    };
+    backups_upload_restore_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["UploadRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RestoreResult"];
+                };
+            };
+        };
+    };
     calendar_retrieve: {
         parameters: {
             query?: never;
@@ -2321,6 +2737,105 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FilePolicy"];
+                };
+            };
+        };
+    };
+    jobs_list: {
+        parameters: {
+            query?: {
+                /** @description چند مقدار با ویرگول جدا می‌شود. */
+                name?: string;
+                /** @description کدام فیلد باید هنگام مرتب‌سازی نتایج استفاده شود. */
+                ordering?: string;
+                /** @description یک شماره صفحه‌ در مجموعه نتایج صفحه‌بندی شده. */
+                page?: number;
+                /** @description تعداد نتایج برای نمایش در هر صفحه. */
+                page_size?: number;
+                /** @description چند مقدار با ویرگول جدا می‌شود. */
+                status?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedJobList"];
+                };
+            };
+        };
+    };
+    jobs_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description یک مقداد عدد یکتا که این کار سامانه را شناسایی میکند. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Job"];
+                };
+            };
+        };
+    };
+    jobs_tasks_list: {
+        parameters: {
+            query?: {
+                /** @description چند مقدار با ویرگول جدا می‌شود. */
+                name?: string;
+                /** @description کدام فیلد باید هنگام مرتب‌سازی نتایج استفاده شود. */
+                ordering?: string;
+                /** @description چند مقدار با ویرگول جدا می‌شود. */
+                status?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskInfo"][];
+                };
+            };
+        };
+    };
+    jobs_tasks_run_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                task_name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Job"];
                 };
             };
         };
@@ -3215,6 +3730,50 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SectionInfo"][];
+                };
+            };
+        };
+    };
+    settings_backup_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupSettings"];
+                };
+            };
+        };
+    };
+    settings_backup_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["BackupSettingsRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["BackupSettingsRequest"];
+                "multipart/form-data": components["schemas"]["BackupSettingsRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupSettings"];
                 };
             };
         };

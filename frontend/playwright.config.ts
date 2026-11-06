@@ -24,9 +24,11 @@ export default defineConfig({
     ...Object.entries(device).map(([name, use]) => ({
       name,
       dependencies: ["setup"],
-      testIgnore: /auth\.setup\.ts/,
+      testIgnore: [/auth\.setup\.ts/, /restore\.spec\.ts/],
       use: { ...use, storageState: ADMIN_STATE },
     })),
+    // بازیابی پشتیبان همه‌ی داده‌ها را جایگزین می‌کند؛ پس از پایان بقیه‌ی آزمون‌ها و به‌تنهایی اجرا می‌شود.
+    { name: "restore", testMatch: /restore\.spec\.ts/, dependencies: Object.keys(device), use: { ...device.desktop, storageState: ADMIN_STATE } },
   ],
   webServer: [
     { command: "node e2e/start-backend.mjs", url: `http://127.0.0.1:${apiPort}/api/health/`, reuseExistingServer: false, timeout: 120_000 },
