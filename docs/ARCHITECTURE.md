@@ -17,6 +17,7 @@
 | `core/audit/` | سابقه‌ی خودکار هر نوشتن در سطح فیلد (`AuditedModelViewSet`) و ورود/خروج |
 | `core/lookups/` | فهرست‌های پایه: سیستمی (اعلام در کد، همگام پس از migrate، قفل) و قابل ویرایش |
 | `core/files/` | فایل‌ها: بارگذاری با بررسی محتوای واقعی (`types.py`)، دریافت فقط از `/api/files/<id>/download/`، تصاحب/آزادسازی توسط رکورد صاحب، پاک‌سازی فایل‌های بی‌استفاده (`cleanup_files`)، بخش تنظیمات «فایل‌ها و پیوست‌ها» |
+| `core/workcalendar/` | تقویم کاری: بخش تنظیمات «روزها و ساعت کاری» (ساعت هر روز هفته)، تعطیلات رسمی و خاص سازمان، تعطیلات رسمی همراه برنامه (`data/official_holidays.json` از بسته‌ی آوان، بارگذاری خودکار پس از migrate، هر سال یک‌بار)، ورود از CSV، و خدمت `WorkCalendar` (`is_working_day`، `add_working_hours`، `add_working_days`) برای مهلت‌ها |
 | `core/settings/` | چارچوب تنظیمات: ذخیره‌ی مقدار هر بخش، API خواندن/ذخیره‌ی هر بخش، ثبت تغییر در سوابق |
 
 - هر برنامه مجوزها (`nikyar_permissions`)، فهرست‌های پایه (`nikyar_lookups`) و بخش‌های تنظیمات (`nikyar_settings`) را روی AppConfig اعلام می‌کند؛ هسته هرگز به ماژول‌ها وابسته نیست.
@@ -44,13 +45,13 @@ nikyar_settings = [SettingsSection(code="org-profile", title="مشخصات سا�
 | `components/form/` | فرم استاندارد (`useAppForm`)، `FormField`، فیلدهای ایرانی، `ErrorSummary` |
 | `components/layout/` | پوسته: نوار بالا، منوی کناری، زبانه‌های صفحه، جست‌وجوی سراسری، `PageHeader`، `Section` (جعبه‌ی گروه یکسان همه‌ی صفحه‌ها)، `SectionNav` (فهرست بخش‌ها در ستون کناری) |
 | `components/files/` | `FileDropzone` (کشیدن و رها کردن، پیشرفت، لغو، بررسی پیش از ارسال)، `AttachmentList` (پیش‌نمایش، دانلود، حذف)، `ImageInput` (لوگو و امضا)؛ بارگذاری در `lib/files.ts` |
-| `components/jalali-calendar.tsx` | تقویم شمسی آوان (تعطیلات رسمی، شنبه اول هفته)؛ رنگ‌ها از توکن‌ها |
+| `components/jalali-calendar.tsx` | تقویم شمسی آوان (شنبه اول هفته) با تعطیلات و روزهای غیرکاری همین سازمان از `useWorkCalendar` (`app/work-calendar.ts`)؛ شماره‌ی روز تعطیل قرمز؛ رنگ‌ها از توکن‌ها |
 | `lib/format.ts` | ارقام فارسی، مبلغ، تاریخ شمسی (date-fns-jalali) |
 | `lib/validators.ts` | کد ملی، موبایل، شبا، کارت، کد پستی + طرح‌های zod با پیام فارسی |
 | `lib/api/` | کارخواه API با نوع‌های خودکار (`schema.d.ts`)، `unwrap` و `ApiError` با پیام فارسی |
 | `app/` | نشست و نگهبان ورود (`auth.tsx`)، مسیرها با نگهبان مجوز، منو با مجوز هر بخش، QueryClient |
 | `components/form/` | علاوه بر فیلدها: `FormSheet` (پانل ویرایش)، `applyServerErrors` (خطای سرور روی فیلدها)، `UnsavedChangesGuard` (هشدار خروج با تغییر ذخیره‌نشده) |
-| `pages/admin/` | کاربران، نقش‌ها، ساختار سازمانی، فهرست‌های پایه، سوابق تغییرات، تنظیمات |
+| `pages/admin/` | کاربران، نقش‌ها، ساختار سازمانی، فهرست‌های پایه، تقویم کاری، سوابق تغییرات، تنظیمات |
 | `pages/ui-kit/` | نمونه‌ی همه‌ی اجزا (فقط مدیر کل) |
 
 ### جدول داده

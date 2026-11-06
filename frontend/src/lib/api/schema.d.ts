@@ -162,6 +162,98 @@ export interface paths {
         patch: operations["auth_users_partial_update"];
         trace?: never;
     };
+    "/api/calendar/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description برنامه‌ی هفته و همه‌ی تعطیلات، برای تقویم‌های سامانه (هر کاربر واردشده). */
+        get: operations["calendar_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/calendar/holidays/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description تعطیلات: خواندن برای همه‌ی کاربران واردشده؛ تعریف و ویرایش با مجوز مدیریت تقویم. */
+        get: operations["calendar_holidays_list"];
+        put?: never;
+        /** @description تعطیلات: خواندن برای همه‌ی کاربران واردشده؛ تعریف و ویرایش با مجوز مدیریت تقویم. */
+        post: operations["calendar_holidays_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/calendar/holidays/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description تعطیلات: خواندن برای همه‌ی کاربران واردشده؛ تعریف و ویرایش با مجوز مدیریت تقویم. */
+        get: operations["calendar_holidays_retrieve"];
+        /** @description تعطیلات: خواندن برای همه‌ی کاربران واردشده؛ تعریف و ویرایش با مجوز مدیریت تقویم. */
+        put: operations["calendar_holidays_update"];
+        post?: never;
+        /** @description تعطیلات: خواندن برای همه‌ی کاربران واردشده؛ تعریف و ویرایش با مجوز مدیریت تقویم. */
+        delete: operations["calendar_holidays_destroy"];
+        options?: never;
+        head?: never;
+        /** @description تعطیلات: خواندن برای همه‌ی کاربران واردشده؛ تعریف و ویرایش با مجوز مدیریت تقویم. */
+        patch: operations["calendar_holidays_partial_update"];
+        trace?: never;
+    };
+    "/api/calendar/holidays/import/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description ورود از فایل CSV (خروجی اکسل): هر سطر «تاریخ شمسی، عنوان» و اختیاری «نوع» (رسمی / خاص سازمان).
+         *     روزی که از قبل ثبت شده با عنوان تازه به‌روز می‌شود.
+         */
+        post: operations["calendar_holidays_import_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/calendar/holidays/load-official/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description افزودن تعطیلات رسمی یک سال (روزهای از قبل ثبت‌شده دست نمی‌خورند). */
+        post: operations["calendar_holidays_load_official_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/files/": {
         parameters: {
             query?: never;
@@ -511,6 +603,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/settings/work-week/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description خواندن و ذخیره‌ی یک بخش. برای هر بخش اعلام‌شده یک زیرکلاس با serializer همان بخش ساخته می‌شود (urls.py). */
+        get: operations["settings_work_week_retrieve"];
+        /** @description خواندن و ذخیره‌ی یک بخش. برای هر بخش اعلام‌شده یک زیرکلاس با serializer همان بخش ساخته می‌شود (urls.py). */
+        put: operations["settings_work_week_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -621,6 +731,17 @@ export interface components {
             /** @description نشانی تصویر لوگو؛ خالی یعنی بدون لوگو. */
             logo_url: string;
         };
+        Calendar: {
+            work_week: {
+                /** @description ۰ = شنبه … ۶ = جمعه */
+                day: number;
+                start: string;
+                end: string;
+            }[];
+            holidays: components["schemas"]["Holiday"][];
+            /** @description سال‌هایی که تعطیلات رسمی‌شان بارگذاری شده */
+            official_years: number[];
+        };
         ChangePasswordRequest: {
             /** گذرواژه‌ی فعلی */
             current_password: string;
@@ -709,6 +830,57 @@ export interface components {
             assignment: number;
             user: number;
             name: string;
+        };
+        Holiday: {
+            readonly id: number;
+            /**
+             * تاریخ
+             * @example 1405/08/14
+             */
+            date: string;
+            /** عنوان */
+            title: string;
+            /** نوع */
+            kind: components["schemas"]["KindEnum"];
+            readonly kind_label: string;
+        };
+        HolidayRequest: {
+            /**
+             * تاریخ
+             * @example 1405/08/14
+             */
+            date: string;
+            /** عنوان */
+            title: string;
+            /** نوع */
+            kind?: components["schemas"]["KindEnum"];
+        };
+        ImportError: {
+            line: number;
+            message: string;
+        };
+        ImportRequest: {
+            /**
+             * فایل
+             * Format: binary
+             */
+            file: string;
+        };
+        ImportResult: {
+            created: number;
+            updated: number;
+            errors: components["schemas"]["ImportError"][];
+        };
+        /**
+         * @description * `official` - رسمی
+         *     * `organization` - خاص سازمان
+         * @enum {string}
+         */
+        KindEnum: "official" | "organization";
+        LoadOfficialResult: {
+            created: number;
+            /** @description false یعنی فقط تعطیلات ثابت شمسی؛ تعطیلات قمری باید اضافه شوند. */
+            complete: boolean;
         };
         LoginRequest: {
             /** نام کاربری */
@@ -957,6 +1129,17 @@ export interface components {
             end_date?: string | null;
             /** سمت اصلی */
             is_primary?: boolean;
+        };
+        PatchedHolidayRequest: {
+            /**
+             * تاریخ
+             * @example 1405/08/14
+             */
+            date?: string;
+            /** عنوان */
+            title?: string;
+            /** نوع */
+            kind?: components["schemas"]["KindEnum"];
         };
         PatchedLookupItemRequest: {
             /** فهرست */
@@ -1219,6 +1402,86 @@ export interface components {
             roles?: number[];
             /** گذرواژه */
             password: string;
+        };
+        WorkWeekSettings: {
+            /**
+             * روزها و ساعت کاری
+             * @default [
+             *       {
+             *         "day": 0,
+             *         "start": "08:00",
+             *         "end": "16:00"
+             *       },
+             *       {
+             *         "day": 1,
+             *         "start": "08:00",
+             *         "end": "16:00"
+             *       },
+             *       {
+             *         "day": 2,
+             *         "start": "08:00",
+             *         "end": "16:00"
+             *       },
+             *       {
+             *         "day": 3,
+             *         "start": "08:00",
+             *         "end": "16:00"
+             *       },
+             *       {
+             *         "day": 4,
+             *         "start": "08:00",
+             *         "end": "16:00"
+             *       }
+             *     ]
+             */
+            days: {
+                /** @description ۰ = شنبه … ۶ = جمعه */
+                day: number;
+                start: string;
+                end: string;
+            }[];
+        };
+        WorkWeekSettingsRequest: {
+            /**
+             * روزها و ساعت کاری
+             * @default [
+             *       {
+             *         "day": 0,
+             *         "start": "08:00",
+             *         "end": "16:00"
+             *       },
+             *       {
+             *         "day": 1,
+             *         "start": "08:00",
+             *         "end": "16:00"
+             *       },
+             *       {
+             *         "day": 2,
+             *         "start": "08:00",
+             *         "end": "16:00"
+             *       },
+             *       {
+             *         "day": 3,
+             *         "start": "08:00",
+             *         "end": "16:00"
+             *       },
+             *       {
+             *         "day": 4,
+             *         "start": "08:00",
+             *         "end": "16:00"
+             *       }
+             *     ]
+             */
+            days: {
+                /** @description ۰ = شنبه … ۶ = جمعه */
+                day: number;
+                start: string;
+                end: string;
+            }[];
+        };
+        YearRequest: {
+            /** سال */
+            year: number;
         };
     };
     responses: never;
@@ -1650,6 +1913,219 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["User"];
+                };
+            };
+        };
+    };
+    calendar_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Calendar"];
+                };
+            };
+        };
+    };
+    calendar_holidays_list: {
+        parameters: {
+            query?: {
+                /** @description سال شمسی */
+                year?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Holiday"][];
+                };
+            };
+        };
+    };
+    calendar_holidays_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HolidayRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["HolidayRequest"];
+                "multipart/form-data": components["schemas"]["HolidayRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Holiday"];
+                };
+            };
+        };
+    };
+    calendar_holidays_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description یک مقداد عدد یکتا که این تعطیلی را شناسایی میکند. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Holiday"];
+                };
+            };
+        };
+    };
+    calendar_holidays_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description یک مقداد عدد یکتا که این تعطیلی را شناسایی میکند. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HolidayRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["HolidayRequest"];
+                "multipart/form-data": components["schemas"]["HolidayRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Holiday"];
+                };
+            };
+        };
+    };
+    calendar_holidays_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description یک مقداد عدد یکتا که این تعطیلی را شناسایی میکند. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    calendar_holidays_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description یک مقداد عدد یکتا که این تعطیلی را شناسایی میکند. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedHolidayRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedHolidayRequest"];
+                "multipart/form-data": components["schemas"]["PatchedHolidayRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Holiday"];
+                };
+            };
+        };
+    };
+    calendar_holidays_import_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["ImportRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ImportResult"];
+                };
+            };
+        };
+    };
+    calendar_holidays_load_official_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["YearRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["YearRequest"];
+                "multipart/form-data": components["schemas"]["YearRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoadOfficialResult"];
                 };
             };
         };
@@ -2646,6 +3122,50 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OrgProfileSettings"];
+                };
+            };
+        };
+    };
+    settings_work_week_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkWeekSettings"];
+                };
+            };
+        };
+    };
+    settings_work_week_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["WorkWeekSettingsRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["WorkWeekSettingsRequest"];
+                "multipart/form-data": components["schemas"]["WorkWeekSettingsRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkWeekSettings"];
                 };
             };
         };

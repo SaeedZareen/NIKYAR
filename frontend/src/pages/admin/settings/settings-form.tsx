@@ -43,13 +43,15 @@ export function SettingsLoader<T>({ section, query, children }: { section: Secti
 type Props<T extends FieldValues, O extends FieldValues> = {
   section: SectionInfo
   form: UseFormReturn<T, unknown, O>
-  labels: Partial<Record<keyof T & string, string>>
+  labels: Record<string, string>
+  /** false: محتوا خودش چیدمان دارد (مثل جدول ساعت کاری) و در FormGrid قرار نمی‌گیرد. */
+  grid?: boolean
   onSubmit: (e: React.FormEvent) => void
   saving: boolean
   children: React.ReactNode
 }
 
-export function SettingsForm<T extends FieldValues, O extends FieldValues>({ section, form, labels, onSubmit, saving, children }: Props<T, O>) {
+export function SettingsForm<T extends FieldValues, O extends FieldValues>({ section, form, labels, onSubmit, saving, grid = true, children }: Props<T, O>) {
   const dirty = form.formState.isDirty
   return (
     <form onSubmit={onSubmit} noValidate>
@@ -71,7 +73,7 @@ export function SettingsForm<T extends FieldValues, O extends FieldValues>({ sec
       >
         <div className="flex flex-col gap-4">
           <ErrorSummary errors={form.formState.errors} labels={labels} submitCount={form.formState.submitCount} />
-          <FormGrid>{children}</FormGrid>
+          {grid ? <FormGrid>{children}</FormGrid> : children}
         </div>
       </Section>
       <UnsavedChangesGuard when={dirty && !saving} />

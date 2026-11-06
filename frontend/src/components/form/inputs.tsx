@@ -43,6 +43,24 @@ export function DigitsInput({ kind, value, onChange, className, ...props }: Base
   )
 }
 
+/** ساعت ۲۴ساعته «08:30»: با تایپ چهار رقم، دونقطه خودکار گذاشته می‌شود. */
+export function TimeInput({ value, onChange, className, ...props }: BaseProps) {
+  return (
+    <Input
+      dir="ltr"
+      inputMode="numeric"
+      autoComplete="off"
+      value={value ?? ""}
+      onChange={(e) => {
+        const d = onlyDigits(e.target.value).slice(0, 4)
+        onChange(d.length > 2 ? `${d.slice(0, 2)}:${d.slice(2)}` : d)
+      }}
+      className={cn("w-20 text-center tabular-nums", className)}
+      {...props}
+    />
+  )
+}
+
 /** شبا: پیشوند ثابت IR و ۲۴ رقم. مقدار خروجی کامل است (IR…). */
 export function IbanInput({ value, onChange, className, ...props }: BaseProps) {
   const digits = (value ?? "").replace(/^IR/i, "")
