@@ -1,6 +1,6 @@
 import * as React from "react"
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
-import { Bell, Info, Plus, Save, Trash2 } from "lucide-react"
+import { Bell, Hash, Info, Plus, Save, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { AttachmentList, FileDropzone } from "@/components/files"
 import { JalaliCalendar } from "@/components/jalali-calendar"
@@ -29,7 +29,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { api, unwrap } from "@/lib/api/client"
 import type { StoredFile } from "@/lib/files"
-import { formatDate, formatNumber } from "@/lib/format"
+import { formatDate, formatNumber, toFaDigits } from "@/lib/format"
 import { employees, UNIT_NAMES } from "./sample-data"
 
 const chartData = UNIT_NAMES.map((unit) => ({ unit, count: employees.filter((e) => e.unit === unit && e.status === "active").length }))
@@ -187,6 +187,10 @@ export default function ComponentsPage() {
           <AttachmentsDemo />
         </Section>
 
+        <Section title="شماره‌گذاری اسناد" description="هر صدور یک شماره‌ی یکتا و پشت‌سرهم می‌گیرد؛ الگو در «تنظیمات › شماره‌گذاری اسناد» تغییر می‌کند.">
+          <NumberingDemo />
+        </Section>
+
         <Section title="در حال بارگذاری" description="اسکلت هم‌شکل محتوای نهایی، تا صفحه هنگام رسیدن داده جابه‌جا نشود.">
           <div className="flex w-full items-center gap-3">
             <Skeleton className="size-10 rounded-full" />
@@ -214,6 +218,38 @@ function AttachmentsDemo() {
           toast.success(`«${f.name}» حذف شد.`)
         }}
       />
+    </div>
+  )
+}
+
+function NumberingDemo() {
+  const [numbers, setNumbers] = React.useState<string[]>([])
+  const [pending, setPending] = React.useState(false)
+  const issue = async () => {
+    setPending(true)
+    try {
+      const { number } = await unwrap(api.POST("/api/numbering/sequences/sample/issue/"))
+      setNumbers((prev) => [number, ...prev].slice(0, 5))
+    } finally {
+      setPending(false)
+    }
+  }
+  return (
+    <div className="flex w-full flex-col gap-3">
+      <Button variant="outline" className="self-start" onClick={issue} disabled={pending}>
+        <Hash /> صدور شماره‌ی نمونه
+      </Button>
+      {numbers.length > 0 && (
+        <ul aria-label="شماره‌های صادرشده" className="flex flex-wrap gap-2">
+          {numbers.map((n) => (
+            <li key={n}>
+              <Badge variant="secondary" className="tabular-nums">
+                <bdi>{toFaDigits(n)}</bdi>
+              </Badge>
+            </li>
+          ))}
+        </ul>
+      )}
     </div>
   )
 }
