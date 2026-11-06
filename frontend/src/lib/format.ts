@@ -34,6 +34,18 @@ export function formatMoney(value: number | null | undefined): string {
   return value == null ? "—" : `${formatNumber(value)} تومان`
 }
 
+/** حجم فایل: «۸۵۰ بایت»، «۱۲ کیلوبایت»، «۲٫۵ مگابایت». */
+export function formatFileSize(bytes: number): string {
+  const units = ["بایت", "کیلوبایت", "مگابایت", "گیگابایت"]
+  let value = bytes
+  let i = 0
+  while (value >= 1024 && i < units.length - 1) {
+    value /= 1024
+    i++
+  }
+  const digits = i === 0 || value >= 10 ? 0 : 1
+  return `${new Intl.NumberFormat("fa-IR", { maximumFractionDigits: digits }).format(value)} ${units[i]}`
+}
 
 /** قالب تاریخ در API: «۱۴۰۵/۰۸/۱۴» با ارقام لاتین. */
 const API_DATE_FORMAT = "yyyy/MM/dd"

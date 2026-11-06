@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { formatDate, formatMoney, formatNumber, parseJalali, toEnDigits, toFaDigits, toJalaliString } from "@/lib/format"
+import { formatDate, formatFileSize, formatMoney, formatNumber, parseJalali, toEnDigits, toFaDigits, toJalaliString } from "@/lib/format"
 import {
   isValidCardNumber,
   isValidIban,
@@ -21,6 +21,9 @@ describe("format", () => {
     expect(formatNumber(12450000)).toBe("۱۲٬۴۵۰٬۰۰۰")
     expect(formatMoney(1500)).toBe("۱٬۵۰۰ تومان")
     expect(formatNumber(null)).toBe("—")
+    expect(formatFileSize(850)).toBe("۸۵۰ بایت")
+    expect(formatFileSize(2.5 * 1024 * 1024)).toBe("۲٫۵ مگابایت")
+    expect(formatFileSize(12 * 1024)).toBe("۱۲ کیلوبایت")
   })
   it("round-trips Jalali API dates", () => {
     const d = parseJalali("1405/08/14")

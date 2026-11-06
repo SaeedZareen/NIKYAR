@@ -2,6 +2,7 @@ import * as React from "react"
 import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
 import { Bell, Info, Plus, Save, Trash2 } from "lucide-react"
 import { toast } from "sonner"
+import { AttachmentList, FileDropzone } from "@/components/files"
 import { JalaliCalendar } from "@/components/jalali-calendar"
 import { PageHeader } from "@/components/layout/page-header"
 import { Section as PageSection } from "@/components/layout/section"
@@ -26,6 +27,8 @@ import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetT
 import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import { api, unwrap } from "@/lib/api/client"
+import type { StoredFile } from "@/lib/files"
 import { formatDate, formatNumber } from "@/lib/format"
 import { employees, UNIT_NAMES } from "./sample-data"
 
@@ -180,6 +183,10 @@ export default function ComponentsPage() {
           </Tabs>
         </Section>
 
+        <Section title="پیوست‌ها" description="کشیدن و رها کردن، پیشرفت و لغو، پیش‌نمایش تصویر و PDF. نوع و حجم مجاز از تنظیمات خوانده می‌شود.">
+          <AttachmentsDemo />
+        </Section>
+
         <Section title="در حال بارگذاری" description="اسکلت هم‌شکل محتوای نهایی، تا صفحه هنگام رسیدن داده جابه‌جا نشود.">
           <div className="flex w-full items-center gap-3">
             <Skeleton className="size-10 rounded-full" />
@@ -191,5 +198,22 @@ export default function ComponentsPage() {
         </Section>
       </div>
     </>
+  )
+}
+
+function AttachmentsDemo() {
+  const [files, setFiles] = React.useState<StoredFile[]>([])
+  return (
+    <div className="flex w-full flex-col gap-3">
+      <FileDropzone multiple onUploaded={(f) => setFiles((prev) => [...prev, f])} />
+      <AttachmentList
+        files={files}
+        onRemove={async (f) => {
+          await unwrap(api.DELETE("/api/files/{id}/", { params: { path: { id: f.id } } }))
+          setFiles((prev) => prev.filter((x) => x.id !== f.id))
+          toast.success(`«${f.name}» حذف شد.`)
+        }}
+      />
+    </div>
   )
 }

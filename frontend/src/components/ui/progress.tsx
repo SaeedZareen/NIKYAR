@@ -18,8 +18,9 @@ function Progress({
     >
       <ProgressPrimitive.Indicator
         data-slot="progress-indicator"
-        className="size-full flex-1 bg-primary transition-all"
-        style={{ transform: `translateX(-${100 - (value || 0)}%)` }}
+        // نیک‌یار: پر شدن از سمت شروع در راست‌به‌چپ (translate منفی در rtl برعکس می‌شود).
+        className="size-full flex-1 translate-x-[calc(-1*var(--progress-rest))] bg-primary transition-all rtl:translate-x-(--progress-rest)"
+        style={{ "--progress-rest": `${100 - (value || 0)}%` } as React.CSSProperties}
       />
     </ProgressPrimitive.Root>
   )

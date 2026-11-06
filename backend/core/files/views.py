@@ -37,23 +37,31 @@ class UploadSerializer(serializers.Serializer):
     images_only = serializers.BooleanField(default=False)
 
 
-class PolicySerializer(serializers.Serializer):
+class FileTypeInfoSerializer(serializers.Serializer):
+    extension = serializers.CharField()
+    label = serializers.CharField()
+    is_image = serializers.BooleanField()
+    allowed = serializers.BooleanField()
+
+
+class FilePolicySerializer(serializers.Serializer):
     max_size = serializers.IntegerField(help_text="بایت")
-    extensions = serializers.ListField(child=serializers.CharField())
-    image_extensions = serializers.ListField(child=serializers.CharField())
+    types = FileTypeInfoSerializer(many=True, help_text="همه‌ی نوع‌های شناخته‌شده؛ allowed یعنی در تنظیمات مجاز شده.")
 
 
-class PolicyView(generics.GenericAPIView):
-    """سقف حجم و نوع‌های مجاز، برای بررسی پیش از بارگذاری در مرورگر."""
+class FilePolicyView(generics.GenericAPIView):
+    """سقف حجم و نوع‌های فایل، برای راهنما و بررسی پیش از بارگذاری در مرورگر."""
 
     permission_classes = [HasPerm]
     perms = {"*": None}
-    serializer_class = PolicySerializer
+    serializer_class = FilePolicySerializer
 
     def get(self, request):
         rules = service.policy()
-        rules["image_extensions"] = [e for e in rules["extensions"] if e in IMAGE_EXTENSIONS]
-        return Response(self.get_serializer(rules).data)
+        types = [
+            {"extension": ext, "label": t.label, "is_image": ext in IMAGE_EXTENSIONS, "allowed": ext in rules["extensions"]} for ext, t in FILE_TYPES.items()
+        ]
+        return Response(self.get_serializer({"max_size": rules["max_size"], "types": types}).data)
 
 
 class UploadView(generics.GenericAPIView):

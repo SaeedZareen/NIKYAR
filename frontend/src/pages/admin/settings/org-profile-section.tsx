@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { z } from "zod"
 import { toast } from "sonner"
 import { BRANDING_KEY } from "@/app/branding"
+import { ImageInput } from "@/components/files"
 import { FormField } from "@/components/form/form-field"
 import { DigitsInput } from "@/components/form/inputs"
 import { applyServerErrors } from "@/components/form/server-errors"
@@ -20,6 +21,7 @@ const optional = <T extends z.ZodType<string, string>>(schema: T) => z.union([z.
 const schema = z.object({
   name: schemas.required("نام کامل سازمان"),
   short_name: z.string().trim().max(40, "نام کوتاه حداکثر ۴۰ نویسه است."),
+  logo: z.string(),
   national_id: optional(schemas.legalNationalId),
   economic_code: z.string().refine((v) => v === "" || [11, 12].includes(onlyDigits(v).length), "کد اقتصادی ۱۱ یا ۱۲ رقم است."),
   registration_number: z.string(),
@@ -32,6 +34,7 @@ const schema = z.object({
 const LABELS: Record<keyof Profile, string> = {
   name: "نام کامل سازمان",
   short_name: "نام کوتاه",
+  logo: "لوگو",
   national_id: "شناسه‌ی ملی",
   economic_code: "کد اقتصادی",
   registration_number: "شماره‌ی ثبت",
@@ -107,6 +110,14 @@ function OrgProfileForm({ section, profile }: { section: SectionInfo; profile: P
       />
       <FormField control={control} name="website" label={LABELS.website} render={({ field, id, aria }) => <Input id={id} type="url" dir="ltr" autoComplete="url" {...field} {...aria} />} />
       <FormField control={control} name="postal_code" label={LABELS.postal_code} render={({ field, id, aria }) => <DigitsInput kind="postalCode" id={id} {...field} {...aria} />} />
+      <FormField
+        control={control}
+        name="logo"
+        label={LABELS.logo}
+        className="col-span-full"
+        description="PNG با زمینه‌ی شفاف بهترین نتیجه را دارد؛ در صفحه‌ی ورود و نوار بالا نمایش داده می‌شود."
+        render={({ field, id, aria }) => <ImageInput id={id} value={field.value} onChange={field.onChange} alt="لوگوی سازمان" {...aria} />}
+      />
       <FormField control={control} name="address" label={LABELS.address} className="col-span-full" render={({ field, id, aria }) => <Textarea id={id} rows={2} {...field} {...aria} />} />
     </SettingsForm>
   )

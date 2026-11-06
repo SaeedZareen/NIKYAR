@@ -87,3 +87,11 @@ class TestFiles:
         call_command("cleanup_files")
         assert [str(pk) for pk in StoredFile.objects.values_list("pk", flat=True)] == [fresh]
         assert not os.path.exists(path)
+
+
+@pytest.mark.django_db
+def test_policy_lists_types_for_any_signed_in_user(make_user, client_for):
+    r = client_for(make_user("clerk")).get("/api/files/policy/").json()
+    assert r["max_size"] == 10 * 1024 * 1024
+    types = {t["extension"]: t for t in r["types"]}
+    assert types["pdf"]["allowed"] and types["png"]["is_image"] and not types["gif"]["allowed"]

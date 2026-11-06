@@ -5,6 +5,7 @@ import { PageHeader } from "@/components/layout/page-header"
 import { Section } from "@/components/layout/section"
 import { SectionNav } from "@/components/layout/section-nav"
 import { api, unwrap } from "@/lib/api/client"
+import { FilesSection } from "./files-section"
 import { FiscalYearSection } from "./fiscal-year-section"
 import { OrgProfileSection } from "./org-profile-section"
 import type { SectionInfo } from "./settings-form"
@@ -13,6 +14,7 @@ import type { SectionInfo } from "./settings-form"
 const SECTION_FORMS: Record<string, (section: SectionInfo) => React.ReactNode> = {
   "org-profile": (s) => <OrgProfileSection section={s} />,
   "fiscal-year": (s) => <FiscalYearSection section={s} />,
+  files: (s) => <FilesSection section={s} />,
 }
 
 export default function SettingsPage() {

@@ -223,7 +223,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description سقف حجم و نوع‌های مجاز، برای بررسی پیش از بارگذاری در مرورگر. */
+        /** @description سقف حجم و نوع‌های فایل، برای راهنما و بررسی پیش از بارگذاری در مرورگر. */
         get: operations["files_policy_retrieve"];
         put?: never;
         post?: never;
@@ -627,6 +627,12 @@ export interface components {
             /** گذرواژه‌ی جدید */
             new_password: string;
         };
+        FilePolicy: {
+            /** @description بایت */
+            max_size: number;
+            /** @description همه‌ی نوع‌های شناخته‌شده؛ allowed یعنی در تنظیمات مجاز شده. */
+            types: components["schemas"]["FileTypeInfo"][];
+        };
         FileSettings: {
             /**
              * حداکثر حجم هر فایل (مگابایت)
@@ -672,6 +678,12 @@ export interface components {
              *     ]
              */
             allowed_extensions: components["schemas"]["AllowedExtensionsEnum"][];
+        };
+        FileTypeInfo: {
+            extension: string;
+            label: string;
+            is_image: boolean;
+            allowed: boolean;
         };
         FiscalYearSettings: {
             /**
@@ -1041,12 +1053,6 @@ export interface components {
         PermissionItem: {
             code: string;
             label: string;
-        };
-        Policy: {
-            /** @description بایت */
-            max_size: number;
-            extensions: string[];
-            image_extensions: string[];
         };
         Position: {
             readonly id: number;
@@ -1729,7 +1735,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Policy"];
+                    "application/json": components["schemas"]["FilePolicy"];
                 };
             };
         };

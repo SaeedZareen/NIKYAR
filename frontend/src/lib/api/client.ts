@@ -24,10 +24,12 @@ function cookie(name: string): string {
   return document.cookie.match(new RegExp(`(?:^|; )${name}=([^;]*)`))?.[1] ?? ""
 }
 
-/** درخواست‌های تغییر‌دهنده توکن CSRF نشست را همراه دارند. */
+/** توکن CSRF نشست؛ همراه هر درخواست تغییر‌دهنده فرستاده می‌شود. */
+export const csrfToken = () => decodeURIComponent(cookie("csrftoken"))
+
 const csrf: Middleware = {
   onRequest({ request }) {
-    if (!["GET", "HEAD", "OPTIONS"].includes(request.method)) request.headers.set("X-CSRFToken", decodeURIComponent(cookie("csrftoken")))
+    if (!["GET", "HEAD", "OPTIONS"].includes(request.method)) request.headers.set("X-CSRFToken", csrfToken())
     return request
   },
 }

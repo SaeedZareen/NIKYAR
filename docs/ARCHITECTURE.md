@@ -16,6 +16,7 @@
 | `core/org/` | واحد سازمانی درختی، سمت (یک مدیر فعال در هر واحد)، انتصاب در بازه‌ی [شروع، پایان) |
 | `core/audit/` | سابقه‌ی خودکار هر نوشتن در سطح فیلد (`AuditedModelViewSet`) و ورود/خروج |
 | `core/lookups/` | فهرست‌های پایه: سیستمی (اعلام در کد، همگام پس از migrate، قفل) و قابل ویرایش |
+| `core/files/` | فایل‌ها: بارگذاری با بررسی محتوای واقعی (`types.py`)، دریافت فقط از `/api/files/<id>/download/`، تصاحب/آزادسازی توسط رکورد صاحب، پاک‌سازی فایل‌های بی‌استفاده (`cleanup_files`)، بخش تنظیمات «فایل‌ها و پیوست‌ها» |
 | `core/settings/` | چارچوب تنظیمات: ذخیره‌ی مقدار هر بخش، API خواندن/ذخیره‌ی هر بخش، ثبت تغییر در سوابق |
 
 - هر برنامه مجوزها (`nikyar_permissions`)، فهرست‌های پایه (`nikyar_lookups`) و بخش‌های تنظیمات (`nikyar_settings`) را روی AppConfig اعلام می‌کند؛ هسته هرگز به ماژول‌ها وابسته نیست.
@@ -29,6 +30,8 @@ nikyar_settings = [SettingsSection(code="org-profile", title="مشخصات سا�
 # API: GET/PUT /api/settings/org-profile/ (مجوز settings.manage) — خواندن در کد: core.settings.service.read("org-profile")
 ```
 
+فیلد فایل در تنظیمات و فرم‌ها `FileRefField` است (شناسه‌ی فایل): با ذخیره فایل جدید تصاحب و فایل قبلی حذف می‌شود؛ در سوابق نام فایل ثبت می‌شود.
+
 در رابط کاربری، فرم هر بخش در `pages/admin/settings/` ساخته و در `SECTION_FORMS` صفحه‌ی تنظیمات ثبت می‌شود (قاب مشترک: `SettingsForm`). نام سازمان بدون ورود از `/api/org/branding/` خوانده می‌شود (`useBranding`).
 - نوع‌های TypeScript رابط کاربری از سند OpenAPI سرور ساخته می‌شوند: `cd frontend && npm run api:types` (پس از هر تغییر API).
 
@@ -40,6 +43,7 @@ nikyar_settings = [SettingsSection(code="org-profile", title="مشخصات سا�
 | `components/data-table/` | جدول داده‌ی کامل روی TanStack Table v9 |
 | `components/form/` | فرم استاندارد (`useAppForm`)، `FormField`، فیلدهای ایرانی، `ErrorSummary` |
 | `components/layout/` | پوسته: نوار بالا، منوی کناری، زبانه‌های صفحه، جست‌وجوی سراسری، `PageHeader`، `Section` (جعبه‌ی گروه یکسان همه‌ی صفحه‌ها)، `SectionNav` (فهرست بخش‌ها در ستون کناری) |
+| `components/files/` | `FileDropzone` (کشیدن و رها کردن، پیشرفت، لغو، بررسی پیش از ارسال)، `AttachmentList` (پیش‌نمایش، دانلود، حذف)، `ImageInput` (لوگو و امضا)؛ بارگذاری در `lib/files.ts` |
 | `components/jalali-calendar.tsx` | تقویم شمسی آوان (تعطیلات رسمی، شنبه اول هفته)؛ رنگ‌ها از توکن‌ها |
 | `lib/format.ts` | ارقام فارسی، مبلغ، تاریخ شمسی (date-fns-jalali) |
 | `lib/validators.ts` | کد ملی، موبایل، شبا، کارت، کد پستی + طرح‌های zod با پیام فارسی |
