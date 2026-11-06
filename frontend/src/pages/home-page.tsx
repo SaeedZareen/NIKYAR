@@ -14,7 +14,7 @@ export default function HomePage() {
 
   return (
     <>
-      <PageHeader title="پیشخوان" description={`${user.title}، خوش آمدید · ${formatDate(new Date(), "full")}`} />
+      <PageHeader title="پیشخوان" meta={`${user.title}، خوش آمدید · ${formatDate(new Date(), "full")}`} />
       <div className="grid gap-4 lg:grid-cols-3">
         <Section title="سمت‌های من">
           {user.positions.length ? (

@@ -65,7 +65,7 @@ export function SettingsForm<T extends FieldValues, O extends FieldValues>({ sec
             <Button type="button" variant="ghost" disabled={saving || !dirty} onClick={() => form.reset()}>
               <RotateCcw /> بازگردانی
             </Button>
-            {dirty && !saving && <span className="text-xs text-muted-foreground">تغییرهای ذخیره‌نشده دارید.</span>}
+            {dirty && !saving && <span className="text-2xs text-muted-foreground">تغییرهای ذخیره‌نشده دارید.</span>}
           </>
         }
       >

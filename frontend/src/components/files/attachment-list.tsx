@@ -30,7 +30,7 @@ export function AttachmentList({ files, onRemove, emptyText = "پیوستی ثب
               <a href={f.url} download className="truncate font-medium outline-none hover:underline focus-visible:ring-2 focus-visible:ring-ring/40" dir="auto">
                 {f.name}
               </a>
-              <span className="text-muted-foreground">
+              <span className="text-2xs text-muted-foreground">
                 {formatFileSize(f.size)} · {formatDateTime(f.uploaded_at)}
               </span>
             </div>

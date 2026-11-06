@@ -37,13 +37,15 @@ test.describe("فایل‌ها و پیوست‌ها", () => {
   test("تنظیمات فایل‌ها: اعتبارسنجی حجم و نوع", async ({ page }) => {
     await page.goto("/admin/settings?section=files")
     const section = page.getByRole("region", { name: "فایل‌ها و پیوست‌ها" })
-    await section.getByLabel("حداکثر حجم هر فایل").fill("0")
+    await section.getByLabel("حداکثر حجم هر فایل", { exact: true }).fill("0")
     const checked = section.getByRole("checkbox", { checked: true })
     while ((await checked.count()) > 0) await checked.first().click()
     await section.getByRole("button", { name: "ذخیره‌ی تغییرات" }).click()
     const summary = page.getByRole("alert").filter({ hasText: "لطفاً این موارد را اصلاح کنید" })
     await expect(summary).toContainText("حجم باید بین ۱ تا ۲۰۰ مگابایت باشد.")
     await expect(summary).toContainText("دست‌کم یک نوع فایل را مجاز کنید.")
+    // بالای صفحه: پس از پیمایش، نوار بالای ثابت روی دکمه‌ی راهنمای عنوان می‌افتد و axe آن را کوچک می‌شمارد.
+    await page.evaluate(() => window.scrollTo(0, 0))
     await expectAccessible(page)
   })
 

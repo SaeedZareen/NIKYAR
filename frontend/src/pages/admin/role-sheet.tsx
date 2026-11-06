@@ -89,7 +89,7 @@ export function RoleSheet({ role, open, onOpenChange }: { role: Role | null; ope
                         aria-label={`همه‌ی مجوزهای ${group.title}`}
                       />
                       <span className="font-semibold">{group.title}</span>
-                      <span className="ms-auto text-xs font-normal text-muted-foreground">
+                      <span className="ms-auto text-2xs font-normal text-muted-foreground">
                         {formatNumber(selected)} از {formatNumber(codes.length)}
                       </span>
                     </FieldLegend>

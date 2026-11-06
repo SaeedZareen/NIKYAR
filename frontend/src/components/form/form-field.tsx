@@ -1,5 +1,6 @@
 import * as React from "react"
 import { Controller, type Control, type ControllerRenderProps, type FieldPath, type FieldValues } from "react-hook-form"
+import { InfoTip } from "@/components/info-tip"
 import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field"
 import { cn } from "@/lib/utils"
 
@@ -18,7 +19,10 @@ type Props<TValues extends FieldValues, TName extends FieldPath<TValues>> = {
   name: TName
   label: string
   required?: boolean
+  /** راهنمای فیلد: جمع‌شده در نشانه‌ی ⓘ کنار برچسب (صفحه‌خوان آن را همراه فیلد می‌خواند). */
   description?: React.ReactNode
+  /** اطلاعات پویا یا ضروری که همیشه باید دیده شود (مثل شمار نویسه یا نتیجه‌ی محاسبه)، با متن کوچک زیر فیلد. */
+  hint?: React.ReactNode
   /** side: برچسب کنار فیلد روی صفحه‌های بزرگ (سبک فرم‌های اداری)؛ stacked: برچسب بالای فیلد. */
   layout?: FieldLayout
   /**
@@ -34,7 +38,7 @@ type Props<TValues extends FieldValues, TName extends FieldPath<TValues>> = {
 export const fieldId = (name: string) => `field-${name.replace(/\./g, "-")}`
 
 /**
- * فیلد فرم: اتصال react-hook-form به Field شادسی‌اِن با برچسب، توضیح و خطای مشخص زیر فیلد.
+ * فیلد فرم: اتصال react-hook-form به Field شادسی‌اِن با برچسب، راهنمای جمع‌شده (ⓘ)، متن کمکی کوچک و خطای مشخص زیر فیلد.
  */
 export function FormField<TValues extends FieldValues, TName extends FieldPath<TValues>>({
   control,
@@ -42,6 +46,7 @@ export function FormField<TValues extends FieldValues, TName extends FieldPath<T
   label,
   required,
   description,
+  hint,
   layout = "side",
   group,
   className,
@@ -54,26 +59,33 @@ export function FormField<TValues extends FieldValues, TName extends FieldPath<T
       name={name}
       render={({ field, fieldState }) => {
         const invalid = fieldState.invalid
-        const describedBy = [description && `${id}-description`, invalid && `${id}-error`].filter(Boolean).join(" ") || undefined
+        const describedBy = [description && `${id}-description`, hint && `${id}-hint`, invalid && `${id}-error`].filter(Boolean).join(" ") || undefined
         return (
           <Field
             data-invalid={invalid}
             className={cn(layout === "side" && "md:grid md:grid-cols-[8rem_minmax(0,1fr)] md:items-start md:gap-x-3", className)}
           >
-            <FieldLabel
-              htmlFor={group ? undefined : id}
-              id={group ? `${id}-label` : undefined}
-              className={cn(layout === "side" && "md:min-h-7 md:pt-1")}
-            >
-              <span>
+            <div className={cn("flex items-start gap-1", layout === "side" && "md:min-h-7 md:pt-1")}>
+              <FieldLabel htmlFor={group ? undefined : id} id={group ? `${id}-label` : undefined}>
                 {label}
-                {required && (
-                  <span className="ms-0.5 text-destructive" aria-hidden>
-                    *
+              </FieldLabel>
+              {/* ستاره بیرون از برچسب: نام دسترس‌پذیر فیلد دقیقاً همان برچسب است (الزامی بودن با aria-required) */}
+              {required && (
+                <span className="-ms-0.5 text-xs/relaxed text-destructive" aria-hidden>
+                  *
+                </span>
+              )}
+              {description && (
+                <>
+                  <InfoTip label={`راهنمای ${label}`} className="-my-1">
+                    {description}
+                  </InfoTip>
+                  <span id={`${id}-description`} className="sr-only">
+                    {description}
                   </span>
-                )}
-              </span>
-            </FieldLabel>
+                </>
+              )}
+            </div>
             <div className="flex min-w-0 flex-col gap-1.5">
               {render({
                 field,
@@ -86,7 +98,7 @@ export function FormField<TValues extends FieldValues, TName extends FieldPath<T
                   "aria-labelledby": group ? `${id}-label` : undefined,
                 },
               })}
-              {description && <FieldDescription id={`${id}-description`}>{description}</FieldDescription>}
+              {hint && <FieldDescription id={`${id}-hint`}>{hint}</FieldDescription>}
               <FieldError id={`${id}-error`} errors={[fieldState.error]} />
             </div>
           </Field>

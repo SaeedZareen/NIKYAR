@@ -1,10 +1,14 @@
 import * as React from "react"
+import { InfoTip } from "@/components/info-tip"
 import { Card, CardContent, CardFooter } from "@/components/ui/card"
 import { cn } from "@/lib/utils"
 
 type Props = {
   title: string
+  /** راهنمای بخش: جمع‌شده در نشانه‌ی ⓘ کنار عنوان. */
   description?: React.ReactNode
+  /** اطلاعات پویا کنار عنوان که همیشه دیده می‌شود (مثل وضعیت یا انتخاب فعلی)، با متن کوچک. */
+  meta?: React.ReactNode
   /** اقدام‌های همین بخش (کنار عنوان). */
   actions?: React.ReactNode
   footer?: React.ReactNode
@@ -14,19 +18,29 @@ type Props = {
 }
 
 /**
- * بخش صفحه (جعبه‌ی گروه): سربرگ یکسان با عنوان h2، توضیح و اقدام‌ها، سپس محتوا و پانویس.
+ * بخش صفحه (جعبه‌ی گروه): سربرگ یکسان با عنوان h2، راهنمای ⓘ، اطلاعات جانبی و اقدام‌ها، سپس محتوا و پانویس.
  * همه‌ی صفحه‌ها برای گروه‌بندی محتوا از همین استفاده می‌کنند تا فاصله‌ها و اندازه‌ها یکی باشد.
  */
-export function Section({ title, description, actions, footer, className, contentClassName, children }: Props) {
+export function Section({ title, description, meta, actions, footer, className, contentClassName, children }: Props) {
   const id = React.useId()
   return (
-    <Card role="region" aria-labelledby={id} className={cn("gap-0 py-0", className)}>
+    <Card role="region" aria-labelledby={id} aria-describedby={description ? `${id}-description` : undefined} className={cn("gap-0 py-0", className)}>
       {/* سربرگ تک‌ردیفه با ارتفاع ثابت: عنوان، توضیح کوتاه کنارش و اقدام‌ها در انتها */}
       <div className="flex min-h-10 flex-wrap items-center gap-x-3 gap-y-1 border-b bg-muted/50 px-(--card-spacing) py-2">
         <h2 id={id} className="text-sm font-semibold">
           {title}
         </h2>
-        {description && <p className="text-xs text-muted-foreground">{description}</p>}
+        {description && (
+          <>
+            <InfoTip label={`راهنمای ${title}`} className="-ms-2">
+              {description}
+            </InfoTip>
+            <span id={`${id}-description`} className="sr-only">
+              {description}
+            </span>
+          </>
+        )}
+        {meta && <p className="text-2xs text-muted-foreground">{meta}</p>}
         {actions && <div className="ms-auto flex items-center gap-2">{actions}</div>}
       </div>
       <CardContent className={cn("flex-1 py-(--card-spacing)", contentClassName)}>{children}</CardContent>

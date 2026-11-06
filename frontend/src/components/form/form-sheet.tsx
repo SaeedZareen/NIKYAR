@@ -33,7 +33,7 @@ export function FormSheet({ open, onOpenChange, title, description, onSubmit, su
       >
         <SheetHeader className="border-b bg-muted/50 py-3">
           <SheetTitle className="text-sm">{title}</SheetTitle>
-          {description && <SheetDescription>{description}</SheetDescription>}
+          {description && <SheetDescription className="text-2xs">{description}</SheetDescription>}
         </SheetHeader>
         <form id={id} onSubmit={onSubmit} noValidate className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
           {children}

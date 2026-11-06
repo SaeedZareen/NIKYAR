@@ -35,7 +35,7 @@ export default function EmployeePage() {
     <>
       <PageHeader
         title={name}
-        description={
+        meta={
           <>
             کد پرسنلی {toFaDigits(e.code)} · {e.position} · <StatusBadge tone={e.status === "active" ? "success" : "warning"}>{STATUS_LABELS[e.status]}</StatusBadge>
           </>

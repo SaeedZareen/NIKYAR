@@ -57,7 +57,7 @@ function FiscalYearForm({ section, fiscal }: { section: SectionInfo; fiscal: Fis
         control={form.control}
         name="start_month"
         label={LABELS.start_month}
-        description={`دوره‌ی مالی جاری: از ${formatDate(period.start, "long")} تا ${formatDate(period.end, "long")}`}
+        hint={`دوره‌ی مالی جاری: از ${formatDate(period.start, "long")} تا ${formatDate(period.end, "long")}`}
         render={({ field, id, aria }) => (
           <Select value={field.value} onValueChange={field.onChange}>
             <SelectTrigger id={id} className="w-full" {...aria}>

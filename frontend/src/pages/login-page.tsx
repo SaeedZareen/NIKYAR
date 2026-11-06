@@ -53,7 +53,7 @@ export default function LoginPage() {
           <BrandMark className="size-10 rounded-lg text-lg" />
           <div>
             <p className="text-base font-bold">نیک‌یار</p>
-            <p className="text-xs text-header-muted">سامانه‌ی یکپارچه‌ی مدیریت فرایند و منابع سازمانی</p>
+            <p className="text-2xs text-header-muted">سامانه‌ی یکپارچه‌ی مدیریت فرایند و منابع سازمانی</p>
           </div>
         </div>
         <ul className="flex max-w-md flex-col gap-4 text-sm">
@@ -61,7 +61,7 @@ export default function LoginPage() {
           <li>هر کار بر اساس ساختار سازمانی به کارتابل فرد درست می‌رسد.</li>
           <li>ماژول‌ها را به‌تدریج اضافه کنید: پرونده‌ی پرسنلی امروز، حقوق و انبار فردا.</li>
         </ul>
-        <p className="text-xs text-header-muted">نسخه‌ی ۰٫۲</p>
+        <p className="text-2xs text-header-muted">نسخه‌ی ۰٫۲</p>
       </section>
 
       <div className="flex items-center justify-center p-6">
@@ -70,7 +70,7 @@ export default function LoginPage() {
             <BrandMark className="mb-3 size-12 rounded-lg text-xl lg:hidden" />
             {orgName && <p className="mb-1 text-sm font-semibold text-primary">{orgName}</p>}
             <h1 className="text-lg font-bold">ورود به سامانه</h1>
-            <p className="mt-1 text-xs text-muted-foreground">با نام کاربری و گذرواژه‌ی سازمانی وارد شوید.</p>
+            <p className="mt-1 text-2xs text-muted-foreground">با نام کاربری و گذرواژه‌ی سازمانی وارد شوید.</p>
           </div>
           <ErrorSummary errors={form.formState.errors} labels={LABELS} submitCount={form.formState.submitCount} />
           <FieldGroup className="gap-3">
