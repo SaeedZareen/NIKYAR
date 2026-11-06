@@ -33,6 +33,7 @@ class MyNotificationViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     """اعلان‌های کاربر واردشده (هر کاربر فقط اعلان‌های خودش)."""
 
     serializer_class = NotificationSerializer
+    lookup_value_regex = r"\d+"
     permission_classes = [HasPerm]
     perms = {"*": None}
 
@@ -51,7 +52,7 @@ class MyNotificationViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     def unread_count(self, request):
         return Response({"unread": self.get_queryset().filter(read_at__isnull=True).count()})
 
-    @extend_schema(request=None, responses={204: None})
+    @extend_schema(request=None, responses={204: None}, parameters=[OpenApiParameter("id", int, OpenApiParameter.PATH)])
     @action(detail=True, methods=["post"])
     def read(self, request, pk=None):
         self.get_queryset().filter(pk=pk, read_at__isnull=True).update(read_at=timezone.now())

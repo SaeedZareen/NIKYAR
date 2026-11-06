@@ -21,6 +21,7 @@ import { formatDate } from "@/lib/format"
 import { BrandMark } from "./brand-mark"
 import { ChangePasswordDialog } from "./change-password-dialog"
 import { CommandMenu } from "./command-menu"
+import { NotificationBell } from "./notification-bell"
 
 const THEMES = [
   { value: "light", label: "روشن", icon: Sun },
@@ -89,6 +90,7 @@ export function AppHeader() {
         </DropdownMenuContent>
       </DropdownMenu>
 
+      <NotificationBell />
       <UserMenu />
       <CommandMenu open={searchOpen} onOpenChange={setSearchOpen} />
     </header>
