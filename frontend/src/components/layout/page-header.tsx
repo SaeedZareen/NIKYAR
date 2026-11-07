@@ -33,23 +33,30 @@ export function PageHeader({ title, description, meta, breadcrumbs, actions }: P
       <div className="min-w-0">
         {breadcrumbs && breadcrumbs.length > 0 && (
           <Breadcrumb className="mb-1">
-            <BreadcrumbList>
+            {/* مسیر همیشه یک خط؛ بخش بلند کوتاه می‌شود و متن کاملش با نگه داشتن نشانگر دیده می‌شود. */}
+            <BreadcrumbList className="flex-nowrap">
               {breadcrumbs.map((c, i) => (
                 <React.Fragment key={i}>
-                  <BreadcrumbItem>
+                  <BreadcrumbItem className="min-w-0">
                     {c.to ? (
                       <BreadcrumbLink asChild>
-                        <Link to={c.to}>{c.label}</Link>
+                        <Link to={c.to} title={c.label} className="truncate">
+                          {c.label}
+                        </Link>
                       </BreadcrumbLink>
                     ) : (
-                      c.label
+                      <span title={c.label} className="truncate">
+                        {c.label}
+                      </span>
                     )}
                   </BreadcrumbItem>
                   <BreadcrumbSeparator />
                 </React.Fragment>
               ))}
-              <BreadcrumbItem>
-                <BreadcrumbPage>{title}</BreadcrumbPage>
+              <BreadcrumbItem className="min-w-0">
+                <BreadcrumbPage title={title} className="truncate">
+                  {title}
+                </BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>

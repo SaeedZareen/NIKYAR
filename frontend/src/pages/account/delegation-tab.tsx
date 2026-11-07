@@ -8,7 +8,7 @@ import { Section } from "@/components/layout/section"
 import { Button } from "@/components/ui/button"
 import { api, unwrap } from "@/lib/api/client"
 
-/** «حساب من › جانشینی»: جانشین‌های من (هنگام مرخصی یا مأموریت) و کسانی که من جانشینشان هستم. */
+/** «حساب من › جانشینی»: جانشین‌های من (برای همه‌ی کارهایم در یک بازه‌ی تاریخ) و کسانی که من جانشینشان هستم. */
 export function DelegationTab({ userId }: { userId: number }) {
   const list = useQuery({ queryKey: [...DELEGATIONS_KEY, "mine"], queryFn: () => unwrap(api.GET("/api/delegations/")) })
   const [adding, setAdding] = React.useState(false)
@@ -19,7 +19,7 @@ export function DelegationTab({ userId }: { userId: number }) {
     <div className="flex flex-col gap-4">
       <Section
         title="جانشین‌های من"
-        description="هنگام مرخصی یا مأموریت، در بازه‌ی تعیین‌شده کارهای شما به کارتابل جانشین هم می‌رسد و او «به نیابت از» شما اقدام می‌کند."
+        description="در بازه‌ی تعیین‌شده (مثلاً مرخصی، مأموریت یا هر غیبت دیگر) همه‌ی کارهای شما در همه‌ی فرایندها و فرم‌ها به کارتابل جانشین هم می‌رسد و او «به نیابت از» شما اقدام می‌کند."
         actions={
           <Button size="sm" onClick={() => setAdding(true)}>
             <Plus /> جانشین جدید

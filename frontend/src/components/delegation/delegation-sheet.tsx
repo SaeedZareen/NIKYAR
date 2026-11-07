@@ -53,7 +53,7 @@ export function DelegationSheet({ choosePrincipal, open, onOpenChange }: { choos
   })
 
   return (
-    <FormSheet open={open} onOpenChange={onOpenChange} title="جانشین جدید" description="در این بازه، کارهای اصیل به کارتابل جانشین هم می‌رسد." onSubmit={onSubmit} submitting={save.isPending}>
+    <FormSheet open={open} onOpenChange={onOpenChange} title="جانشین جدید" description="در این بازه، همه‌ی کارهای اصیل در همه‌ی فرایندها و فرم‌ها به کارتابل جانشین هم می‌رسد." onSubmit={onSubmit} submitting={save.isPending}>
       <ErrorSummary errors={form.formState.errors} labels={LABELS} submitCount={form.formState.submitCount} />
       <FormGrid>
         {choosePrincipal && (

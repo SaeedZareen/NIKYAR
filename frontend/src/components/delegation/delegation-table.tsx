@@ -10,7 +10,7 @@ import { api, errorMessage, unwrap, type Schemas } from "@/lib/api/client"
 import { formatDate } from "@/lib/format"
 import { DELEGATIONS_KEY } from "@/app/delegations"
 
-export type Delegation = Schemas["Delegation"]
+type Delegation = Schemas["Delegation"]
 const col = columnHelper<Delegation>()
 const STATUS = {
   active: { label: "جاری", tone: "success" },

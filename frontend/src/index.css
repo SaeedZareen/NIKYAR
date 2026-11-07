@@ -70,7 +70,11 @@
 
 /* تم روشن: آبی اداری، زمینه‌ی خاکستری‌آبی روشن */
 :root {
+    color-scheme: light;
     --radius: 0.5rem;
+    /* نوار پیمایش: هم‌رنگ پوسته، باریک، با رنگ پررنگ‌تر هنگام نگه داشتن نشانگر */
+    --scrollbar-thumb: oklch(0.48 0.025 255 / 35%);
+    --scrollbar-thumb-hover: oklch(0.48 0.025 255 / 60%);
     --background: oklch(0.967 0.006 250);
     --foreground: oklch(0.22 0.02 255);
     --card: oklch(1 0 0);
@@ -114,6 +118,9 @@
 }
 
 .dark {
+    color-scheme: dark;
+    --scrollbar-thumb: oklch(0.72 0.02 250 / 30%);
+    --scrollbar-thumb-hover: oklch(0.72 0.02 250 / 55%);
     --background: oklch(0.17 0.02 255);
     --foreground: oklch(0.94 0.01 250);
     --card: oklch(0.21 0.025 255);
@@ -203,6 +210,14 @@
   }
   button:not(:disabled), [role="button"]:not(:disabled) {
     cursor: pointer;
+  }
+  /* نوار پیمایش همه‌ی صفحه‌ها و بخش‌ها: باریک و هم‌رنگ پوسته (نه نوار خاکستری پیش‌فرض مرورگر) */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
+  }
+  *:hover {
+    scrollbar-color: var(--scrollbar-thumb-hover) transparent;
   }
   /* اعداد جدول‌ها و کدها هم‌عرض */
   table, [data-slot="kbd"] {

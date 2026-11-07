@@ -966,7 +966,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description نام و لوگوی سازمان برای صفحه‌ی ورود و نوار بالا؛ بدون نیاز به ورود. */
+        /** @description نام و لوگوی سازمان و نسخه‌ی نیک‌یار برای صفحه‌ی ورود و نوار بالا؛ بدون نیاز به ورود. */
         get: operations["org_branding_retrieve"];
         put?: never;
         post?: never;
@@ -1343,6 +1343,8 @@ export interface components {
             short_name: string;
             /** @description نشانی تصویر لوگو؛ خالی یعنی بدون لوگو. */
             logo_url: string;
+            /** @description نسخه‌ی نیک‌یار، برای صفحه‌ی ورود. */
+            version: string;
         };
         Calendar: {
             work_week: {

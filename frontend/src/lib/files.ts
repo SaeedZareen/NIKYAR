@@ -4,7 +4,7 @@ import { api, ApiError, csrfToken, unwrap, type Schemas } from "@/lib/api/client
 import { formatFileSize } from "@/lib/format"
 
 export type StoredFile = Schemas["StoredFile"]
-export type FilePolicy = Schemas["FilePolicy"]
+type FilePolicy = Schemas["FilePolicy"]
 
 /** سقف حجم و نوع‌های مجاز (از تنظیمات «فایل‌ها و پیوست‌ها»). */
 export function useFilePolicy() {
