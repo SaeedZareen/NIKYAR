@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.db.models import Count, Prefetch, Q
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema_field
@@ -137,10 +138,11 @@ class BrandingSerializer(serializers.Serializer):
     name = serializers.CharField()
     short_name = serializers.CharField()
     logo_url = serializers.CharField(help_text="نشانی تصویر لوگو؛ خالی یعنی بدون لوگو.")
+    version = serializers.CharField(help_text="نسخه‌ی نیک‌یار، برای صفحه‌ی ورود.")
 
 
 class BrandingView(generics.GenericAPIView):
-    """نام و لوگوی سازمان برای صفحه‌ی ورود و نوار بالا؛ بدون نیاز به ورود."""
+    """نام و لوگوی سازمان و نسخه‌ی نیک‌یار برای صفحه‌ی ورود و نوار بالا؛ بدون نیاز به ورود."""
 
     permission_classes = [permissions.AllowAny]
     serializer_class = BrandingSerializer
@@ -148,4 +150,4 @@ class BrandingView(generics.GenericAPIView):
     def get(self, request):
         profile = settings_service.read("org-profile")
         logo_url = f"/api/files/{profile['logo']}/download/?inline=1" if profile["logo"] else ""
-        return Response(self.get_serializer({**profile, "logo_url": logo_url}).data)
+        return Response(self.get_serializer({**profile, "logo_url": logo_url, "version": settings.VERSION}).data)

@@ -2,7 +2,7 @@ import * as React from "react"
 import { checkFile, uploadFile, useFilePolicy, type StoredFile } from "@/lib/files"
 import { errorMessage } from "@/lib/api/client"
 
-export type UploadItem = { key: string; name: string; progress: number; error?: string; controller: AbortController }
+type UploadItem = { key: string; name: string; progress: number; error?: string; controller: AbortController }
 
 /** صف بارگذاری: بررسی هر فایل با قواعد سرور، پیشرفت، لغو و پیام خطای هر فایل. */
 export function useUploads({ imagesOnly = false, onUploaded }: { imagesOnly?: boolean; onUploaded: (file: StoredFile) => void }) {

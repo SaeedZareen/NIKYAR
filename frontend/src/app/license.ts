@@ -1,8 +1,7 @@
 // وضعیت لایسنس: نوار هشدار پوسته و صفحه‌ی «ماژول‌ها و لایسنس».
 import { useQuery } from "@tanstack/react-query"
-import { api, unwrap, type Schemas } from "@/lib/api/client"
+import { api, unwrap } from "@/lib/api/client"
 
-export type LicenseStatus = Schemas["LicenseStatus"]
 export const LICENSE_KEY = ["license"] as const
 
 export function useLicense() {

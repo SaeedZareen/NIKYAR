@@ -127,9 +127,3 @@ def notification_kinds() -> list[NotificationKind]:
 
 def module_specs() -> list[ModuleSpec]:
     return [config.nikyar_module for config in apps.get_app_configs() if getattr(config, "nikyar_module", None)]
-
-
-def module_of(app_label: str) -> str | None:
-    """کد ماژولی که برنامه‌ی app_label جزو آن است؛ None یعنی هسته."""
-    module = getattr(apps.get_app_config(app_label), "nikyar_module", None)
-    return module.code if module else None

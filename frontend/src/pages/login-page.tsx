@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button"
 import { FieldGroup } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Spinner } from "@/components/ui/spinner"
+import { toFaDigits } from "@/lib/format"
 import { schemas } from "@/lib/validators"
 
 const schema = z.object({ username: schemas.required("نام کاربری"), password: schemas.required("گذرواژه") })
@@ -28,7 +29,7 @@ export default function LoginPage() {
   const [params] = useSearchParams()
   const navigate = useNavigate()
   const login = useLogin()
-  const { name: orgName } = useBranding()
+  const { name: orgName, version } = useBranding()
   const form = useAppForm(schema, { username: "", password: "" })
   const next = safeNext(params.get("next"))
   React.useEffect(() => {
@@ -61,7 +62,7 @@ export default function LoginPage() {
           <li>هر کار بر اساس ساختار سازمانی به کارتابل فرد درست می‌رسد.</li>
           <li>ماژول‌ها را به‌تدریج اضافه کنید: پرونده‌ی پرسنلی امروز، حقوق و انبار فردا.</li>
         </ul>
-        <p className="text-2xs text-header-muted">نسخه‌ی ۰٫۲</p>
+        <p className="text-2xs text-header-muted">{version && `نسخه‌ی ${toFaDigits(version.split(".").slice(0, 2).join("٫"))}`}</p>
       </section>
 
       <div className="flex items-center justify-center p-6">

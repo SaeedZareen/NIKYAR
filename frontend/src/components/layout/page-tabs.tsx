@@ -1,7 +1,7 @@
 // زبانه‌های صفحه‌های باز (مانند نرم‌افزارهای اداری): هر صفحه در یک زبانه می‌ماند و با یک کلیک برمی‌گردید.
 import * as React from "react"
 import { useLocation, useNavigate } from "react-router"
-import { X } from "lucide-react"
+import { ChevronLeft, ChevronRight, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 type Tab = { key: string; path: string; title: string }
@@ -97,11 +97,9 @@ function TabStrip({ tabs, active, onClose }: { tabs: Tab[]; active: string; onCl
 
   if (tabs.length === 0) return null
   return (
-    <nav
-      ref={nav}
-      aria-label="صفحه‌های باز"
-      className="hidden h-9 shrink-0 items-end gap-px overflow-x-auto border-b bg-secondary px-2 [scrollbar-width:thin] md:flex"
-    >
+    <div className="hidden h-9 shrink-0 items-end border-b bg-secondary md:flex">
+      <ScrollButton strip={nav} direction="start" count={tabs.length} />
+      <nav ref={nav} aria-label="صفحه‌های باز" className="flex h-full min-w-0 flex-1 items-end gap-px overflow-x-auto px-1 [scrollbar-width:none]">
       {tabs.map((t) => {
         const on = t.key === active
         return (
@@ -133,6 +131,54 @@ function TabStrip({ tabs, active, onClose }: { tabs: Tab[]; active: string; onCl
           </div>
         )
       })}
-    </nav>
+      </nav>
+      <ScrollButton strip={nav} direction="end" count={tabs.length} />
+    </div>
+  )
+}
+
+/**
+ * دکمه‌ی جابه‌جایی نوار زبانه‌ها وقتی زبانه‌ها در عرض جا نمی‌شوند (به‌جای نوار پیمایش مرورگر).
+ * در راست‌به‌چپ scrollLeft از صفر (شروع) به سمت منفی (انتها) می‌رود.
+ */
+function ScrollButton({ strip, direction, count }: { strip: React.RefObject<HTMLElement | null>; direction: "start" | "end"; count: number }) {
+  const [enabled, setEnabled] = React.useState(false)
+  React.useEffect(() => {
+    const el = strip.current
+    if (!el) return
+    const update = () => {
+      const scrolled = Math.abs(el.scrollLeft)
+      setEnabled(direction === "start" ? scrolled > 1 : scrolled + el.clientWidth < el.scrollWidth - 1)
+    }
+    // چرخ ماوس روی نوار زبانه‌ها آن را افقی جابه‌جا می‌کند.
+    const wheel = (e: WheelEvent) => {
+      if (el.scrollWidth <= el.clientWidth || Math.abs(e.deltaX) > Math.abs(e.deltaY)) return
+      e.preventDefault()
+      el.scrollLeft -= e.deltaY
+    }
+    update()
+    const observer = new ResizeObserver(update)
+    observer.observe(el)
+    el.addEventListener("scroll", update, { passive: true })
+    if (direction === "start") el.addEventListener("wheel", wheel, { passive: false })
+    return () => {
+      observer.disconnect()
+      el.removeEventListener("scroll", update)
+      el.removeEventListener("wheel", wheel)
+    }
+  }, [strip, direction, count])
+
+  const Icon = direction === "start" ? ChevronRight : ChevronLeft
+  if (!enabled) return null
+  return (
+    <button
+      type="button"
+      tabIndex={-1}
+      aria-hidden
+      onClick={() => strip.current?.scrollBy({ left: direction === "start" ? 240 : -240, behavior: "smooth" })}
+      className="mb-0.5 grid size-7 shrink-0 place-items-center rounded-md text-muted-foreground hover:bg-background/60 hover:text-foreground"
+    >
+      <Icon className="size-4" />
+    </button>
   )
 }
