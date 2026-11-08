@@ -2991,6 +2991,8 @@ export interface components {
             file: string;
             /** @default false */
             images_only: boolean;
+            /** @description نام اصلی فایل؛ Django نویسه‌های نامرئی مثل نیم‌فاصله را از نام بارگذاری حذف می‌کند. */
+            name?: string;
         };
         User: {
             readonly id: number;

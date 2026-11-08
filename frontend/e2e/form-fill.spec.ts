@@ -47,6 +47,25 @@ const SPECIAL = {
   ],
 }
 
+const SYSTEM = {
+  sections: [
+    {
+      id: "s",
+      title: "داده‌های سامانه",
+      columns: 2,
+      fields: [
+        { id: "me", type: "submitter", label: "درخواست‌کننده", props: { items: ["name", "username"] } },
+        { id: "category", type: "lookup", label: "دسته", required: true, props: { list: "form-category" } },
+        { id: "unit", type: "org_unit", label: "واحد" },
+        { id: "approver", type: "user", label: "تأییدکننده" },
+        { id: "place", type: "region", label: "محل", required: true },
+        { id: "docs", type: "attachment", label: "مدارک", props: { multiple: true, max_files: 2 } },
+        { id: "receiver", type: "signature_pad", label: "امضای تحویل‌گیرنده", required: true },
+      ],
+    },
+  ],
+}
+
 /** فرم منتشرشده‌ی یکتا برای هر آزمون، با همان API که طراح (3.4) به کار می‌برد. */
 async function publishForm(page: Page, title: string, definition: object = DEFINITION): Promise<number> {
   await page.goto("/forms")
@@ -171,6 +190,57 @@ test.describe("پر کردن فرم", () => {
       eval: { q: "2" },
       agree: true,
     })
+    expect(errors).toEqual([])
+  })
+
+  test("داده‌های سامانه: فهرست پایه، واحد، کاربر، استان و شهر، پیوست، امضای دستی و ثبت‌کننده", async ({ page }, info) => {
+    const errors = collectErrors(page)
+    const title = `داده‌های سامانه ${info.project.name} ${Date.now()}`
+    const id = await publishForm(page, title, SYSTEM)
+    await page.goto(`/forms/${id}/fill`)
+    const form = page.getByRole("region", { name: "داده‌های سامانه" })
+    await expect(form.getByRole("group", { name: "درخواست‌کننده" })).toContainText("admin")
+
+    await form.getByRole("radio", { name: "مالی" }).click()
+    await form.getByLabel("واحد", { exact: true }).click()
+    await page.getByRole("option", { name: /امور مالی/ }).click()
+    await form.getByLabel("تأییدکننده", { exact: true }).click()
+    await page.getByPlaceholder("نام، نام کاربری یا موبایل").fill("hr_manager")
+    await page.getByRole("option", { name: /کریمی/ }).click()
+
+    await form.getByLabel("محل", { exact: true }).click()
+    await page.getByRole("option", { name: "اصفهان", exact: true }).click()
+    await form.getByRole("combobox", { name: "محل — شهر" }).click()
+    await page.getByPlaceholder("جست‌وجو").fill("کاشان")
+    await page.getByRole("option", { name: /^کاشان/ }).click()
+
+    await form.locator("input[type=file]").first().setInputFiles({ name: "پیش‌فاکتور.pdf", mimeType: "application/pdf", buffer: Buffer.from("%PDF-1.7\n" + "x".repeat(64)) })
+    await expect(form.getByRole("list", { name: "پیوست‌ها" })).toContainText("پیش‌فاکتور.pdf")
+
+    // ثبت بدون امضا
+    await page.getByRole("button", { name: "ثبت نهایی" }).click()
+    await expect(page.getByRole("alert").filter({ hasText: "لطفاً این موارد" })).toContainText("«امضای تحویل‌گیرنده» را امضا کنید.")
+    const pad = form.getByRole("img", { name: /محل امضا/ })
+    await pad.scrollIntoViewIfNeeded()
+    const box = (await pad.boundingBox())!
+    await page.mouse.move(box.x + 20, box.y + 40)
+    await page.mouse.down()
+    for (let i = 1; i < 15; i++) await page.mouse.move(box.x + 20 + i * 8, box.y + 40 + (i % 2) * 20)
+    await page.mouse.up()
+    await form.getByRole("button", { name: "ثبت امضا" }).click()
+    await expect(form.getByRole("button", { name: "امضای دوباره" })).toBeVisible()
+    await expectAccessible(page)
+
+    await page.getByRole("button", { name: "ثبت نهایی" }).click()
+    await expect(page.getByText(`فرم «${title}» ثبت شد.`)).toBeVisible()
+    const data = await page.evaluate(async (formId) => (await fetch(`/api/forms/submissions/?form=${formId}&mine=true`).then((r) => r.json())).results[0].data, id)
+    expect(data.category).toBe("finance")
+    expect(data.place).toEqual({ province: "اصفهان", city: "کاشان" })
+    expect(typeof data.unit).toBe("number")
+    expect(typeof data.approver).toBe("number")
+    expect(data.docs).toHaveLength(1)
+    expect(data.receiver).toMatch(/^[0-9a-f-]{36}$/)
+    expect(data.me).toEqual({ name: "مدیر سامانه", username: "admin" })
     expect(errors).toEqual([])
   })
 

@@ -37,6 +37,7 @@ class StoredFileSerializer(serializers.ModelSerializer):
 class UploadSerializer(serializers.Serializer):
     file = serializers.FileField(label="فایل", error_messages={"required": "فایلی انتخاب نشده است.", "empty": "فایل خالی است."})
     images_only = serializers.BooleanField(default=False)
+    name = serializers.CharField(required=False, max_length=255, help_text="نام اصلی فایل؛ Django نویسه‌های نامرئی مثل نیم‌فاصله را از نام بارگذاری حذف می‌کند.")
 
 
 class FileTypeInfoSerializer(serializers.Serializer):
@@ -79,7 +80,7 @@ class UploadView(generics.GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         allowed = IMAGE_EXTENSIONS if serializer.validated_data["images_only"] else None
-        stored = service.store(serializer.validated_data["file"], request.user, allowed)
+        stored = service.store(serializer.validated_data["file"], request.user, allowed, original_name=serializer.validated_data.get("name", ""))
         return Response(StoredFileSerializer(stored).data, status=status.HTTP_201_CREATED)
 
 

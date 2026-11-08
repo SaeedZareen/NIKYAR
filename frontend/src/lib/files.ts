@@ -42,6 +42,8 @@ export function uploadFile(
     const body = new FormData()
     body.append("file", file)
     body.append("images_only", String(imagesOnly))
+    // نام اصلی با نیم‌فاصله؛ سرور آن را جایگزین نام پاک‌شده‌ی بارگذاری می‌کند.
+    body.append("name", file.name)
     xhr.open("POST", "/api/files/")
     xhr.setRequestHeader("X-CSRFToken", csrfToken())
     xhr.responseType = "json"
