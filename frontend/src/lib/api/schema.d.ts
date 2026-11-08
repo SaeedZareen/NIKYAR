@@ -3506,10 +3506,16 @@ export interface operations {
     auth_user_lookup_list: {
         parameters: {
             query?: {
+                /** @description شناسه‌ها با ویرگول */
+                ids?: string;
                 /** @description کدام فیلد باید هنگام مرتب‌سازی نتایج استفاده شود. */
                 ordering?: string;
+                /** @description نقش */
+                role?: number;
                 /** @description یک عبارت جستجو. */
                 search?: string;
+                /** @description واحد (با زیرواحدها) */
+                unit?: number;
             };
             header?: never;
             path?: never;
@@ -5633,7 +5639,10 @@ export interface operations {
     };
     org_position_lookup_list: {
         parameters: {
-            query?: never;
+            query?: {
+                /** @description شناسه‌ی واحد (با زیرواحدها) */
+                unit?: number;
+            };
             header?: never;
             path?: never;
             cookie?: never;

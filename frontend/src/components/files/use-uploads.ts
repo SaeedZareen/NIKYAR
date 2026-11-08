@@ -5,7 +5,7 @@ import { errorMessage } from "@/lib/api/client"
 type UploadItem = { key: string; name: string; progress: number; error?: string; controller: AbortController }
 
 /** صف بارگذاری: بررسی هر فایل با قواعد سرور، پیشرفت، لغو و پیام خطای هر فایل. */
-export function useUploads({ imagesOnly = false, onUploaded }: { imagesOnly?: boolean; onUploaded: (file: StoredFile) => void }) {
+export function useUploads({ imagesOnly = false, extensions, onUploaded }: { imagesOnly?: boolean; extensions?: string[]; onUploaded: (file: StoredFile) => void }) {
   const policy = useFilePolicy()
   const [items, setItems] = React.useState<UploadItem[]>([])
   const update = (key: string, patch: Partial<UploadItem>) => setItems((prev) => prev.map((i) => (i.key === key ? { ...i, ...patch } : i)))
@@ -23,7 +23,7 @@ export function useUploads({ imagesOnly = false, onUploaded }: { imagesOnly?: bo
     for (const file of files) {
       const key = crypto.randomUUID()
       const controller = new AbortController()
-      const problem = policy.data ? checkFile(file, policy.data, imagesOnly) : null
+      const problem = policy.data ? checkFile(file, policy.data, imagesOnly, extensions) : null
       setItems((prev) => [...prev, { key, name: file.name, progress: 0, error: problem ?? undefined, controller }])
       if (problem) continue
       active.current.add(controller)

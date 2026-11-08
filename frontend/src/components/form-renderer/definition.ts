@@ -38,6 +38,9 @@ export type FieldType =
   | "position"
   | "attachment"
   | "signature"
+  | "signature_pad"
+  | "region"
+  | "submitter"
   | "table"
 
 export type ChoiceOption = { value: string; label: string }
@@ -84,7 +87,15 @@ function toInput(field: FieldDef, value: unknown): unknown {
     case "date_range":
     case "time_range":
     case "matrix":
+    case "region":
       return value && typeof value === "object" ? value : {}
+    case "attachment":
+      return Array.isArray(value) ? value : []
+    case "lookup":
+    case "user":
+    case "org_unit":
+    case "position":
+      return field.props?.multiple === true ? (Array.isArray(value) ? value : []) : (value ?? "")
     case "boolean":
       return typeof value === "boolean" ? String(value) : ""
     case "multi_choice":
@@ -102,9 +113,22 @@ function nowDefault(field: FieldDef, now: Date): string | undefined {
   return { date, time, datetime: `${date} ${time}` }[field.type as "date" | "time" | "datetime"]
 }
 
-/** مقدار اولیه‌ی ورودی‌ها از داده‌ی ثبت؛ برای فرم تازه مقدار پیش‌فرض هر فیلد (ثابت یا «امروز/اکنون»). */
-export function toFormValues(definition: FormDefinition, data?: Record<string, unknown>, now = new Date()): FormValues {
-  return Object.fromEntries(valueFields(definition).map((f) => [f.id, toInput(f, data ? data[f.id] : (nowDefault(f, now) ?? f.default))]))
+/** کاربر جاری برای پیش‌فرض‌های «خودم» و «واحد من». */
+export type CurrentUser = { id: number; unitId?: number }
+
+function selfDefault(field: FieldDef, me?: CurrentUser): unknown {
+  const multiple = field.props?.multiple === true
+  const pick = (v: number | undefined) => (v === undefined ? undefined : multiple ? [v] : v)
+  if (field.type === "user" && field.props?.default_self === true) return pick(me?.id)
+  if (field.type === "org_unit" && field.props?.default_mine === true) return pick(me?.unitId)
+  return undefined
+}
+
+/** مقدار اولیه‌ی ورودی‌ها از داده‌ی ثبت؛ برای فرم تازه مقدار پیش‌فرض هر فیلد (ثابت، «امروز/اکنون»، «خودم»، «واحد من»). */
+export function toFormValues(definition: FormDefinition, data?: Record<string, unknown>, me?: CurrentUser, now = new Date()): FormValues {
+  return Object.fromEntries(
+    valueFields(definition).map((f) => [f.id, toInput(f, data ? data[f.id] : (nowDefault(f, now) ?? selfDefault(f, me) ?? f.default))])
+  )
 }
 
 const NUMBER = /^-?\d+(\.\d+)?$/

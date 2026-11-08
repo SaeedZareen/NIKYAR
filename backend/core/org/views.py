@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.db.models import Count, Prefetch, Q
 from django.utils import timezone
-from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_field
+from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_field, extend_schema_view
 from rest_framework import filters, generics, permissions, serializers
 from rest_framework.response import Response
 
@@ -167,6 +167,7 @@ class PositionLookupSerializer(serializers.Serializer):
     unit_name = serializers.CharField()
 
 
+@extend_schema_view(get=extend_schema(parameters=[OpenApiParameter("unit", int, description="شناسه‌ی واحد (با زیرواحدها)")]))
 class PositionLookupView(generics.ListAPIView):
     """سمت‌های فعال برای انتخاب در فرم‌ها؛ ?unit= فقط سمت‌های آن واحد و زیرواحدهایش."""
 
@@ -175,7 +176,6 @@ class PositionLookupView(generics.ListAPIView):
     serializer_class = PositionLookupSerializer
     pagination_class = None
 
-    @extend_schema(parameters=[OpenApiParameter("unit", int, description="شناسه‌ی واحد (با زیرواحدها)")])
     def list(self, request, *args, **kwargs):
         positions = Position.objects.filter(is_active=True).select_related("unit").order_by("unit__order", "unit__name", "-is_manager", "title")
         unit = request.query_params.get("unit")

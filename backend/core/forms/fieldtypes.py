@@ -766,6 +766,7 @@ class Attachment(FieldType):
         "multiple": Prop("bool", "چند فایل", default=False),
         "max_files": Prop("int", "بیشینه‌ی تعداد فایل", default=5, min=1, max=20),
         "extensions": Prop("extensions", "نوع‌های مجاز"),
+        "camera": Prop("bool", "عکس با دوربین موبایل", default=False),
     }
     required_message = "برای «{label}» فایل پیوست کنید."
 

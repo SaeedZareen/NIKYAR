@@ -107,3 +107,33 @@ export function FormField<TValues extends FieldValues, TName extends FieldPath<T
     />
   )
 }
+
+/**
+ * فیلد فقط‌خواندنی با همان چیدمان FormField (برچسب کنار محتوا)، برای مقدارهایی که کاربر وارد نمی‌کند؛
+ * مثل مشخصات ثبت‌کننده یا امضای ذخیره‌شده در فرم‌ساز.
+ */
+export function StaticField({ label, required, hint, layout = "side", className, children }: {
+  label: string
+  required?: boolean
+  hint?: React.ReactNode
+  layout?: FieldLayout
+  className?: string
+  children: React.ReactNode
+}) {
+  return (
+    <Field role="group" aria-label={label} className={cn(layout === "side" && "md:grid md:grid-cols-[8rem_minmax(0,1fr)] md:items-start md:gap-x-3", className)}>
+      <div className={cn("flex items-start gap-1", layout === "side" && "md:min-h-7 md:pt-1")}>
+        <span className="text-xs/relaxed font-medium">{label}</span>
+        {required && (
+          <span className="-ms-0.5 text-xs/relaxed text-destructive" aria-hidden>
+            *
+          </span>
+        )}
+      </div>
+      <div className="flex min-w-0 flex-col gap-1.5">
+        {children}
+        {hint && <FieldDescription>{hint}</FieldDescription>}
+      </div>
+    </Field>
+  )
+}

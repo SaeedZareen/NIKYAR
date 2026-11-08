@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 import { api, errorMessage, unwrap, type Schemas } from "@/lib/api/client"
 import { formatDateTime } from "@/lib/format"
+import { useAuth } from "@/app/auth"
 import { SUBMISSIONS_KEY } from "@/app/forms"
 import { PageError, PageFallback } from "@/app/route-states"
 
@@ -79,7 +80,13 @@ function FillForm({ context, initialData, initialSubmission, initialSavedAt, onC
   const definition = context.definition as FormDefinition
   const schema = context.schema as JsonSchema
   const draftSchema = context.draft_schema as JsonSchema
-  const defaults = React.useMemo(() => toFormValues(definition, initialData), [definition, initialData])
+  const { user } = useAuth()
+  const userId = user?.id
+  const unitId = user?.assignment?.unit_id
+  const defaults = React.useMemo(
+    () => toFormValues(definition, initialData, userId === undefined ? undefined : { id: userId, unitId }),
+    [definition, initialData, userId, unitId]
+  )
   const form = useForm<FormValues>({ resolver: formResolver(definition, schema), defaultValues: defaults, mode: "onTouched", shouldFocusError: false })
   const values = useWatch({ control: form.control })
 

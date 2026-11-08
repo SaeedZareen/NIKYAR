@@ -4,7 +4,7 @@ from django.db.models import Count, Prefetch
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import ensure_csrf_cookie
-from drf_spectacular.utils import OpenApiParameter, extend_schema
+from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view
 from rest_framework import filters, generics, permissions, serializers, status
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.response import Response
@@ -69,6 +69,15 @@ class UserLookupSerializer(serializers.Serializer):
     username = serializers.CharField()
 
 
+@extend_schema_view(
+    get=extend_schema(
+        parameters=[
+            OpenApiParameter("ids", str, description="شناسه‌ها با ویرگول"),
+            OpenApiParameter("unit", int, description="واحد (با زیرواحدها)"),
+            OpenApiParameter("role", int, description="نقش"),
+        ]
+    )
+)
 class UserLookupView(generics.ListAPIView):
     """
     جست‌وجوی کاربران فعال برای انتخاب در فرم‌ها (جانشین، گیرنده)؛ برای هر کاربر واردشده، فقط نام و نام کاربری.
@@ -96,13 +105,6 @@ class UserLookupView(generics.ListAPIView):
             users = users.filter(roles=int(params["role"]))
         return users
 
-    @extend_schema(
-        parameters=[
-            OpenApiParameter("ids", str, description="شناسه‌ها با ویرگول"),
-            OpenApiParameter("unit", int, description="واحد (با زیرواحدها)"),
-            OpenApiParameter("role", int, description="نقش"),
-        ]
-    )
     def list(self, request, *args, **kwargs):
         ids = [int(i) for i in request.query_params.get("ids", "").split(",") if i.isdigit()]
         users = User.objects.filter(pk__in=ids) if ids else self.filter_queryset(self.get_queryset())[:20]

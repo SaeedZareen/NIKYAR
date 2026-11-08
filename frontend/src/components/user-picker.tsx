@@ -15,10 +15,12 @@ type Props = {
   value: Picked | null
   onChange: (user: Picked | null) => void
   placeholder?: string
+  /** فقط کارکنان یک واحد (با زیرواحدها) یا دارندگان یک نقش. */
+  filters?: { unit?: number; role?: number }
 } & Pick<React.AriaAttributes, "aria-invalid" | "aria-describedby">
 
 /** انتخاب کاربر فعال با جست‌وجو در سرور (نام، نام کاربری، موبایل)؛ برای هر کاربر واردشده (بدون مجوز فهرست کاربران). */
-export function UserPicker({ id, value, onChange, placeholder = "انتخاب کاربر", ...aria }: Props) {
+export function UserPicker({ id, value, onChange, placeholder = "انتخاب کاربر", filters, ...aria }: Props) {
   const [open, setOpen] = React.useState(false)
   const [search, setSearch] = React.useState("")
   const [debounced, setDebounced] = React.useState("")
@@ -28,8 +30,8 @@ export function UserPicker({ id, value, onChange, placeholder = "انتخاب ک
   }, [search])
 
   const users = useQuery({
-    queryKey: ["users", "picker", debounced],
-    queryFn: () => unwrap(api.GET("/api/auth/user-lookup/", { params: { query: { search: debounced || undefined } } })),
+    queryKey: ["users", "picker", debounced, filters?.unit, filters?.role],
+    queryFn: () => unwrap(api.GET("/api/auth/user-lookup/", { params: { query: { search: debounced || undefined, unit: filters?.unit, role: filters?.role } } })),
     enabled: open,
     placeholderData: keepPreviousData,
   })
