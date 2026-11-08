@@ -18,9 +18,7 @@ CATEGORY_LIST = "form-category"
 
 
 class FormSerializer(serializers.ModelSerializer):
-    category = serializers.PrimaryKeyRelatedField(
-        queryset=LookupItem.objects.filter(list__code=CATEGORY_LIST), allow_null=True, required=False, label="دسته"
-    )
+    category = serializers.PrimaryKeyRelatedField(queryset=LookupItem.objects.filter(list__code=CATEGORY_LIST), allow_null=True, required=False, label="دسته")
     category_title = serializers.CharField(source="category.title", read_only=True, default="")
     fill_roles = serializers.PrimaryKeyRelatedField(queryset=Role.objects.all(), many=True, required=False, label="نقش‌های پرکننده")
     view_roles = serializers.PrimaryKeyRelatedField(queryset=Role.objects.all(), many=True, required=False, label="نقش‌های بیننده")
@@ -54,8 +52,6 @@ class FormSerializer(serializers.ModelSerializer):
     def validate_code(self, value):
         if self.instance is not None and value != self.instance.code:
             raise serializers.ValidationError("شناسه‌ی فرم پس از ساخت تغییر نمی‌کند.")
-        if Form.objects.filter(code=value).exclude(pk=getattr(self.instance, "pk", None)).exists():
-            raise serializers.ValidationError("این شناسه برای فرم دیگری استفاده شده است.")
         return value
 
 
@@ -168,6 +164,8 @@ class FormViewSet(AuditedModelViewSet):
     def perform_create(self, serializer):
         super().perform_create(serializer)
         service.create_form(serializer.instance)
+        # پاسخ با همان ستون‌های محاسبه‌شده‌ی فهرست (نسخه‌ی پیش‌نویس و…)
+        serializer.instance = self.get_queryset().get(pk=serializer.instance.pk)
 
     def perform_destroy(self, instance):
         if instance.submissions.exists():
@@ -225,6 +223,7 @@ class FormSubmissionViewSet(viewsets.ModelViewSet):
     پیش‌نویس فقط برای ثبت‌کننده‌اش ویرایش‌شدنی و حذف‌شدنی است.
     """
 
+    queryset = Submission.objects.all()  # برای طرح API؛ فهرست واقعی از get_queryset
     permission_classes = [HasPerm]
     perms = {"*": None}
     filter_backends = [MultiValueFilter]

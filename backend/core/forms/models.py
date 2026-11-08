@@ -15,6 +15,7 @@ class Form(models.Model):
         "شناسه",
         max_length=40,
         unique=True,
+        error_messages={"unique": "این شناسه برای فرم دیگری استفاده شده است."},
         validators=[RegexValidator(r"^[a-z][a-z0-9-]{1,39}$", "شناسه با حرف کوچک لاتین شروع می‌شود و فقط حرف کوچک لاتین، رقم و - دارد.")],
         help_text="شناسه‌ی لاتین و پایدار فرم (مثلاً purchase-request)؛ پس از ساخت تغییر نمی‌کند.",
     )
@@ -35,7 +36,8 @@ class Form(models.Model):
     def __str__(self):
         return self.title
 
-    def published_version(self):
+    def current_version(self):
+        """آخرین نسخه‌ی منتشرشده؛ فرم با همین نسخه پر می‌شود."""
         return self.versions.filter(status=FormVersion.Status.PUBLISHED).order_by("-number").first()
 
 

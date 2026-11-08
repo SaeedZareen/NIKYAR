@@ -67,7 +67,7 @@ def new_draft(form: Form) -> FormVersion:
     """پیش‌نویس تازه از روی آخرین نسخه‌ی منتشرشده؛ ثبت‌های قبلی روی نسخه‌ی خودشان می‌مانند."""
     if form.versions.filter(status=FormVersion.Status.DRAFT).exists():
         raise BusinessError("این فرم پیش‌نویس باز دارد؛ همان را ویرایش کنید.")
-    latest = form.published_version()
+    latest = form.current_version()
     return FormVersion.objects.create(form=form, number=latest.number + 1, definition=copy.deepcopy(latest.definition))
 
 
@@ -82,7 +82,7 @@ def save_submission(*, user, data, submit: bool, form: Form | None = None, submi
     if submission is None:
         if not can_fill(user, form):
             raise PermissionDenied()
-        version = form.published_version()
+        version = form.current_version()
         if version is None:
             raise BusinessError("این فرم هنوز منتشر نشده است.")
     else:

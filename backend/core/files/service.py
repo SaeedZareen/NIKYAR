@@ -69,7 +69,9 @@ def claim(file_id, *, public: bool = False, extensions: tuple[str, ...] | None =
 
 def duplicate(stored: StoredFile, user) -> StoredFile:
     """رونوشت مستقل و تصاحب‌شده (مثلاً امضای کاربر هنگام ثبت فرم) که با تغییر یا حذف اصل از بین نمی‌رود."""
-    copy = StoredFile(name=stored.name, extension=stored.extension, size=stored.size, sha256=stored.sha256, uploaded_by=user, uploaded_at=timezone.now(), claimed=True)
+    copy = StoredFile(
+        name=stored.name, extension=stored.extension, size=stored.size, sha256=stored.sha256, uploaded_by=user, uploaded_at=timezone.now(), claimed=True
+    )
     with stored.file.open("rb") as source:
         copy.file.save(copy.id.hex, File(source), save=False)
     copy.save()
