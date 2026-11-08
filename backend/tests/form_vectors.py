@@ -46,6 +46,9 @@ DEFINITION = {
                 {"id": "score", "type": "scale", "label": "امتیاز", "props": {"max": 5}},
                 {"id": "eval", "type": "matrix", "label": "ارزیابی", "required": True, "props": {"rows": ROWS, "columns": OPTIONS}},
                 {"id": "agree", "type": "consent", "label": "تعهد", "required": True, "props": {"text": "می‌پذیرم"}},
+                {"id": "place", "type": "region", "label": "محل"},
+                {"id": "drawn", "type": "signature_pad", "label": "امضا"},
+                {"id": "me", "type": "submitter", "label": "ثبت‌کننده"},
             ],
         }
     ]
@@ -86,6 +89,12 @@ CASES = [
         "name": "incomplete matrix and refused consent",
         "partial": False,
         "data": {"title": "abc", "price": 1, "ok": True, "eval": {"skill": "a"}, "agree": False},
+        "errors": None,
+    },
+    {
+        "name": "incomplete region and bad signature id",
+        "partial": False,
+        "data": {"title": "abc", "price": 1, "ok": True, "eval": {"skill": "a", "team": "b"}, "agree": True, "place": {"province": "تهران"}, "drawn": "x"},
         "errors": None,
     },
     {"name": "draft with partial matrix", "partial": True, "data": {"eval": {"skill": "a"}, "shift": {"start": "08:00"}}, "errors": {}},

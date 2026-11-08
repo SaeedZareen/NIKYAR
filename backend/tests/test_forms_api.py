@@ -227,3 +227,105 @@ class TestSubmissions:
         assert old["version_number"] == 1
         new = c.post("/api/forms/submissions/", {"form": published["id"], "data": {"reason": "تست"}, "submit": True}, format="json").json()
         assert new["version_number"] == 2 and Submission.objects.get(pk=new["id"]).version.status == FormVersion.Status.PUBLISHED
+
+
+@pytest.mark.django_db(transaction=True)
+class TestSystemDataFields:
+    """3.3b: داده‌های سامانه با محدودیت، استان و شهر، مشخصات ثبت‌کننده و امضای دستی."""
+
+    def _publish(self, designer, code, fields):
+        form = designer.post("/api/forms/", {"code": code, "title": code, "fill_by_everyone": True}, format="json").json()
+        r = designer.patch(f"/api/forms/versions/{form['draft_version']}/", {"definition": {"sections": [{"id": "s", "fields": fields}]}}, format="json")
+        assert r.status_code == 200, r.json()
+        designer.post(f"/api/forms/versions/{form['draft_version']}/publish/")
+        return form["id"]
+
+    def test_user_unit_role_filters_and_lookups(self, designer, make_user, client_for):
+        from core.org.models import Assignment, OrgUnit, Position
+
+        root = OrgUnit.objects.create(name="مدیریت")
+        finance = OrgUnit.objects.create(name="مالی", parent=root)
+        other = OrgUnit.objects.create(name="فروش")
+        inside, outside = make_user("inside"), make_user("outside")
+        role = Role.objects.create(name="کارپرداز")
+        inside.roles.add(role)
+        pos = Position.objects.create(title="حسابدار", unit=finance)
+        Position.objects.create(title="فروشنده", unit=other)
+        Assignment.objects.create(user=inside, position=pos, start_date="2020-01-01")
+
+        bad = {"sections": [{"id": "s", "fields": [{"id": "u", "type": "user", "label": "کاربر", "props": {"unit": 9999}}]}]}
+        form = designer.post("/api/forms/", {"code": "bad-unit", "title": "x"}, format="json").json()
+        r = designer.patch(f"/api/forms/versions/{form['draft_version']}/", {"definition": bad}, format="json")
+        assert "واحد سازمانی" in r.json()["fields"]["sections.0.fields.0.props.unit"]
+
+        fid = self._publish(
+            designer,
+            "picker",
+            [
+                {"id": "buyer", "type": "user", "label": "کارپرداز", "props": {"unit": root.pk, "role": role.pk}},
+                {"id": "pos", "type": "position", "label": "سمت", "props": {"unit": root.pk}},
+            ],
+        )
+        c = client_for(make_user("filler"))
+        names = {u["username"] for u in c.get(f"/api/auth/user-lookup/?unit={root.pk}&role={role.pk}").json()}
+        assert names == {"inside"}
+        assert [u["full_name"] for u in c.get(f"/api/auth/user-lookup/?ids={outside.pk}").json()] == [outside.get_full_name()]
+        assert [p["title"] for p in c.get(f"/api/org/position-lookup/?unit={root.pk}").json()] == ["حسابدار"]
+        assert {u["name"] for u in c.get("/api/org/unit-lookup/").json()} == {"مدیریت", "مالی", "فروش"}
+
+        r = c.post("/api/forms/submissions/", {"form": fid, "data": {"buyer": outside.pk}, "submit": True}, format="json")
+        assert "پیدا نشد" in r.json()["fields"]["buyer"]
+        other_pos = Position.objects.get(title="فروشنده")
+        r = c.post("/api/forms/submissions/", {"form": fid, "data": {"buyer": inside.pk, "pos": other_pos.pk}, "submit": True}, format="json")
+        assert "پیدا نشد" in r.json()["fields"]["pos"]
+        r = c.post("/api/forms/submissions/", {"form": fid, "data": {"buyer": inside.pk, "pos": pos.pk}, "submit": True}, format="json")
+        assert r.status_code == 201
+
+    def test_region_submitter_and_signature_pad(self, designer, make_user, client_for):
+        from core.org.models import Assignment, OrgUnit, Position
+
+        fid = self._publish(
+            designer,
+            "region",
+            [
+                {"id": "where", "type": "region", "label": "محل", "required": True},
+                {"id": "county", "type": "region", "label": "شهرستان", "props": {"level": "county"}},
+                {"id": "me", "type": "submitter", "label": "درخواست‌کننده", "props": {"items": ["name", "unit", "position", "mobile"]}},
+                {"id": "sign", "type": "signature_pad", "label": "امضای تحویل‌گیرنده", "required": True},
+            ],
+        )
+        user = make_user("sub", first_name="سارا", last_name="محمدی", mobile="09121112233")
+        unit = OrgUnit.objects.create(name="منابع انسانی")
+        Assignment.objects.create(user=user, position=Position.objects.create(title="کارشناس", unit=unit), start_date="2020-01-01")
+        c = client_for(user)
+        assert c.get("/api/auth/session/").json()["assignment"]["unit"] == "منابع انسانی"
+        regions = c.get("/api/forms/regions/").json()
+        tehran = next(p for p in regions if p["name"] == "تهران")
+        assert len(regions) == 31 and "شمیرانات" in tehran["counties"] and "تجریش" in tehran["cities"]
+
+        pdf = upload(c, "x.pdf", PDF)
+        r = c.post(
+            "/api/forms/submissions/",
+            {
+                "form": fid,
+                "data": {"where": {"province": "تهران", "city": "تبریز"}, "county": {"province": "تهران", "city": "تجریش"}, "sign": pdf},
+                "submit": True,
+            },
+            format="json",
+        )
+        errs = r.json()["fields"]
+        assert "از فهرست" in errs["where"] and "از فهرست" in errs["county"] and "دوباره امضا کنید" in errs["sign"]
+
+        png = upload(c, "sign.png", PNG)
+        data = {"where": {"province": "تهران", "city": "تجریش"}, "county": {"province": "تهران", "city": "شمیرانات"}, "sign": png, "me": {"name": "جعل"}}
+        r = c.post("/api/forms/submissions/", {"form": fid, "data": data, "submit": True}, format="json")
+        assert r.status_code == 201, r.json()
+        saved = r.json()["data"]
+        assert saved["me"] == {"name": "سارا محمدی", "unit": "منابع انسانی", "position": "کارشناس", "mobile": "09121112233"}
+        assert StoredFile.objects.get(pk=png).claimed
+
+    def test_file_info(self, make_user, client_for):
+        c = client_for(make_user("files"))
+        a, b = upload(c, "a.pdf", PDF), upload(c, "b.png", PNG)
+        info = c.get(f"/api/files/info/?ids={b},{a},not-a-uuid").json()
+        assert [f["name"] for f in info] == ["b.png", "a.pdf"]

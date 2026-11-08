@@ -222,6 +222,21 @@
       "props": {
        "text": "می‌پذیرم"
       }
+     },
+     {
+      "id": "place",
+      "type": "region",
+      "label": "محل"
+     },
+     {
+      "id": "drawn",
+      "type": "signature_pad",
+      "label": "امضا"
+     },
+     {
+      "id": "me",
+      "type": "submitter",
+      "label": "ثبت‌کننده"
      }
     ]
    }
@@ -530,6 +545,59 @@
      "required": "برای ادامه، «تعهد» را بپذیرید.",
      "invalid": "برای ادامه، «تعهد» را بپذیرید."
     }
+   },
+   "place": {
+    "type": "object",
+    "properties": {
+     "province": {
+      "type": "string"
+     },
+     "city": {
+      "type": "string"
+     }
+    },
+    "additionalProperties": false,
+    "required": [
+     "province",
+     "city"
+    ],
+    "title": "محل",
+    "x-nikyar-type": "region",
+    "x-messages": {
+     "required": "تکمیل «محل» (استان و شهر) الزامی است.",
+     "invalid": "استان و شهر «محل» را از فهرست انتخاب کنید."
+    }
+   },
+   "drawn": {
+    "type": "string",
+    "format": "uuid",
+    "title": "امضا",
+    "x-nikyar-type": "signature_pad",
+    "x-messages": {
+     "required": "«امضا» را امضا کنید.",
+     "invalid": "امضای «امضا» معتبر نیست؛ دوباره امضا کنید."
+    }
+   },
+   "me": {
+    "type": "object",
+    "properties": {
+     "name": {
+      "type": "string"
+     },
+     "unit": {
+      "type": "string"
+     },
+     "position": {
+      "type": "string"
+     }
+    },
+    "readOnly": true,
+    "title": "ثبت‌کننده",
+    "x-nikyar-type": "submitter",
+    "x-messages": {
+     "required": "تکمیل «ثبت‌کننده» الزامی است.",
+     "invalid": "مقدار «ثبت‌کننده» معتبر نیست."
+    }
    }
   },
   "additionalProperties": false,
@@ -835,6 +903,55 @@
      "required": "برای ادامه، «تعهد» را بپذیرید.",
      "invalid": "برای ادامه، «تعهد» را بپذیرید."
     }
+   },
+   "place": {
+    "type": "object",
+    "properties": {
+     "province": {
+      "type": "string"
+     },
+     "city": {
+      "type": "string"
+     }
+    },
+    "additionalProperties": false,
+    "title": "محل",
+    "x-nikyar-type": "region",
+    "x-messages": {
+     "required": "تکمیل «محل» (استان و شهر) الزامی است.",
+     "invalid": "استان و شهر «محل» را از فهرست انتخاب کنید."
+    }
+   },
+   "drawn": {
+    "type": "string",
+    "format": "uuid",
+    "title": "امضا",
+    "x-nikyar-type": "signature_pad",
+    "x-messages": {
+     "required": "«امضا» را امضا کنید.",
+     "invalid": "امضای «امضا» معتبر نیست؛ دوباره امضا کنید."
+    }
+   },
+   "me": {
+    "type": "object",
+    "properties": {
+     "name": {
+      "type": "string"
+     },
+     "unit": {
+      "type": "string"
+     },
+     "position": {
+      "type": "string"
+     }
+    },
+    "readOnly": true,
+    "title": "ثبت‌کننده",
+    "x-nikyar-type": "submitter",
+    "x-messages": {
+     "required": "تکمیل «ثبت‌کننده» الزامی است.",
+     "invalid": "مقدار «ثبت‌کننده» معتبر نیست."
+    }
    }
   },
   "additionalProperties": false,
@@ -956,6 +1073,29 @@
    "errors": {
     "eval": "به همه‌ی معیارهای «ارزیابی» پاسخ دهید.",
     "agree": "برای ادامه، «تعهد» را بپذیرید."
+   }
+  },
+  {
+   "name": "incomplete region and bad signature id",
+   "partial": false,
+   "data": {
+    "title": "abc",
+    "price": 1,
+    "ok": true,
+    "eval": {
+     "skill": "a",
+     "team": "b"
+    },
+    "agree": true,
+    "place": {
+     "province": "تهران"
+    },
+    "drawn": "x"
+   },
+   "cleaned": null,
+   "errors": {
+    "place": "تکمیل «محل» (استان و شهر) الزامی است.",
+    "drawn": "امضای «امضا» معتبر نیست؛ دوباره امضا کنید."
    }
   },
   {

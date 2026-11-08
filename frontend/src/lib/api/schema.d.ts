@@ -150,7 +150,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** @description جست‌وجوی کاربران فعال برای انتخاب در فرم‌ها (جانشین، گیرنده)؛ برای هر کاربر واردشده، فقط نام و نام کاربری. */
+        /**
+         * @description جست‌وجوی کاربران فعال برای انتخاب در فرم‌ها (جانشین، گیرنده)؛ برای هر کاربر واردشده، فقط نام و نام کاربری.
+         *     ?ids= نام کاربران مشخص (برای نمایش مقدار ذخیره‌شده)؛ ?unit= کارکنان جاری واحد و زیرواحدها؛ ?role= دارندگان نقش.
+         */
         get: operations["auth_user_lookup_list"];
         put?: never;
         post?: never;
@@ -469,6 +472,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/files/info/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description مشخصات چند فایل با شناسه (?ids=…)؛ برای نمایش پیوست‌های ذخیره‌شده‌ی یک رکورد. مثل دریافت، برای هر کاربر واردشده. */
+        get: operations["files_info_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/files/policy/": {
         parameters: {
             query?: never;
@@ -567,6 +587,23 @@ export interface paths {
         };
         /** @description فرم‌هایی که کاربر جاری می‌تواند پر کند. */
         get: operations["forms_available_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/forms/regions/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description استان‌ها با شهرستان‌ها و شهرها (تقسیمات کشوری همراه برنامه) برای فیلد «استان و شهر». */
+        get: operations["forms_regions_list"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1178,6 +1215,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/org/position-lookup/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description سمت‌های فعال برای انتخاب در فرم‌ها؛ ?unit= فقط سمت‌های آن واحد و زیرواحدهایش. */
+        get: operations["org_position_lookup_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/org/positions/": {
         parameters: {
             query?: never;
@@ -1214,6 +1268,23 @@ export interface paths {
         head?: never;
         /** @description ایجاد، ویرایش و حذف را همراه با سابقه‌ی تغییر و در یک تراکنش انجام می‌دهد. */
         patch: operations["org_positions_partial_update"];
+        trace?: never;
+    };
+    "/api/org/unit-lookup/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description واحدهای فعال برای انتخاب در فرم‌ها (برای هر کاربر واردشده؛ فقط نام و بالادست). */
+        get: operations["org_unit_lookup_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/org/units/": {
@@ -2212,6 +2283,14 @@ export interface components {
             is_superuser: boolean;
             readonly permissions: string[];
             readonly positions: string[];
+            /** @description سمت اصلی جاری؛ null یعنی بدون سمت. */
+            readonly assignment: components["schemas"]["MeAssignment"] | null;
+        };
+        MeAssignment: {
+            unit_id: number;
+            unit: string;
+            position_id: number;
+            position: string;
         };
         MessagingSettings: {
             /**
@@ -2730,6 +2809,11 @@ export interface components {
             is_active: boolean;
             readonly holders: components["schemas"]["Holder"][];
         };
+        PositionLookup: {
+            id: number;
+            title: string;
+            unit_name: string;
+        };
         PositionRequest: {
             /** عنوان سمت */
             title: string;
@@ -2759,6 +2843,11 @@ export interface components {
         };
         PreviewResult: {
             example: string;
+        };
+        Region: {
+            name: string;
+            counties: string[];
+            cities: string[];
         };
         /**
          * @description * `never` - هرگز (ادامه‌دار)
@@ -2885,6 +2974,11 @@ export interface components {
         TestSmsRequest: {
             /** شماره‌ی موبایل */
             mobile: string;
+        };
+        UnitLookup: {
+            id: number;
+            name: string;
+            parent: number | null;
         };
         UnreadCount: {
             unread: number;
@@ -4017,6 +4111,28 @@ export interface operations {
             };
         };
     };
+    files_info_list: {
+        parameters: {
+            query?: {
+                /** @description شناسه‌ها با ویرگول */
+                ids?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StoredFile"][];
+                };
+            };
+        };
+    };
     files_policy_retrieve: {
         parameters: {
             query?: never;
@@ -4246,6 +4362,30 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AvailableForm"][];
+                };
+            };
+        };
+    };
+    forms_regions_list: {
+        parameters: {
+            query?: {
+                /** @description چند مقدار با ویرگول جدا می‌شود. */
+                category?: string;
+                /** @description چند مقدار با ویرگول جدا می‌شود. */
+                is_active?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Region"][];
                 };
             };
         };
@@ -5491,6 +5631,25 @@ export interface operations {
             };
         };
     };
+    org_position_lookup_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PositionLookup"][];
+                };
+            };
+        };
+    };
     org_positions_list: {
         parameters: {
             query?: {
@@ -5639,6 +5798,25 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Position"];
+                };
+            };
+        };
+    };
+    org_unit_lookup_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnitLookup"][];
                 };
             };
         };

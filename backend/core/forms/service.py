@@ -11,7 +11,7 @@ from core.files import service as files
 from core.kernel.api import BusinessError, has_perm
 
 from . import engine
-from .fieldtypes import REGISTRY, Ctx
+from .fieldtypes import REGISTRY, Ctx, submitter_snapshot
 from .models import Form, FormVersion, Submission
 
 DESIGN = "forms.design"
@@ -94,7 +94,7 @@ def save_submission(*, user, data, submit: bool, form: Form | None = None, submi
     definition = version.definition
     previous = engine.file_ids(definition, submission.data if submission else None)
     cleaned = engine.validate_data(definition, data, Ctx(user=user, previous_files=frozenset(previous), partial=not submit))
-    signatures = _signature_fields(definition) if submit else []
+    signatures = _fields_of(definition, "signature") if submit else []
     for field in signatures:
         if field.get("required") and user.signature_id is None:
             raise BusinessError(REGISTRY["signature"].required_message, {field["id"]: REGISTRY["signature"].required_message})
@@ -108,6 +108,10 @@ def save_submission(*, user, data, submit: bool, form: Form | None = None, submi
         if user.signature_id is not None:
             for field in signatures:
                 cleaned[field["id"]] = str(files.duplicate(user.signature, user).pk)
+        if submit:
+            # مشخصات ثبت‌کننده همان لحظه‌ی ثبت؛ تغییر بعدی سمت یا واحد ثبت‌های گذشته را عوض نمی‌کند.
+            for field in _fields_of(definition, "submitter"):
+                cleaned[field["id"]] = submitter_snapshot(user, engine.props_of(field)["items"])
         current = engine.file_ids(definition, cleaned)
         for file_id in current - previous:
             files.claim(file_id)
@@ -136,5 +140,5 @@ def _check_own_draft(user, submission: Submission) -> None:
         raise BusinessError("ثبت نهایی‌شده تغییر نمی‌کند.")
 
 
-def _signature_fields(definition: dict) -> list[dict]:
-    return [f for f in engine.value_fields(definition) if f["type"] == "signature"]
+def _fields_of(definition: dict, ftype: str) -> list[dict]:
+    return [f for f in engine.value_fields(definition) if f["type"] == ftype]

@@ -1,6 +1,7 @@
 from django.contrib.auth import password_validation
 from django.contrib.auth.validators import UnicodeUsernameValidator
 from django.utils import timezone
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 
@@ -113,11 +114,19 @@ class UserSerializer(serializers.ModelSerializer):
         return instance
 
 
+class MeAssignmentSerializer(serializers.Serializer):
+    unit_id = serializers.IntegerField()
+    unit = serializers.CharField()
+    position_id = serializers.IntegerField()
+    position = serializers.CharField()
+
+
 class MeSerializer(serializers.ModelSerializer):
     full_name = serializers.CharField(source="get_full_name", read_only=True)
     signature = serializers.SerializerMethodField(help_text="شناسه‌ی فایل تصویر امضا؛ خالی یعنی ثبت نشده.")
     permissions = serializers.SerializerMethodField()
     positions = serializers.SerializerMethodField()
+    assignment = serializers.SerializerMethodField(help_text="سمت اصلی جاری؛ null یعنی بدون سمت.")
 
     class Meta:
         model = User
@@ -135,6 +144,7 @@ class MeSerializer(serializers.ModelSerializer):
             "is_superuser",
             "permissions",
             "positions",
+            "assignment",
         ]
 
     def get_signature(self, obj) -> str:
@@ -143,6 +153,15 @@ class MeSerializer(serializers.ModelSerializer):
     def get_positions(self, obj) -> list[str]:
         today = timezone.localdate()
         return [str(a.position) for a in obj.assignments.current(today).select_related("position__unit")]
+
+    @extend_schema_field(MeAssignmentSerializer(allow_null=True))
+    def get_assignment(self, obj):
+        from core.org.service import primary_assignment
+
+        a = primary_assignment(obj)
+        if a is None:
+            return None
+        return {"unit_id": a.position.unit_id, "unit": a.position.unit.name, "position_id": a.position_id, "position": a.position.title}
 
     def get_permissions(self, obj) -> list[str]:
         return sorted(all_permissions()) if obj.is_superuser else sorted(obj.permission_codes())

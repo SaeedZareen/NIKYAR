@@ -11,10 +11,13 @@
 
 from __future__ import annotations
 
+import json
 import re
 import uuid
 from dataclasses import dataclass
 from decimal import Decimal
+from functools import cache
+from pathlib import Path
 
 import jdatetime
 
@@ -35,7 +38,8 @@ class Prop:
     """
     یک ویژگی نوع فیلد. kind:
     int، number، bool، text، choice (یکی از choices)، options (گزینه‌های انتخاب)،
-    lookup_list (کد فهرست پایه)، extensions (نوع‌های فایل)، columns (ستون‌های جدول).
+    lookup_list (کد فهرست پایه)، org_unit و role (شناسه‌ی واحد یا نقش)، choice_list (چند مورد از choices)،
+    extensions (نوع‌های فایل)، columns (ستون‌های جدول).
     """
 
     kind: str
@@ -616,7 +620,12 @@ class _Reference(FieldType):
 class Lookup(_Reference):
     code, title = "lookup", "فهرست پایه"
     id_type = "string"
-    props = {"list": Prop("lookup_list", "فهرست پایه", required=True), **_Reference.props}
+    props = {
+        "list": Prop("lookup_list", "فهرست پایه", required=True),
+        **_Reference.props,
+        # auto: دکمه برای فهرست کوتاه، کشویی برای متوسط، جست‌وجوپذیر برای بلند
+        "display": Prop("choice", "نمایش", default="auto", choices=("auto", "buttons", "select", "search")),
+    }
 
     def existing(self, ids, props):
         from core.lookups.models import LookupItem
@@ -627,16 +636,34 @@ class Lookup(_Reference):
 @register
 class UserRef(_Reference):
     code, title = "user", "کاربر"
+    props = {
+        **_Reference.props,
+        "unit": Prop("org_unit", "فقط کارکنان واحد (با زیرواحدها)"),
+        "role": Prop("role", "فقط دارندگان نقش"),
+        "default_self": Prop("bool", "پیش‌فرض خودم", default=False),
+    }
 
     def existing(self, ids, props):
         from core.accounts.models import User
 
-        return set(User.objects.filter(pk__in=ids, is_active=True).values_list("pk", flat=True))
+        users = User.objects.filter(pk__in=ids, is_active=True)
+        if props.get("unit"):
+            from django.utils import timezone
+
+            from core.org.models import Assignment
+            from core.org.service import subtree_ids
+
+            members = Assignment.objects.current(timezone.localdate()).filter(position__unit_id__in=subtree_ids(props["unit"]))
+            users = users.filter(pk__in=members.values("user_id"))
+        if props.get("role"):
+            users = users.filter(roles=props["role"])
+        return set(users.values_list("pk", flat=True))
 
 
 @register
 class OrgUnitRef(_Reference):
     code, title = "org_unit", "واحد سازمانی"
+    props = {**_Reference.props, "default_mine": Prop("bool", "پیش‌فرض واحد من", default=False)}
 
     def existing(self, ids, props):
         from core.org.models import OrgUnit
@@ -647,11 +674,86 @@ class OrgUnitRef(_Reference):
 @register
 class PositionRef(_Reference):
     code, title = "position", "سمت"
+    props = {**_Reference.props, "unit": Prop("org_unit", "فقط سمت‌های واحد (با زیرواحدها)")}
 
     def existing(self, ids, props):
         from core.org.models import Position
 
-        return set(Position.objects.filter(pk__in=ids, is_active=True).values_list("pk", flat=True))
+        positions = Position.objects.filter(pk__in=ids, is_active=True)
+        if props.get("unit"):
+            from core.org.service import subtree_ids
+
+            positions = positions.filter(unit_id__in=subtree_ids(props["unit"]))
+        return set(positions.values_list("pk", flat=True))
+
+
+# ─── نشانی ──────────────────────────────────────────────────────────────
+
+
+@cache
+def divisions() -> dict[str, dict]:
+    """تقسیمات کشوری همراه برنامه (data/iran_divisions.json): {استان: {"counties": [...], "cities": [...]}}."""
+    data = json.loads((Path(__file__).parent / "data" / "iran_divisions.json").read_text(encoding="utf-8"))
+    return {p["name"]: p for p in data["provinces"]}
+
+
+@register
+class Region(FieldType):
+    """استان و شهر (یا شهرستان)؛ مقدار: {"province": "تهران", "city": "شمیرانات"} با نام‌ها، تا خروجی خوانا بماند."""
+
+    code, title, group = "region", "استان و شهر", "نشانی"
+    props = {"level": Prop("choice", "سطح", default="city", choices=("city", "county"))}
+    invalid_message = "استان و شهر «{label}» را از فهرست انتخاب کنید."
+    required_message = "تکمیل «{label}» (استان و شهر) الزامی است."
+
+    def schema(self, props, partial):
+        s = {
+            "type": "object",
+            "properties": {"province": {"type": "string"}, "city": {"type": "string"}},
+            "additionalProperties": False,
+        }
+        if not partial:
+            s["required"] = ["province", "city"]
+        return s
+
+    def check(self, value, props, ctx):
+        province = divisions().get(value.get("province", ""))
+        places = province["cities" if props["level"] == "city" else "counties"] if province else []
+        if province is None or ("city" in value and value["city"] not in places):
+            return self.invalid_message
+        return None
+
+
+# ─── ثبت‌کننده ──────────────────────────────────────────────────────────
+
+SUBMITTER_ITEMS = {"name": "نام و نام خانوادگی", "username": "نام کاربری", "unit": "واحد", "position": "سمت", "mobile": "موبایل", "email": "ایمیل"}
+
+
+@register
+class Submitter(FieldType):
+    """مشخصات ثبت‌کننده: در فرم از کاربر جاری نمایش داده و هنگام ثبت نهایی در سرور ذخیره می‌شود (تغییر بعدی سمت آن را عوض نمی‌کند)."""
+
+    code, title, group = "submitter", "مشخصات ثبت‌کننده", "ثبت‌کننده"
+    client_value = False
+    props = {"items": Prop("choice_list", "موارد نمایش", default=["name", "unit", "position"], choices=tuple(SUBMITTER_ITEMS))}
+
+    def schema(self, props, partial):
+        return {"type": "object", "properties": {k: {"type": "string"} for k in props["items"]}, "readOnly": True}
+
+
+def submitter_snapshot(user, items: list[str]) -> dict[str, str]:
+    from core.org.service import primary_assignment
+
+    assignment = primary_assignment(user)
+    values = {
+        "name": user.get_full_name() or user.username,
+        "username": user.username,
+        "unit": assignment.position.unit.name if assignment else "",
+        "position": assignment.position.title if assignment else "",
+        "mobile": user.mobile or "",
+        "email": user.email or "",
+    }
+    return {k: values[k] for k in items if values[k]}
 
 
 # ─── فایل و امضا ────────────────────────────────────────────────────────
@@ -708,6 +810,24 @@ class Signature(FieldType):
 
     def schema(self, props, partial):
         return {"type": "string", "format": "uuid", "readOnly": True}
+
+    def file_ids(self, value, props):
+        return [value] if value else []
+
+
+@register
+class SignaturePad(FieldType):
+    """امضای دستی روی صفحه (قلم، ماوس یا انگشت)؛ مرورگر تصویر PNG را بارگذاری می‌کند و مقدار شناسه‌ی همان فایل است."""
+
+    code, title, group = "signature_pad", "امضای دستی", "فایل و امضا"
+    required_message = "«{label}» را امضا کنید."
+    invalid_message = "امضای «{label}» معتبر نیست؛ دوباره امضا کنید."
+
+    def schema(self, props, partial):
+        return {"type": "string", "format": "uuid"}
+
+    def check(self, value, props, ctx):
+        return Attachment().check([value], {"extensions": ["png"]}, ctx) and self.invalid_message
 
     def file_ids(self, value, props):
         return [value] if value else []
