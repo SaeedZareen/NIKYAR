@@ -14,7 +14,7 @@ from __future__ import annotations
 import json
 import re
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from decimal import Decimal
 from functools import cache
 from pathlib import Path
@@ -46,7 +46,8 @@ class Prop:
     title: str
     required: bool = False
     default: object = None
-    choices: tuple[str, ...] = ()
+    # کد گزینه ← برچسب فارسی (برای پانل ویژگی‌های طراح)
+    choices: dict[str, str] = field(default_factory=dict)
     min: float | None = None
     max: float | None = None
 
@@ -176,7 +177,7 @@ class Text(_Text):
         "min_length": Prop("int", "کمینه‌ی طول", min=0, max=1000),
         "max_length": Prop("int", "بیشینه‌ی طول", default=200, min=1, max=1000),
         "placeholder": Prop("text", "متن نمونه", max=100),
-        "script": Prop("choice", "خط نوشتار", default="any", choices=("any", "persian", "latin")),
+        "script": Prop("choice", "خط نوشتار", default="any", choices={"any": "هر خطی", "persian": "فقط فارسی", "latin": "فقط لاتین"}),
     }
 
 
@@ -239,7 +240,7 @@ class Amount(FieldType):
 
 # ─── تاریخ و زمان ───────────────────────────────────────────────────────
 
-RANGE_CHOICES = ("any", "past", "future")
+RANGE_CHOICES = {"any": "بدون محدودیت", "past": "فقط گذشته و امروز", "future": "فقط امروز و آینده"}
 
 
 def _today() -> str:
@@ -418,7 +419,7 @@ class Choice(FieldType):
     supports_default = True
     props = {
         "options": Prop("options", "گزینه‌ها", required=True, min=1, max=100),
-        "display": Prop("choice", "نمایش", default="radio", choices=("radio", "select")),
+        "display": Prop("choice", "نمایش", default="radio", choices={"radio": "دکمه‌های رادیویی", "select": "فهرست کشویی"}),
     }
     invalid_message = "گزینه‌ی انتخاب‌شده برای «{label}» معتبر نیست."
 
@@ -467,7 +468,7 @@ class Scale(FieldType):
         "max": Prop("int", "بیشترین امتیاز", default=5, min=3, max=10),
         "min_label": Prop("text", "برچسب کمترین", max=30),
         "max_label": Prop("text", "برچسب بیشترین", max=30),
-        "display": Prop("choice", "نمایش", default="numbers", choices=("numbers", "stars")),
+        "display": Prop("choice", "نمایش", default="numbers", choices={"numbers": "عدد", "stars": "ستاره"}),
     }
     invalid_message = "یک امتیاز برای «{label}» انتخاب کنید."
 
@@ -624,7 +625,9 @@ class Lookup(_Reference):
         "list": Prop("lookup_list", "فهرست پایه", required=True),
         **_Reference.props,
         # auto: دکمه برای فهرست کوتاه، کشویی برای متوسط، جست‌وجوپذیر برای بلند
-        "display": Prop("choice", "نمایش", default="auto", choices=("auto", "buttons", "select", "search")),
+        "display": Prop(
+            "choice", "نمایش", default="auto", choices={"auto": "خودکار به اندازه‌ی فهرست", "buttons": "دکمه", "select": "فهرست کشویی", "search": "جست‌وجوپذیر"}
+        ),
     }
 
     def existing(self, ids, props):
@@ -702,7 +705,7 @@ class Region(FieldType):
     """استان و شهر (یا شهرستان)؛ مقدار: {"province": "تهران", "city": "شمیرانات"} با نام‌ها، تا خروجی خوانا بماند."""
 
     code, title, group = "region", "استان و شهر", "نشانی"
-    props = {"level": Prop("choice", "سطح", default="city", choices=("city", "county"))}
+    props = {"level": Prop("choice", "سطح", default="city", choices={"city": "شهر", "county": "شهرستان"})}
     invalid_message = "استان و شهر «{label}» را از فهرست انتخاب کنید."
     required_message = "تکمیل «{label}» (استان و شهر) الزامی است."
 
@@ -735,7 +738,7 @@ class Submitter(FieldType):
 
     code, title, group = "submitter", "مشخصات ثبت‌کننده", "ثبت‌کننده"
     client_value = False
-    props = {"items": Prop("choice_list", "موارد نمایش", default=["name", "unit", "position"], choices=tuple(SUBMITTER_ITEMS))}
+    props = {"items": Prop("choice_list", "موارد نمایش", default=["name", "unit", "position"], choices=SUBMITTER_ITEMS)}
 
     def schema(self, props, partial):
         return {"type": "object", "properties": {k: {"type": "string"} for k in props["items"]}, "readOnly": True}

@@ -1,7 +1,7 @@
 // ساختار منوی اصلی. هر مورد مجوز لازم را اعلام می‌کند و فقط به کاربر دارای مجوز نمایش داده می‌شود.
 // ماژول‌ها در فازهای بعد گروه خودشان را اضافه می‌کنند.
 import type { LucideIcon } from "lucide-react"
-import { Bell, Building2, ClipboardList, KeyRound, UserRound, UserRoundCog, CalendarDays, Component, DatabaseBackup, ListChecks, FormInput, History, LayoutDashboard, ListTree, Settings, ShieldCheck, Table2, Users } from "lucide-react"
+import { Bell, Building2, ClipboardList, PencilRuler, KeyRound, UserRound, UserRoundCog, CalendarDays, Component, DatabaseBackup, ListChecks, FormInput, History, LayoutDashboard, ListTree, Settings, ShieldCheck, Table2, Users } from "lucide-react"
 
 /** مجوز مورد نیاز؛ "superuser" یعنی فقط مدیر کل (برای بخش‌های راهنمای توسعه). */
 export type Access = string | "superuser" | undefined
@@ -15,6 +15,7 @@ const navigation: NavGroup[] = [
     items: [
       { title: "پیشخوان", url: "/", icon: LayoutDashboard, keywords: "خانه داشبورد" },
       { title: "فرم‌ها", url: "/forms", icon: ClipboardList, keywords: "فرم درخواست پر کردن پیش‌نویس" },
+      { title: "طراحی فرم‌ها", url: "/forms/design", icon: PencilRuler, access: "forms.design", keywords: "فرم‌ساز طراح فرم ساخت فرم انتشار" },
       { title: "اعلان‌ها", url: "/notifications", icon: Bell, keywords: "اعلان پیام زنگوله" },
       { title: "حساب من", url: "/account", icon: UserRound, keywords: "گذرواژه امضا جانشین پروفایل" },
     ],

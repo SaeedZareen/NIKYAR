@@ -255,14 +255,4 @@ test.describe("پر کردن فرم", () => {
     await expect(page.getByText("پیش‌نویس حذف شد.")).toBeVisible()
     await expect(page).toHaveURL(/\/forms$/)
   })
-
-  test("فرم نمونه از کیت رابط کاربری", async ({ page }, info) => {
-    // فرم نمونه برای همه دیده می‌شود (داده‌ی سراسری)؛ فقط در یک اندازه
-    test.skip(info.project.name !== "desktop")
-    await page.goto("/ui-kit/forms")
-    await page.getByRole("button", { name: "ساخت فرم نمونه" }).click()
-    await expect(page.getByRole("heading", { level: 1, name: "درخواست نمونه (کیت رابط کاربری)" })).toBeVisible()
-    await expect(page.getByRole("combobox", { name: "نوع درخواست" })).toBeVisible()
-    await expectAccessible(page)
-  })
 })

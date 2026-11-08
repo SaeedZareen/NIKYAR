@@ -13,5 +13,6 @@ urlpatterns = [
     path("session/profile/", views.ProfileView.as_view(), name="profile"),
     path("permissions/", views.PermissionCatalogView.as_view(), name="permissions"),
     path("user-lookup/", views.UserLookupView.as_view(), name="user-lookup"),
+    path("role-lookup/", views.RoleLookupView.as_view(), name="role-lookup"),
     *router.urls,
 ]

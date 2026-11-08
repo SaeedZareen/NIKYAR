@@ -17,3 +17,16 @@ export function useIsMobile() {
 
   return !!isMobile
 }
+
+/** آیا پهنای پنجره دست‌کم px است (مثلاً برای نمایش پانل‌های کناری طراح فقط روی صفحه‌ی پهن). */
+export function useMinWidth(px: number) {
+  const query = `(min-width: ${px}px)`
+  const [matches, setMatches] = React.useState(() => window.matchMedia(query).matches)
+  React.useEffect(() => {
+    const mql = window.matchMedia(query)
+    const onChange = () => setMatches(mql.matches)
+    mql.addEventListener("change", onChange)
+    return () => mql.removeEventListener("change", onChange)
+  }, [query])
+  return matches
+}

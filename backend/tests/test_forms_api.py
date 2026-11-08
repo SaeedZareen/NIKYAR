@@ -329,3 +329,15 @@ class TestSystemDataFields:
         a, b = upload(c, "a.pdf", PDF), upload(c, "b.png", PNG)
         info = c.get(f"/api/files/info/?ids={b},{a},not-a-uuid").json()
         assert [f["name"] for f in info] == ["b.png", "a.pdf"]
+
+
+@pytest.mark.django_db
+def test_designer_catalogue_and_role_lookup(designer, make_user, client_for):
+    types = {t["code"]: t for t in designer.get("/api/forms/field-types/").json()}
+    assert types["text"]["title"] == "متن یک‌خطی" and types["text"]["column"] and not types["table"]["column"]
+    script = next(p for p in types["text"]["props"] if p["name"] == "script")
+    assert script["kind"] == "choice" and {"value": "persian", "label": "فقط فارسی"} in script["choices"]
+    assert not types["submitter"]["client_value"] and not types["heading"]["has_value"]
+    assert client_for(make_user("nobody")).get("/api/forms/field-types/").status_code == 403
+    Role.objects.create(name="بازرسی")
+    assert "بازرسی" in [r["name"] for r in client_for(make_user("anyone")).get("/api/auth/role-lookup/").json()]

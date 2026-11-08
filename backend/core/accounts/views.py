@@ -111,6 +111,23 @@ class UserLookupView(generics.ListAPIView):
         return Response([{"id": u.id, "full_name": u.get_full_name() or u.username, "username": u.username} for u in users])
 
 
+class RoleLookupSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    name = serializers.CharField()
+
+
+class RoleLookupView(generics.ListAPIView):
+    """نام نقش‌ها برای انتخاب (مثلاً نقش‌های پرکننده‌ی فرم یا محدودیت فیلد کاربر)؛ برای هر کاربر واردشده، بدون مجوزها."""
+
+    permission_classes = [HasPerm]
+    perms = {"*": None}
+    serializer_class = RoleLookupSerializer
+    pagination_class = None
+
+    def list(self, request, *args, **kwargs):
+        return Response([{"id": r.pk, "name": r.name} for r in Role.objects.order_by("name")])
+
+
 class ProfileView(APIView):
     """«حساب من»: ایمیل، موبایل و تصویر امضای کاربر واردشده (با ثبت در سوابق)."""
 
