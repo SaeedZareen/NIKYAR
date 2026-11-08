@@ -137,6 +137,91 @@
       "id": "sheba",
       "type": "iban",
       "label": "شبا"
+     },
+     {
+      "id": "name_fa",
+      "type": "text",
+      "label": "نام",
+      "props": {
+       "script": "persian"
+      }
+     },
+     {
+      "id": "name_en",
+      "type": "text",
+      "label": "نام لاتین",
+      "props": {
+       "script": "latin"
+      }
+     },
+     {
+      "id": "eco",
+      "type": "economic_code",
+      "label": "کد اقتصادی"
+     },
+     {
+      "id": "plate",
+      "type": "vehicle_plate",
+      "label": "پلاک"
+     },
+     {
+      "id": "when",
+      "type": "datetime",
+      "label": "زمان"
+     },
+     {
+      "id": "shift",
+      "type": "time_range",
+      "label": "شیفت"
+     },
+     {
+      "id": "score",
+      "type": "scale",
+      "label": "امتیاز",
+      "props": {
+       "max": 5
+      }
+     },
+     {
+      "id": "eval",
+      "type": "matrix",
+      "label": "ارزیابی",
+      "required": true,
+      "props": {
+       "rows": [
+        {
+         "value": "skill",
+         "label": "مهارت"
+        },
+        {
+         "value": "team",
+         "label": "کار گروهی"
+        }
+       ],
+       "columns": [
+        {
+         "value": "a",
+         "label": "الف"
+        },
+        {
+         "value": "b",
+         "label": "ب"
+        },
+        {
+         "value": "c",
+         "label": "ج"
+        }
+       ]
+      }
+     },
+     {
+      "id": "agree",
+      "type": "consent",
+      "label": "تعهد",
+      "required": true,
+      "props": {
+       "text": "می‌پذیرم"
+      }
      }
     ]
    }
@@ -310,6 +395,141 @@
      "required": "تکمیل «شبا» الزامی است.",
      "invalid": "«شبا» معتبر نیست؛ IR و ۲۴ رقم را بررسی کنید."
     }
+   },
+   "name_fa": {
+    "type": "string",
+    "maxLength": 200,
+    "pattern": "^[\\u0600-\\u06FF\\u200c\\s0-9.,،؛:!؟?()«»\"'/-]+$",
+    "title": "نام",
+    "x-nikyar-type": "text",
+    "x-messages": {
+     "required": "تکمیل «نام» الزامی است.",
+     "invalid": "مقدار «نام» معتبر نیست.",
+     "maxLength": "«نام» حداکثر ۲۰۰ نویسه باشد.",
+     "pattern": "«نام» را فقط با حروف فارسی بنویسید."
+    }
+   },
+   "name_en": {
+    "type": "string",
+    "maxLength": 200,
+    "pattern": "^[A-Za-z0-9\\s.,'()/-]+$",
+    "title": "نام لاتین",
+    "x-nikyar-type": "text",
+    "x-messages": {
+     "required": "تکمیل «نام لاتین» الزامی است.",
+     "invalid": "مقدار «نام لاتین» معتبر نیست.",
+     "maxLength": "«نام لاتین» حداکثر ۲۰۰ نویسه باشد.",
+     "pattern": "«نام لاتین» را فقط با حروف لاتین (انگلیسی) بنویسید."
+    }
+   },
+   "eco": {
+    "type": "string",
+    "pattern": "^\\d{10,12}$",
+    "title": "کد اقتصادی",
+    "x-nikyar-type": "economic_code",
+    "x-messages": {
+     "required": "تکمیل «کد اقتصادی» الزامی است.",
+     "invalid": "«کد اقتصادی» باید ۱۰ تا ۱۲ رقم باشد."
+    }
+   },
+   "plate": {
+    "type": "string",
+    "pattern": "^\\d{2}(الف|ب|پ|ت|ث|ج|د|ز|ژ|س|ش|ص|ط|ع|ف|ق|ک|گ|ل|م|ن|و|ه|ی)\\d{3}-\\d{2}$",
+    "title": "پلاک",
+    "x-nikyar-type": "vehicle_plate",
+    "x-messages": {
+     "required": "تکمیل «پلاک» الزامی است.",
+     "invalid": "«پلاک» را کامل وارد کنید: دو رقم، حرف، سه رقم و کد شهر."
+    }
+   },
+   "when": {
+    "type": "string",
+    "format": "jalali-datetime",
+    "title": "زمان",
+    "x-nikyar-type": "datetime",
+    "x-messages": {
+     "required": "تکمیل «زمان» الزامی است.",
+     "invalid": "«زمان» را با تاریخ و ساعت کامل وارد کنید (مثل ۱۴۰۵/۰۸/۱۴ ۰۸:۳۰)."
+    }
+   },
+   "shift": {
+    "type": "object",
+    "properties": {
+     "start": {
+      "type": "string",
+      "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+     },
+     "end": {
+      "type": "string",
+      "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+     }
+    },
+    "additionalProperties": false,
+    "required": [
+     "start",
+     "end"
+    ],
+    "title": "شیفت",
+    "x-nikyar-type": "time_range",
+    "x-messages": {
+     "required": "تکمیل «شیفت» (از ساعت و تا ساعت) الزامی است.",
+     "invalid": "«شیفت» را به شکل «از ساعت» و «تا ساعت» معتبر وارد کنید."
+    }
+   },
+   "score": {
+    "type": "integer",
+    "minimum": 1,
+    "maximum": 5,
+    "title": "امتیاز",
+    "x-nikyar-type": "scale",
+    "x-messages": {
+     "required": "تکمیل «امتیاز» الزامی است.",
+     "invalid": "یک امتیاز برای «امتیاز» انتخاب کنید.",
+     "minimum": "«امتیاز» نباید کمتر از ۱ باشد.",
+     "maximum": "«امتیاز» نباید بیشتر از ۵ باشد."
+    }
+   },
+   "eval": {
+    "type": "object",
+    "properties": {
+     "skill": {
+      "type": "string",
+      "enum": [
+       "a",
+       "b",
+       "c"
+      ]
+     },
+     "team": {
+      "type": "string",
+      "enum": [
+       "a",
+       "b",
+       "c"
+      ]
+     }
+    },
+    "additionalProperties": false,
+    "title": "ارزیابی",
+    "x-nikyar-type": "matrix",
+    "required": [
+     "skill",
+     "team"
+    ],
+    "x-messages": {
+     "required": "به همه‌ی معیارهای «ارزیابی» پاسخ دهید.",
+     "invalid": "پاسخ‌های «ارزیابی» معتبر نیست."
+    }
+   },
+   "agree": {
+    "type": "boolean",
+    "const": true,
+    "title": "تعهد",
+    "x-nikyar-type": "consent",
+    "x-messages": {
+     "required": "برای ادامه، «تعهد» را بپذیرید.",
+     "invalid": "برای ادامه، «تعهد» را بپذیرید."
+    }
    }
   },
   "additionalProperties": false,
@@ -317,7 +537,9 @@
   "required": [
    "title",
    "price",
-   "ok"
+   "ok",
+   "eval",
+   "agree"
   ]
  },
  "draft_schema": {
@@ -486,6 +708,133 @@
      "required": "تکمیل «شبا» الزامی است.",
      "invalid": "«شبا» معتبر نیست؛ IR و ۲۴ رقم را بررسی کنید."
     }
+   },
+   "name_fa": {
+    "type": "string",
+    "maxLength": 200,
+    "pattern": "^[\\u0600-\\u06FF\\u200c\\s0-9.,،؛:!؟?()«»\"'/-]+$",
+    "title": "نام",
+    "x-nikyar-type": "text",
+    "x-messages": {
+     "required": "تکمیل «نام» الزامی است.",
+     "invalid": "مقدار «نام» معتبر نیست.",
+     "maxLength": "«نام» حداکثر ۲۰۰ نویسه باشد.",
+     "pattern": "«نام» را فقط با حروف فارسی بنویسید."
+    }
+   },
+   "name_en": {
+    "type": "string",
+    "maxLength": 200,
+    "pattern": "^[A-Za-z0-9\\s.,'()/-]+$",
+    "title": "نام لاتین",
+    "x-nikyar-type": "text",
+    "x-messages": {
+     "required": "تکمیل «نام لاتین» الزامی است.",
+     "invalid": "مقدار «نام لاتین» معتبر نیست.",
+     "maxLength": "«نام لاتین» حداکثر ۲۰۰ نویسه باشد.",
+     "pattern": "«نام لاتین» را فقط با حروف لاتین (انگلیسی) بنویسید."
+    }
+   },
+   "eco": {
+    "type": "string",
+    "pattern": "^\\d{10,12}$",
+    "title": "کد اقتصادی",
+    "x-nikyar-type": "economic_code",
+    "x-messages": {
+     "required": "تکمیل «کد اقتصادی» الزامی است.",
+     "invalid": "«کد اقتصادی» باید ۱۰ تا ۱۲ رقم باشد."
+    }
+   },
+   "plate": {
+    "type": "string",
+    "pattern": "^\\d{2}(الف|ب|پ|ت|ث|ج|د|ز|ژ|س|ش|ص|ط|ع|ف|ق|ک|گ|ل|م|ن|و|ه|ی)\\d{3}-\\d{2}$",
+    "title": "پلاک",
+    "x-nikyar-type": "vehicle_plate",
+    "x-messages": {
+     "required": "تکمیل «پلاک» الزامی است.",
+     "invalid": "«پلاک» را کامل وارد کنید: دو رقم، حرف، سه رقم و کد شهر."
+    }
+   },
+   "when": {
+    "type": "string",
+    "format": "jalali-datetime",
+    "title": "زمان",
+    "x-nikyar-type": "datetime",
+    "x-messages": {
+     "required": "تکمیل «زمان» الزامی است.",
+     "invalid": "«زمان» را با تاریخ و ساعت کامل وارد کنید (مثل ۱۴۰۵/۰۸/۱۴ ۰۸:۳۰)."
+    }
+   },
+   "shift": {
+    "type": "object",
+    "properties": {
+     "start": {
+      "type": "string",
+      "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+     },
+     "end": {
+      "type": "string",
+      "pattern": "^([01]\\d|2[0-3]):[0-5]\\d$"
+     }
+    },
+    "additionalProperties": false,
+    "title": "شیفت",
+    "x-nikyar-type": "time_range",
+    "x-messages": {
+     "required": "تکمیل «شیفت» (از ساعت و تا ساعت) الزامی است.",
+     "invalid": "«شیفت» را به شکل «از ساعت» و «تا ساعت» معتبر وارد کنید."
+    }
+   },
+   "score": {
+    "type": "integer",
+    "minimum": 1,
+    "maximum": 5,
+    "title": "امتیاز",
+    "x-nikyar-type": "scale",
+    "x-messages": {
+     "required": "تکمیل «امتیاز» الزامی است.",
+     "invalid": "یک امتیاز برای «امتیاز» انتخاب کنید.",
+     "minimum": "«امتیاز» نباید کمتر از ۱ باشد.",
+     "maximum": "«امتیاز» نباید بیشتر از ۵ باشد."
+    }
+   },
+   "eval": {
+    "type": "object",
+    "properties": {
+     "skill": {
+      "type": "string",
+      "enum": [
+       "a",
+       "b",
+       "c"
+      ]
+     },
+     "team": {
+      "type": "string",
+      "enum": [
+       "a",
+       "b",
+       "c"
+      ]
+     }
+    },
+    "additionalProperties": false,
+    "title": "ارزیابی",
+    "x-nikyar-type": "matrix",
+    "x-messages": {
+     "required": "به همه‌ی معیارهای «ارزیابی» پاسخ دهید.",
+     "invalid": "پاسخ‌های «ارزیابی» معتبر نیست."
+    }
+   },
+   "agree": {
+    "type": "boolean",
+    "const": true,
+    "title": "تعهد",
+    "x-nikyar-type": "consent",
+    "x-messages": {
+     "required": "برای ادامه، «تعهد» را بپذیرید.",
+     "invalid": "برای ادامه، «تعهد» را بپذیرید."
+    }
    }
   },
   "additionalProperties": false,
@@ -503,7 +852,9 @@
    "errors": {
     "title": "تکمیل «عنوان» الزامی است.",
     "price": "تکمیل «مبلغ» الزامی است.",
-    "ok": "تکمیل «تأیید» الزامی است."
+    "ok": "تکمیل «تأیید» الزامی است.",
+    "eval": "به همه‌ی معیارهای «ارزیابی» پاسخ دهید.",
+    "agree": "برای ادامه، «تعهد» را بپذیرید."
    }
   },
   {
@@ -526,7 +877,12 @@
     "weight": "abc",
     "price": 2000000,
     "ok": true,
-    "kind": "z"
+    "kind": "z",
+    "eval": {
+     "skill": "a",
+     "team": "b"
+    },
+    "agree": true
    },
    "cleaned": null,
    "errors": {
@@ -560,6 +916,70 @@
    }
   },
   {
+   "name": "specialised formats",
+   "partial": true,
+   "data": {
+    "name_fa": "Ali",
+    "name_en": "علی",
+    "eco": "12",
+    "plate": "12X345-67",
+    "when": "1405/08/14",
+    "shift": {
+     "start": "8:00"
+    },
+    "score": 7
+   },
+   "cleaned": null,
+   "errors": {
+    "name_fa": "«نام» را فقط با حروف فارسی بنویسید.",
+    "name_en": "«نام لاتین» را فقط با حروف لاتین (انگلیسی) بنویسید.",
+    "eco": "«کد اقتصادی» باید ۱۰ تا ۱۲ رقم باشد.",
+    "plate": "«پلاک» را کامل وارد کنید: دو رقم، حرف، سه رقم و کد شهر.",
+    "when": "«زمان» را با تاریخ و ساعت کامل وارد کنید (مثل ۱۴۰۵/۰۸/۱۴ ۰۸:۳۰).",
+    "shift": "«شیفت» را به شکل «از ساعت» و «تا ساعت» معتبر وارد کنید.",
+    "score": "«امتیاز» نباید بیشتر از ۵ باشد."
+   }
+  },
+  {
+   "name": "incomplete matrix and refused consent",
+   "partial": false,
+   "data": {
+    "title": "abc",
+    "price": 1,
+    "ok": true,
+    "eval": {
+     "skill": "a"
+    },
+    "agree": false
+   },
+   "cleaned": null,
+   "errors": {
+    "eval": "به همه‌ی معیارهای «ارزیابی» پاسخ دهید.",
+    "agree": "برای ادامه، «تعهد» را بپذیرید."
+   }
+  },
+  {
+   "name": "draft with partial matrix",
+   "partial": true,
+   "data": {
+    "eval": {
+     "skill": "a"
+    },
+    "shift": {
+     "start": "08:00"
+    }
+   },
+   "cleaned": {
+    "eval": {
+     "skill": "a"
+    },
+    "shift": {
+     "start": "08:00"
+    }
+   },
+   "errors": {}
+  },
+  {
    "name": "selection counts",
    "partial": false,
    "data": {
@@ -568,7 +988,12 @@
     "ok": false,
     "tags": [
      "a"
-    ]
+    ],
+    "eval": {
+     "skill": "a",
+     "team": "b"
+    },
+    "agree": true
    },
    "cleaned": null,
    "errors": {
@@ -623,7 +1048,22 @@
     "nid": "0084575948",
     "mobile": "09121234567",
     "email": "info@example.ir",
-    "sheba": "IR062960000000100324200001"
+    "sheba": "IR062960000000100324200001",
+    "name_fa": "زهرا موسوی‌نژاد",
+    "name_en": "Zahra Mousavi",
+    "eco": "10100387221",
+    "plate": "12الف345-67",
+    "when": "1405/08/14 08:30",
+    "shift": {
+     "start": "08:00",
+     "end": "16:30"
+    },
+    "score": 4,
+    "eval": {
+     "skill": "a",
+     "team": "c"
+    },
+    "agree": true
    },
    "cleaned": {
     "title": "خرید",
@@ -641,7 +1081,22 @@
     "nid": "0084575948",
     "mobile": "09121234567",
     "email": "info@example.ir",
-    "sheba": "IR062960000000100324200001"
+    "sheba": "IR062960000000100324200001",
+    "name_fa": "زهرا موسوی‌نژاد",
+    "name_en": "Zahra Mousavi",
+    "eco": "10100387221",
+    "plate": "12الف345-67",
+    "when": "1405/08/14 08:30",
+    "shift": {
+     "start": "08:00",
+     "end": "16:30"
+    },
+    "score": 4,
+    "eval": {
+     "skill": "a",
+     "team": "c"
+    },
+    "agree": true
    },
    "errors": {}
   }

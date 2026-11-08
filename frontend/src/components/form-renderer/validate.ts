@@ -24,11 +24,14 @@ type SchemaNode = {
   "x-messages"?: Record<string, string>
 }
 
+const isJalaliDate = (v: string) => /^\d{4}\/\d{2}\/\d{2}$/.test(v) && parseJalali(v) !== undefined
+
 const ajv = new Ajv2020({ allErrors: true, strict: false })
 // سرور فقط شکل یکسان‌شده (رقم لاتین) را می‌پذیرد؛ پس اینجا هم شکل دیگر نادرست است.
 const canonical = (check: (v: string) => boolean) => (value: string) => /^\d+$/.test(value) && check(value)
 const FORMATS: Record<string, (value: string) => boolean> = {
-  "jalali-date": (v) => /^\d{4}\/\d{2}\/\d{2}$/.test(v) && parseJalali(v) !== undefined,
+  "jalali-date": isJalaliDate,
+  "jalali-datetime": (v) => v.length === 16 && v[10] === " " && isJalaliDate(v.slice(0, 10)) && /^([01]\d|2[0-3]):[0-5]\d$/.test(v.slice(11)),
   uuid: (v) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(v),
   email: isValidEmail,
   "ir-national-code": canonical(isValidNationalId),

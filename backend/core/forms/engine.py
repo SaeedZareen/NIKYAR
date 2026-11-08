@@ -20,13 +20,14 @@ from core.kernel import validators as v
 from core.kernel.api import BusinessError
 from core.kernel.validators import fa_digits
 
-from .fieldtypes import COLUMN_TYPES, ID_PATTERN, OPTION_VALUE_PATTERN, REGISTRY, Ctx, FieldType, Prop, fa_number, is_jalali_date, is_uuid
+from .fieldtypes import COLUMN_TYPES, ID_PATTERN, OPTION_VALUE_PATTERN, REGISTRY, Ctx, FieldType, Prop, fa_number, is_jalali_date, is_jalali_datetime, is_uuid
 
 JSON_SCHEMA_DIALECT = "https://json-schema.org/draft/2020-12/schema"
 
 FORMATS = FormatChecker(formats=())
 for _name, _check in {
     "jalali-date": is_jalali_date,
+    "jalali-datetime": is_jalali_datetime,
     "uuid": is_uuid,
     "email": v.is_email,
     "ir-national-code": v.is_national_code,
@@ -232,17 +233,19 @@ def _check_options(spec: Prop, value) -> str | None:
 
 
 def field_schema(field: dict, partial: bool = False) -> dict:
-    ftype = REGISTRY[field["type"]]
-    schema = {**ftype.schema(props_of(field), partial), "title": field.get("label", ""), "x-nikyar-type": field["type"]}
+    ftype, props = REGISTRY[field["type"]], props_of(field)
+    schema = {**ftype.schema(props, partial), "title": field.get("label", ""), "x-nikyar-type": field["type"]}
+    if field.get("required") and not partial:
+        schema = ftype.required_schema(schema, props)
     if field.get("help"):
         schema["description"] = field["help"]
     if "default" in field:
         schema["default"] = field["default"]
-    schema["x-messages"] = field_messages(ftype, schema, field.get("label", ""))
+    schema["x-messages"] = field_messages(ftype, schema, field.get("label", ""), props)
     return schema
 
 
-def field_messages(ftype: FieldType, schema: dict, label: str) -> dict[str, str]:
+def field_messages(ftype: FieldType, schema: dict, label: str, props: dict) -> dict[str, str]:
     """
     پیام فارسی هر کلیدواژه‌ی JSON Schema برای این فیلد (کلیدواژه‌ی بی‌پیام ← invalid). در طرح با نام x-messages
     می‌آید تا مرورگر همین پیام‌ها را نشان دهد و متن‌ها فقط یک‌جا (همین‌جا) نوشته شوند.
@@ -261,6 +264,7 @@ def field_messages(ftype: FieldType, schema: dict, label: str) -> dict[str, str]
             messages[keyword] = ftype.count_message(keyword, schema[keyword])
     if schema.get("uniqueItems"):
         messages["uniqueItems"] = "در «{label}» مورد تکراری هست."
+    messages.update(ftype.extra_messages(props))
     return {k: m.format(label=label) for k, m in messages.items()}
 
 

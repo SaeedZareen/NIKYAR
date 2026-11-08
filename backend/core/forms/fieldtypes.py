@@ -11,6 +11,7 @@
 
 from __future__ import annotations
 
+import re
 import uuid
 from dataclasses import dataclass
 from decimal import Decimal
@@ -79,6 +80,14 @@ class FieldType:
         """بررسی‌های سروری پس از گذر از JSON Schema؛ پیام فارسی یا None."""
         return None
 
+    def extra_messages(self, props: dict) -> dict[str, str]:
+        """پیام کلیدواژه‌های ویژه‌ی این نوع (مثلاً pattern)، افزون بر پیام‌های عمومی."""
+        return {}
+
+    def required_schema(self, schema: dict, props: dict) -> dict:
+        """تغییر طرح وقتی فیلد الزامی است و درونش هم باید کامل باشد (مثلاً همه‌ی ردیف‌های ماتریس)."""
+        return schema
+
     def count_message(self, keyword: str, n: int) -> str:
         return ("«{label}» دست‌کم " if keyword == "minItems" else "«{label}» حداکثر ") + fa_number(n) + " مورد داشته باشد."
 
@@ -128,6 +137,14 @@ class Divider(FieldType):
 # ─── متن و عدد ──────────────────────────────────────────────────────────
 
 
+SCRIPTS = {
+    # حروف فارسی و عربی، نیم‌فاصله، رقم و نشانه‌های رایج نوشتار
+    "persian": r"^[\u0600-\u06FF\u200c\s0-9.,،؛:!؟?()«»" + '"' + r"'/-]+$",
+    "latin": r"^[A-Za-z0-9\s.,'()/-]+$",
+}
+SCRIPT_MESSAGES = {"persian": "«{label}» را فقط با حروف فارسی بنویسید.", "latin": "«{label}» را فقط با حروف لاتین (انگلیسی) بنویسید."}
+
+
 class _Text(FieldType):
     group = "متن و عدد"
     supports_default = True
@@ -137,7 +154,12 @@ class _Text(FieldType):
         s = {"type": "string", "maxLength": props["max_length"]}
         if props.get("min_length"):
             s["minLength"] = props["min_length"]
+        if props.get("script", "any") != "any":
+            s["pattern"] = SCRIPTS[props["script"]]
         return s
+
+    def extra_messages(self, props):
+        return {"pattern": SCRIPT_MESSAGES[props["script"]]} if props.get("script", "any") != "any" else {}
 
     def check_props(self, props):
         return _min_max(props, "min_length", "max_length", "طول")
@@ -150,6 +172,7 @@ class Text(_Text):
         "min_length": Prop("int", "کمینه‌ی طول", min=0, max=1000),
         "max_length": Prop("int", "بیشینه‌ی طول", default=200, min=1, max=1000),
         "placeholder": Prop("text", "متن نمونه", max=100),
+        "script": Prop("choice", "خط نوشتار", default="any", choices=("any", "persian", "latin")),
     }
 
 
@@ -230,7 +253,10 @@ def _range_error(value: str, rng: str) -> str | None:
 @register
 class Date(FieldType):
     code, title, group = "date", "تاریخ", "تاریخ و زمان"
-    props = {"range": Prop("choice", "بازه‌ی مجاز", default="any", choices=RANGE_CHOICES)}
+    props = {
+        "range": Prop("choice", "بازه‌ی مجاز", default="any", choices=RANGE_CHOICES),
+        "default_now": Prop("bool", "پیش‌فرض امروز", default=False),
+    }
     invalid_message = "«{label}» تاریخ معتبری نیست؛ به شکل ۱۴۰۵/۰۸/۱۴ وارد کنید."
 
     def schema(self, props, partial):
@@ -244,6 +270,7 @@ class Date(FieldType):
 class Time(FieldType):
     code, title, group = "time", "ساعت", "تاریخ و زمان"
     supports_default = True
+    props = {"default_now": Prop("bool", "پیش‌فرض اکنون", default=False)}
     invalid_message = "«{label}» ساعت معتبری نیست؛ به شکل ۰۸:۳۰ وارد کنید."
 
     def schema(self, props, partial):
@@ -279,6 +306,79 @@ class DateRange(FieldType):
             if props.get("max_days") and days > props["max_days"]:
                 return "«{label}» حداکثر " + fa_number(props["max_days"]) + " روز است."
         return None
+
+
+def _now() -> str:
+    return jdatetime.datetime.now().strftime("%Y/%m/%d %H:%M")
+
+
+@register
+class DateTime(FieldType):
+    code, title, group = "datetime", "تاریخ و ساعت", "تاریخ و زمان"
+    props = {
+        "range": Prop("choice", "بازه‌ی مجاز", default="any", choices=RANGE_CHOICES),
+        "default_now": Prop("bool", "پیش‌فرض اکنون", default=False),
+    }
+    invalid_message = "«{label}» را با تاریخ و ساعت کامل وارد کنید (مثل ۱۴۰۵/۰۸/۱۴ ۰۸:۳۰)."
+
+    def schema(self, props, partial):
+        return {"type": "string", "format": "jalali-datetime"}
+
+    def check(self, value, props, ctx):
+        if props["range"] == "past" and value > _now():
+            return "«{label}» نباید بعد از اکنون باشد."
+        if props["range"] == "future" and value < _now():
+            return "«{label}» نباید پیش از اکنون باشد."
+        return None
+
+
+def _minutes(value: str) -> int:
+    h, m = value.split(":")
+    return int(h) * 60 + int(m)
+
+
+def fa_duration(minutes: int) -> str:
+    """۲۷۰ ← «۴ ساعت و ۳۰ دقیقه»"""
+    h, m = divmod(minutes, 60)
+    parts = ([f"{fa_digits(h)} ساعت"] if h else []) + ([f"{fa_digits(m)} دقیقه"] if m else [])
+    return " و ".join(parts) or "۰ دقیقه"
+
+
+@register
+class TimeRange(FieldType):
+    code, title, group = "time_range", "بازه‌ی ساعت", "تاریخ و زمان"
+    props = {
+        "overnight": Prop("bool", "عبور از نیمه‌شب", default=False),
+        "max_minutes": Prop("int", "بیشینه‌ی مدت (دقیقه)", min=1, max=1440),
+    }
+    invalid_message = "«{label}» را به شکل «از ساعت» و «تا ساعت» معتبر وارد کنید."
+    required_message = "تکمیل «{label}» (از ساعت و تا ساعت) الزامی است."
+
+    def schema(self, props, partial):
+        time = {"type": "string", "pattern": TIME_PATTERN}
+        s = {"type": "object", "properties": {"start": time, "end": time}, "additionalProperties": False}
+        if not partial:
+            s["required"] = ["start", "end"]
+        return s
+
+    def check(self, value, props, ctx):
+        start, end = value.get("start"), value.get("end")
+        if not (start and end):
+            return None
+        if start == end:
+            return "در «{label}»، «از ساعت» و «تا ساعت» یکی است."
+        if end < start and not props["overnight"]:
+            return "در «{label}»، «تا ساعت» باید بعد از «از ساعت» باشد."
+        duration = (_minutes(end) - _minutes(start)) % 1440
+        if props.get("max_minutes") and duration > props["max_minutes"]:
+            return "«{label}» حداکثر " + fa_duration(props["max_minutes"]) + " است."
+        return None
+
+
+def is_jalali_datetime(value) -> bool:
+    if not isinstance(value, str) or len(value) != 16 or value[10] != " ":
+        return False
+    return is_jalali_date(value[:10]) and bool(re.fullmatch(TIME_PATTERN, value[11:]))
 
 
 def _jalali(value: str) -> jdatetime.date:
@@ -351,15 +451,70 @@ class MultiChoice(FieldType):
         return ("برای «{label}» دست‌کم " if keyword == "minItems" else "برای «{label}» حداکثر ") + fa_number(n) + " گزینه انتخاب کنید."
 
 
+# ─── امتیاز و تأیید ─────────────────────────────────────────────────────
+
+
+@register
+class Scale(FieldType):
+    code, title, group = "scale", "طیف امتیاز", "امتیاز و تأیید"
+    supports_default = True
+    props = {
+        "min": Prop("int", "کمترین امتیاز", default=1, min=0, max=1),
+        "max": Prop("int", "بیشترین امتیاز", default=5, min=3, max=10),
+        "min_label": Prop("text", "برچسب کمترین", max=30),
+        "max_label": Prop("text", "برچسب بیشترین", max=30),
+        "display": Prop("choice", "نمایش", default="numbers", choices=("numbers", "stars")),
+    }
+    invalid_message = "یک امتیاز برای «{label}» انتخاب کنید."
+
+    def schema(self, props, partial):
+        return {"type": "integer", "minimum": props["min"], "maximum": props["max"]}
+
+    def check_props(self, props):
+        return {"min": "نمایش ستاره‌ای از امتیاز ۱ شروع می‌شود."} if props["display"] == "stars" and props["min"] == 0 else {}
+
+
+@register
+class Matrix(FieldType):
+    """ماتریس ارزیابی: هر ردیف یک معیار و برای همه یک طیف پاسخ. مقدار: {کد معیار: کد پاسخ}."""
+
+    code, title, group = "matrix", "ماتریس ارزیابی", "امتیاز و تأیید"
+    props = {
+        "rows": Prop("options", "معیارها", required=True, min=1, max=30),
+        "columns": Prop("options", "گزینه‌های پاسخ", required=True, min=2, max=10),
+    }
+    invalid_message = "پاسخ‌های «{label}» معتبر نیست."
+    required_message = "به همه‌ی معیارهای «{label}» پاسخ دهید."
+
+    def schema(self, props, partial):
+        answer = {"type": "string", "enum": [c["value"] for c in props["columns"]]}
+        return {"type": "object", "properties": {r["value"]: answer for r in props["rows"]}, "additionalProperties": False}
+
+    def required_schema(self, schema, props):
+        return {**schema, "required": [r["value"] for r in props["rows"]]}
+
+
+@register
+class Consent(FieldType):
+    code, title, group = "consent", "تأیید و تعهد", "امتیاز و تأیید"
+    props = {"text": Prop("text", "متن تعهد", required=True, max=1000)}
+    invalid_message = "برای ادامه، «{label}» را بپذیرید."
+    required_message = "برای ادامه، «{label}» را بپذیرید."
+
+    def schema(self, props, partial):
+        return {"type": "boolean", "const": True}
+
+
 # ─── شناسه‌های ایرانی ───────────────────────────────────────────────────
 
 
 class _Identifier(FieldType):
     group = "شناسه‌های ایرانی"
     format = ""
+    pattern = ""
 
     def schema(self, props, partial):
-        return {"type": "string", "format": self.format}
+        return {"type": "string", "format": self.format} if self.format else {"type": "string", "pattern": self.pattern}
 
 
 @register
@@ -372,6 +527,30 @@ class NationalCode(_Identifier):
 class LegalNationalId(_Identifier):
     code, title, format = "legal_national_id", "شناسه‌ی ملی", "ir-legal-national-id"
     invalid_message = "«{label}» معتبر نیست؛ یازده رقم شناسه‌ی ملی را بررسی کنید."
+
+
+@register
+class EconomicCode(_Identifier):
+    # کد اقتصادی: شناسه‌ی ملی (حقوقی، ۱۱ رقم)، کد ملی (حقیقی، ۱۰ رقم) یا کد قدیمی ۱۲ رقمی
+    code, title, pattern = "economic_code", "کد اقتصادی", r"^\d{10,12}$"
+    invalid_message = "«{label}» باید ۱۰ تا ۱۲ رقم باشد."
+
+
+@register
+class RegistrationNumber(_Identifier):
+    code, title, pattern = "registration_number", "شماره‌ی ثبت شرکت", r"^\d{1,10}$"
+    invalid_message = "«{label}» فقط رقم است (حداکثر ۱۰ رقم)."
+
+
+# پلاک خودرو: دو رقم، حرف، سه رقم، خط تیره، کد شهر دورقمی؛ مثل «12ب345-67»
+PLATE_LETTERS = ("الف", "ب", "پ", "ت", "ث", "ج", "د", "ز", "ژ", "س", "ش", "ص", "ط", "ع", "ف", "ق", "ک", "گ", "ل", "م", "ن", "و", "ه", "ی")
+
+
+@register
+class VehiclePlate(_Identifier):
+    code, title = "vehicle_plate", "پلاک خودرو"
+    pattern = r"^\d{2}(" + "|".join(PLATE_LETTERS) + r")\d{3}-\d{2}$"
+    invalid_message = "«{label}» را کامل وارد کنید: دو رقم، حرف، سه رقم و کد شهر."
 
 
 @register

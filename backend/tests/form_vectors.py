@@ -13,6 +13,7 @@ from pathlib import Path
 PATH = Path(__file__).resolve().parents[2] / "shared" / "vectors" / "form-validation.json"
 
 OPTIONS = [{"value": "a", "label": "الف"}, {"value": "b", "label": "ب"}, {"value": "c", "label": "ج"}]
+ROWS = [{"value": "skill", "label": "مهارت"}, {"value": "team", "label": "کار گروهی"}]
 
 DEFINITION = {
     "sections": [
@@ -36,6 +37,15 @@ DEFINITION = {
                 {"id": "mobile", "type": "mobile", "label": "موبایل"},
                 {"id": "email", "type": "email", "label": "ایمیل"},
                 {"id": "sheba", "type": "iban", "label": "شبا"},
+                {"id": "name_fa", "type": "text", "label": "نام", "props": {"script": "persian"}},
+                {"id": "name_en", "type": "text", "label": "نام لاتین", "props": {"script": "latin"}},
+                {"id": "eco", "type": "economic_code", "label": "کد اقتصادی"},
+                {"id": "plate", "type": "vehicle_plate", "label": "پلاک"},
+                {"id": "when", "type": "datetime", "label": "زمان"},
+                {"id": "shift", "type": "time_range", "label": "شیفت"},
+                {"id": "score", "type": "scale", "label": "امتیاز", "props": {"max": 5}},
+                {"id": "eval", "type": "matrix", "label": "ارزیابی", "required": True, "props": {"rows": ROWS, "columns": OPTIONS}},
+                {"id": "agree", "type": "consent", "label": "تعهد", "required": True, "props": {"text": "می‌پذیرم"}},
             ],
         }
     ]
@@ -47,7 +57,17 @@ CASES = [
     {
         "name": "type and range errors",
         "partial": False,
-        "data": {"title": "ab", "notes": "x" * 21, "qty": 0, "weight": "abc", "price": 2000000, "ok": True, "kind": "z"},
+        "data": {
+            "title": "ab",
+            "notes": "x" * 21,
+            "qty": 0,
+            "weight": "abc",
+            "price": 2000000,
+            "ok": True,
+            "kind": "z",
+            "eval": {"skill": "a", "team": "b"},
+            "agree": True,
+        },
         "errors": None,
     },
     {
@@ -56,7 +76,25 @@ CASES = [
         "data": {"day": "1405/13/01", "at": "24:10", "nid": "0084575949", "mobile": "0912", "email": "a@", "sheba": "IR062960000000100324200002"},
         "errors": None,
     },
-    {"name": "selection counts", "partial": False, "data": {"title": "abc", "price": 1, "ok": False, "tags": ["a"]}, "errors": None},
+    {
+        "name": "specialised formats",
+        "partial": True,
+        "data": {"name_fa": "Ali", "name_en": "علی", "eco": "12", "plate": "12X345-67", "when": "1405/08/14", "shift": {"start": "8:00"}, "score": 7},
+        "errors": None,
+    },
+    {
+        "name": "incomplete matrix and refused consent",
+        "partial": False,
+        "data": {"title": "abc", "price": 1, "ok": True, "eval": {"skill": "a"}, "agree": False},
+        "errors": None,
+    },
+    {"name": "draft with partial matrix", "partial": True, "data": {"eval": {"skill": "a"}, "shift": {"start": "08:00"}}, "errors": {}},
+    {
+        "name": "selection counts",
+        "partial": False,
+        "data": {"title": "abc", "price": 1, "ok": False, "tags": ["a"], "eval": {"skill": "a", "team": "b"}, "agree": True},
+        "errors": None,
+    },
     {"name": "duplicate selection", "partial": True, "data": {"tags": ["a", "a"]}, "errors": None},
     {"name": "draft skips minimum selection", "partial": True, "data": {"tags": ["a"]}, "errors": {}},
     {
@@ -76,6 +114,15 @@ CASES = [
             "mobile": "09121234567",
             "email": "info@example.ir",
             "sheba": "IR062960000000100324200001",
+            "name_fa": "زهرا موسوی‌نژاد",
+            "name_en": "Zahra Mousavi",
+            "eco": "10100387221",
+            "plate": "12الف345-67",
+            "when": "1405/08/14 08:30",
+            "shift": {"start": "08:00", "end": "16:30"},
+            "score": 4,
+            "eval": {"skill": "a", "team": "c"},
+            "agree": True,
         },
         "errors": {},
     },
