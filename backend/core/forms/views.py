@@ -13,7 +13,7 @@ from core.kernel.api import BusinessError, HasPerm, MultiValueFilter
 from core.lookups.models import LookupItem
 
 from . import engine, service
-from .fieldtypes import divisions
+from .fieldtypes import COLUMN_TYPES, REGISTRY, divisions
 from .models import Form, FormVersion, Submission
 
 CATEGORY_LIST = "form-category"
@@ -133,6 +133,58 @@ class FormSubmissionSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+class FieldPropSpecSerializer(serializers.Serializer):
+    name = serializers.CharField()
+    kind = serializers.CharField(help_text="int، number، bool، text، choice، choice_list، options، lookup_list، org_unit، role، extensions، columns")
+    title = serializers.CharField()
+    required = serializers.BooleanField()
+    default = serializers.JSONField(allow_null=True)
+    choices = serializers.ListField(child=serializers.DictField(child=serializers.CharField()), help_text="[{value, label}]")
+    min = serializers.FloatField(allow_null=True)
+    max = serializers.FloatField(allow_null=True)
+
+
+class FieldTypeSpecSerializer(serializers.Serializer):
+    code = serializers.CharField()
+    title = serializers.CharField()
+    group = serializers.CharField()
+    has_value = serializers.BooleanField()
+    client_value = serializers.BooleanField(help_text="false: مقدار را سرور هنگام ثبت می‌گذارد (امضا، ثبت‌کننده)")
+    label_required = serializers.BooleanField()
+    supports_default = serializers.BooleanField()
+    column = serializers.BooleanField(help_text="می‌تواند ستون جدول باشد")
+    props = FieldPropSpecSerializer(many=True)
+
+
+def field_type_specs() -> list[dict]:
+    return [
+        {
+            "code": code,
+            "title": t.title,
+            "group": t.group,
+            "has_value": t.has_value,
+            "client_value": t.client_value,
+            "label_required": t.label_required,
+            "supports_default": t.supports_default,
+            "column": code in COLUMN_TYPES,
+            "props": [
+                {
+                    "name": name,
+                    "kind": p.kind,
+                    "title": p.title,
+                    "required": p.required,
+                    "default": p.default,
+                    "choices": [{"value": k, "label": v} for k, v in p.choices.items()],
+                    "min": p.min,
+                    "max": p.max,
+                }
+                for name, p in t.props.items()
+            ],
+        }
+        for code, t in REGISTRY.items()
+    ]
+
+
 class RegionSerializer(serializers.Serializer):
     name = serializers.CharField()
     counties = serializers.ListField(child=serializers.CharField())
@@ -223,6 +275,12 @@ class FormViewSet(AuditedModelViewSet):
         """فرم‌هایی که کاربر جاری می‌تواند پر کند."""
         forms = service.fillable_forms(request.user).select_related("category").order_by("category__order", "title")
         return Response(AvailableFormSerializer(forms, many=True).data)
+
+    @extend_schema(responses=FieldTypeSpecSerializer(many=True))
+    @action(detail=False, url_path="field-types", pagination_class=None)
+    def field_types(self, request):
+        """کاتالوگ نوع فیلدها و ویژگی‌هایشان، برای جعبه‌ابزار و پانل ویژگی‌های طراح."""
+        return Response(field_type_specs())
 
     @extend_schema(responses=RegionSerializer(many=True))
     @action(detail=False, pagination_class=None)

@@ -53,6 +53,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/role-lookup/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description نام نقش‌ها برای انتخاب (مثلاً نقش‌های پرکننده‌ی فرم یا محدودیت فیلد کاربر)؛ برای هر کاربر واردشده، بدون مجوزها. */
+        get: operations["auth_role_lookup_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/roles/": {
         parameters: {
             query?: never;
@@ -587,6 +604,23 @@ export interface paths {
         };
         /** @description فرم‌هایی که کاربر جاری می‌تواند پر کند. */
         get: operations["forms_available_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/forms/field-types/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description کاتالوگ نوع فیلدها و ویژگی‌هایشان، برای جعبه‌ابزار و پانل ویژگی‌های طراح. */
+        get: operations["forms_field_types_list"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1741,6 +1775,35 @@ export interface components {
          * @enum {string}
          */
         DeliveryStatusEnum: "queued" | "sent" | "failed";
+        FieldPropSpec: {
+            name: string;
+            /** @description int، number، bool، text، choice، choice_list، options، lookup_list، org_unit، role، extensions، columns */
+            kind: string;
+            title: string;
+            required: boolean;
+            default: unknown;
+            /** @description [{value, label}] */
+            choices: {
+                [key: string]: string;
+            }[];
+            /** Format: double */
+            min: number | null;
+            /** Format: double */
+            max: number | null;
+        };
+        FieldTypeSpec: {
+            code: string;
+            title: string;
+            group: string;
+            has_value: boolean;
+            /** @description false: مقدار را سرور هنگام ثبت می‌گذارد (امضا، ثبت‌کننده) */
+            client_value: boolean;
+            label_required: boolean;
+            supports_default: boolean;
+            /** @description می‌تواند ستون جدول باشد */
+            column: boolean;
+            props: components["schemas"]["FieldPropSpec"][];
+        };
         FilePolicy: {
             /** @description بایت */
             max_size: number;
@@ -2878,6 +2941,10 @@ export interface components {
             permissions: string[];
             readonly user_count: number;
         };
+        RoleLookup: {
+            id: number;
+            name: string;
+        };
         RoleRequest: {
             /** عنوان */
             name: string;
@@ -3235,6 +3302,25 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PermissionGroup"][];
+                };
+            };
+        };
+    };
+    auth_role_lookup_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleLookup"][];
                 };
             };
         };
@@ -4370,6 +4456,30 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AvailableForm"][];
+                };
+            };
+        };
+    };
+    forms_field_types_list: {
+        parameters: {
+            query?: {
+                /** @description چند مقدار با ویرگول جدا می‌شود. */
+                category?: string;
+                /** @description چند مقدار با ویرگول جدا می‌شود. */
+                is_active?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FieldTypeSpec"][];
                 };
             };
         };
