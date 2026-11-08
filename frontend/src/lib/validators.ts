@@ -73,6 +73,11 @@ export function isValidIban(value: string): boolean {
   return rem === 1
 }
 
+/** ایمیل (هم‌ارز is_email سرور). */
+export function isValidEmail(value: string): boolean {
+  return value.length <= 254 && /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(value)
+}
+
 /** طرح‌های آماده برای فرم‌ها؛ مقدار خروجی یکسان‌سازی‌شده است. */
 export const schemas = {
   nationalId: z

@@ -73,3 +73,73 @@ function makeEmployees(count: number): Employee[] {
 
 export const UNIT_NAMES = UNITS.map(([u]) => u)
 export const employees = makeEmployees(240)
+
+/** فرم نمونه‌ی فرم‌ساز با همه‌ی نوع فیلدهای پایه (ساخت از «کیت › فرم‌ها» برای امتحان صفحه‌ی «فرم‌ها» پیش از طراح دیداری). */
+export const SAMPLE_FORM_DEFINITION = {
+  sections: [
+    {
+      id: "request",
+      title: "مشخصات درخواست",
+      columns: 2,
+      fields: [
+        { id: "intro", type: "paragraph", span: 2, props: { content: "این فرم نمونه‌ی نمایشگر فرم‌ساز است. پیش‌نویس هنگام پر کردن خودکار ذخیره می‌شود." } },
+        { id: "title", type: "text", label: "عنوان درخواست", required: true, props: { min_length: 3, max_length: 100 } },
+        {
+          id: "kind",
+          type: "choice",
+          label: "نوع درخواست",
+          required: true,
+          props: {
+            display: "select",
+            options: [
+              { value: "goods", label: "خرید کالا" },
+              { value: "service", label: "خرید خدمات" },
+              { value: "repair", label: "تعمیر" },
+            ],
+          },
+        },
+        { id: "need_date", type: "date", label: "تاریخ نیاز", help: "تاریخی که کالا یا خدمت باید آماده باشد؛ از امروز به بعد.", props: { range: "future" } },
+        { id: "delivery_time", type: "time", label: "ساعت تحویل" },
+        { id: "estimate", type: "amount", label: "مبلغ برآوردی", required: true, props: { max: 50_000_000_000 } },
+        { id: "qty", type: "number", label: "تعداد", props: { min: 1, max: 10_000, unit: "عدد" } },
+        { id: "weight", type: "number", label: "وزن تقریبی", props: { decimals: 2, unit: "کیلوگرم" } },
+      ],
+    },
+    {
+      id: "details",
+      title: "جزئیات",
+      columns: 2,
+      fields: [
+        {
+          id: "sourcing",
+          type: "multi_choice",
+          label: "روش‌های تأمین",
+          help: "یک یا چند روش را انتخاب کنید.",
+          props: {
+            min_select: 1,
+            options: [
+              { value: "stock", label: "از انبار" },
+              { value: "local", label: "خرید محلی" },
+              { value: "tender", label: "استعلام و مناقصه" },
+            ],
+          },
+        },
+        { id: "urgent", type: "boolean", label: "فوری است؟", required: true },
+        {
+          id: "priority",
+          type: "choice",
+          label: "اولویت",
+          props: {
+            options: [
+              { value: "low", label: "کم" },
+              { value: "normal", label: "متوسط" },
+              { value: "high", label: "زیاد" },
+            ],
+          },
+        },
+        { id: "sep", type: "divider" },
+        { id: "description", type: "textarea", label: "شرح", span: 2, props: { max_length: 500, rows: 3 } },
+      ],
+    },
+  ],
+}

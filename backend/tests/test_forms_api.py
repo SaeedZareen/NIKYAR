@@ -109,6 +109,10 @@ class TestSubmissions:
         c = client_for(user)
         avail = c.get("/api/forms/available/").json()
         assert [f["code"] for f in avail] == ["purchase"]
+        ctx = c.get(f"/api/forms/{published['id']}/fill/").json()
+        assert ctx["title"] == "درخواست خرید" and ctx["version_number"] == 1 and ctx["definition"] == DEFINITION
+        assert ctx["schema"]["required"] == ["title", "amount"] and "required" not in ctx["draft_schema"]
+        assert ctx["schema"]["properties"]["amount"]["x-messages"]["required"] == "تکمیل «مبلغ» الزامی است."
 
         mine = upload(c, "quote.pdf", PDF)
         image = upload(c, "photo.png", PNG)
@@ -119,6 +123,7 @@ class TestSubmissions:
         assert r.status_code == 201, r.json()
         sub = r.json()
         assert sub["status"] == "draft" and sub["version_number"] == 1 and StoredFile.objects.get(pk=mine).claimed
+        assert c.get(f"/api/forms/submissions/{sub['id']}/").json()["context"]["definition"] == DEFINITION
         assert not AuditLog.objects.filter(model="forms.submission").exists()
 
         # نوع فایل نامجاز، و فایل کاربر دیگر پذیرفته نمی‌شود
@@ -185,6 +190,7 @@ class TestSubmissions:
 
         fc, vc, oc = client_for(filler), client_for(viewer), client_for(outsider)
         assert oc.get("/api/forms/available/").json() == []
+        assert oc.get(f"/api/forms/{published['id']}/fill/").status_code == 403
         assert oc.post("/api/forms/submissions/", {"form": published["id"], "data": {}}, format="json").status_code == 403
 
         draft = fc.post("/api/forms/submissions/", {"form": published["id"], "data": {"title": "پیش‌نویس"}}, format="json").json()

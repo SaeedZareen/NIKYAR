@@ -3,6 +3,7 @@ from django.db.models import Count, Max, OuterRef, Q
 from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_field
 from rest_framework import mixins, serializers, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
 from core.accounts.models import Role
@@ -131,6 +132,43 @@ class FormSubmissionSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+class FillContextSerializer(serializers.Serializer):
+    """آنچه نمایشگر فرم لازم دارد: تعریف نسخه و دو طرح اعتبارسنجی (ثبت نهایی و پیش‌نویس)."""
+
+    form = serializers.IntegerField()
+    title = serializers.CharField()
+    description = serializers.CharField(allow_blank=True)
+    version_number = serializers.IntegerField()
+    definition = JsonObjectField()
+    schema = JsonObjectField(help_text="طرح ثبت نهایی (با الزامی‌ها)")
+    draft_schema = JsonObjectField(help_text="طرح پیش‌نویس (بدون الزامی‌ها)")
+
+
+def fill_context(version: FormVersion) -> dict:
+    form = version.form
+    return {
+        "form": form.pk,
+        "title": form.title,
+        "description": form.description,
+        "version_number": version.number,
+        "definition": version.definition,
+        "schema": engine.compile_schema(version.definition, title=form.title),
+        "draft_schema": engine.compile_schema(version.definition, title=form.title, partial=True),
+    }
+
+
+class FormSubmissionDetailSerializer(FormSubmissionSerializer):
+    context = serializers.SerializerMethodField(help_text="تعریف و طرح نسخه‌ای که این ثبت با آن پر شده است")
+
+    class Meta(FormSubmissionSerializer.Meta):
+        fields = [*FormSubmissionSerializer.Meta.fields, "context"]
+        read_only_fields = fields
+
+    @extend_schema_field(FillContextSerializer)
+    def get_context(self, obj):
+        return fill_context(obj.version)
+
+
 class FormSubmissionWriteSerializer(serializers.Serializer):
     form = serializers.PrimaryKeyRelatedField(queryset=Form.objects.all(), required=False, help_text="فقط هنگام ایجاد")
     data = JsonObjectField(help_text="مقدار فیلدها با کلید شناسه‌ی هر فیلد")
@@ -142,7 +180,7 @@ class FormViewSet(AuditedModelViewSet):
 
     serializer_class = FormSerializer
     permission_classes = [HasPerm]
-    perms = {"*": service.DESIGN, "available": None}
+    perms = {"*": service.DESIGN, "available": None, "fill": None}
     filter_backends = [MultiValueFilter]
     filter_fields = {"is_active": "is_active", "category": "category_id"}
     lookup_value_regex = r"\d+"
@@ -178,6 +216,18 @@ class FormViewSet(AuditedModelViewSet):
         """فرم‌هایی که کاربر جاری می‌تواند پر کند."""
         forms = service.fillable_forms(request.user).select_related("category").order_by("category__order", "title")
         return Response(AvailableFormSerializer(forms, many=True).data)
+
+    @extend_schema(responses=FillContextSerializer)
+    @action(detail=True)
+    def fill(self, request, pk=None):
+        """تعریف آخرین نسخه‌ی منتشرشده برای پر کردن فرم تازه."""
+        form = self.get_object()
+        if not service.can_fill(request.user, form):
+            raise PermissionDenied()
+        version = form.current_version()
+        if version is None:
+            raise BusinessError("این فرم هنوز منتشر نشده است.")
+        return Response(fill_context(version))
 
     @extend_schema(request=None, responses={201: FormVersionDetailSerializer})
     @action(detail=True, methods=["post"], url_path="new-draft")
@@ -237,7 +287,9 @@ class FormSubmissionViewSet(viewsets.ModelViewSet):
         return submissions
 
     def get_serializer_class(self):
-        return FormSubmissionWriteSerializer if self.action in {"create", "partial_update"} else FormSubmissionSerializer
+        if self.action in {"create", "partial_update"}:
+            return FormSubmissionWriteSerializer
+        return FormSubmissionDetailSerializer if self.action == "retrieve" else FormSubmissionSerializer
 
     @extend_schema(parameters=[OpenApiParameter("mine", bool, description="فقط ثبت‌های خودم")])
     def list(self, request, *args, **kwargs):

@@ -19,6 +19,7 @@ import { Label } from "@/components/ui/label"
 import { formatMoney } from "@/lib/format"
 import { schemas } from "@/lib/validators"
 import { TYPE_LABELS, UNIT_NAMES } from "./sample-data"
+import { SampleFormSection } from "./sample-form-section"
 
 const BANKS = ["ملی", "ملت", "تجارت", "صادرات", "سپه", "پاسارگاد", "سامان", "پارسیان", "رفاه کارگران", "مسکن"]
 
@@ -230,6 +231,7 @@ export default function FormsPage() {
           </FormGrid>
         </Section>
       </form>
+      <SampleFormSection />
     </>
   )
 }

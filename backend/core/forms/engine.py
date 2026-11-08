@@ -238,7 +238,30 @@ def field_schema(field: dict, partial: bool = False) -> dict:
         schema["description"] = field["help"]
     if "default" in field:
         schema["default"] = field["default"]
+    schema["x-messages"] = field_messages(ftype, schema, field.get("label", ""))
     return schema
+
+
+def field_messages(ftype: FieldType, schema: dict, label: str) -> dict[str, str]:
+    """
+    پیام فارسی هر کلیدواژه‌ی JSON Schema برای این فیلد (کلیدواژه‌ی بی‌پیام ← invalid). در طرح با نام x-messages
+    می‌آید تا مرورگر همین پیام‌ها را نشان دهد و متن‌ها فقط یک‌جا (همین‌جا) نوشته شوند.
+    """
+    messages = {"required": ftype.required_message, "invalid": ftype.invalid_message}
+    if "minLength" in schema:
+        messages["minLength"] = "«{label}» دست‌کم " + fa_number(schema["minLength"]) + " نویسه باشد."
+    if "maxLength" in schema:
+        messages["maxLength"] = "«{label}» حداکثر " + fa_number(schema["maxLength"]) + " نویسه باشد."
+    if "minimum" in schema:
+        messages["minimum"] = "«{label}» نباید کمتر از " + fa_number(schema["minimum"]) + " باشد."
+    if "maximum" in schema:
+        messages["maximum"] = "«{label}» نباید بیشتر از " + fa_number(schema["maximum"]) + " باشد."
+    for keyword in ("minItems", "maxItems"):
+        if keyword in schema:
+            messages[keyword] = ftype.count_message(keyword, schema[keyword])
+    if schema.get("uniqueItems"):
+        messages["uniqueItems"] = "در «{label}» مورد تکراری هست."
+    return {k: m.format(label=label) for k, m in messages.items()}
 
 
 def compile_schema(definition: dict, *, title: str = "", partial: bool = False) -> dict:
@@ -290,7 +313,7 @@ def validate_data(definition: dict, data, ctx: Ctx) -> dict:
             continue
         if field["id"] not in cleaned:
             if field.get("required") and not ctx.partial:
-                errors[field["id"]] = REGISTRY[field["type"]].required_message.format(label=field["label"])
+                errors[field["id"]] = _message(field_schema(field), "required")
             continue
         errors.update({(f"{field['id']}.{k}" if k else field["id"]): m for k, m in _field_errors(field, cleaned[field["id"]], ctx).items()})
     unknown = set(cleaned) - {f["id"] for f in value_fields(definition)}
@@ -307,7 +330,8 @@ def _field_errors(field: dict, value, ctx: Ctx) -> dict[str, str]:
     اول JSON Schema، سپس (اگر طرح گذشت) بررسی‌های سروری نوع.
     """
     ftype, props, label = REGISTRY[field["type"]], props_of(field), field.get("label", "")
-    validator = Draft202012Validator(field_schema(field, ctx.partial), format_checker=FORMATS)
+    schema = field_schema(field, ctx.partial)
+    validator = Draft202012Validator(schema, format_checker=FORMATS)
     errors: dict[str, str] = {}
     for err in sorted(validator.iter_errors(value), key=lambda e: list(e.absolute_path)):
         path = list(err.absolute_path)
@@ -316,14 +340,12 @@ def _field_errors(field: dict, value, ctx: Ctx) -> dict[str, str]:
             columns = {c["id"]: c for c in props["columns"]}
             if err.validator == "required":
                 for missing in (c for c in err.validator_value if c not in err.instance):
-                    column = columns[missing]
-                    errors.setdefault(f"{row}.{missing}", _row(row, REGISTRY[column["type"]].required_message.format(label=column["label"])))
+                    errors.setdefault(f"{row}.{missing}", _row(row, _message(schema["items"]["properties"][missing], "required")))
                 continue
             if len(path) >= 2 and path[1] in columns:
-                column = columns[path[1]]
-                errors.setdefault(f"{row}.{path[1]}", _row(row, _message(REGISTRY[column["type"]], err, column["label"])))
+                errors.setdefault(f"{row}.{path[1]}", _row(row, _message(schema["items"]["properties"][path[1]], err.validator)))
                 continue
-        errors.setdefault("", _message(ftype, err, label))
+        errors.setdefault("", _message(schema, err.validator))
     if errors:
         return errors
     if ftype.code == "table":
@@ -342,23 +364,9 @@ def _row(row: int, message: str) -> str:
     return f"ردیف {fa_digits(row + 1)}: {message}"
 
 
-def _message(ftype: FieldType, err, label: str) -> str:
-    keyword, n = err.validator, err.validator_value
-    if keyword == "minLength":
-        text = "«{label}» دست‌کم " + fa_number(n) + " نویسه باشد."
-    elif keyword == "maxLength":
-        text = "«{label}» حداکثر " + fa_number(n) + " نویسه باشد."
-    elif keyword in ("minimum", "exclusiveMinimum"):
-        text = "«{label}» نباید کمتر از " + fa_number(n) + " باشد."
-    elif keyword in ("maximum", "exclusiveMaximum"):
-        text = "«{label}» نباید بیشتر از " + fa_number(n) + " باشد."
-    elif keyword in ("minItems", "maxItems"):
-        text = ftype.count_message(keyword, n)
-    elif keyword == "uniqueItems":
-        text = "در «{label}» مورد تکراری هست."
-    else:
-        text = ftype.invalid_message
-    return text.format(label=label)
+def _message(schema: dict, keyword: str) -> str:
+    messages = schema["x-messages"]
+    return messages.get(keyword, messages["invalid"])
 
 
 def file_ids(definition: dict, data: dict | None) -> set[str]:

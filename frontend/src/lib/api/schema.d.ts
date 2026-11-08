@@ -524,6 +524,23 @@ export interface paths {
         patch: operations["forms_partial_update"];
         trace?: never;
     };
+    "/api/forms/{id}/fill/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description تعریف آخرین نسخه‌ی منتشرشده برای پر کردن فرم تازه. */
+        get: operations["forms_fill_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/forms/{id}/new-draft/": {
         parameters: {
             query?: never;
@@ -1711,6 +1728,24 @@ export interface components {
             is_image: boolean;
             allowed: boolean;
         };
+        /** @description آنچه نمایشگر فرم لازم دارد: تعریف نسخه و دو طرح اعتبارسنجی (ثبت نهایی و پیش‌نویس). */
+        FillContext: {
+            form: number;
+            title: string;
+            description: string;
+            version_number: number;
+            definition: {
+                [key: string]: unknown;
+            };
+            /** @description طرح ثبت نهایی (با الزامی‌ها) */
+            schema: {
+                [key: string]: unknown;
+            };
+            /** @description طرح پیش‌نویس (بدون الزامی‌ها) */
+            draft_schema: {
+                [key: string]: unknown;
+            };
+        };
         FiscalYearSettings: {
             /**
              * ماه آغاز سال مالی
@@ -1810,6 +1845,39 @@ export interface components {
              * Format: date-time
              */
             readonly submitted_at: string | null;
+        };
+        FormSubmissionDetail: {
+            readonly id: number;
+            /** فرم */
+            readonly form: number;
+            readonly form_title: string;
+            readonly version_number: number;
+            /** وضعیت */
+            readonly status: components["schemas"]["FormSubmissionStatusEnum"];
+            readonly status_label: string;
+            readonly data: {
+                [key: string]: unknown;
+            };
+            /** ثبت‌کننده */
+            readonly created_by: number;
+            readonly created_by_name: string;
+            /**
+             * زمان ایجاد
+             * Format: date-time
+             */
+            readonly created_at: string;
+            /**
+             * آخرین تغییر
+             * Format: date-time
+             */
+            readonly updated_at: string;
+            /**
+             * زمان ثبت
+             * Format: date-time
+             */
+            readonly submitted_at: string | null;
+            /** @description تعریف و طرح نسخه‌ای که این ثبت با آن پر شده است */
+            readonly context: components["schemas"]["FillContext"];
         };
         /**
          * @description * `draft` - پیش‌نویس
@@ -4116,6 +4184,27 @@ export interface operations {
             };
         };
     };
+    forms_fill_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FillContext"];
+                };
+            };
+        };
+    };
     forms_new_draft_create: {
         parameters: {
             query?: never;
@@ -4233,7 +4322,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["FormSubmission"];
+                    "application/json": components["schemas"]["FormSubmissionDetail"];
                 };
             };
         };
