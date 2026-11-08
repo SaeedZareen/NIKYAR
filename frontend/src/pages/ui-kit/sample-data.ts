@@ -181,5 +181,22 @@ export const SAMPLE_FORM_DEFINITION = {
         { id: "agree", type: "consent", label: "تعهد", required: true, props: { text: "صحت اطلاعات این درخواست را تأیید می‌کنم." } },
       ],
     },
+    {
+      id: "system",
+      title: "داده‌های سامانه، پیوست و امضا",
+      columns: 2,
+      fields: [
+        { id: "requester", type: "submitter", label: "درخواست‌کننده", span: 2, props: { items: ["name", "unit", "position", "mobile"] } },
+        { id: "category", type: "lookup", label: "دسته", props: { list: "form-category" } },
+        { id: "unit", type: "org_unit", label: "واحد درخواست‌کننده", props: { default_mine: true } },
+        { id: "approver", type: "user", label: "تأییدکننده" },
+        { id: "team", type: "user", label: "همکاران مرتبط", props: { multiple: true } },
+        { id: "position", type: "position", label: "سمت مسئول خرید" },
+        { id: "place", type: "region", label: "محل تحویل" },
+        { id: "documents", type: "attachment", label: "پیش‌فاکتورها", props: { multiple: true, max_files: 3, camera: true } },
+        { id: "receiver_sign", type: "signature_pad", label: "امضای تحویل‌گیرنده" },
+        { id: "sign", type: "signature", label: "امضای درخواست‌کننده" },
+      ],
+    },
   ],
 }

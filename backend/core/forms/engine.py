@@ -198,6 +198,19 @@ def _check_prop(spec: Prop, value, path: str, errors: dict) -> str | None:
 
         if not isinstance(value, str) or not LookupList.objects.filter(code=value).exists():
             return "فهرست پایه‌ی انتخاب‌شده پیدا نشد."
+    elif spec.kind == "org_unit":
+        from core.org.models import OrgUnit
+
+        if not _is_int(value) or not OrgUnit.objects.filter(pk=value).exists():
+            return "واحد سازمانی انتخاب‌شده پیدا نشد."
+    elif spec.kind == "role":
+        from core.accounts.models import Role
+
+        if not _is_int(value) or not Role.objects.filter(pk=value).exists():
+            return "نقش انتخاب‌شده پیدا نشد."
+    elif spec.kind == "choice_list":
+        if not isinstance(value, list) or not value or not all(v in spec.choices for v in value) or len(set(value)) != len(value):
+            return f"«{spec.title}» دست‌کم یک مورد از گزینه‌های مجاز است."
     elif spec.kind == "extensions":
         from core.files.types import FILE_TYPES
 

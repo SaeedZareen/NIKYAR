@@ -7,4 +7,9 @@ router = DefaultRouter(trailing_slash=True)
 router.register("units", views.OrgUnitViewSet, basename="org-unit")
 router.register("positions", views.PositionViewSet, basename="position")
 router.register("assignments", views.AssignmentViewSet, basename="assignment")
-urlpatterns = [path("branding/", views.BrandingView.as_view(), name="org-branding"), *router.urls]
+urlpatterns = [
+    path("branding/", views.BrandingView.as_view(), name="org-branding"),
+    path("unit-lookup/", views.UnitLookupView.as_view(), name="org-unit-lookup"),
+    path("position-lookup/", views.PositionLookupView.as_view(), name="org-position-lookup"),
+    *router.urls,
+]

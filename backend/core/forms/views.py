@@ -13,6 +13,7 @@ from core.kernel.api import BusinessError, HasPerm, MultiValueFilter
 from core.lookups.models import LookupItem
 
 from . import engine, service
+from .fieldtypes import divisions
 from .models import Form, FormVersion, Submission
 
 CATEGORY_LIST = "form-category"
@@ -132,6 +133,12 @@ class FormSubmissionSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+class RegionSerializer(serializers.Serializer):
+    name = serializers.CharField()
+    counties = serializers.ListField(child=serializers.CharField())
+    cities = serializers.ListField(child=serializers.CharField())
+
+
 class FillContextSerializer(serializers.Serializer):
     """آنچه نمایشگر فرم لازم دارد: تعریف نسخه و دو طرح اعتبارسنجی (ثبت نهایی و پیش‌نویس)."""
 
@@ -180,7 +187,7 @@ class FormViewSet(AuditedModelViewSet):
 
     serializer_class = FormSerializer
     permission_classes = [HasPerm]
-    perms = {"*": service.DESIGN, "available": None, "fill": None}
+    perms = {"*": service.DESIGN, "available": None, "fill": None, "regions": None}
     filter_backends = [MultiValueFilter]
     filter_fields = {"is_active": "is_active", "category": "category_id"}
     lookup_value_regex = r"\d+"
@@ -216,6 +223,12 @@ class FormViewSet(AuditedModelViewSet):
         """فرم‌هایی که کاربر جاری می‌تواند پر کند."""
         forms = service.fillable_forms(request.user).select_related("category").order_by("category__order", "title")
         return Response(AvailableFormSerializer(forms, many=True).data)
+
+    @extend_schema(responses=RegionSerializer(many=True))
+    @action(detail=False, pagination_class=None)
+    def regions(self, request):
+        """استان‌ها با شهرستان‌ها و شهرها (تقسیمات کشوری همراه برنامه) برای فیلد «استان و شهر»."""
+        return Response(list(divisions().values()))
 
     @extend_schema(responses=FillContextSerializer)
     @action(detail=True)

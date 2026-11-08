@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.db.models import Count, Prefetch, Q
 from django.utils import timezone
-from drf_spectacular.utils import extend_schema_field
+from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_field, extend_schema_view
 from rest_framework import filters, generics, permissions, serializers
 from rest_framework.response import Response
 
@@ -12,6 +12,7 @@ from core.kernel.fields import JalaliDateField
 from core.settings import service as settings_service
 
 from .models import Assignment, OrgUnit, Position
+from .service import subtree_ids
 
 PERMS = {"list": "org.view", "retrieve": "org.view", "*": "org.manage"}
 
@@ -139,6 +140,48 @@ class BrandingSerializer(serializers.Serializer):
     short_name = serializers.CharField()
     logo_url = serializers.CharField(help_text="نشانی تصویر لوگو؛ خالی یعنی بدون لوگو.")
     version = serializers.CharField(help_text="نسخه‌ی نیک‌یار، برای صفحه‌ی ورود.")
+
+
+class UnitLookupSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    name = serializers.CharField()
+    parent = serializers.IntegerField(allow_null=True)
+
+
+class UnitLookupView(generics.ListAPIView):
+    """واحدهای فعال برای انتخاب در فرم‌ها (برای هر کاربر واردشده؛ فقط نام و بالادست)."""
+
+    permission_classes = [HasPerm]
+    perms = {"*": None}
+    serializer_class = UnitLookupSerializer
+    pagination_class = None
+
+    def list(self, request, *args, **kwargs):
+        units = OrgUnit.objects.filter(is_active=True).order_by("order", "name")
+        return Response([{"id": u.pk, "name": u.name, "parent": u.parent_id} for u in units])
+
+
+class PositionLookupSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    title = serializers.CharField()
+    unit_name = serializers.CharField()
+
+
+@extend_schema_view(get=extend_schema(parameters=[OpenApiParameter("unit", int, description="شناسه‌ی واحد (با زیرواحدها)")]))
+class PositionLookupView(generics.ListAPIView):
+    """سمت‌های فعال برای انتخاب در فرم‌ها؛ ?unit= فقط سمت‌های آن واحد و زیرواحدهایش."""
+
+    permission_classes = [HasPerm]
+    perms = {"*": None}
+    serializer_class = PositionLookupSerializer
+    pagination_class = None
+
+    def list(self, request, *args, **kwargs):
+        positions = Position.objects.filter(is_active=True).select_related("unit").order_by("unit__order", "unit__name", "-is_manager", "title")
+        unit = request.query_params.get("unit")
+        if unit and unit.isdigit():
+            positions = positions.filter(unit_id__in=subtree_ids(int(unit)))
+        return Response([{"id": p.pk, "title": p.title, "unit_name": p.unit.name} for p in positions])
 
 
 class BrandingView(generics.GenericAPIView):

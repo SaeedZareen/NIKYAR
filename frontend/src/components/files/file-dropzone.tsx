@@ -1,8 +1,8 @@
 import * as React from "react"
-import { Upload, X } from "lucide-react"
+import { Camera, Upload, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
-import { allowedLabels, type StoredFile } from "@/lib/files"
+import { allowedLabels, allowedTypes, type StoredFile } from "@/lib/files"
 import { formatFileSize, toFaDigits } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import { FileIcon } from "./file-icon"
@@ -13,6 +13,10 @@ type Props = {
   multiple?: boolean
   /** فقط تصویر (مثل لوگو و امضا). */
   imagesOnly?: boolean
+  /** محدودیت بیشتر نوع‌ها (مثلاً فیلد پیوست فرم‌ساز). */
+  extensions?: string[]
+  /** دکمه‌ی «عکس با دوربین» برای موبایل. */
+  camera?: boolean
   disabled?: boolean
   onUploaded: (file: StoredFile) => void
   className?: string
@@ -24,11 +28,12 @@ type Props = {
  * ناحیه‌ی بارگذاری: کشیدن و رها کردن یا انتخاب فایل، بررسی نوع و حجم پیش از ارسال،
  * نوار پیشرفت و لغو هر فایل، و پیام خطای فارسی برای هر فایل ردشده.
  */
-export function FileDropzone({ id, multiple, imagesOnly, disabled, onUploaded, className, ...aria }: Props) {
+export function FileDropzone({ id, multiple, imagesOnly, extensions, camera, disabled, onUploaded, className, ...aria }: Props) {
   const input = React.useRef<HTMLInputElement>(null)
+  const cameraInput = React.useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = React.useState(false)
-  const { policy, items, start, cancel, dismiss } = useUploads({ imagesOnly, onUploaded })
-  const allowed = policy?.types.filter((t) => t.allowed && (!imagesOnly || t.is_image)) ?? []
+  const { policy, items, start, cancel, dismiss } = useUploads({ imagesOnly, extensions, onUploaded })
+  const allowed = policy ? allowedTypes(policy, imagesOnly, extensions) : []
   const hintId = React.useId()
 
   const pick = (list: FileList | null) => {
@@ -73,6 +78,11 @@ export function FileDropzone({ id, multiple, imagesOnly, disabled, onUploaded, c
             {multiple ? "فایل‌ها را انتخاب کنید" : "فایل را انتخاب کنید"}
           </Button>
         </p>
+        {camera && (
+          <Button type="button" variant="outline" size="sm" className="mt-1 md:hidden" disabled={disabled} onClick={() => cameraInput.current?.click()}>
+            <Camera /> عکس با دوربین
+          </Button>
+        )}
         <p id={hintId} className="text-2xs text-muted-foreground">
           {policy ? `${allowedLabels(allowed)} · حداکثر ${formatFileSize(policy.max_size)}` : " "}
         </p>
@@ -87,6 +97,19 @@ export function FileDropzone({ id, multiple, imagesOnly, disabled, onUploaded, c
             e.target.value = ""
           }}
         />
+        {camera && (
+          <input
+            ref={cameraInput}
+            type="file"
+            hidden
+            accept="image/*"
+            capture="environment"
+            onChange={(e) => {
+              pick(e.target.files)
+              e.target.value = ""
+            }}
+          />
+        )}
       </div>
 
       {items.length > 0 && (

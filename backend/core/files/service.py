@@ -26,7 +26,17 @@ def policy() -> dict:
     return {"max_size": s["max_size_mb"] * 1024 * 1024, "extensions": s["allowed_extensions"]}
 
 
-def store(upload: UploadedFile, user, allowed: tuple[str, ...] | None = None) -> StoredFile:
+def restore_name(sanitized: str, original: str) -> str:
+    """
+    Django نویسه‌های «چاپ‌نشدنی» (از جمله نیم‌فاصله) را از نام فایل بارگذاری حذف می‌کند. نام اصلی که مرورگر جدا می‌فرستد
+    فقط وقتی پذیرفته می‌شود که جز همین نویسه‌ها با نام پاک‌شده یکی باشد (پس مسیر یا پسوند دیگری نمی‌آورد).
+    """
+    if original and "".join(c for c in original if c.isprintable()) == sanitized:
+        return original
+    return sanitized
+
+
+def store(upload: UploadedFile, user, allowed: tuple[str, ...] | None = None, original_name: str = "") -> StoredFile:
     """فایل را پس از بررسی حجم، پسوند و محتوای واقعی ذخیره می‌کند. allowed: محدودیت بیشتر (مثلاً فقط تصویر)."""
     rules = policy()
     extensions = [e for e in rules["extensions"] if allowed is None or e in allowed]
@@ -48,7 +58,7 @@ def store(upload: UploadedFile, user, allowed: tuple[str, ...] | None = None) ->
     for chunk in upload.chunks():
         digest.update(chunk)
     upload.seek(0)
-    name = upload.name.replace("\\", "/").rsplit("/", 1)[-1][-255:]
+    name = restore_name(upload.name.replace("\\", "/").rsplit("/", 1)[-1], original_name)[-255:]
     stored = StoredFile(name=name, extension=ext, size=upload.size, sha256=digest.hexdigest(), uploaded_by=user, uploaded_at=timezone.now())
     stored.file.save(stored.id.hex, upload, save=False)
     stored.save()

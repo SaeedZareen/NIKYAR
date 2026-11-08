@@ -4,7 +4,7 @@ from django.db.models import Count, Prefetch
 from django.utils import timezone
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import ensure_csrf_cookie
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view
 from rest_framework import filters, generics, permissions, serializers, status
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.response import Response
@@ -69,8 +69,20 @@ class UserLookupSerializer(serializers.Serializer):
     username = serializers.CharField()
 
 
+@extend_schema_view(
+    get=extend_schema(
+        parameters=[
+            OpenApiParameter("ids", str, description="شناسه‌ها با ویرگول"),
+            OpenApiParameter("unit", int, description="واحد (با زیرواحدها)"),
+            OpenApiParameter("role", int, description="نقش"),
+        ]
+    )
+)
 class UserLookupView(generics.ListAPIView):
-    """جست‌وجوی کاربران فعال برای انتخاب در فرم‌ها (جانشین، گیرنده)؛ برای هر کاربر واردشده، فقط نام و نام کاربری."""
+    """
+    جست‌وجوی کاربران فعال برای انتخاب در فرم‌ها (جانشین، گیرنده)؛ برای هر کاربر واردشده، فقط نام و نام کاربری.
+    ?ids= نام کاربران مشخص (برای نمایش مقدار ذخیره‌شده)؛ ?unit= کارکنان جاری واحد و زیرواحدها؛ ?role= دارندگان نقش.
+    """
 
     permission_classes = [HasPerm]
     perms = {"*": None}
@@ -81,10 +93,21 @@ class UserLookupView(generics.ListAPIView):
     ordering = ["last_name", "first_name"]
 
     def get_queryset(self):
-        return User.objects.filter(is_active=True)
+        users = User.objects.filter(is_active=True)
+        params = self.request.query_params
+        if params.get("unit", "").isdigit():
+            from core.org.models import Assignment
+            from core.org.service import subtree_ids
+
+            members = Assignment.objects.current(timezone.localdate()).filter(position__unit_id__in=subtree_ids(int(params["unit"])))
+            users = users.filter(pk__in=members.values("user_id"))
+        if params.get("role", "").isdigit():
+            users = users.filter(roles=int(params["role"]))
+        return users
 
     def list(self, request, *args, **kwargs):
-        users = self.filter_queryset(self.get_queryset())[:20]
+        ids = [int(i) for i in request.query_params.get("ids", "").split(",") if i.isdigit()]
+        users = User.objects.filter(pk__in=ids) if ids else self.filter_queryset(self.get_queryset())[:20]
         return Response([{"id": u.id, "full_name": u.get_full_name() or u.username, "username": u.username} for u in users])
 
 

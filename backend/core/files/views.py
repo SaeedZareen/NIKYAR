@@ -1,3 +1,5 @@
+import uuid
+
 from django.http import FileResponse
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
@@ -35,6 +37,7 @@ class StoredFileSerializer(serializers.ModelSerializer):
 class UploadSerializer(serializers.Serializer):
     file = serializers.FileField(label="فایل", error_messages={"required": "فایلی انتخاب نشده است.", "empty": "فایل خالی است."})
     images_only = serializers.BooleanField(default=False)
+    name = serializers.CharField(required=False, max_length=255, help_text="نام اصلی فایل؛ Django نویسه‌های نامرئی مثل نیم‌فاصله را از نام بارگذاری حذف می‌کند.")
 
 
 class FileTypeInfoSerializer(serializers.Serializer):
@@ -77,7 +80,7 @@ class UploadView(generics.GenericAPIView):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         allowed = IMAGE_EXTENSIONS if serializer.validated_data["images_only"] else None
-        stored = service.store(serializer.validated_data["file"], request.user, allowed)
+        stored = service.store(serializer.validated_data["file"], request.user, allowed, original_name=serializer.validated_data.get("name", ""))
         return Response(StoredFileSerializer(stored).data, status=status.HTTP_201_CREATED)
 
 
@@ -96,6 +99,26 @@ class FileDetailView(APIView):
             raise BusinessError("این فایل در حال استفاده است و از همان بخش باید حذف شود.")
         stored.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class FileInfoView(generics.GenericAPIView):
+    """مشخصات چند فایل با شناسه (?ids=…)؛ برای نمایش پیوست‌های ذخیره‌شده‌ی یک رکورد. مثل دریافت، برای هر کاربر واردشده."""
+
+    permission_classes = [HasPerm]
+    perms = {"*": None}
+    serializer_class = StoredFileSerializer
+    pagination_class = None
+
+    @extend_schema(parameters=[OpenApiParameter("ids", OpenApiTypes.STR, description="شناسه‌ها با ویرگول")], responses=StoredFileSerializer(many=True))
+    def get(self, request):
+        ids = []
+        for raw in request.query_params.get("ids", "").split(",")[:50]:
+            try:
+                ids.append(uuid.UUID(raw))
+            except ValueError:
+                continue
+        files = {str(f.pk): f for f in StoredFile.objects.filter(pk__in=ids)}
+        return Response(StoredFileSerializer([files[str(i)] for i in ids if str(i) in files], many=True).data)
 
 
 class DownloadView(APIView):

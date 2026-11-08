@@ -20,6 +20,17 @@ import {
   ScaleField,
   TimeRangeField,
 } from "./special-fields"
+import {
+  AttachmentField,
+  LookupField,
+  OrgUnitField,
+  PositionField,
+  RegionField,
+  SignatureField,
+  SignaturePadField,
+  SubmitterField,
+  UserField,
+} from "./system-fields"
 
 type Props = {
   definition: FormDefinition
@@ -64,7 +75,7 @@ function FieldView({ field, control, className }: FieldProps) {
   return <Renderer field={field} control={control} className={className} />
 }
 
-/** کنترل هر نوع دارای مقدار؛ داده‌های سامانه، نشانی، ثبت‌کننده، پیوست و امضا در 3.3b و جدول در 3.6 اضافه می‌شوند. */
+/** کنترل هر نوع دارای مقدار (جدول در 3.6 اضافه می‌شود). */
 const CONTROLS: Partial<Record<FieldType, (p: FieldProps) => React.ReactNode>> = {
   text: TextField,
   textarea: TextareaField,
@@ -92,4 +103,13 @@ const CONTROLS: Partial<Record<FieldType, (p: FieldProps) => React.ReactNode>> =
   scale: ScaleField,
   matrix: MatrixField,
   consent: ConsentField,
+  lookup: LookupField,
+  user: UserField,
+  org_unit: OrgUnitField,
+  position: PositionField,
+  region: RegionField,
+  submitter: SubmitterField,
+  attachment: AttachmentField,
+  signature: SignatureField,
+  signature_pad: SignaturePadField,
 }

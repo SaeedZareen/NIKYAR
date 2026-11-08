@@ -100,3 +100,13 @@ def test_policy_lists_types_for_any_signed_in_user(make_user, client_for):
     assert r["max_size"] == 10 * 1024 * 1024
     types = {t["extension"]: t for t in r["types"]}
     assert types["pdf"]["allowed"] and types["png"]["is_image"] and not types["gif"]["allowed"]
+
+
+@pytest.mark.django_db
+def test_upload_keeps_zero_width_non_joiner(api):
+    """Django نیم‌فاصله را از نام حذف می‌کند؛ نام اصلی فرستاده‌شده آن را برمی‌گرداند، ولی نام دیگری را نمی‌پذیرد."""
+    name = "پیش\u200cفاکتور.pdf"
+    r = api.post("/api/files/", {"file": SimpleUploadedFile(name, PDF), "name": name}, format="multipart")
+    assert r.json()["name"] == name
+    r = api.post("/api/files/", {"file": SimpleUploadedFile(name, PDF), "name": "../evil.exe"}, format="multipart")
+    assert r.json()["name"] == "پیشفاکتور.pdf"
