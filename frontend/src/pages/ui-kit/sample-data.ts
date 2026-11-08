@@ -74,7 +74,7 @@ function makeEmployees(count: number): Employee[] {
 export const UNIT_NAMES = UNITS.map(([u]) => u)
 export const employees = makeEmployees(240)
 
-/** فرم نمونه‌ی فرم‌ساز با همه‌ی نوع فیلدهای پایه (ساخت از «کیت › فرم‌ها» برای امتحان صفحه‌ی «فرم‌ها» پیش از طراح دیداری). */
+/** فرم نمونه‌ی فرم‌ساز با همه‌ی نوع فیلدهای پایه (ساخت از «کیت › اجزای فرم» برای امتحان صفحه‌ی «فرم‌ها» پیش از طراح دیداری). */
 export const SAMPLE_FORM_DEFINITION = {
   sections: [
     {

@@ -92,7 +92,7 @@ export default function FormsPage() {
   return (
     <>
       <PageHeader
-        title="فرم‌ها"
+        title="اجزای فرم"
         description="برچسب کنار فیلد، اعتبارسنجی کد ملی، موبایل، شبا و کد پستی، تاریخ شمسی، مبلغ و خلاصه‌ی خطا پس از ارسال"
         breadcrumbs={[{ label: "کیت رابط کاربری" }]}
       />

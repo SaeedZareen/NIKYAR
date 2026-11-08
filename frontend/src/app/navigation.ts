@@ -39,7 +39,7 @@ const navigation: NavGroup[] = [
     title: "کیت رابط کاربری",
     items: [
       { title: "جدول داده", url: "/ui-kit/data-table", icon: Table2, access: "superuser", keywords: "جدول فهرست گرید" },
-      { title: "فرم‌ها", url: "/ui-kit/forms", icon: FormInput, access: "superuser", keywords: "فرم فیلد ورودی تاریخ" },
+      { title: "اجزای فرم", url: "/ui-kit/forms", icon: FormInput, access: "superuser", keywords: "فرم فیلد ورودی تاریخ" },
       { title: "اجزای پایه", url: "/ui-kit/components", icon: Component, access: "superuser", keywords: "دکمه پنجره اعلان" },
     ],
   },
