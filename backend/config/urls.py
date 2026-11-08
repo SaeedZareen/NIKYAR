@@ -42,6 +42,7 @@ api = [
     path("messaging/", include("core.messaging.urls")),
     path("delegations/", include("core.delegation.urls")),
     path("license/", include("core.licensing.urls")),
+    path("forms/", include("core.forms.urls")),
     path("schema/", SpectacularAPIView.as_view(), name="schema"),
     path("docs/", SpectacularSwaggerView.as_view(url_name="schema"), name="docs"),
 ]

@@ -1,0 +1,35 @@
+{
+  "description": "Shared test vectors for Iranian identifier checks. Values are canonical (Latin digits; IBAN with IR). Read by backend/tests/test_forms_engine.py and frontend/src/lib/validators.test.ts.",
+  "national_code": {
+    "valid": ["0084575948", "0013542419", "4608968882", "1270001231"],
+    "invalid": ["0084575949", "1111111111", "008457594", "00845759480", "abcdefghij"]
+  },
+  "legal_national_id": {
+    "valid": ["10100387221", "10320894878"],
+    "invalid": ["10100387222", "10100000001", "1010038722", "101003872210"]
+  },
+  "mobile": {
+    "valid": ["09121234567", "09901234567"],
+    "invalid": ["0912123456", "09121234", "08121234567", "091212345678"]
+  },
+  "phone": {
+    "valid": ["02188000000", "03133445566"],
+    "invalid": ["88000000", "2188000000", "021880000000"]
+  },
+  "postal_code": {
+    "valid": ["1234567890", "1983963113"],
+    "invalid": ["123456789", "12345678901", "12345abcde"]
+  },
+  "card_number": {
+    "valid": ["6219861034529007", "6037997599421782"],
+    "invalid": ["6037997599421781", "621986103452900", "62198610345290070"]
+  },
+  "iban": {
+    "valid": ["IR062960000000100324200001", "IR820540102680020817909002"],
+    "invalid": ["IR062960000000100324200002", "IR06296000000010032420000", "DE89370400440532013000"]
+  },
+  "email": {
+    "valid": ["info@example.ir", "a.rezaei@sub.example.com"],
+    "invalid": ["info@", "info.example.ir", "a b@example.ir", "@example.ir"]
+  }
+}

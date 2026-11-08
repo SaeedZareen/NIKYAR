@@ -1,0 +1,223 @@
+import pytest
+from django.core.files.uploadedfile import SimpleUploadedFile
+
+from core.accounts.models import Role
+from core.audit.models import AuditLog
+from core.files.models import StoredFile
+from core.forms.models import FormVersion, Submission
+
+PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 64
+PDF = b"%PDF-1.7\n" + b"x" * 64
+
+DEFINITION = {
+    "sections": [
+        {
+            "id": "main",
+            "title": "درخواست",
+            "columns": 2,
+            "fields": [
+                {"id": "title", "type": "text", "label": "عنوان", "required": True},
+                {"id": "amount", "type": "amount", "label": "مبلغ", "required": True},
+                {"id": "docs", "type": "attachment", "label": "پیش‌فاکتور", "props": {"multiple": True, "max_files": 2, "extensions": ["pdf"]}},
+                {"id": "sign", "type": "signature", "label": "امضا"},
+            ],
+        }
+    ]
+}
+
+
+def upload(client, name, content):
+    return client.post("/api/files/", {"file": SimpleUploadedFile(name, content)}, format="multipart").json()["id"]
+
+
+@pytest.fixture
+def designer(make_user, client_for):
+    return client_for(make_user("designer", permissions=["forms.design"]))
+
+
+@pytest.fixture
+def published(designer):
+    """فرم منتشرشده‌ای که همه پر می‌کنند."""
+    form = designer.post("/api/forms/", {"code": "purchase", "title": "درخواست خرید", "fill_by_everyone": True}, format="json").json()
+    draft = form["draft_version"]
+    assert designer.patch(f"/api/forms/versions/{draft}/", {"definition": DEFINITION}, format="json").status_code == 200
+    assert designer.post(f"/api/forms/versions/{draft}/publish/").status_code == 200
+    return form
+
+
+@pytest.mark.django_db(transaction=True)
+class TestDesign:
+    def test_create_edit_publish_and_new_draft(self, designer, make_user, client_for):
+        r = designer.post("/api/forms/", {"code": "leave", "title": "مرخصی"}, format="json")
+        assert r.status_code == 201, r.json()
+        form = r.json()
+        assert form["published_version"] is None and form["draft_version"] and form["submission_count"] == 0
+        draft = form["draft_version"]
+        v = designer.get(f"/api/forms/versions/{draft}/").json()
+        assert v["number"] == 1 and v["status"] == "draft" and v["definition"] == {"sections": []}
+
+        # تعریف نادرست با پیام فارسی برای هر مسیر
+        bad = {"sections": [{"id": "s", "fields": [{"id": "x", "type": "rocket", "label": "؟"}]}]}
+        r = designer.patch(f"/api/forms/versions/{draft}/", {"definition": bad}, format="json")
+        assert r.status_code == 400 and "rocket" in r.json()["fields"]["sections.0.fields.0.type"]
+        # فرم بدون فیلد منتشر نمی‌شود
+        assert "دست‌کم یک فیلد" in designer.post(f"/api/forms/versions/{draft}/publish/").json()["detail"]
+
+        r = designer.patch(f"/api/forms/versions/{draft}/", {"definition": DEFINITION}, format="json").json()
+        assert r["field_count"] == 4 and r["schema"]["required"] == ["title", "amount"] and r["schema"]["title"] == "مرخصی"
+        assert designer.post(f"/api/forms/versions/{draft}/publish/").json()["status"] == "published"
+        assert designer.post(f"/api/forms/versions/{draft}/publish/").status_code == 400
+        assert "تغییر نمی‌کند" in designer.patch(f"/api/forms/versions/{draft}/", {"definition": DEFINITION}, format="json").json()["detail"]
+
+        r = designer.post(f"/api/forms/{form['id']}/new-draft/")
+        assert r.status_code == 201 and r.json()["number"] == 2 and r.json()["definition"] == DEFINITION
+        assert "پیش‌نویس باز" in designer.post(f"/api/forms/{form['id']}/new-draft/").json()["detail"]
+        f = designer.get(f"/api/forms/{form['id']}/").json()
+        assert f["published_version"] == 1 and f["draft_version"] == r.json()["id"]
+        assert [x["number"] for x in designer.get(f"/api/forms/versions/?form={form['id']}").json()] == [2, 1]
+
+        # شناسه ثابت است و یکتا
+        assert "تغییر نمی‌کند" in designer.patch(f"/api/forms/{form['id']}/", {"code": "other"}, format="json").json()["fields"]["code"]
+        assert "استفاده شده" in designer.post("/api/forms/", {"code": "leave", "title": "x"}, format="json").json()["fields"]["code"]
+        assert "حرف کوچک لاتین" in designer.post("/api/forms/", {"code": "Leave!", "title": "x"}, format="json").json()["fields"]["code"]
+
+        # سوابق: ساخت فرم، انتشار و پیش‌نویس تازه؛ ذخیره‌های پیش‌نویس نه
+        actions = list(AuditLog.objects.filter(model__startswith="forms.").values_list("model", "action"))
+        assert ("forms.form", "create") in actions and ("forms.formversion", "update") in actions and ("forms.formversion", "create") in actions
+        assert len(actions) == 3
+
+        # کاربر عادی به طراحی دسترسی ندارد
+        other = client_for(make_user("plain"))
+        assert other.get("/api/forms/").status_code == 403 and other.get(f"/api/forms/versions/{draft}/").status_code == 403
+
+    def test_category_and_delete_rules(self, designer, published):
+        from core.lookups.models import LookupItem
+
+        finance = LookupItem.objects.get(list__code="form-category", code="finance")
+        gender = LookupItem.objects.get(list__code="gender", code="male")
+        r = designer.patch(f"/api/forms/{published['id']}/", {"category": finance.pk}, format="json").json()
+        assert r["category_title"] == "مالی"
+        assert designer.patch(f"/api/forms/{published['id']}/", {"category": gender.pk}, format="json").status_code == 400
+        temp = designer.post("/api/forms/", {"code": "temp", "title": "موقت"}, format="json").json()
+        assert designer.delete(f"/api/forms/{temp['id']}/").status_code == 204
+
+
+@pytest.mark.django_db(transaction=True)
+class TestSubmissions:
+    def test_draft_submit_files_and_signature(self, published, make_user, client_for):
+        user = make_user("filler")
+        c = client_for(user)
+        avail = c.get("/api/forms/available/").json()
+        assert [f["code"] for f in avail] == ["purchase"]
+
+        mine = upload(c, "quote.pdf", PDF)
+        image = upload(c, "photo.png", PNG)
+        # پیش‌نویس: الزامی‌ها لازم نیست، ولی نوع مقدار سنجیده می‌شود
+        r = c.post("/api/forms/submissions/", {"form": published["id"], "data": {"amount": "زیاد"}}, format="json")
+        assert r.status_code == 400 and "ریال" in r.json()["fields"]["amount"]
+        r = c.post("/api/forms/submissions/", {"form": published["id"], "data": {"title": "کاغذ", "docs": [mine]}}, format="json")
+        assert r.status_code == 201, r.json()
+        sub = r.json()
+        assert sub["status"] == "draft" and sub["version_number"] == 1 and StoredFile.objects.get(pk=mine).claimed
+        assert not AuditLog.objects.filter(model="forms.submission").exists()
+
+        # نوع فایل نامجاز، و فایل کاربر دیگر پذیرفته نمی‌شود
+        r = c.patch(f"/api/forms/submissions/{sub['id']}/", {"data": {"docs": [mine, image]}}, format="json")
+        assert "مجاز نیست" in r.json()["fields"]["docs"]
+        stranger = client_for(make_user("stranger"))
+        theirs = upload(stranger, "x.pdf", PDF)
+        r = c.patch(f"/api/forms/submissions/{sub['id']}/", {"data": {"docs": [mine, theirs]}}, format="json")
+        assert "پیدا نشد" in r.json()["fields"]["docs"]
+
+        # ثبت نهایی: الزامی‌ها، جایگزینی فایل و رونوشت امضا
+        r = c.patch(f"/api/forms/submissions/{sub['id']}/", {"data": {"title": "کاغذ"}, "submit": True}, format="json")
+        assert r.json()["fields"] == {"amount": "تکمیل «مبلغ» الزامی است."}
+        second = upload(c, "quote2.pdf", PDF)
+        sig = upload(c, "sign.png", PNG)
+        c.patch("/api/auth/session/profile/", {"signature": sig}, format="json")
+        r = c.patch(
+            f"/api/forms/submissions/{sub['id']}/",
+            {"data": {"title": "کاغذ", "amount": 2_500_000, "docs": [second], "sign": "hack"}, "submit": True},
+            format="json",
+        )
+        assert r.status_code == 200, r.json()
+        done = r.json()
+        assert done["status"] == "submitted" and done["submitted_at"] and done["data"]["docs"] == [second]
+        assert not StoredFile.objects.filter(pk=mine).exists() and StoredFile.objects.get(pk=second).claimed
+        copy = StoredFile.objects.get(pk=done["data"]["sign"])
+        assert copy.claimed and str(copy.pk) != sig and copy.file.read() == PNG
+        assert AuditLog.objects.filter(model="forms.submission", action="create").count() == 1
+
+        # ثبت نهایی تغییر و حذف نمی‌شود
+        assert "تغییر نمی‌کند" in c.patch(f"/api/forms/submissions/{sub['id']}/", {"data": {}}, format="json").json()["detail"]
+        assert c.delete(f"/api/forms/submissions/{sub['id']}/").status_code == 400
+
+    def test_required_signature_without_profile_signature(self, designer, make_user, client_for):
+        form = designer.post("/api/forms/", {"code": "sig", "title": "تعهدنامه", "fill_by_everyone": True}, format="json").json()
+        definition = {
+            "sections": [
+                {
+                    "id": "s",
+                    "fields": [{"id": "ok", "type": "boolean", "label": "متعهدم"}, {"id": "sign", "type": "signature", "label": "امضا", "required": True}],
+                }
+            ]
+        }
+        designer.patch(f"/api/forms/versions/{form['draft_version']}/", {"definition": definition}, format="json")
+        designer.post(f"/api/forms/versions/{form['draft_version']}/publish/")
+        c = client_for(make_user("nosig"))
+        r = c.post("/api/forms/submissions/", {"form": form["id"], "data": {"ok": True}, "submit": True}, format="json")
+        assert r.status_code == 400 and "حساب من" in r.json()["fields"]["sign"]
+
+    def test_draft_delete_releases_files(self, published, make_user, client_for):
+        c = client_for(make_user("u"))
+        f = upload(c, "a.pdf", PDF)
+        sub = c.post("/api/forms/submissions/", {"form": published["id"], "data": {"docs": [f]}}, format="json").json()
+        assert c.delete(f"/api/forms/submissions/{sub['id']}/").status_code == 204
+        assert not StoredFile.objects.filter(pk=f).exists()
+
+    def test_visibility_and_fill_permissions(self, designer, published, make_user, client_for):
+        role = Role.objects.create(name="کارپردازی")
+        viewer_role = Role.objects.create(name="مالی")
+        filler, viewer, outsider = make_user("filler"), make_user("viewer"), make_user("outsider")
+        filler.roles.add(role)
+        viewer.roles.add(viewer_role)
+        designer.patch(f"/api/forms/{published['id']}/", {"fill_by_everyone": False, "fill_roles": [role.pk], "view_roles": [viewer_role.pk]}, format="json")
+
+        fc, vc, oc = client_for(filler), client_for(viewer), client_for(outsider)
+        assert oc.get("/api/forms/available/").json() == []
+        assert oc.post("/api/forms/submissions/", {"form": published["id"], "data": {}}, format="json").status_code == 403
+
+        draft = fc.post("/api/forms/submissions/", {"form": published["id"], "data": {"title": "پیش‌نویس"}}, format="json").json()
+        done = fc.post("/api/forms/submissions/", {"form": published["id"], "data": {"title": "نهایی", "amount": 10}, "submit": True}, format="json").json()
+        assert done["status"] == "submitted"
+
+        def ids(client, query=""):
+            return {s["id"] for s in client.get(f"/api/forms/submissions/{query}").json()["results"]}
+
+        assert ids(fc) == {draft["id"], done["id"]}
+        # بیننده و طراح فقط ثبت‌های نهایی دیگران را می‌بینند، نه پیش‌نویس‌ها
+        assert ids(vc) == {done["id"]} and ids(designer) == {done["id"]} and ids(oc) == set()
+        assert ids(vc, "?mine=true") == set() and ids(fc, "?status=draft") == {draft["id"]}
+        assert vc.get(f"/api/forms/submissions/{draft['id']}/").status_code == 404
+        assert vc.patch(f"/api/forms/submissions/{done['id']}/", {"data": {}}, format="json").status_code == 403
+
+        # فرم غیرفعال: دیگر در فهرست نیست و پیش‌نویس ثبت نهایی نمی‌شود
+        designer.patch(f"/api/forms/{published['id']}/", {"is_active": False}, format="json")
+        assert fc.get("/api/forms/available/").json() == []
+        r = fc.patch(f"/api/forms/submissions/{draft['id']}/", {"data": {"title": "x", "amount": 1}, "submit": True}, format="json")
+        assert "دیگر برای شما" in r.json()["detail"]
+        # فرم دارای ثبت حذف نمی‌شود
+        assert "غیرفعال کنید" in designer.delete(f"/api/forms/{published['id']}/").json()["detail"]
+
+    def test_submission_keeps_its_version(self, designer, published, make_user, client_for):
+        c = client_for(make_user("u"))
+        draft = c.post("/api/forms/submissions/", {"form": published["id"], "data": {"title": "قدیمی"}}, format="json").json()
+        v2 = designer.post(f"/api/forms/{published['id']}/new-draft/").json()
+        new_def = {"sections": [{"id": "s", "fields": [{"id": "reason", "type": "textarea", "label": "علت", "required": True}]}]}
+        designer.patch(f"/api/forms/versions/{v2['id']}/", {"definition": new_def}, format="json")
+        designer.post(f"/api/forms/versions/{v2['id']}/publish/")
+        # پیش‌نویس قبلی با نسخه‌ی ۱ ثبت می‌شود؛ ثبت تازه با نسخه‌ی ۲
+        old = c.patch(f"/api/forms/submissions/{draft['id']}/", {"data": {"title": "قدیمی", "amount": 5}, "submit": True}, format="json").json()
+        assert old["version_number"] == 1
+        new = c.post("/api/forms/submissions/", {"form": published["id"], "data": {"reason": "تست"}, "submit": True}, format="json").json()
+        assert new["version_number"] == 2 and Submission.objects.get(pk=new["id"]).version.status == FormVersion.Status.PUBLISHED

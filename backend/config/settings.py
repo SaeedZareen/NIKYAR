@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     "core.messaging",
     "core.delegation",
     "core.licensing",
+    "core.forms",
 ]
 
 AUTH_USER_MODEL = "accounts.User"
@@ -165,7 +166,11 @@ SPECTACULAR_SETTINGS = {
     # نوع جداگانه برای بدنه‌ی درخواست (بدون فیلدهای فقط‌خواندنی) تا نوع‌های رابط کاربری دقیق باشند.
     "COMPONENT_SPLIT_REQUEST": True,
     # کانال‌های پیامک/ایمیل در اعلان‌ها و گزارش ارسال‌ها یک مجموعه‌اند؛ یک نام در سند API.
-    "ENUM_NAME_OVERRIDES": {"NotificationChannelEnum": "core.notifications.views.CHANNEL_CHOICES"},
+    "ENUM_NAME_OVERRIDES": {
+        "NotificationChannelEnum": "core.notifications.views.CHANNEL_CHOICES",
+        "FormVersionStatusEnum": "core.forms.models.FormVersion.Status",
+        "FormSubmissionStatusEnum": "core.forms.models.Submission.Status",
+    },
     "POSTPROCESSING_HOOKS": [
         "drf_spectacular.hooks.postprocess_schema_enums",
         "core.kernel.schema.require_response_fields",

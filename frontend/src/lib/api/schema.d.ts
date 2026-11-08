@@ -486,6 +486,191 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/forms/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description تعریف فرم‌ها (برای طراحان) و فهرست فرم‌های قابل پر کردن (برای همه). */
+        get: operations["forms_list"];
+        put?: never;
+        /** @description تعریف فرم‌ها (برای طراحان) و فهرست فرم‌های قابل پر کردن (برای همه). */
+        post: operations["forms_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/forms/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description تعریف فرم‌ها (برای طراحان) و فهرست فرم‌های قابل پر کردن (برای همه). */
+        get: operations["forms_retrieve"];
+        /** @description تعریف فرم‌ها (برای طراحان) و فهرست فرم‌های قابل پر کردن (برای همه). */
+        put: operations["forms_update"];
+        post?: never;
+        /** @description تعریف فرم‌ها (برای طراحان) و فهرست فرم‌های قابل پر کردن (برای همه). */
+        delete: operations["forms_destroy"];
+        options?: never;
+        head?: never;
+        /** @description تعریف فرم‌ها (برای طراحان) و فهرست فرم‌های قابل پر کردن (برای همه). */
+        patch: operations["forms_partial_update"];
+        trace?: never;
+    };
+    "/api/forms/{id}/new-draft/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description پیش‌نویس تازه از روی آخرین نسخه‌ی منتشرشده. */
+        post: operations["forms_new_draft_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/forms/available/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description فرم‌هایی که کاربر جاری می‌تواند پر کند. */
+        get: operations["forms_available_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/forms/submissions/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description ثبت‌های فرم. هر کاربر ثبت‌های خودش را می‌بیند؛ طراحان و نقش‌های بیننده‌ی هر فرم ثبت‌های نهایی آن را هم.
+         *     پیش‌نویس فقط برای ثبت‌کننده‌اش ویرایش‌شدنی و حذف‌شدنی است.
+         */
+        get: operations["forms_submissions_list"];
+        put?: never;
+        /**
+         * @description ثبت‌های فرم. هر کاربر ثبت‌های خودش را می‌بیند؛ طراحان و نقش‌های بیننده‌ی هر فرم ثبت‌های نهایی آن را هم.
+         *     پیش‌نویس فقط برای ثبت‌کننده‌اش ویرایش‌شدنی و حذف‌شدنی است.
+         */
+        post: operations["forms_submissions_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/forms/submissions/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description ثبت‌های فرم. هر کاربر ثبت‌های خودش را می‌بیند؛ طراحان و نقش‌های بیننده‌ی هر فرم ثبت‌های نهایی آن را هم.
+         *     پیش‌نویس فقط برای ثبت‌کننده‌اش ویرایش‌شدنی و حذف‌شدنی است.
+         */
+        get: operations["forms_submissions_retrieve"];
+        put?: never;
+        post?: never;
+        /**
+         * @description ثبت‌های فرم. هر کاربر ثبت‌های خودش را می‌بیند؛ طراحان و نقش‌های بیننده‌ی هر فرم ثبت‌های نهایی آن را هم.
+         *     پیش‌نویس فقط برای ثبت‌کننده‌اش ویرایش‌شدنی و حذف‌شدنی است.
+         */
+        delete: operations["forms_submissions_destroy"];
+        options?: never;
+        head?: never;
+        /**
+         * @description ثبت‌های فرم. هر کاربر ثبت‌های خودش را می‌بیند؛ طراحان و نقش‌های بیننده‌ی هر فرم ثبت‌های نهایی آن را هم.
+         *     پیش‌نویس فقط برای ثبت‌کننده‌اش ویرایش‌شدنی و حذف‌شدنی است.
+         */
+        patch: operations["forms_submissions_partial_update"];
+        trace?: never;
+    };
+    "/api/forms/versions/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description نسخه‌های فرم. ویرایش فقط روی پیش‌نویس (تعریف فرم)؛ ذخیره‌های پیاپی طراح در سوابق ثبت نمی‌شوند،
+         *     انتشار و ساخت پیش‌نویس ثبت می‌شوند.
+         */
+        get: operations["forms_versions_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/forms/versions/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description نسخه‌های فرم. ویرایش فقط روی پیش‌نویس (تعریف فرم)؛ ذخیره‌های پیاپی طراح در سوابق ثبت نمی‌شوند،
+         *     انتشار و ساخت پیش‌نویس ثبت می‌شوند.
+         */
+        get: operations["forms_versions_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * @description نسخه‌های فرم. ویرایش فقط روی پیش‌نویس (تعریف فرم)؛ ذخیره‌های پیاپی طراح در سوابق ثبت نمی‌شوند،
+         *     انتشار و ساخت پیش‌نویس ثبت می‌شوند.
+         */
+        patch: operations["forms_versions_partial_update"];
+        trace?: never;
+    };
+    "/api/forms/versions/{id}/publish/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description انتشار پیش‌نویس؛ از این پس فرم با همین نسخه پر می‌شود. */
+        post: operations["forms_versions_publish_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/jobs/": {
         parameters: {
             query?: never;
@@ -1279,6 +1464,20 @@ export interface components {
             /** نشانی IP */
             ip: string | null;
         };
+        AvailableForm: {
+            readonly id: number;
+            /**
+             * شناسه
+             * @description شناسه‌ی لاتین و پایدار فرم (مثلاً purchase-request)؛ پس از ساخت تغییر نمی‌کند.
+             */
+            code: string;
+            /** عنوان */
+            title: string;
+            /** توضیح */
+            description: string;
+            /** @default  */
+            readonly category_title: string;
+        };
         Backup: {
             name: string;
             kind: string;
@@ -1526,6 +1725,189 @@ export interface components {
              */
             start_month: components["schemas"]["StartMonthEnum"];
         };
+        Form: {
+            readonly id: number;
+            /**
+             * شناسه
+             * @description شناسه‌ی لاتین و پایدار فرم (مثلاً purchase-request)؛ پس از ساخت تغییر نمی‌کند.
+             */
+            code: string;
+            /** عنوان */
+            title: string;
+            /** توضیح */
+            description: string;
+            /** دسته */
+            category: number | null;
+            /** @default  */
+            readonly category_title: string;
+            /** فعال */
+            is_active: boolean;
+            /** همه‌ی کاربران پر کنند */
+            fill_by_everyone: boolean;
+            /** نقش‌های پرکننده */
+            fill_roles: number[];
+            /** نقش‌های بیننده */
+            view_roles: number[];
+            /** @description شماره‌ی آخرین نسخه‌ی منتشرشده؛ null یعنی هنوز منتشر نشده. */
+            readonly published_version: number | null;
+            /** @description شناسه‌ی نسخه‌ی پیش‌نویس باز؛ null یعنی پیش‌نویسی نیست. */
+            readonly draft_version: number | null;
+            readonly submission_count: number;
+            /**
+             * زمان ساخت
+             * Format: date-time
+             */
+            readonly created_at: string;
+        };
+        FormRequest: {
+            /**
+             * شناسه
+             * @description شناسه‌ی لاتین و پایدار فرم (مثلاً purchase-request)؛ پس از ساخت تغییر نمی‌کند.
+             */
+            code: string;
+            /** عنوان */
+            title: string;
+            /** توضیح */
+            description?: string;
+            /** دسته */
+            category?: number | null;
+            /** فعال */
+            is_active?: boolean;
+            /** همه‌ی کاربران پر کنند */
+            fill_by_everyone?: boolean;
+            /** نقش‌های پرکننده */
+            fill_roles?: number[];
+            /** نقش‌های بیننده */
+            view_roles?: number[];
+        };
+        FormSubmission: {
+            readonly id: number;
+            /** فرم */
+            readonly form: number;
+            readonly form_title: string;
+            readonly version_number: number;
+            /** وضعیت */
+            readonly status: components["schemas"]["FormSubmissionStatusEnum"];
+            readonly status_label: string;
+            readonly data: {
+                [key: string]: unknown;
+            };
+            /** ثبت‌کننده */
+            readonly created_by: number;
+            readonly created_by_name: string;
+            /**
+             * زمان ایجاد
+             * Format: date-time
+             */
+            readonly created_at: string;
+            /**
+             * آخرین تغییر
+             * Format: date-time
+             */
+            readonly updated_at: string;
+            /**
+             * زمان ثبت
+             * Format: date-time
+             */
+            readonly submitted_at: string | null;
+        };
+        /**
+         * @description * `draft` - پیش‌نویس
+         *     * `submitted` - ثبت‌شده
+         * @enum {string}
+         */
+        FormSubmissionStatusEnum: "draft" | "submitted";
+        FormSubmissionWriteRequest: {
+            /** @description فقط هنگام ایجاد */
+            form?: number;
+            /** @description مقدار فیلدها با کلید شناسه‌ی هر فیلد */
+            data: {
+                [key: string]: unknown;
+            };
+            /**
+             * @description true یعنی ثبت نهایی؛ در غیر این صورت پیش‌نویس ذخیره می‌شود.
+             * @default false
+             */
+            submit: boolean;
+        };
+        FormVersion: {
+            readonly id: number;
+            /** فرم */
+            readonly form: number;
+            /** شماره‌ی نسخه */
+            readonly number: number;
+            /**
+             * وضعیت
+             * @default draft
+             */
+            readonly status: components["schemas"]["FormVersionStatusEnum"];
+            readonly status_label: string;
+            /** @description تعداد فیلدهای قابل پر کردن */
+            readonly field_count: number;
+            /**
+             * زمان ساخت
+             * Format: date-time
+             */
+            readonly created_at: string;
+            /**
+             * آخرین تغییر
+             * Format: date-time
+             */
+            readonly updated_at: string;
+            /**
+             * زمان انتشار
+             * Format: date-time
+             */
+            readonly published_at: string | null;
+            /** @default  */
+            readonly published_by_name: string;
+        };
+        FormVersionDetail: {
+            readonly id: number;
+            /** فرم */
+            readonly form: number;
+            /** شماره‌ی نسخه */
+            readonly number: number;
+            /**
+             * وضعیت
+             * @default draft
+             */
+            readonly status: components["schemas"]["FormVersionStatusEnum"];
+            readonly status_label: string;
+            /** @description تعداد فیلدهای قابل پر کردن */
+            readonly field_count: number;
+            /**
+             * زمان ساخت
+             * Format: date-time
+             */
+            readonly created_at: string;
+            /**
+             * آخرین تغییر
+             * Format: date-time
+             */
+            readonly updated_at: string;
+            /**
+             * زمان انتشار
+             * Format: date-time
+             */
+            readonly published_at: string | null;
+            /** @default  */
+            readonly published_by_name: string;
+            /** @description تعریف فرم: بخش‌ها و فیلدها (core/forms/engine.py) */
+            definition: {
+                [key: string]: unknown;
+            };
+            /** @description JSON Schema داده‌ی ثبت (پیش‌نویس 2020-12) برای اعتبارسنجی در مرورگر. */
+            readonly schema: {
+                [key: string]: unknown;
+            };
+        };
+        /**
+         * @description * `draft` - پیش‌نویس
+         *     * `published` - منتشرشده
+         * @enum {string}
+         */
+        FormVersionStatusEnum: "draft" | "published";
         /**
          * @description * `male` - مرد
          *     * `female` - زن
@@ -2041,6 +2423,14 @@ export interface components {
             count: number;
             results: components["schemas"]["Delivery"][];
         };
+        PaginatedFormList: {
+            count: number;
+            results: components["schemas"]["Form"][];
+        };
+        PaginatedFormSubmissionList: {
+            count: number;
+            results: components["schemas"]["FormSubmission"][];
+        };
         PaginatedJobList: {
             count: number;
             results: components["schemas"]["Job"][];
@@ -2070,6 +2460,46 @@ export interface components {
             end_date?: string | null;
             /** سمت اصلی */
             is_primary?: boolean;
+        };
+        PatchedFormRequest: {
+            /**
+             * شناسه
+             * @description شناسه‌ی لاتین و پایدار فرم (مثلاً purchase-request)؛ پس از ساخت تغییر نمی‌کند.
+             */
+            code?: string;
+            /** عنوان */
+            title?: string;
+            /** توضیح */
+            description?: string;
+            /** دسته */
+            category?: number | null;
+            /** فعال */
+            is_active?: boolean;
+            /** همه‌ی کاربران پر کنند */
+            fill_by_everyone?: boolean;
+            /** نقش‌های پرکننده */
+            fill_roles?: number[];
+            /** نقش‌های بیننده */
+            view_roles?: number[];
+        };
+        PatchedFormSubmissionWriteRequest: {
+            /** @description فقط هنگام ایجاد */
+            form?: number;
+            /** @description مقدار فیلدها با کلید شناسه‌ی هر فیلد */
+            data?: {
+                [key: string]: unknown;
+            };
+            /**
+             * @description true یعنی ثبت نهایی؛ در غیر این صورت پیش‌نویس ذخیره می‌شود.
+             * @default false
+             */
+            submit: boolean;
+        };
+        PatchedFormVersionDetailRequest: {
+            /** @description تعریف فرم: بخش‌ها و فیلدها (core/forms/engine.py) */
+            definition?: {
+                [key: string]: unknown;
+            };
         };
         PatchedHolidayRequest: {
             /**
@@ -3534,6 +3964,421 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FilePolicy"];
+                };
+            };
+        };
+    };
+    forms_list: {
+        parameters: {
+            query?: {
+                /** @description چند مقدار با ویرگول جدا می‌شود. */
+                category?: string;
+                /** @description چند مقدار با ویرگول جدا می‌شود. */
+                is_active?: string;
+                /** @description یک شماره صفحه‌ در مجموعه نتایج صفحه‌بندی شده. */
+                page?: number;
+                /** @description تعداد نتایج برای نمایش در هر صفحه. */
+                page_size?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedFormList"];
+                };
+            };
+        };
+    };
+    forms_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FormRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["FormRequest"];
+                "multipart/form-data": components["schemas"]["FormRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Form"];
+                };
+            };
+        };
+    };
+    forms_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Form"];
+                };
+            };
+        };
+    };
+    forms_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FormRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["FormRequest"];
+                "multipart/form-data": components["schemas"]["FormRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Form"];
+                };
+            };
+        };
+    };
+    forms_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    forms_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedFormRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedFormRequest"];
+                "multipart/form-data": components["schemas"]["PatchedFormRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Form"];
+                };
+            };
+        };
+    };
+    forms_new_draft_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormVersionDetail"];
+                };
+            };
+        };
+    };
+    forms_available_list: {
+        parameters: {
+            query?: {
+                /** @description چند مقدار با ویرگول جدا می‌شود. */
+                category?: string;
+                /** @description چند مقدار با ویرگول جدا می‌شود. */
+                is_active?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AvailableForm"][];
+                };
+            };
+        };
+    };
+    forms_submissions_list: {
+        parameters: {
+            query?: {
+                /** @description چند مقدار با ویرگول جدا می‌شود. */
+                form?: string;
+                /** @description فقط ثبت‌های خودم */
+                mine?: boolean;
+                /** @description یک شماره صفحه‌ در مجموعه نتایج صفحه‌بندی شده. */
+                page?: number;
+                /** @description تعداد نتایج برای نمایش در هر صفحه. */
+                page_size?: number;
+                /** @description چند مقدار با ویرگول جدا می‌شود. */
+                status?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedFormSubmissionList"];
+                };
+            };
+        };
+    };
+    forms_submissions_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FormSubmissionWriteRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["FormSubmissionWriteRequest"];
+                "multipart/form-data": components["schemas"]["FormSubmissionWriteRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormSubmission"];
+                };
+            };
+        };
+    };
+    forms_submissions_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description یک مقداد عدد یکتا که این ثبت فرم را شناسایی میکند. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormSubmission"];
+                };
+            };
+        };
+    };
+    forms_submissions_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description یک مقداد عدد یکتا که این ثبت فرم را شناسایی میکند. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    forms_submissions_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description یک مقداد عدد یکتا که این ثبت فرم را شناسایی میکند. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedFormSubmissionWriteRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedFormSubmissionWriteRequest"];
+                "multipart/form-data": components["schemas"]["PatchedFormSubmissionWriteRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormSubmission"];
+                };
+            };
+        };
+    };
+    forms_versions_list: {
+        parameters: {
+            query?: {
+                /** @description چند مقدار با ویرگول جدا می‌شود. */
+                form?: string;
+                /** @description چند مقدار با ویرگول جدا می‌شود. */
+                status?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormVersion"][];
+                };
+            };
+        };
+    };
+    forms_versions_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description یک مقداد عدد یکتا که این نسخه‌ی فرم را شناسایی میکند. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormVersionDetail"];
+                };
+            };
+        };
+    };
+    forms_versions_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description یک مقداد عدد یکتا که این نسخه‌ی فرم را شناسایی میکند. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedFormVersionDetailRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedFormVersionDetailRequest"];
+                "multipart/form-data": components["schemas"]["PatchedFormVersionDetailRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormVersionDetail"];
+                };
+            };
+        };
+    };
+    forms_versions_publish_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description یک مقداد عدد یکتا که این نسخه‌ی فرم را شناسایی میکند. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormVersionDetail"];
                 };
             };
         };

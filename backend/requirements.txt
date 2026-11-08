@@ -7,3 +7,4 @@ whitenoise>=6.9,<7
 waitress>=3.0,<4
 jdatetime>=5.2,<6
 cryptography>=44,<51
+jsonschema>=4.23,<5

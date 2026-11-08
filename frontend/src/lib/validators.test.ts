@@ -11,6 +11,7 @@ import {
   normalizeMobile,
   schemas,
 } from "@/lib/validators"
+import vectors from "../../../shared/vectors/ir-identifiers.json"
 
 describe("format", () => {
   it("converts digits both ways", () => {
@@ -74,4 +75,24 @@ describe("validators", () => {
     expect(r.success).toBe(false)
     expect(r.error?.issues[0].message).toContain("کد ملی")
   })
+})
+
+describe("shared identifier vectors (same file as the server tests)", () => {
+  const checks: Record<string, (value: string) => boolean> = {
+    national_code: isValidNationalId,
+    legal_national_id: isValidLegalNationalId,
+    mobile: isValidMobile,
+    phone: isValidPhone,
+    postal_code: isValidPostalCode,
+    card_number: isValidCardNumber,
+    iban: isValidIban,
+    email: (value) => schemas.email.safeParse(value).success,
+  }
+  for (const [kind, check] of Object.entries(checks)) {
+    const { valid, invalid } = vectors[kind as keyof typeof checks & keyof typeof vectors] as { valid: string[]; invalid: string[] }
+    it(kind, () => {
+      for (const value of valid) expect(check(value), value).toBe(true)
+      for (const value of invalid) expect(check(value), value).toBe(false)
+    })
+  }
 })
