@@ -63,6 +63,8 @@ class TestDefinition:
             "multi_choice": {"options": [{"value": "a", "label": "الف"}]},
             "lookup": {"list": "gender"},
             "table": {"columns": [{"id": "c", "type": "text", "label": "ستون"}]},
+            "matrix": {"rows": [{"value": "r", "label": "معیار"}], "columns": [{"value": "1", "label": "ضعیف"}, {"value": "2", "label": "خوب"}]},
+            "consent": {"text": "مفاد را می‌پذیرم."},
         }
         fields = [{"id": f"f_{code}", "type": code, "label": t.title, "props": minimal_props.get(code, {})} for code, t in REGISTRY.items()]
         engine.check_definition(form(*fields))
@@ -276,3 +278,67 @@ def test_shared_form_validation_vectors_are_current():
     from tests import form_vectors
 
     assert form_vectors.PATH.read_text(encoding="utf-8") == form_vectors.dump(form_vectors.build())
+
+
+class TestSpecialisedFields:
+    """نوع‌های 3.3a: خط نوشتار، شناسه‌های تازه، تاریخ و ساعت، بازه‌ی ساعت، طیف، ماتریس و تعهد."""
+
+    def test_script_and_new_identifiers(self):
+        d = form(
+            {"id": "fa", "type": "text", "label": "نام", "props": {"script": "persian"}},
+            {"id": "en", "type": "text", "label": "نام لاتین", "props": {"script": "latin"}},
+            {"id": "eco", "type": "economic_code", "label": "کد اقتصادی"},
+            {"id": "reg", "type": "registration_number", "label": "شماره‌ی ثبت"},
+            {"id": "plate", "type": "vehicle_plate", "label": "پلاک"},
+        )
+        errs = errors_of(d, {"fa": "Ali", "en": "علی", "eco": "123", "reg": "12a", "plate": "12X345-67"})
+        assert errs == {
+            "fa": "«نام» را فقط با حروف فارسی بنویسید.",
+            "en": "«نام لاتین» را فقط با حروف لاتین (انگلیسی) بنویسید.",
+            "eco": "«کد اقتصادی» باید ۱۰ تا ۱۲ رقم باشد.",
+            "reg": "«شماره‌ی ثبت» فقط رقم است (حداکثر ۱۰ رقم).",
+            "plate": "«پلاک» را کامل وارد کنید: دو رقم، حرف، سه رقم و کد شهر.",
+        }
+        ok = {"fa": "زهرا موسوی‌نژاد", "en": "Zahra Mousavi-Nejad", "eco": "10100387221", "reg": "12345", "plate": "12الف345-67"}
+        assert engine.validate_data(d, ok, Ctx()) == ok
+
+    def test_datetime_and_time_range(self):
+        d = form(
+            {"id": "at", "type": "datetime", "label": "زمان حادثه", "props": {"range": "past", "default_now": True}},
+            {"id": "work", "type": "time_range", "label": "ساعت کار", "props": {"max_minutes": 240}},
+            {"id": "night", "type": "time_range", "label": "شیفت شب", "props": {"overnight": True}},
+        )
+        future = (jdatetime.datetime.now() + jdatetime.timedelta(days=1)).strftime("%Y/%m/%d %H:%M")
+        errs = errors_of(d, {"at": future, "work": {"start": "12:00", "end": "08:00"}, "night": {"start": "22:00", "end": "22:00"}})
+        assert errs == {
+            "at": "«زمان حادثه» نباید بعد از اکنون باشد.",
+            "work": "در «ساعت کار»، «تا ساعت» باید بعد از «از ساعت» باشد.",
+            "night": "در «شیفت شب»، «از ساعت» و «تا ساعت» یکی است.",
+        }
+        assert errors_of(d, {"at": "1405/08/14", "work": {"start": "08:00", "end": "12:30"}}) == {
+            "at": "«زمان حادثه» را با تاریخ و ساعت کامل وارد کنید (مثل ۱۴۰۵/۰۸/۱۴ ۰۸:۳۰).",
+            "work": "«ساعت کار» حداکثر ۴ ساعت است.",
+        }
+        ok = {"at": "1405/08/14 08:30", "work": {"start": "08:00", "end": "11:45"}, "night": {"start": "22:00", "end": "06:00"}}
+        assert engine.validate_data(d, ok, Ctx()) == ok
+
+    def test_scale_matrix_and_consent(self):
+        cols = [{"value": "1", "label": "ضعیف"}, {"value": "2", "label": "متوسط"}, {"value": "3", "label": "خوب"}]
+        rows = [{"value": "skill", "label": "مهارت"}, {"value": "team", "label": "کار گروهی"}]
+        d = form(
+            {"id": "score", "type": "scale", "label": "رضایت", "props": {"max": 5, "display": "stars"}},
+            {"id": "eval", "type": "matrix", "label": "ارزیابی", "required": True, "props": {"rows": rows, "columns": cols}},
+            {"id": "agree", "type": "consent", "label": "تعهد", "required": True, "props": {"text": "صحت اطلاعات را تأیید می‌کنم."}},
+        )
+        assert errors_of(d, {"score": 6, "eval": {"skill": "3"}, "agree": False}) == {
+            "score": "«رضایت» نباید بیشتر از ۵ باشد.",
+            "eval": "به همه‌ی معیارهای «ارزیابی» پاسخ دهید.",
+            "agree": "برای ادامه، «تعهد» را بپذیرید.",
+        }
+        assert errors_of(d, {"eval": {"skill": "9", "team": "1"}, "agree": True}) == {"eval": "پاسخ‌های «ارزیابی» معتبر نیست."}
+        # پیش‌نویس: ماتریس نیمه‌کاره پذیرفته است
+        assert engine.validate_data(d, {"eval": {"skill": "3"}}, Ctx(partial=True)) == {"eval": {"skill": "3"}}
+        ok = {"score": 4, "eval": {"skill": "3", "team": "2"}, "agree": True}
+        assert engine.validate_data(d, ok, Ctx()) == ok
+        errs = definition_errors(form({"id": "s", "type": "scale", "label": "امتیاز", "props": {"min": 0, "display": "stars"}}))
+        assert "ستاره" in errs["sections.0.fields.0.props.min"]

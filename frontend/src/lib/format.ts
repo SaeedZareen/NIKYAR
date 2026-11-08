@@ -90,3 +90,37 @@ export function formatDateTime(value: Date | string | null | undefined): string 
   if (!date || !isValid(date)) return "—"
   return `${formatDate(date)} ${formatTime(date)}`
 }
+
+const ONES = ["", "یک", "دو", "سه", "چهار", "پنج", "شش", "هفت", "هشت", "نه"]
+const TEENS = ["ده", "یازده", "دوازده", "سیزده", "چهارده", "پانزده", "شانزده", "هفده", "هجده", "نوزده"]
+const TENS = ["", "", "بیست", "سی", "چهل", "پنجاه", "شصت", "هفتاد", "هشتاد", "نود"]
+const HUNDREDS = ["", "یکصد", "دویست", "سیصد", "چهارصد", "پانصد", "ششصد", "هفتصد", "هشتصد", "نهصد"]
+const SCALES = ["", "هزار", "میلیون", "میلیارد", "هزار میلیارد"]
+
+function threeDigits(n: number): string {
+  const parts = [HUNDREDS[Math.floor(n / 100)]]
+  const rest = n % 100
+  if (rest >= 10 && rest < 20) parts.push(TEENS[rest - 10])
+  else parts.push(TENS[Math.floor(rest / 10)], ONES[rest % 10])
+  return parts.filter(Boolean).join(" و ")
+}
+
+/** عدد صحیح به حروف فارسی (مثل نوشتن مبلغ چک): ۲۵۰۰۰۰۰ ← «دو میلیون و پانصد هزار». */
+export function numberToWords(value: number): string {
+  if (!Number.isSafeInteger(value) || value < 0) return ""
+  if (value === 0) return "صفر"
+  const groups: string[] = []
+  let n = value
+  for (let i = 0; n > 0 && i < SCALES.length; i++, n = Math.floor(n / 1000)) {
+    const g = n % 1000
+    if (g) groups.unshift([threeDigits(g), SCALES[i]].filter(Boolean).join(" "))
+  }
+  return groups.join(" و ")
+}
+
+/** مدت به دقیقه: ۲۷۰ ← «۴ ساعت و ۳۰ دقیقه». */
+export function formatDuration(minutes: number): string {
+  const h = Math.floor(minutes / 60)
+  const m = minutes % 60
+  return [h && `${toFaDigits(h)} ساعت`, m && `${toFaDigits(m)} دقیقه`].filter(Boolean).join(" و ") || "۰ دقیقه"
+}

@@ -1,0 +1,12 @@
+import type { Control } from "react-hook-form"
+import type { ChoiceOption, FieldDef, FormValues } from "./definition"
+
+export type FieldProps = { field: FieldDef; control: Control<FormValues>; className?: string }
+
+/** ویژگی مشترک FormField هر فیلد. */
+export function common({ field, control, className }: FieldProps) {
+  return { control, name: field.id, label: field.label ?? "", required: field.required, description: field.help || undefined, className }
+}
+
+export const optionsOf = (field: FieldDef, key = "options") => (field.props?.[key] ?? []) as ChoiceOption[]
+export const str = (value: unknown) => (typeof value === "string" ? value : "")

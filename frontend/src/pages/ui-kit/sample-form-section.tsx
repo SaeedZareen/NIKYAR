@@ -28,7 +28,7 @@ export function SampleFormSection() {
     onError: (e) => toast.error(errorMessage(e)),
   })
   return (
-    <Section title="فرم‌ساز" description="یک فرم منتشرشده با همه‌ی نوع فیلدهای پایه می‌سازد که همه‌ی کاربران می‌توانند در صفحه‌ی «فرم‌ها» پر کنند.">
+    <Section title="فرم‌ساز" description="یک فرم منتشرشده با نوع فیلدهای پایه و تخصصی می‌سازد که همه‌ی کاربران می‌توانند در صفحه‌ی «فرم‌ها» پر کنند.">
       <Button variant="outline" disabled={create.isPending} onClick={() => create.mutate()}>
         {create.isPending ? <Spinner /> : <FilePlus2 />}
         ساخت فرم نمونه
