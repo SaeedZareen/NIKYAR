@@ -74,7 +74,7 @@ function makeEmployees(count: number): Employee[] {
 export const UNIT_NAMES = UNITS.map(([u]) => u)
 export const employees = makeEmployees(240)
 
-/** فرم نمونه‌ی فرم‌ساز با همه‌ی نوع فیلدهای پایه (ساخت از «کیت › اجزای فرم» برای امتحان صفحه‌ی «فرم‌ها» پیش از طراح دیداری). */
+/** فرم نمونه‌ی فرم‌ساز با نوع‌های پایه و تخصصی (ساخت از «کیت › اجزای فرم» برای امتحان صفحه‌ی «فرم‌ها» پیش از طراح دیداری). */
 export const SAMPLE_FORM_DEFINITION = {
   sections: [
     {
@@ -139,6 +139,46 @@ export const SAMPLE_FORM_DEFINITION = {
         },
         { id: "sep", type: "divider" },
         { id: "description", type: "textarea", label: "شرح", span: 2, props: { max_length: 500, rows: 3 } },
+      ],
+    },
+    {
+      id: "specialised",
+      title: "اطلاعات تکمیلی",
+      columns: 2,
+      fields: [
+        { id: "receiver", type: "text", label: "نام تحویل‌گیرنده", props: { script: "persian" } },
+        { id: "receiver_en", type: "text", label: "نام لاتین", props: { script: "latin" } },
+        { id: "national_code", type: "national_code", label: "کد ملی" },
+        { id: "mobile", type: "mobile", label: "موبایل" },
+        { id: "supplier_id", type: "legal_national_id", label: "شناسه‌ی ملی تأمین‌کننده" },
+        { id: "economic_code", type: "economic_code", label: "کد اقتصادی" },
+        { id: "iban", type: "iban", label: "شبای تأمین‌کننده" },
+        { id: "card", type: "card_number", label: "شماره‌ی کارت" },
+        { id: "email", type: "email", label: "ایمیل" },
+        { id: "plate", type: "vehicle_plate", label: "پلاک خودروی حمل" },
+        { id: "period", type: "date_range", label: "بازه‌ی اجرا", props: { max_days: 30 } },
+        { id: "visit", type: "datetime", label: "زمان بازدید", props: { default_now: true } },
+        { id: "hours", type: "time_range", label: "ساعت کار", props: { max_minutes: 600 } },
+        { id: "satisfaction", type: "scale", label: "رضایت از تأمین‌کننده‌ی قبلی", props: { display: "stars" } },
+        {
+          id: "evaluation",
+          type: "matrix",
+          label: "ارزیابی تأمین‌کننده",
+          props: {
+            rows: [
+              { value: "quality", label: "کیفیت کالا" },
+              { value: "delivery", label: "به‌موقع بودن تحویل" },
+              { value: "price", label: "قیمت" },
+            ],
+            columns: [
+              { value: "1", label: "ضعیف" },
+              { value: "2", label: "متوسط" },
+              { value: "3", label: "خوب" },
+              { value: "4", label: "عالی" },
+            ],
+          },
+        },
+        { id: "agree", type: "consent", label: "تعهد", required: true, props: { text: "صحت اطلاعات این درخواست را تأیید می‌کنم." } },
       ],
     },
   ],

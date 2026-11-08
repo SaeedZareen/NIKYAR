@@ -1,3 +1,5 @@
+import { toJalaliString } from "@/lib/format"
+
 // تعریف فرم فرم‌ساز (هم‌ارز backend/core/forms/engine.py) و تبدیل میان داده‌ی ذخیره‌شده و حالت ورودی‌ها.
 
 export type FieldType =
@@ -11,11 +13,19 @@ export type FieldType =
   | "date"
   | "time"
   | "date_range"
+  | "datetime"
+  | "time_range"
   | "boolean"
   | "choice"
   | "multi_choice"
+  | "scale"
+  | "matrix"
+  | "consent"
   | "national_code"
   | "legal_national_id"
+  | "economic_code"
+  | "registration_number"
+  | "vehicle_plate"
   | "mobile"
   | "phone"
   | "postal_code"
@@ -67,7 +77,14 @@ function toInput(field: FieldDef, value: unknown): unknown {
   switch (field.type) {
     case "number":
     case "amount":
+    case "scale":
       return typeof value === "number" ? String(value) : ""
+    case "consent":
+      return value === true
+    case "date_range":
+    case "time_range":
+    case "matrix":
+      return value && typeof value === "object" ? value : {}
     case "boolean":
       return typeof value === "boolean" ? String(value) : ""
     case "multi_choice":
@@ -77,9 +94,17 @@ function toInput(field: FieldDef, value: unknown): unknown {
   }
 }
 
-/** مقدار اولیه‌ی ورودی‌ها از داده‌ی ثبت (یا مقدار پیش‌فرض هر فیلد برای فرم تازه). */
-export function toFormValues(definition: FormDefinition, data?: Record<string, unknown>): FormValues {
-  return Object.fromEntries(valueFields(definition).map((f) => [f.id, toInput(f, data ? data[f.id] : f.default)]))
+/** پیش‌فرض پویای «امروز» یا «اکنون» (default_now) برای فرم تازه. */
+function nowDefault(field: FieldDef, now: Date): string | undefined {
+  if (field.props?.default_now !== true) return undefined
+  const date = toJalaliString(now)
+  const time = `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`
+  return { date, time, datetime: `${date} ${time}` }[field.type as "date" | "time" | "datetime"]
+}
+
+/** مقدار اولیه‌ی ورودی‌ها از داده‌ی ثبت؛ برای فرم تازه مقدار پیش‌فرض هر فیلد (ثابت یا «امروز/اکنون»). */
+export function toFormValues(definition: FormDefinition, data?: Record<string, unknown>, now = new Date()): FormValues {
+  return Object.fromEntries(valueFields(definition).map((f) => [f.id, toInput(f, data ? data[f.id] : (nowDefault(f, now) ?? f.default))]))
 }
 
 const NUMBER = /^-?\d+(\.\d+)?$/
@@ -89,7 +114,9 @@ export function toPayload(definition: FormDefinition, values: FormValues): Recor
   const payload: Record<string, unknown> = {}
   for (const field of valueFields(definition)) {
     let value = values[field.id]
-    if ((field.type === "number" || field.type === "amount") && typeof value === "string" && NUMBER.test(value.trim())) value = Number(value)
+    if ((field.type === "number" || field.type === "amount" || field.type === "scale") && typeof value === "string" && NUMBER.test(value.trim())) value = Number(value)
+    // تعهد پذیرفته‌نشده یعنی پاسخ نداده (نه «false» که طرح آن را نادرست می‌داند).
+    if (field.type === "consent" && value !== true) value = undefined
     if (field.type === "boolean" && (value === "true" || value === "false")) value = value === "true"
     const cleaned = clean(value)
     if (cleaned !== undefined) payload[field.id] = cleaned

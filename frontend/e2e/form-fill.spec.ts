@@ -20,8 +20,35 @@ const DEFINITION = {
   ],
 }
 
+const SPECIAL = {
+  sections: [
+    {
+      id: "s",
+      title: "تخصصی",
+      columns: 2,
+      fields: [
+        { id: "name", type: "text", label: "نام", props: { script: "persian" } },
+        { id: "price", type: "amount", label: "مبلغ" },
+        { id: "sheba", type: "iban", label: "شبا" },
+        { id: "plate", type: "vehicle_plate", label: "پلاک" },
+        { id: "period", type: "date_range", label: "بازه" },
+        { id: "hours", type: "time_range", label: "ساعت کار" },
+        { id: "rate", type: "scale", label: "رضایت", props: { display: "stars" } },
+        {
+          id: "eval",
+          type: "matrix",
+          label: "ارزیابی",
+          required: true,
+          props: { rows: [{ value: "q", label: "کیفیت" }], columns: [{ value: "1", label: "ضعیف" }, { value: "2", label: "خوب" }] },
+        },
+        { id: "agree", type: "consent", label: "تعهد", required: true, props: { text: "صحت اطلاعات را تأیید می‌کنم." } },
+      ],
+    },
+  ],
+}
+
 /** فرم منتشرشده‌ی یکتا برای هر آزمون، با همان API که طراح (3.4) به کار می‌برد. */
-async function publishForm(page: Page, title: string): Promise<number> {
+async function publishForm(page: Page, title: string, definition: object = DEFINITION): Promise<number> {
   await page.goto("/forms")
   return page.evaluate(
     async ({ title, definition }) => {
@@ -34,7 +61,7 @@ async function publishForm(page: Page, title: string): Promise<number> {
       await call(`/api/forms/versions/${form.draft_version}/publish/`, "POST")
       return form.id as number
     },
-    { title, definition: DEFINITION }
+    { title, definition }
   )
 }
 
@@ -83,6 +110,67 @@ test.describe("پر کردن فرم", () => {
     await expect(page).toHaveURL(/\/forms$/)
     await expect(page.getByRole("region", { name: "پیش‌نویس‌های من" }).getByText(title)).toHaveCount(0)
     await expectAccessible(page)
+    expect(errors).toEqual([])
+  })
+
+  test("فیلدهای تخصصی: به حروف، نام بانک، پلاک، بازه‌ها، ستاره، ماتریس و تعهد", async ({ page }, info) => {
+    const errors = collectErrors(page)
+    const title = `فیلدهای تخصصی ${info.project.name} ${Date.now()}`
+    const id = await publishForm(page, title, SPECIAL)
+    await page.goto(`/forms/${id}/fill`)
+
+    await page.getByLabel("نام", { exact: true }).fill("Ali")
+    await page.getByLabel("نام", { exact: true }).blur()
+    await expect(page.getByText("«نام» را فقط با حروف فارسی بنویسید.")).toBeVisible()
+    await page.getByLabel("نام", { exact: true }).fill("علی رضایی")
+
+    await page.getByLabel("مبلغ", { exact: true }).fill("2500000")
+    await expect(page.getByText("دو میلیون و پانصد هزار ریال · ۲۵۰٬۰۰۰ تومان")).toBeVisible()
+    await page.getByLabel("شبا", { exact: true }).fill("820540102680020817909002")
+    await expect(page.getByText("بانک پارسیان")).toBeVisible()
+
+    await page.getByLabel("پلاک", { exact: true }).fill("12")
+    await page.getByRole("combobox", { name: "حرف پلاک" }).click()
+    await page.getByRole("option", { name: "ب", exact: true }).click()
+    await page.getByLabel("سه رقم پلاک").fill("345")
+    await page.getByLabel("کد شهر پلاک").fill("67")
+
+    await page.getByLabel("بازه", { exact: true }).fill("14050901")
+    await page.getByLabel("بازه — تا تاریخ", { exact: true }).fill("14050903")
+    await expect(page.getByText("۳ روز")).toBeVisible()
+    await page.getByLabel("ساعت کار", { exact: true }).fill("0800")
+    await page.getByLabel("ساعت کار — تا ساعت", { exact: true }).fill("1230")
+    await expect(page.getByText("مدت: ۴ ساعت و ۳۰ دقیقه")).toBeVisible()
+
+    await page.getByRole("radio", { name: "۴ از ۵" }).click()
+    await expectAccessible(page)
+
+    // ماتریس و تعهد الزامی‌اند
+    await page.getByRole("button", { name: "ثبت نهایی" }).click()
+    const summary = page.getByRole("alert").filter({ hasText: "لطفاً این موارد را اصلاح کنید" })
+    await expect(summary).toContainText("به همه‌ی معیارهای «ارزیابی» پاسخ دهید.")
+    await expect(summary).toContainText("برای ادامه، «تعهد» را بپذیرید.")
+    await page.getByRole("radio", { name: "کیفیت: خوب" }).click()
+    await page.getByRole("checkbox", { name: "صحت اطلاعات را تأیید می‌کنم." }).click()
+    await page.getByRole("button", { name: "ثبت نهایی" }).click()
+    await expect(page.getByText(`فرم «${title}» ثبت شد.`)).toBeVisible()
+
+    // داده‌ی ذخیره‌شده همان شکل یکسان‌شده‌ی سرور است
+    const data = await page.evaluate(async (formId) => {
+      const list = await fetch(`/api/forms/submissions/?form=${formId}&mine=true`).then((r) => r.json())
+      return list.results[0].data
+    }, id)
+    expect(data).toEqual({
+      name: "علی رضایی",
+      price: 2500000,
+      sheba: "IR820540102680020817909002",
+      plate: "12ب345-67",
+      period: { start: "1405/09/01", end: "1405/09/03" },
+      hours: { start: "08:00", end: "12:30" },
+      rate: 4,
+      eval: { q: "2" },
+      agree: true,
+    })
     expect(errors).toEqual([])
   })
 

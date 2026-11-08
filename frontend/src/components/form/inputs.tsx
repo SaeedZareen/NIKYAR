@@ -7,6 +7,7 @@ import { getMonth, getYear } from "date-fns-jalali"
 import { Input } from "@/components/ui/input"
 import { InputGroup, InputGroupAddon, InputGroupButton, InputGroupInput, InputGroupText } from "@/components/ui/input-group"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { JalaliCalendar, type JalaliCalendarProps } from "@/components/jalali-calendar"
 import { formatDate, onlyDigits, parseJalali, toJalaliString } from "@/lib/format"
 import { cn } from "@/lib/utils"
@@ -20,7 +21,7 @@ const DIGIT_KINDS = {
   nationalId: { maxLength: 10, autoComplete: "off" },
   legalNationalId: { maxLength: 11, autoComplete: "off" },
   economicCode: { maxLength: 12, autoComplete: "off" },
-  registrationNumber: { maxLength: 20, autoComplete: "off" },
+  registrationNumber: { maxLength: 10, autoComplete: "off" },
   mobile: { maxLength: 11, autoComplete: "tel" },
   phone: { maxLength: 11, autoComplete: "tel" },
   postalCode: { maxLength: 10, autoComplete: "postal-code" },
@@ -40,6 +41,42 @@ export function DigitsInput({ kind, value, onChange, className, ...props }: Base
       className={cn("text-start tabular-nums", className)}
       {...props}
     />
+  )
+}
+
+const PLATE_LETTERS = ["الف", "ب", "پ", "ت", "ث", "ج", "د", "ز", "ژ", "س", "ش", "ص", "ط", "ع", "ف", "ق", "ک", "گ", "ل", "م", "ن", "و", "ه", "ی"]
+
+/**
+ * پلاک خودرو به شکل پلاک واقعی: دو رقم، حرف، سه رقم و «ایران» با کد شهر.
+ * مقدار: «12ب345-67»؛ تا کامل نشده، همان بخش‌های واردشده (که اعتبارسنجی آن را ناقص می‌داند).
+ */
+export function PlateInput({ id, value, onChange, onBlur, className, ...aria }: Omit<BaseProps, "onBlur"> & { onBlur?: () => void }) {
+  const match = /^(\d{0,2})(\D*?)(\d{0,3})-?(\d{0,2})$/.exec(value ?? "")
+  const [two, letter, three, region] = match ? [match[1], match[2], match[3], match[4]] : ["", "", "", ""]
+  const set = (next: Partial<{ two: string; letter: string; three: string; region: string }>) => {
+    const p = { two, letter, three, region, ...next }
+    onChange(p.two || p.letter || p.three || p.region ? `${p.two}${p.letter}${p.three}-${p.region}` : "")
+  }
+  const box = "text-center tabular-nums"
+  return (
+    <div dir="ltr" className={cn("flex items-center gap-1.5", className)} role="group" aria-label="پلاک خودرو">
+      <Input id={id} inputMode="numeric" autoComplete="off" className={cn(box, "w-11")} value={two} onBlur={onBlur} onChange={(e) => set({ two: onlyDigits(e.target.value).slice(0, 2) })} {...aria} />
+      <Select value={letter} onValueChange={(l) => set({ letter: l })}>
+        <SelectTrigger aria-label="حرف پلاک" className="w-18" onBlur={onBlur} aria-invalid={aria["aria-invalid"]}>
+          <SelectValue placeholder="حرف" />
+        </SelectTrigger>
+        <SelectContent>
+          {PLATE_LETTERS.map((l) => (
+            <SelectItem key={l} value={l}>
+              {l}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+      <Input aria-label="سه رقم پلاک" inputMode="numeric" autoComplete="off" className={cn(box, "w-14")} value={three} onBlur={onBlur} onChange={(e) => set({ three: onlyDigits(e.target.value).slice(0, 3) })} aria-invalid={aria["aria-invalid"]} />
+      <span className="text-2xs text-muted-foreground">ایران</span>
+      <Input aria-label="کد شهر پلاک" inputMode="numeric" autoComplete="off" className={cn(box, "w-11")} value={region} onBlur={onBlur} onChange={(e) => set({ region: onlyDigits(e.target.value).slice(0, 2) })} aria-invalid={aria["aria-invalid"]} />
+    </div>
   )
 }
 
