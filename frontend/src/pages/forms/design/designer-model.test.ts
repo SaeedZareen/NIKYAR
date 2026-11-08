@@ -33,7 +33,7 @@ describe("designer model", () => {
     expect(taken.has("text_2")).toBe(true)
     const choice = newField({ code: "choice", title: "انتخاب یکی", label_required: true }, new Set())
     expect(choice).toMatchObject({ id: "choice_1", label: "انتخاب یکی" })
-    expect((choice.props?.options as unknown[]).length).toBe(2)
+    expect(choice.props!.options as unknown[]).toHaveLength(2)
     expect(newField({ code: "divider", title: "جداکننده", label_required: false }, new Set()).label).toBeUndefined()
   })
 

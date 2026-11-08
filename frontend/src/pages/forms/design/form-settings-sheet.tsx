@@ -1,3 +1,4 @@
+import * as React from "react"
 import { useNavigate } from "react-router"
 import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { z } from "zod"
@@ -49,9 +50,10 @@ export function FormSettingsSheet({ form, open, onOpenChange }: { form: DesignFo
   const navigate = useNavigate()
   const categories = useLookupItems("form-category").data ?? []
   const roles = useRoleOptions()
+  const [suggestedCode] = React.useState(() => `form-${Date.now().toString(36)}`)
   const values = useAppForm(schema, {
     title: form?.title ?? "",
-    code: form?.code ?? `form-${Date.now().toString(36)}`,
+    code: form?.code ?? suggestedCode,
     category: form?.category ? String(form.category) : NO_CATEGORY,
     description: form?.description ?? "",
     is_active: form?.is_active ?? true,

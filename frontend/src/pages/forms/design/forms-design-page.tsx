@@ -61,15 +61,7 @@ export default function FormsDesignPage() {
 
   const columns = React.useMemo(
     () => [
-      col.accessor("title", {
-        header: "عنوان",
-        meta: { label: "عنوان", primary: true },
-        cell: (c) => (
-          <Link to={`/forms/design/${c.row.original.id}`} className="font-medium hover:underline">
-            {c.getValue()}
-          </Link>
-        ),
-      }),
+      col.accessor("title", { header: "عنوان", meta: { label: "عنوان", primary: true } }),
       col.accessor("code", { header: "شناسه", meta: { label: "شناسه" }, cell: (c) => <span dir="ltr">{c.getValue()}</span> }),
       col.accessor("category_title", { header: "دسته", meta: { label: "دسته" }, cell: (c) => c.getValue() || "—" }),
       col.accessor((f) => statusOf(f).label, {

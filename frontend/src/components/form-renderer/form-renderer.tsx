@@ -65,7 +65,8 @@ export function FormRenderer({ definition, title, control, footer }: Props) {
   )
 }
 
-function FieldView({ field, control, className }: FieldProps) {
+/** یک فیلد تعریف (نمایشی یا دارای مقدار) با کنترل همان نوع؛ طراح هم برای پیش‌نمایش زنده از آن استفاده می‌کند. */
+export function FieldView({ field, control, className }: FieldProps) {
   const props = field.props ?? {}
   if (field.type === "heading") return <h3 className={cn("col-span-full border-b pb-1 text-xs font-semibold", className)}>{field.label}</h3>
   if (field.type === "paragraph") return <p className="col-span-full text-xs whitespace-pre-line">{String(props.content ?? "")}</p>

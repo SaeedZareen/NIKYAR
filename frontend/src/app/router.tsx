@@ -10,6 +10,8 @@ const HomePage = lazy(() => import("@/pages/home-page"))
 const NotificationsPage = lazy(() => import("@/pages/notifications-page"))
 const FormsPage = lazy(() => import("@/pages/forms/forms-page"))
 const FormFillPage = lazy(() => import("@/pages/forms/fill-page"))
+const FormsDesignPage = lazy(() => import("@/pages/forms/design/forms-design-page"))
+const DesignerPage = lazy(() => import("@/pages/forms/design/designer-page"))
 const AccountPage = lazy(() => import("@/pages/account/account-page"))
 const DelegationsPage = lazy(() => import("@/pages/admin/delegations-page"))
 const UsersPage = lazy(() => import("@/pages/admin/users-page"))
@@ -47,6 +49,8 @@ export const router = createBrowserRouter([
           { path: "notifications", element: page(<NotificationsPage />) },
           { path: "forms", element: page(<FormsPage />) },
           { path: "forms/:formId/fill", element: page(<FormFillPage />) },
+          { path: "forms/design", element: page(<FormsDesignPage />, "forms.design") },
+          { path: "forms/design/:formId", element: page(<DesignerPage />, "forms.design") },
           { path: "account", element: page(<AccountPage />) },
           { path: "admin/delegations", element: page(<DelegationsPage />, "delegation.manage") },
           { path: "admin/users", element: page(<UsersPage />, "accounts.users.view") },
