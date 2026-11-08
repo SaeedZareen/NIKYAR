@@ -62,6 +62,7 @@ INSTALLED_APPS = [
     "core.messaging",
     "core.delegation",
     "core.licensing",
+    "core.forms",
 ]
 
 AUTH_USER_MODEL = "accounts.User"

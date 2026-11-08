@@ -6,6 +6,7 @@
 import hashlib
 from datetime import timedelta
 
+from django.core.files import File
 from django.core.files.uploadedfile import UploadedFile
 from django.utils import timezone
 from rest_framework import serializers
@@ -64,6 +65,15 @@ def claim(file_id, *, public: bool = False, extensions: tuple[str, ...] | None =
     stored.claimed, stored.is_public = True, public
     stored.save(update_fields=["claimed", "is_public"])
     return stored
+
+
+def duplicate(stored: StoredFile, user) -> StoredFile:
+    """رونوشت مستقل و تصاحب‌شده (مثلاً امضای کاربر هنگام ثبت فرم) که با تغییر یا حذف اصل از بین نمی‌رود."""
+    copy = StoredFile(name=stored.name, extension=stored.extension, size=stored.size, sha256=stored.sha256, uploaded_by=user, uploaded_at=timezone.now(), claimed=True)
+    with stored.file.open("rb") as source:
+        copy.file.save(copy.id.hex, File(source), save=False)
+    copy.save()
+    return copy
 
 
 def release(file_id) -> None:
