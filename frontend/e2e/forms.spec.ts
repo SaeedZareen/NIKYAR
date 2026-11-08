@@ -1,9 +1,9 @@
 import { expect, test } from "@playwright/test"
 
-test.describe("فرم‌ها", () => {
+test.describe("اجزای فرم (کیت)", () => {
   test.beforeEach(async ({ page }) => {
     await page.goto("/ui-kit/forms")
-    await expect(page.getByRole("heading", { level: 1, name: "فرم‌ها" })).toBeVisible()
+    await expect(page.getByRole("heading", { level: 1, name: "اجزای فرم" })).toBeVisible()
   })
 
   test("ارسال فرم خالی: خلاصه‌ی خطا با فوکوس و پیوند به فیلد", async ({ page }) => {

@@ -9,6 +9,7 @@ import { PageHeader } from "@/components/layout/page-header"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
+import { errorMessage } from "@/lib/api/client"
 
 export function PageFallback() {
   return (
@@ -21,6 +22,23 @@ export function PageFallback() {
 
 export function NotFound() {
   return <PageHeader title="صفحه پیدا نشد" meta="نشانی واردشده در سامانه وجود ندارد. از منو بخش موردنظر را انتخاب کنید." />
+}
+
+/** خطای بارگذاری داده‌ی اصلی صفحه (مثلاً رکورد پیدا نشد یا مجوز ندارید)، با امکان تلاش دوباره. */
+export function PageError({ error, onRetry }: { error: unknown; onRetry: () => void }) {
+  return (
+    <>
+      <PageHeader title="نمایش ممکن نشد" />
+      <Alert variant="destructive">
+        <AlertTitle>{errorMessage(error)}</AlertTitle>
+        <AlertDescription>
+          <Button variant="outline" className="mt-2" onClick={onRetry}>
+            تلاش دوباره
+          </Button>
+        </AlertDescription>
+      </Alert>
+    </>
+  )
 }
 
 export function RouteError() {

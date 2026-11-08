@@ -84,8 +84,8 @@ export function IbanInput({ value, onChange, className, ...props }: BaseProps) {
   )
 }
 
-/** مبلغ به تومان با جداکننده‌ی هزارگان هنگام تایپ. مقدار خروجی رشته‌ی رقمی است. */
-export function MoneyInput({ value, onChange, className, ...props }: BaseProps) {
+/** مبلغ با جداکننده‌ی هزارگان هنگام تایپ (پیش‌فرض تومان؛ فرم‌ساز ریال). مقدار خروجی رشته‌ی رقمی است. */
+export function MoneyInput({ value, onChange, className, currency = "تومان", ...props }: BaseProps & { currency?: "تومان" | "ریال" }) {
   const digits = onlyDigits(value ?? "")
   return (
     <InputGroup className={className}>
@@ -99,7 +99,7 @@ export function MoneyInput({ value, onChange, className, ...props }: BaseProps) 
         {...props}
       />
       <InputGroupAddon align="inline-end">
-        <InputGroupText>تومان</InputGroupText>
+        <InputGroupText>{currency}</InputGroupText>
       </InputGroupAddon>
     </InputGroup>
   )

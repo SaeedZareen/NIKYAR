@@ -19,6 +19,7 @@ import { Label } from "@/components/ui/label"
 import { formatMoney } from "@/lib/format"
 import { schemas } from "@/lib/validators"
 import { TYPE_LABELS, UNIT_NAMES } from "./sample-data"
+import { SampleFormSection } from "./sample-form-section"
 
 const BANKS = ["ملی", "ملت", "تجارت", "صادرات", "سپه", "پاسارگاد", "سامان", "پارسیان", "رفاه کارگران", "مسکن"]
 
@@ -91,7 +92,7 @@ export default function FormsPage() {
   return (
     <>
       <PageHeader
-        title="فرم‌ها"
+        title="اجزای فرم"
         description="برچسب کنار فیلد، اعتبارسنجی کد ملی، موبایل، شبا و کد پستی، تاریخ شمسی، مبلغ و خلاصه‌ی خطا پس از ارسال"
         breadcrumbs={[{ label: "کیت رابط کاربری" }]}
       />
@@ -230,6 +231,7 @@ export default function FormsPage() {
           </FormGrid>
         </Section>
       </form>
+      <SampleFormSection />
     </>
   )
 }

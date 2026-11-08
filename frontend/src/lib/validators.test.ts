@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest"
 import { formatDate, formatFileSize, formatMoney, formatNumber, parseJalali, toEnDigits, toFaDigits, toJalaliString } from "@/lib/format"
 import {
   isValidCardNumber,
+  isValidEmail,
   isValidIban,
   isValidLegalNationalId,
   isValidMobile,
@@ -86,7 +87,7 @@ describe("shared identifier vectors (same file as the server tests)", () => {
     postal_code: isValidPostalCode,
     card_number: isValidCardNumber,
     iban: isValidIban,
-    email: (value) => schemas.email.safeParse(value).success,
+    email: isValidEmail,
   }
   for (const [kind, check] of Object.entries(checks)) {
     const { valid, invalid } = vectors[kind as keyof typeof checks & keyof typeof vectors] as { valid: string[]; invalid: string[] }

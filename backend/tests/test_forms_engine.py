@@ -137,6 +137,7 @@ class TestSchemaAndData:
             "x-nikyar-type": "text",
             "description": "عنوان کوتاه",
             "default": "خرید",
+            "x-messages": {"required": "تکمیل «عنوان» الزامی است.", "invalid": "مقدار «عنوان» معتبر نیست.", "maxLength": "«عنوان» حداکثر ۲۰۰ نویسه باشد."},
         }
         assert "h" not in s["properties"] and s["properties"]["sign"]["readOnly"]
         assert "required" not in engine.compile_schema(d, partial=True)
@@ -189,7 +190,8 @@ class TestSchemaAndData:
             "r": "«مرخصی» حداکثر ۳ روز است.",
         }
         assert errors_of(d, {"r": {"start": jd(-1), "end": jd(1)}}) == {"r": "«مرخصی» نباید پیش از امروز باشد."}
-        assert errors_of(d, {"r": {"start": jd(1)}}) == {"r": "«مرخصی» را به شکل «از تاریخ» و «تا تاریخ» معتبر وارد کنید."}
+        assert errors_of(d, {"r": {"start": jd(1)}}) == {"r": "تکمیل «مرخصی» (از تاریخ و تا تاریخ) الزامی است."}
+        assert errors_of(d, {"r": {"start": "1405/13/01", "end": jd(1)}}) == {"r": "«مرخصی» را به شکل «از تاریخ» و «تا تاریخ» معتبر وارد کنید."}
         assert engine.validate_data(d, {"r": {"start": jd(1), "end": ""}}, Ctx(partial=True)) == {"r": {"start": jd(1)}}
         ok = {"d": jd(0), "t": "08:30", "r": {"start": jd(1), "end": jd(3)}}
         assert engine.validate_data(d, ok, Ctx()) == ok
@@ -267,3 +269,10 @@ class TestReferencesAndTables:
         assert errors_of(d, {"items": [{"name": "x", "color": "red"}]}) == {"items": "مقدار «اقلام» معتبر نیست."}
         rows = [{"name": "کاغذ A4", "qty": 10, "unit": "male"}, {"name": "", "qty": None}]
         assert engine.validate_data(d, {"items": rows}, Ctx()) == {"items": [rows[0]]}
+
+
+def test_shared_form_validation_vectors_are_current():
+    """نمونه‌های مشترک با خروجی فعلی موتور یکی است (اگر نه: ../.venv/bin/python -m tests.form_vectors)."""
+    from tests import form_vectors
+
+    assert form_vectors.PATH.read_text(encoding="utf-8") == form_vectors.dump(form_vectors.build())
