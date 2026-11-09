@@ -50,6 +50,9 @@ DEFINITION = {
                 {"id": "place", "type": "region", "label": "محل"},
                 {"id": "drawn", "type": "signature_pad", "label": "امضا"},
                 {"id": "me", "type": "submitter", "label": "ثبت‌کننده"},
+                {"id": "code", "type": "text", "label": "کد پرسنلی", "props": {"pattern": "^P-\\d{3}$", "pattern_message": "کد پرسنلی به شکل P-123 است."}},
+                {"id": "source", "type": "choice", "label": "منبع", "props": {"options": OPTIONS, "allow_other": True}},
+                {"id": "extras", "type": "multi_choice", "label": "امکانات", "props": {"options": OPTIONS, "allow_other": True}},
             ],
         }
     ]
@@ -105,6 +108,7 @@ CASES = [
         "data": {"title": "abc", "price": 1, "ok": False, "tags": ["a"], "eval": {"skill": "a", "team": "b"}, "agree": True},
         "errors": None,
     },
+    {"name": "pattern and other option", "partial": True, "data": {"code": "p-12", "source": {"other": ""}, "extras": ["a", {"text": "x"}]}, "errors": None},
     {"name": "duplicate selection", "partial": True, "data": {"tags": ["a", "a"]}, "errors": None},
     {"name": "draft skips minimum selection", "partial": True, "data": {"tags": ["a"]}, "errors": {}},
     {
@@ -133,6 +137,9 @@ CASES = [
             "score": 4,
             "eval": {"skill": "a", "team": "c"},
             "agree": True,
+            "code": "P-123",
+            "source": {"other": "دوست"},
+            "extras": ["b", {"other": "پارکینگ"}],
         },
         "errors": {},
     },

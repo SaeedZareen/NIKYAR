@@ -21,7 +21,21 @@ from core.kernel.api import BusinessError
 from core.kernel.validators import fa_digits
 
 from . import rules
-from .fieldtypes import COLUMN_TYPES, ID_PATTERN, OPTION_VALUE_PATTERN, REGISTRY, Ctx, FieldType, Prop, fa_number, is_jalali_date, is_jalali_datetime, is_uuid
+from .fieldtypes import (
+    COLUMN_TYPES,
+    ID_PATTERN,
+    OPTION_VALUE_PATTERN,
+    PREFILL,
+    REGISTRY,
+    UNIQUE_TYPES,
+    Ctx,
+    FieldType,
+    Prop,
+    fa_number,
+    is_jalali_date,
+    is_jalali_datetime,
+    is_uuid,
+)
 
 JSON_SCHEMA_DIALECT = "https://json-schema.org/draft/2020-12/schema"
 
@@ -41,8 +55,8 @@ for _name, _check in {
 }.items():
     FORMATS.checks(_name)(lambda value, check=_check: not isinstance(value, str) or check(value))
 
-FIELD_KEYS = {"id", "type", "label", "help", "required", "span", "new_row", "default", "props", *rules.FIELD_CONDITIONS}
-COLUMN_KEYS = FIELD_KEYS - {"span", "new_row", *rules.FIELD_CONDITIONS}
+FIELD_KEYS = {"id", "type", "label", "help", "required", "readonly", "unique", "prefill", "span", "new_row", "default", "props", *rules.FIELD_CONDITIONS}
+COLUMN_KEYS = FIELD_KEYS - {"span", "new_row", "unique", "prefill", *rules.FIELD_CONDITIONS}
 SECTION_KEYS = {"id", "title", "help", "columns", "labels", "fields", "visible_if"}
 # جای برچسب در بخش: auto یعنی کنار فیلد تا دو ستون و بالای فیلد در بخش سه‌ستونه
 LABEL_POSITIONS = {"auto", "side", "top"}
@@ -182,6 +196,13 @@ def _check_field(field, path: str, seen: set, errors: dict, *, columns: int | No
         errors[f"{path}.required"] = "«الزامی» فقط برای فیلدهای دارای مقدار و به شکل بله/خیر است."
     if columns is not None and "span" in field and (not _is_int(field["span"]) or not 1 <= field["span"] <= columns):
         errors[f"{path}.span"] = f"پهنای فیلد باید بین ۱ و {fa_digits(columns)} ستون باشد."
+    for key, title in (("readonly", "فقط‌خواندنی"), ("unique", "مقدار یکتا")):
+        if key in field and (not isinstance(field[key], bool) or (field[key] and not (ftype.has_value and ftype.client_value))):
+            errors[f"{path}.{key}"] = f"«{title}» فقط برای فیلدهای دارای مقدار و به شکل بله/خیر است."
+    if field.get("unique") and field["type"] not in UNIQUE_TYPES:
+        errors[f"{path}.unique"] = f"نوع «{ftype.title}» مقدار یکتا نمی‌پذیرد."
+    if "prefill" in field and (field["prefill"] not in PREFILL or field["type"] not in PREFILL[field["prefill"]][1]):
+        errors[f"{path}.prefill"] = f"پیش‌پر «{field['prefill']}» برای نوع «{ftype.title}» پذیرفته نیست."
     if columns is not None and "new_row" in field and not isinstance(field["new_row"], bool):
         errors[f"{path}.new_row"] = "«شروع از ردیف تازه» باید بله یا خیر باشد."
     props = field.get("props", {})
@@ -256,6 +277,9 @@ def _check_prop(spec: Prop, value, path: str, errors: dict) -> str | None:
     elif spec.kind == "choice_list":
         if not isinstance(value, list) or not value or not all(v in spec.choices for v in value) or len(set(value)) != len(value):
             return f"«{spec.title}» دست‌کم یک مورد از گزینه‌های مجاز است."
+    elif spec.kind == "date":
+        if not is_jalali_date(value):
+            return f"«{spec.title}» تاریخ معتبری نیست؛ به شکل ۱۴۰۵/۰۸/۱۴ وارد کنید."
     elif spec.kind == "logic":
         # ساختار و فیلدها در _check_rules سنجیده می‌شوند (پس از شناختن همه‌ی شناسه‌ها)
         if not isinstance(value, (dict, list, int, float, str)) or isinstance(value, bool):

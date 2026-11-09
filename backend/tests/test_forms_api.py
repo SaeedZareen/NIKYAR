@@ -341,3 +341,19 @@ def test_designer_catalogue_and_role_lookup(designer, make_user, client_for):
     assert client_for(make_user("nobody")).get("/api/forms/field-types/").status_code == 403
     Role.objects.create(name="بازرسی")
     assert "بازرسی" in [r["name"] for r in client_for(make_user("anyone")).get("/api/auth/role-lookup/").json()]
+
+
+def test_unique_value_across_submissions(designer, make_user, client_for):
+    form = designer.post("/api/forms/", {"code": "uniq", "title": "یکتا", "fill_by_everyone": True}, format="json").json()
+    fields = [{"id": "nid", "type": "national_code", "label": "کد ملی", "unique": True}, {"id": "note", "type": "text", "label": "یادداشت"}]
+    r = designer.patch(f"/api/forms/versions/{form['draft_version']}/", {"definition": {"sections": [{"id": "s", "fields": fields}]}}, format="json")
+    assert r.status_code == 200, r.json()
+    designer.post(f"/api/forms/versions/{form['draft_version']}/publish/")
+    a, b = client_for(make_user("uniq_a")), client_for(make_user("uniq_b"))
+    post = lambda c, submit: c.post("/api/forms/submissions/", {"form": form["id"], "data": {"nid": "0084575948"}, "submit": submit}, format="json")  # noqa: E731
+    assert post(a, True).status_code == 201
+    # پیش‌نویس با مقدار تکراری ذخیره می‌شود ولی ثبت نهایی‌اش نه
+    draft = post(b, False)
+    assert draft.status_code == 201
+    r = b.patch(f"/api/forms/submissions/{draft.json()['id']}/", {"data": {"nid": "0084575948"}, "submit": True}, format="json")
+    assert r.status_code == 400 and "پیش‌تر در ثبت دیگری" in r.json()["fields"]["nid"]

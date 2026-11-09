@@ -237,6 +237,59 @@
       "id": "me",
       "type": "submitter",
       "label": "ثبت‌کننده"
+     },
+     {
+      "id": "code",
+      "type": "text",
+      "label": "کد پرسنلی",
+      "props": {
+       "pattern": "^P-\\d{3}$",
+       "pattern_message": "کد پرسنلی به شکل P-123 است."
+      }
+     },
+     {
+      "id": "source",
+      "type": "choice",
+      "label": "منبع",
+      "props": {
+       "options": [
+        {
+         "value": "a",
+         "label": "الف"
+        },
+        {
+         "value": "b",
+         "label": "ب"
+        },
+        {
+         "value": "c",
+         "label": "ج"
+        }
+       ],
+       "allow_other": true
+      }
+     },
+     {
+      "id": "extras",
+      "type": "multi_choice",
+      "label": "امکانات",
+      "props": {
+       "options": [
+        {
+         "value": "a",
+         "label": "الف"
+        },
+        {
+         "value": "b",
+         "label": "ب"
+        },
+        {
+         "value": "c",
+         "label": "ج"
+        }
+       ],
+       "allow_other": true
+      }
      }
     ]
    }
@@ -598,6 +651,88 @@
      "required": "تکمیل «ثبت‌کننده» الزامی است.",
      "invalid": "مقدار «ثبت‌کننده» معتبر نیست."
     }
+   },
+   "code": {
+    "type": "string",
+    "maxLength": 200,
+    "pattern": "^P-\\d{3}$",
+    "title": "کد پرسنلی",
+    "x-nikyar-type": "text",
+    "x-messages": {
+     "required": "تکمیل «کد پرسنلی» الزامی است.",
+     "invalid": "مقدار «کد پرسنلی» معتبر نیست.",
+     "maxLength": "«کد پرسنلی» حداکثر ۲۰۰ نویسه باشد.",
+     "pattern": "کد پرسنلی به شکل P-123 است."
+    }
+   },
+   "source": {
+    "anyOf": [
+     {
+      "type": "string",
+      "enum": [
+       "a",
+       "b",
+       "c"
+      ]
+     },
+     {
+      "type": "object",
+      "properties": {
+       "other": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200
+       }
+      },
+      "required": [
+       "other"
+      ],
+      "additionalProperties": false
+     }
+    ],
+    "title": "منبع",
+    "x-nikyar-type": "choice",
+    "x-messages": {
+     "required": "تکمیل «منبع» الزامی است.",
+     "invalid": "گزینه‌ی انتخاب‌شده برای «منبع» معتبر نیست."
+    }
+   },
+   "extras": {
+    "type": "array",
+    "items": {
+     "anyOf": [
+      {
+       "type": "string",
+       "enum": [
+        "a",
+        "b",
+        "c"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "other": {
+         "type": "string",
+         "minLength": 1,
+         "maxLength": 200
+        }
+       },
+       "required": [
+        "other"
+       ],
+       "additionalProperties": false
+      }
+     ]
+    },
+    "uniqueItems": true,
+    "title": "امکانات",
+    "x-nikyar-type": "multi_choice",
+    "x-messages": {
+     "required": "تکمیل «امکانات» الزامی است.",
+     "invalid": "گزینه‌ی انتخاب‌شده برای «امکانات» معتبر نیست.",
+     "uniqueItems": "در «امکانات» مورد تکراری هست."
+    }
    }
   },
   "additionalProperties": false,
@@ -952,6 +1087,88 @@
      "required": "تکمیل «ثبت‌کننده» الزامی است.",
      "invalid": "مقدار «ثبت‌کننده» معتبر نیست."
     }
+   },
+   "code": {
+    "type": "string",
+    "maxLength": 200,
+    "pattern": "^P-\\d{3}$",
+    "title": "کد پرسنلی",
+    "x-nikyar-type": "text",
+    "x-messages": {
+     "required": "تکمیل «کد پرسنلی» الزامی است.",
+     "invalid": "مقدار «کد پرسنلی» معتبر نیست.",
+     "maxLength": "«کد پرسنلی» حداکثر ۲۰۰ نویسه باشد.",
+     "pattern": "کد پرسنلی به شکل P-123 است."
+    }
+   },
+   "source": {
+    "anyOf": [
+     {
+      "type": "string",
+      "enum": [
+       "a",
+       "b",
+       "c"
+      ]
+     },
+     {
+      "type": "object",
+      "properties": {
+       "other": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200
+       }
+      },
+      "required": [
+       "other"
+      ],
+      "additionalProperties": false
+     }
+    ],
+    "title": "منبع",
+    "x-nikyar-type": "choice",
+    "x-messages": {
+     "required": "تکمیل «منبع» الزامی است.",
+     "invalid": "گزینه‌ی انتخاب‌شده برای «منبع» معتبر نیست."
+    }
+   },
+   "extras": {
+    "type": "array",
+    "items": {
+     "anyOf": [
+      {
+       "type": "string",
+       "enum": [
+        "a",
+        "b",
+        "c"
+       ]
+      },
+      {
+       "type": "object",
+       "properties": {
+        "other": {
+         "type": "string",
+         "minLength": 1,
+         "maxLength": 200
+        }
+       },
+       "required": [
+        "other"
+       ],
+       "additionalProperties": false
+      }
+     ]
+    },
+    "uniqueItems": true,
+    "title": "امکانات",
+    "x-nikyar-type": "multi_choice",
+    "x-messages": {
+     "required": "تکمیل «امکانات» الزامی است.",
+     "invalid": "گزینه‌ی انتخاب‌شده برای «امکانات» معتبر نیست.",
+     "uniqueItems": "در «امکانات» مورد تکراری هست."
+    }
    }
   },
   "additionalProperties": false,
@@ -1141,6 +1358,27 @@
    }
   },
   {
+   "name": "pattern and other option",
+   "partial": true,
+   "data": {
+    "code": "p-12",
+    "source": {
+     "other": ""
+    },
+    "extras": [
+     "a",
+     {
+      "text": "x"
+     }
+    ]
+   },
+   "cleaned": null,
+   "errors": {
+    "code": "کد پرسنلی به شکل P-123 است.",
+    "extras": "گزینه‌ی انتخاب‌شده برای «امکانات» معتبر نیست."
+   }
+  },
+  {
    "name": "duplicate selection",
    "partial": true,
    "data": {
@@ -1203,7 +1441,17 @@
      "skill": "a",
      "team": "c"
     },
-    "agree": true
+    "agree": true,
+    "code": "P-123",
+    "source": {
+     "other": "دوست"
+    },
+    "extras": [
+     "b",
+     {
+      "other": "پارکینگ"
+     }
+    ]
    },
    "cleaned": {
     "title": "خرید",
@@ -1236,7 +1484,17 @@
      "skill": "a",
      "team": "c"
     },
-    "agree": true
+    "agree": true,
+    "code": "P-123",
+    "source": {
+     "other": "دوست"
+    },
+    "extras": [
+     "b",
+     {
+      "other": "پارکینگ"
+     }
+    ]
    },
    "errors": {}
   }
