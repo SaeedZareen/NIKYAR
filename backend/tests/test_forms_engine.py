@@ -55,9 +55,20 @@ def jd(days=0):
     return (TODAY + jdatetime.timedelta(days=days)).strftime("%Y/%m/%d")
 
 
+def stored(user, name="a.png", content=b"\x89PNG\r\n\x1a\n" + b"\x00" * 64):
+    from django.core.files.uploadedfile import SimpleUploadedFile
+
+    from core.files import service as files
+
+    return str(files.store(SimpleUploadedFile(name, content), user).pk)
+
+
 class TestDefinition:
-    def test_every_catalogue_type_has_title_group_and_valid_minimal_field(self, db):
+    def test_every_catalogue_type_has_title_group_and_valid_minimal_field(self, make_user):
+        image = stored(make_user("designer"))
         minimal_props = {
+            "image": {"file": image},
+            "download": {"file": image},
             "paragraph": {"content": "متن"},
             "choice": {"options": [{"value": "a", "label": "الف"}]},
             "multi_choice": {"options": [{"value": "a", "label": "الف"}]},
@@ -484,3 +495,54 @@ class TestRepeatingGroup:
         assert "گروه و ستون" in definition_errors(calc({"sum_of": [{"var": "items"}]}))[p]
         d = calc({"sum_of": [{"var": "items"}, "qty", "price"]})
         assert engine.validate_data(d, {"items": [{"qty": 2, "price": 10}, {"qty": 1}]}, Ctx(partial=True))["t"] == 20
+
+
+class TestWebAndMedia:
+    """3.6b: پیوند، متن غنی، تصویر و فایل راهنما، صدا، بارکد، موقعیت و فیلد پنهان."""
+
+    def test_values(self, make_user):
+        user = make_user("media")
+        d = form(
+            {"id": "site", "type": "url", "label": "وب‌سایت"},
+            {"id": "bio", "type": "rich_text", "label": "شرح", "required": True, "props": {"max_length": 100}},
+            {"id": "code", "type": "barcode", "label": "بارکد", "props": {"digits_only": True}},
+            {"id": "where", "type": "location", "label": "محل"},
+            {"id": "src", "type": "hidden", "label": "منبع", "props": {"param": "src"}},
+            {"id": "note", "type": "voice", "label": "پیام صوتی"},
+        )
+        errs = errors_of(d, {"site": "www.x.ir", "bio": "<p> </p>", "code": "12a", "where": {"lat": 95, "lng": 51}, "note": [stored(user)]}, user=user)
+        assert "http://" in errs["site"] and errs["bio"] == "تکمیل «شرح» الزامی است." and errs["code"] == "«بارکد» فقط رقم دارد."
+        assert "بین −۹۰ و ۹۰" in errs["where"] and "مجاز نیست" in errs["note"]
+        assert "را مشخص کنید" in errors_of(d, {"bio": "x", "where": {"lat": 35.7}})["where"]
+        audio = stored(user, "voice.m4a", b"\x00\x00\x00\x20ftypM4A " + b"\x00" * 64)
+        cleaned = engine.validate_data(
+            d,
+            {
+                "site": "https://nikyar.ir/a?b=1",
+                "bio": '<p onclick="x">سلام <b>دنیا</b><script>alert(1)</script></p>',
+                "code": "123",
+                "where": {"lat": 35.7, "lng": 51.4, "accuracy": 12},
+                "src": "sms",
+                "note": [audio],
+            },
+            Ctx(user=user),
+        )
+        assert cleaned["bio"] == "<p>سلام <b>دنیا</b></p>" and cleaned["note"] == [audio] and cleaned["where"]["accuracy"] == 12
+
+    def test_definition(self, make_user):
+        user = make_user("designer2")
+        pdf = stored(user, "guide.pdf", b"%PDF-1.7\n" + b"x" * 64)
+        errs = definition_errors(
+            form(
+                {"id": "img", "type": "image", "props": {"file": pdf}},
+                {"id": "dl", "type": "download", "label": "راهنما", "props": {"file": "00000000-0000-0000-0000-000000000000"}},
+                {"id": "h", "type": "hidden", "label": "پنهان", "props": {"param": "Bad-Name"}},
+                {"id": "p", "type": "paragraph", "props": {"content": "<p> </p>"}},
+            )
+        )
+        p = "sections.0.fields"
+        assert "مناسب نیست" in errs[f"{p}.0.props.file"] and "پیدا نشد" in errs[f"{p}.1.props.file"]
+        assert "حرف کوچک لاتین" in errs[f"{p}.2.props.param"] and "الزامی" in errs[f"{p}.3.props.content"]
+        d = engine.normalize_definition(form({"id": "p", "type": "paragraph", "props": {"content": '<p>متن <a href="javascript:x">بد</a><img src=x></p>'}}))
+        assert d["sections"][0]["fields"][0]["props"]["content"] == '<p>متن <a target="_blank" rel="noopener noreferrer">بد</a></p>'
+        assert engine.definition_file_ids(form({"id": "dl", "type": "download", "label": "ر", "props": {"file": pdf}})) == {pdf}

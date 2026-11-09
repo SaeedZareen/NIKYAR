@@ -36,13 +36,20 @@ FILE_TYPES: dict[str, FileType] = {
         FileType("doc", "Word قدیمی", "application/msword", (_OLE,)),
         FileType("xls", "Excel قدیمی", "application/vnd.ms-excel", (_OLE,)),
         FileType("zip", "فشرده‌ی ZIP", "application/zip", (_ZIP,)),
+        # صدا (فیلد «صدا»ی فرم‌ساز): ضبط‌کننده‌ی گوشی‌ها m4a (آیفون و بیشتر اندرویدها)، ogg یا webm می‌سازد.
+        FileType("mp3", "صدای MP3", "audio/mpeg", (b"ID3", b"\xff\xfb", b"\xff\xf3", b"\xff\xf2"), inline=True),
+        FileType("m4a", "صدای M4A", "audio/mp4", (b"ftyp",), inline=True),
+        FileType("ogg", "صدای OGG", "audio/ogg", (b"OggS",), inline=True),
+        FileType("wav", "صدای WAV", "audio/wav", (b"RIFF",), inline=True),
+        FileType("webm", "صدای WebM", "audio/webm", (b"\x1a\x45\xdf\xa3",), inline=True),
         FileType("txt", "متن ساده", "text/plain; charset=utf-8", None),
         FileType("csv", "CSV", "text/csv; charset=utf-8", None),
     ]
 }
 
 IMAGE_EXTENSIONS = ("jpg", "jpeg", "png", "webp")
-DEFAULT_EXTENSIONS = ["pdf", "jpg", "jpeg", "png", "docx", "xlsx", "doc", "xls", "zip", "txt"]
+AUDIO_EXTENSIONS = ("mp3", "m4a", "ogg", "wav", "webm")
+DEFAULT_EXTENSIONS = ["pdf", "jpg", "jpeg", "png", "docx", "xlsx", "doc", "xls", "zip", "txt", *AUDIO_EXTENSIONS]
 
 
 def extension_of(name: str) -> str:
@@ -54,4 +61,9 @@ def content_matches(file_type: FileType, head: bytes) -> bool:
         return b"\x00" not in head
     if file_type.extension == "webp":
         return head[:4] == b"RIFF" and head[8:12] == b"WEBP"
+    if file_type.extension == "wav":
+        return head[:4] == b"RIFF" and head[8:12] == b"WAVE"
+    if file_type.extension == "m4a":
+        # جعبه‌ی ftyp پس از چهار بایت اندازه می‌آید
+        return head[4:8] == b"ftyp"
     return any(head.startswith(sig) for sig in file_type.signatures)

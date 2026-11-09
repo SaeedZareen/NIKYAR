@@ -52,6 +52,35 @@ def create_form(form: Form) -> FormVersion:
     return FormVersion.objects.create(form=form, number=1)
 
 
+@transaction.atomic
+def save_definition(version: FormVersion, definition: dict) -> FormVersion:
+    """
+    ذخیره‌ی تعریف پیش‌نویس با فایل‌های خودش (تصویر، فایل راهنما): فایل تازه تصاحب و فایل کنارگذاشته حذف می‌شود،
+    مگر نسخه‌ی دیگری (همین فرم یا رونوشت آن) هنوز از آن استفاده کند.
+    """
+    before = engine.definition_file_ids(version.definition)
+    after = engine.definition_file_ids(definition)
+    version.definition = definition
+    version.save(update_fields=["definition", "updated_at"])
+    for file_id in after - before:
+        files.claim(file_id)
+    release_unused(before - after)
+    return version
+
+
+def form_files(form: Form) -> set[str]:
+    return set().union(*(engine.definition_file_ids(v.definition) for v in form.versions.all()))
+
+
+def release_unused(ids: set[str]) -> None:
+    """حذف فایل‌های تعریف که دیگر هیچ نسخه‌ای از هیچ فرمی از آن‌ها استفاده نمی‌کند (پس از commit)."""
+    if not ids:
+        return
+    used = set().union(*(engine.definition_file_ids(d) for d in FormVersion.objects.values_list("definition", flat=True)))
+    for file_id in ids - used:
+        transaction.on_commit(lambda file_id=file_id: files.release(file_id))
+
+
 def publish(version: FormVersion, user) -> FormVersion:
     if version.status != FormVersion.Status.DRAFT:
         raise BusinessError("این نسخه پیش‌تر منتشر شده است.")

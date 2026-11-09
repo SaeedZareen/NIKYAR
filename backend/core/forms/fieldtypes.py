@@ -39,7 +39,8 @@ class Prop:
     یک ویژگی نوع فیلد. kind:
     int، number، bool، text، choice (یکی از choices)، options (گزینه‌های انتخاب)،
     lookup_list (کد فهرست پایه)، org_unit و role (شناسه‌ی واحد یا نقش)، choice_list (چند مورد از choices)،
-    extensions (نوع‌های فایل)، columns (ستون‌های جدول)، logic (عبارت JsonLogic؛ core/forms/rules.py)، date (تاریخ شمسی).
+    extensions (نوع‌های فایل)، columns (ستون‌های جدول)، logic (عبارت JsonLogic؛ core/forms/rules.py)، date (تاریخ شمسی)،
+    html (متن قالب‌دار؛ پاک‌سازی‌شده با core/forms/html.py)، file (شناسه‌ی فایل بارگذاری‌شده با نوع‌های accept).
     """
 
     kind: str
@@ -50,6 +51,8 @@ class Prop:
     choices: dict[str, str] = field(default_factory=dict)
     min: float | None = None
     max: float | None = None
+    # kind=file: پسوندهای پذیرفته (خالی یعنی همه‌ی نوع‌های مجاز سامانه)
+    accept: tuple[str, ...] = ()
 
 
 @dataclass
@@ -101,6 +104,10 @@ class FieldType:
     def file_ids(self, value, props: dict) -> list[str]:
         return []
 
+    def normalize(self, value, props: dict):
+        """شکل یکسان مقدار پس از پاک‌سازی و پیش از سنجش (مثلاً پاک‌سازی HTML)؛ None یعنی پر نشده."""
+        return value
+
 
 REGISTRY: dict[str, FieldType] = {}
 
@@ -131,7 +138,8 @@ class Paragraph(FieldType):
     code, title, group = "paragraph", "متن راهنما", "نمایشی"
     has_value = False
     label_required = False
-    props = {"content": Prop("text", "متن", required=True, max=2000)}
+    # متن قالب‌دار (پررنگ، فهرست، پیوند، جدول ساده)؛ متن ساده‌ی نسخه‌های پیشین هم همان‌طور نمایش داده می‌شود.
+    props = {"content": Prop("html", "متن", required=True, max=5000)}
 
 
 @register
@@ -139,6 +147,29 @@ class Divider(FieldType):
     code, title, group = "divider", "جداکننده", "نمایشی"
     has_value = False
     label_required = False
+
+
+@register
+class Image(FieldType):
+    """تصویر نمایشی (نمودار، لوگو، راهنمای تصویری)؛ برچسب، زیرنویس اختیاری آن است."""
+
+    code, title, group = "image", "تصویر", "نمایشی"
+    has_value = False
+    label_required = False
+    props = {
+        "file": Prop("file", "تصویر", required=True, accept=("jpg", "jpeg", "png", "webp", "gif")),
+        "alt": Prop("text", "متن جایگزین (برای صفحه‌خوان)", max=150),
+        "size": Prop("choice", "اندازه", default="medium", choices={"small": "کوچک", "medium": "متوسط", "full": "تمام عرض"}),
+    }
+
+
+@register
+class Download(FieldType):
+    """فایل راهنمای قابل دانلود (مثل نمونه‌ی قرارداد)؛ برچسب، متن پیوند دانلود است."""
+
+    code, title, group = "download", "فایل راهنما", "نمایشی"
+    has_value = False
+    props = {"file": Prop("file", "فایل", required=True)}
 
 
 # ─── متن و عدد ──────────────────────────────────────────────────────────
@@ -959,6 +990,128 @@ class SignaturePad(FieldType):
         return [value] if value else []
 
 
+# ─── وب و رسانه ─────────────────────────────────────────────────────────
+
+
+@register
+class Url(FieldType):
+    code, title, group = "url", "پیوند (نشانی وب)", "وب و رسانه"
+    supports_default = True
+    props = {"placeholder": Prop("text", "متن نمونه", max=100)}
+    invalid_message = "«{label}» نشانی وب معتبری نیست؛ با http:// یا https:// شروع کنید."
+
+    def schema(self, props, partial):
+        return {"type": "string", "maxLength": 2000, "pattern": r"^https?://[^\s/$.?#][^\s]*$"}
+
+    def extra_messages(self, props):
+        return {"pattern": self.invalid_message}
+
+
+@register
+class RichText(FieldType):
+    """پاسخ قالب‌دار؛ سرور HTML را پاک‌سازی می‌کند (core/forms/html.py) و متن خالی یعنی پر نشده."""
+
+    code, title, group = "rich_text", "متن غنی (قالب‌دار)", "وب و رسانه"
+    props = {"max_length": Prop("int", "بیشینه‌ی طول", default=5000, min=100, max=20000)}
+
+    def schema(self, props, partial):
+        return {"type": "string", "maxLength": props["max_length"]}
+
+    def count_message(self, keyword, n):
+        return "«{label}» حداکثر " + fa_number(n) + " نویسه است."
+
+    def normalize(self, value, props):
+        from .html import sanitize, text_of
+
+        if not isinstance(value, str):
+            return value
+        return sanitize(value) if text_of(value) else None
+
+
+@register
+class Voice(FieldType):
+    """صدا: ضبط با ضبط‌کننده‌ی خود گوشی یا بارگذاری فایل صوتی؛ مقدار مثل پیوست فهرست یک فایل است."""
+
+    code, title, group = "voice", "صدا (ضبط یا فایل صوتی)", "وب و رسانه"
+    required_message = "برای «{label}» صدا ضبط کنید یا فایل صوتی بارگذاری کنید."
+
+    def schema(self, props, partial):
+        return {"type": "array", "items": {"type": "string", "format": "uuid"}, "maxItems": 1}
+
+    def count_message(self, keyword, n):
+        return "برای «{label}» فقط یک فایل صوتی بارگذاری کنید."
+
+    def check(self, value, props, ctx):
+        from core.files.types import AUDIO_EXTENSIONS
+
+        return REGISTRY["attachment"].check(value, {"extensions": list(AUDIO_EXTENSIONS)}, ctx)
+
+    def file_ids(self, value, props):
+        return list(value or [])
+
+
+@register
+class Barcode(FieldType):
+    """بارکد یا QR: بارکدخوان‌های رایج مثل صفحه‌کلید تایپ می‌کنند؛ با HTTPS، خواندن با دوربین گوشی."""
+
+    code, title, group = "barcode", "بارکد / QR", "وب و رسانه"
+    supports_default = True
+    props = {
+        "digits_only": Prop("bool", "فقط رقم", default=False),
+        "camera": Prop("bool", "خواندن با دوربین گوشی", default=True),
+    }
+
+    def schema(self, props, partial):
+        s = {"type": "string", "maxLength": 500}
+        if props["digits_only"]:
+            s["pattern"] = r"^\d+$"
+        return s
+
+    def extra_messages(self, props):
+        return {"pattern": "«{label}» فقط رقم دارد."}
+
+
+@register
+class Location(FieldType):
+    """موقعیت مکانی: عرض و طول جغرافیایی (ورود دستی یا «موقعیت فعلی من») و دقت به متر."""
+
+    code, title, group = "location", "موقعیت مکانی", "وب و رسانه"
+    # هم برای فیلد خالی و هم وقتی یکی از دو عدد خالی است
+    required_message = "عرض و طول جغرافیایی «{label}» را مشخص کنید."
+    invalid_message = "موقعیت «{label}» معتبر نیست؛ عرض جغرافیایی بین −۹۰ و ۹۰ و طول بین −۱۸۰ و ۱۸۰ است."
+
+    def schema(self, props, partial):
+        s = {
+            "type": "object",
+            "properties": {
+                "lat": {"type": "number", "minimum": -90, "maximum": 90},
+                "lng": {"type": "number", "minimum": -180, "maximum": 180},
+                "accuracy": {"type": "number", "minimum": 0},
+            },
+            "additionalProperties": False,
+        }
+        if not partial:
+            s["required"] = ["lat", "lng"]
+        return s
+
+
+@register
+class Hidden(FieldType):
+    """فیلد پنهان: در فرم دیده نمی‌شود ولی ذخیره می‌شود؛ مقدار از پیش‌فرض یا پارامتر نشانی صفحه (?param=…)."""
+
+    code, title, group = "hidden", "فیلد پنهان", "وب و رسانه"
+    supports_default = True
+    props = {"param": Prop("text", "پارامتر نشانی صفحه", max=40)}
+
+    def schema(self, props, partial):
+        return {"type": "string", "maxLength": 500}
+
+    def check_props(self, props):
+        if props.get("param") and not re.fullmatch(r"[a-z][a-z0-9_]{0,39}", props["param"]):
+            return {"param": "نام پارامتر با حرف کوچک لاتین شروع می‌شود و فقط حرف کوچک لاتین، رقم و _ دارد."}
+        return {}
+
+
 # ─── ترکیبی ─────────────────────────────────────────────────────────────
 
 
@@ -991,6 +1144,8 @@ TABLE_CELL_TYPES = frozenset(
         "user",
         "org_unit",
         "position",
+        "url",
+        "barcode",
     }
 )
 
@@ -1073,6 +1228,7 @@ UNIQUE_TYPES = frozenset(
         "card_number",
         "email",
         "vehicle_plate",
+        "barcode",
     }
 )
 
@@ -1087,7 +1243,7 @@ PREFILL = {
 }
 
 # نوع‌هایی که ستون جدول می‌شوند: هر نوع دارای مقدار که کاربر پر می‌کند، به‌جز خود جدول.
-COLUMN_TYPES = frozenset(code for code, t in REGISTRY.items() if t.has_value and t.client_value and code != "table")
+COLUMN_TYPES = frozenset(code for code, t in REGISTRY.items() if t.has_value and t.client_value and code not in ("table", "hidden"))
 
 
 def is_uuid(value) -> bool:

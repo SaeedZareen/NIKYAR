@@ -53,6 +53,9 @@ DEFINITION = {
                 {"id": "code", "type": "text", "label": "کد پرسنلی", "props": {"pattern": "^P-\\d{3}$", "pattern_message": "کد پرسنلی به شکل P-123 است."}},
                 {"id": "source", "type": "choice", "label": "منبع", "props": {"options": OPTIONS, "allow_other": True}},
                 {"id": "extras", "type": "multi_choice", "label": "امکانات", "props": {"options": OPTIONS, "allow_other": True}},
+                {"id": "site", "type": "url", "label": "وب‌سایت"},
+                {"id": "scan", "type": "barcode", "label": "بارکد", "props": {"digits_only": True}},
+                {"id": "spot", "type": "location", "label": "محل"},
                 {
                     "id": "family",
                     "type": "table",
@@ -137,6 +140,13 @@ CASES = [
         },
         "errors": None,
     },
+    {"name": "web and location", "partial": True, "data": {"site": "nikyar.ir", "scan": "12-3", "spot": {"lat": 120, "lng": 51}}, "errors": None},
+    {
+        "name": "incomplete location",
+        "partial": False,
+        "data": {"title": "abc", "price": 1, "ok": True, "eval": {"skill": "a", "team": "b"}, "agree": True, "spot": {"lat": 35.7}},
+        "errors": None,
+    },
     {"name": "duplicate selection", "partial": True, "data": {"tags": ["a", "a"]}, "errors": None},
     {"name": "draft skips minimum selection", "partial": True, "data": {"tags": ["a"]}, "errors": {}},
     {
@@ -168,6 +178,9 @@ CASES = [
             "code": "P-123",
             "source": {"other": "دوست"},
             "extras": ["b", {"other": "پارکینگ"}],
+            "site": "https://nikyar.ir/forms?a=1",
+            "scan": "6260100000011",
+            "spot": {"lat": 35.6892, "lng": 51.389, "accuracy": 20},
         },
         "errors": {},
     },
