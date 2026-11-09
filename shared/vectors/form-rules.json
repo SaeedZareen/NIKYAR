@@ -210,6 +210,63 @@
        },
        "decimals": 2
       }
+     },
+     {
+      "id": "items",
+      "type": "table",
+      "label": "اقلام",
+      "props": {
+       "columns": [
+        {
+         "id": "item",
+         "type": "text",
+         "label": "شرح",
+         "required": true
+        },
+        {
+         "id": "qty",
+         "type": "number",
+         "label": "تعداد"
+        },
+        {
+         "id": "price",
+         "type": "amount",
+         "label": "فی"
+        }
+       ]
+      }
+     },
+     {
+      "id": "qty_total",
+      "type": "calculated",
+      "label": "جمع تعداد",
+      "props": {
+       "formula": {
+        "sum_of": [
+         {
+          "var": "items"
+         },
+         "qty"
+        ]
+       }
+      }
+     },
+     {
+      "id": "grand",
+      "type": "calculated",
+      "label": "جمع کل",
+      "props": {
+       "formula": {
+        "sum_of": [
+         {
+          "var": "items"
+         },
+         "qty",
+         "price"
+        ]
+       },
+       "format": "amount"
+      }
      }
     ]
    },
@@ -408,6 +465,78 @@
      "invalid": "مقدار «نسبت» معتبر نیست."
     }
    },
+   "items": {
+    "type": "array",
+    "items": {
+     "type": "object",
+     "properties": {
+      "item": {
+       "type": "string",
+       "maxLength": 200,
+       "title": "شرح",
+       "x-nikyar-type": "text",
+       "x-messages": {
+        "required": "تکمیل «شرح» الزامی است.",
+        "invalid": "مقدار «شرح» معتبر نیست.",
+        "maxLength": "«شرح» حداکثر ۲۰۰ نویسه باشد."
+       }
+      },
+      "qty": {
+       "type": "integer",
+       "title": "تعداد",
+       "x-nikyar-type": "number",
+       "x-messages": {
+        "required": "تکمیل «تعداد» الزامی است.",
+        "invalid": "«تعداد» باید عدد باشد."
+       }
+      },
+      "price": {
+       "type": "integer",
+       "minimum": 0,
+       "title": "فی",
+       "x-nikyar-type": "amount",
+       "x-messages": {
+        "required": "تکمیل «فی» الزامی است.",
+        "invalid": "«فی» باید مبلغی بدون اعشار به ریال باشد.",
+        "minimum": "«فی» نباید کمتر از ۰ باشد."
+       }
+      }
+     },
+     "additionalProperties": false,
+     "required": [
+      "item"
+     ]
+    },
+    "maxItems": 50,
+    "x-item-label": "ردیف",
+    "title": "اقلام",
+    "x-nikyar-type": "table",
+    "x-messages": {
+     "required": "«اقلام» دست‌کم یک مورد داشته باشد.",
+     "invalid": "مقدار «اقلام» معتبر نیست.",
+     "maxItems": "«اقلام» حداکثر ۵۰ مورد داشته باشد."
+    }
+   },
+   "qty_total": {
+    "type": "number",
+    "readOnly": true,
+    "title": "جمع تعداد",
+    "x-nikyar-type": "calculated",
+    "x-messages": {
+     "required": "تکمیل «جمع تعداد» الزامی است.",
+     "invalid": "مقدار «جمع تعداد» معتبر نیست."
+    }
+   },
+   "grand": {
+    "type": "number",
+    "readOnly": true,
+    "title": "جمع کل",
+    "x-nikyar-type": "calculated",
+    "x-messages": {
+     "required": "تکمیل «جمع کل» الزامی است.",
+     "invalid": "مقدار «جمع کل» معتبر نیست."
+    }
+   },
    "hours": {
     "type": "object",
     "properties": {
@@ -567,6 +696,75 @@
     "x-messages": {
      "required": "تکمیل «نسبت» الزامی است.",
      "invalid": "مقدار «نسبت» معتبر نیست."
+    }
+   },
+   "items": {
+    "type": "array",
+    "items": {
+     "type": "object",
+     "properties": {
+      "item": {
+       "type": "string",
+       "maxLength": 200,
+       "title": "شرح",
+       "x-nikyar-type": "text",
+       "x-messages": {
+        "required": "تکمیل «شرح» الزامی است.",
+        "invalid": "مقدار «شرح» معتبر نیست.",
+        "maxLength": "«شرح» حداکثر ۲۰۰ نویسه باشد."
+       }
+      },
+      "qty": {
+       "type": "integer",
+       "title": "تعداد",
+       "x-nikyar-type": "number",
+       "x-messages": {
+        "required": "تکمیل «تعداد» الزامی است.",
+        "invalid": "«تعداد» باید عدد باشد."
+       }
+      },
+      "price": {
+       "type": "integer",
+       "minimum": 0,
+       "title": "فی",
+       "x-nikyar-type": "amount",
+       "x-messages": {
+        "required": "تکمیل «فی» الزامی است.",
+        "invalid": "«فی» باید مبلغی بدون اعشار به ریال باشد.",
+        "minimum": "«فی» نباید کمتر از ۰ باشد."
+       }
+      }
+     },
+     "additionalProperties": false
+    },
+    "maxItems": 50,
+    "x-item-label": "ردیف",
+    "title": "اقلام",
+    "x-nikyar-type": "table",
+    "x-messages": {
+     "required": "«اقلام» دست‌کم یک مورد داشته باشد.",
+     "invalid": "مقدار «اقلام» معتبر نیست.",
+     "maxItems": "«اقلام» حداکثر ۵۰ مورد داشته باشد."
+    }
+   },
+   "qty_total": {
+    "type": "number",
+    "readOnly": true,
+    "title": "جمع تعداد",
+    "x-nikyar-type": "calculated",
+    "x-messages": {
+     "required": "تکمیل «جمع تعداد» الزامی است.",
+     "invalid": "مقدار «جمع تعداد» معتبر نیست."
+    }
+   },
+   "grand": {
+    "type": "number",
+    "readOnly": true,
+    "title": "جمع کل",
+    "x-nikyar-type": "calculated",
+    "x-messages": {
+     "required": "تکمیل «جمع کل» الزامی است.",
+     "invalid": "مقدار «جمع کل» معتبر نیست."
     }
    },
    "hours": {
@@ -792,6 +990,95 @@
     "days": 5
    },
    "errors": {}
+  },
+  {
+   "name": "group sums skip empty cells",
+   "partial": true,
+   "data": {
+    "items": [
+     {
+      "item": "کاغذ",
+      "qty": 2,
+      "price": 1500
+     },
+     {
+      "item": "خودکار",
+      "qty": 3
+     },
+     {
+      "item": "پوشه",
+      "price": 900
+     }
+    ]
+   },
+   "hidden": [
+    "cert",
+    "extra",
+    "followup",
+    "hours"
+   ],
+   "required": [],
+   "readonly": [],
+   "calculated": {
+    "qty_total": 5,
+    "grand": 3000
+   },
+   "cleaned": {
+    "items": [
+     {
+      "item": "کاغذ",
+      "qty": 2,
+      "price": 1500
+     },
+     {
+      "item": "خودکار",
+      "qty": 3
+     },
+     {
+      "item": "پوشه",
+      "price": 900
+     }
+    ],
+    "qty_total": 5,
+    "grand": 3000
+   },
+   "errors": {}
+  },
+  {
+   "name": "group row error",
+   "partial": false,
+   "data": {
+    "kind": "annual",
+    "start": "1405/09/01",
+    "end": "1405/09/02",
+    "items": [
+     {
+      "item": "کاغذ"
+     },
+     {
+      "qty": 1
+     }
+    ]
+   },
+   "hidden": [
+    "cert",
+    "extra",
+    "followup",
+    "hours"
+   ],
+   "required": [],
+   "readonly": [
+    "note"
+   ],
+   "calculated": {
+    "days": 2,
+    "qty_total": 1,
+    "grand": 0
+   },
+   "cleaned": null,
+   "errors": {
+    "items.1.item": "ردیف ۲: تکمیل «شرح» الزامی است."
+   }
   },
   {
    "name": "valid sick",

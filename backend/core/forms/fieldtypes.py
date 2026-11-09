@@ -962,15 +962,56 @@ class SignaturePad(FieldType):
 # ─── ترکیبی ─────────────────────────────────────────────────────────────
 
 
+GROUP_DISPLAYS = {"table": "جدول", "cards": "کارت (فرم کوچک برای هر مورد)", "list": "فهرست ساده (+ / −)"}
+
+# نوع‌هایی که در خانه‌ی جدول جا می‌شوند؛ بقیه‌ی نوع‌های دارای مقدار فقط در نمایش «کارت» و «فهرست ساده».
+TABLE_CELL_TYPES = frozenset(
+    {
+        "text",
+        "number",
+        "amount",
+        "date",
+        "time",
+        "datetime",
+        "boolean",
+        "choice",
+        "scale",
+        "national_code",
+        "legal_national_id",
+        "economic_code",
+        "registration_number",
+        "vehicle_plate",
+        "mobile",
+        "phone",
+        "postal_code",
+        "iban",
+        "card_number",
+        "email",
+        "lookup",
+        "user",
+        "org_unit",
+        "position",
+    }
+)
+
+
 @register
 class Table(FieldType):
-    code, title, group = "table", "جدول چندردیفی", "ترکیبی"
+    """
+    گروه تکرارشونده: هر مورد شیئی با فیلدهای props.columns. سه نمایش برای یک داده: جدول (ردیف‌ها)، کارت
+    (فرم کوچک چندستونه برای هر مورد) و فهرست ساده (+ / −، دقیقاً یک فیلد). یک سطح؛ گروه درون گروه نه.
+    """
+
+    code, title, group = "table", "گروه تکرارشونده", "ترکیبی"
     props = {
-        "columns": Prop("columns", "ستون‌ها", required=True, min=1, max=20),
-        "min_rows": Prop("int", "کمینه‌ی ردیف", min=1, max=200),
-        "max_rows": Prop("int", "بیشینه‌ی ردیف", default=50, min=1, max=200),
+        "display": Prop("choice", "نمایش", default="table", choices=GROUP_DISPLAYS),
+        "columns": Prop("columns", "فیلدهای هر مورد", required=True, min=1, max=20),
+        "item_label": Prop("text", "نام هر مورد", default="ردیف", max=30),
+        "card_columns": Prop("int", "ستون‌های کارت", default=2, min=1, max=3),
+        "min_rows": Prop("int", "کمینه‌ی تعداد", min=1, max=200),
+        "max_rows": Prop("int", "بیشینه‌ی تعداد", default=50, min=1, max=200),
     }
-    required_message = "«{label}» دست‌کم یک ردیف داشته باشد."
+    required_message = "«{label}» دست‌کم یک مورد داشته باشد."
 
     def schema(self, props, partial):
         from .engine import field_schema
@@ -984,16 +1025,25 @@ class Table(FieldType):
         required = [c["id"] for c in columns if c.get("required")]
         if required and not partial:
             row["required"] = required
-        s = {"type": "array", "items": row, "maxItems": props["max_rows"]}
+        # نام هر مورد برای پیام خانه‌ها («ردیف ۲: …»، «فرد ۲: …»)؛ مرورگر هم همین را می‌خواند.
+        s = {"type": "array", "items": row, "maxItems": props["max_rows"], "x-item-label": props["item_label"]}
         if props.get("min_rows") and not partial:
             s["minItems"] = props["min_rows"]
         return s
 
     def check_props(self, props):
-        return _min_max(props, "min_rows", "max_rows", "تعداد ردیف")
+        errors = _min_max(props, "min_rows", "max_rows", "تعداد")
+        columns = props["columns"]
+        if props["display"] == "list" and len(columns) != 1:
+            errors["display"] = "«فهرست ساده» دقیقاً یک فیلد دارد؛ برای چند فیلد «جدول» یا «کارت» را انتخاب کنید."
+        if props["display"] == "table":
+            for ci, column in enumerate(columns):
+                if column["type"] not in TABLE_CELL_TYPES:
+                    errors[f"columns.{ci}.type"] = f"«{REGISTRY[column['type']].title}» در خانه‌ی جدول جا نمی‌شود؛ نمایش «کارت» را انتخاب کنید."
+        return errors
 
     def count_message(self, keyword, n):
-        return ("«{label}» دست‌کم " if keyword == "minItems" else "«{label}» حداکثر ") + fa_number(n) + " ردیف داشته باشد."
+        return ("«{label}» دست‌کم " if keyword == "minItems" else "«{label}» حداکثر ") + fa_number(n) + " مورد داشته باشد."
 
     def file_ids(self, value, props):
         from .engine import props_of

@@ -154,7 +154,7 @@ class FieldTypeSpecSerializer(serializers.Serializer):
     client_value = serializers.BooleanField(help_text="false: مقدار را سرور هنگام ثبت می‌گذارد (امضا، ثبت‌کننده)")
     label_required = serializers.BooleanField()
     supports_default = serializers.BooleanField()
-    column = serializers.BooleanField(help_text="می‌تواند ستون جدول باشد")
+    column = serializers.BooleanField(help_text="می‌تواند درون گروه تکرارشونده بیاید")
     unique = serializers.BooleanField(help_text="«مقدار یکتا» می‌پذیرد")
     prefill = serializers.ListField(child=serializers.DictField(child=serializers.CharField()), help_text="منبع‌های پیش‌پر از حساب کاربر: [{value, label}]")
     props = FieldPropSpecSerializer(many=True)

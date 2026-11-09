@@ -7,7 +7,8 @@
 
 جای قاعده‌ها در تعریف:
 - فیلد: visible_if، required_if، readonly_if؛ بخش: visible_if
-- فیلد «محاسبه‌ای»: props.formula
+- فیلد «محاسبه‌ای»: props.formula؛ جمع یک گروه تکرارشونده با {"sum_of": [{"var": "items"}, "qty"]} یا جمع حاصل‌ضرب
+  دو ستون با {"sum_of": [{"var": "items"}, "qty", "price"]}
 - فرم: rules = [{"id", "condition", "message", "field"}]؛ condition باید درست باشد وگرنه message زیر field می‌آید.
 """
 
@@ -22,7 +23,7 @@ from json_logic.builtins import BUILTINS, to_bool
 FIELD_CONDITIONS = ("visible_if", "required_if", "readonly_if")
 
 # عملگرهای مجاز در تعریف فرم (زیرمجموعه‌ای که هر دو اجراکننده یکسان اجرا می‌کنند)
-ALLOWED = {"and", "or", "!", "!!", "==", "!=", "<", "<=", ">", ">=", "in", "var", "+", "-", "*", "/", "if", "min", "max", "days_between", "today"}
+ALLOWED = {"and", "or", "!", "!!", "==", "!=", "<", "<=", ">", ">=", "in", "var", "+", "-", "*", "/", "if", "min", "max", "days_between", "today", "sum_of"}
 
 
 def _jalali(value) -> jdatetime.date | None:
@@ -45,7 +46,26 @@ def _today(data=None, *_ignored):
     return jdatetime.date.today().strftime("%Y/%m/%d")
 
 
-OPERATIONS = {**BUILTINS, "days_between": _days_between, "today": _today}
+def _number(value):
+    return value if isinstance(value, (int, float)) and not isinstance(value, bool) else None
+
+
+def _sum_of(data=None, rows=None, column=None, factor=None, *_ignored):
+    """جمع یک ستون گروه (یا حاصل‌ضرب دو ستون در هر مورد)؛ موردی که مقدار ندارد حساب نمی‌شود."""
+    if not isinstance(rows, list):
+        return None
+    total = 0
+    for row in rows:
+        if not isinstance(row, dict):
+            continue
+        a = _number(row.get(column))
+        b = _number(row.get(factor)) if factor is not None else 1
+        if a is not None and b is not None:
+            total += a * b
+    return total
+
+
+OPERATIONS = {**BUILTINS, "days_between": _days_between, "today": _today, "sum_of": _sum_of}
 
 
 def evaluate(logic, data: dict):
@@ -77,11 +97,11 @@ def variables(logic) -> set[str]:
     return found
 
 
-def check_logic(logic, known: set[str]) -> str | None:
-    """ساختار عبارت و فیلدهای آن را می‌سنجد؛ پیام فارسی یا None."""
+def check_logic(logic, known: set[str], tables: dict[str, set[str]] | None = None) -> str | None:
+    """ساختار عبارت و فیلدهای آن را می‌سنجد؛ پیام فارسی یا None. tables: ستون‌های عددی هر گروه (برای sum_of)."""
     if isinstance(logic, list):
         for item in logic:
-            if msg := check_logic(item, known):
+            if msg := check_logic(item, known, tables):
                 return msg
         return None
     if isinstance(logic, dict):
@@ -95,10 +115,24 @@ def check_logic(logic, known: set[str]) -> str | None:
             if not isinstance(name, str) or name.split(".")[0] not in known:
                 return f"قاعده به فیلد ناشناخته‌ی «{name}» اشاره می‌کند."
             return None
-        return check_logic(args, known)
+        if op == "sum_of":
+            return _check_sum(args, tables or {})
+        return check_logic(args, known, tables)
     if logic is None or isinstance(logic, (str, int, float, bool)):
         return None
     return "قاعده ساختار درستی ندارد."
+
+
+def _check_sum(args, tables: dict[str, set[str]]) -> str | None:
+    if not isinstance(args, list) or len(args) not in (2, 3) or not isinstance(args[0], dict) or set(args[0]) != {"var"}:
+        return "«جمع» باید گروه و ستون عددی آن را داشته باشد."
+    group = args[0]["var"]
+    if group not in tables:
+        return "«جمع» فقط برای گروه تکرارشونده است."
+    for column in args[1:]:
+        if column not in tables[group]:
+            return f"«{column}» ستون عددی (عدد یا مبلغ) این گروه نیست."
+    return None
 
 
 @dataclass

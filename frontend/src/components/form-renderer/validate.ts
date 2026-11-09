@@ -23,6 +23,8 @@ type SchemaNode = {
   items?: SchemaNode
   "x-nikyar-type"?: string
   "x-messages"?: Record<string, string>
+  /** نام هر مورد گروه تکرارشونده («ردیف»، «فرد»…) برای پیام خانه‌ها */
+  "x-item-label"?: string
 }
 
 const isJalaliDate = (v: string) => /^\d{4}\/\d{2}\/\d{2}$/.test(v) && parseJalali(v) !== undefined
@@ -76,7 +78,7 @@ export function validate(schema: JsonSchema, payload: Record<string, unknown>): 
     const columnNode = column !== undefined ? node.items?.properties?.[column] : undefined
     if (node["x-nikyar-type"] === "table" && columnNode) {
       key = `${id}.${row}.${column}`
-      text = `ردیف ${toFaDigits(Number(row) + 1)}: ${message(columnNode, err.keyword)}`
+      text = `${node["x-item-label"] || "ردیف"} ${toFaDigits(Number(row) + 1)}: ${message(columnNode, err.keyword)}`
     }
     errors[key] ??= text
   }
