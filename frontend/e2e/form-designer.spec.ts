@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test"
-import { collectErrors, expectAccessible } from "./helpers"
+import { collectErrors, expectAccessible, confirmReview } from "./helpers"
 
 /** افزودن از جعبه‌ابزار؛ روی صفحه‌ی باریک جعبه‌ابزار در پانل «افزودن فیلد» است. */
 const narrow = (page: Page) => (page.viewportSize()?.width ?? 0) < 1280
@@ -198,6 +198,7 @@ test.describe("قاعده‌های فرم", () => {
     await page.getByLabel("تا تاریخ", { exact: true }).fill("14050907")
     await expect(page.getByRole("group", { name: "شمار روز" }).getByRole("status")).toHaveText("۳")
     await page.getByRole("button", { name: "ثبت نهایی" }).click()
+    await confirmReview(page)
     await expect(page.getByText(`فرم «${title}» ثبت شد.`)).toBeVisible()
     const data = await page.evaluate(async () => (await fetch("/api/forms/submissions/?mine=true").then((r) => r.json())).results[0].data)
     expect(Object.values(data)).toContain(3)
@@ -312,9 +313,11 @@ test.describe("ویژگی‌های پیشرفته‌ی فیلد", () => {
       await expect(summary).toContainText("کد پرسنلی به شکل P-123 است.")
       await page.getByLabel("کد پرسنلی", { exact: true }).fill("P-123")
       await page.getByRole("button", { name: "ثبت نهایی" }).click()
+      await confirmReview(page)
       await expect(page.getByText(/«تاریخ مراجعه» نباید بعد از/).first()).toBeVisible()
       await page.getByLabel("تاریخ مراجعه", { exact: true }).fill("14000101")
       await page.getByRole("button", { name: "ثبت نهایی" }).click()
+      await confirmReview(page)
     }
     await fill("0084575948")
     await expect(page.getByText(`فرم «${title}» ثبت شد.`)).toBeVisible()
@@ -384,6 +387,7 @@ test.describe("گروه تکرارشونده در طراح", () => {
     await page.getByRole("group", { name: "قلم ۲", exact: true }).getByLabel("فی", { exact: true }).fill("500")
     await expect(page.getByRole("group", { name: "جمع کل" })).toContainText(/۱.?۵۰۰/)
     await page.getByRole("button", { name: "ثبت نهایی" }).click()
+    await confirmReview(page)
     await expect(page.getByText(`فرم «${title}» ثبت شد.`)).toBeVisible()
     expect(errors.filter((e) => !e.includes("status of 400"))).toEqual([])
   })
