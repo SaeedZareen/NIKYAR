@@ -263,12 +263,12 @@ class TestReferencesAndTables:
                 },
             }
         )
-        assert errors_of(d, {"items": [{"name": "", "qty": ""}]}) == {"items": "«اقلام» دست‌کم یک ردیف داشته باشد."}
+        assert errors_of(d, {"items": [{"name": "", "qty": ""}]}) == {"items": "«اقلام» دست‌کم یک مورد داشته باشد."}
         errs = errors_of(d, {"items": [{"name": "کاغذ", "qty": 0}, {"qty": 2}, {"name": "x", "unit": "nope"}]})
         assert errs == {"items.0.qty": "ردیف ۱: «تعداد» نباید کمتر از ۱ باشد.", "items.1.name": "ردیف ۲: تکمیل «شرح» الزامی است."}
         errs = errors_of(d, {"items": [{"name": "x", "unit": "nope"}]})
         assert errs == {"items.0.unit": "ردیف ۱: مورد انتخاب‌شده برای «واحد شمارش» پیدا نشد یا غیرفعال است."}
-        assert errors_of(d, {"items": [{"name": str(i)} for i in range(4)]}) == {"items": "«اقلام» حداکثر ۳ ردیف داشته باشد."}
+        assert errors_of(d, {"items": [{"name": str(i)} for i in range(4)]}) == {"items": "«اقلام» حداکثر ۳ مورد داشته باشد."}
         assert errors_of(d, {"items": [{"name": "x", "color": "red"}]}) == {"items": "مقدار «اقلام» معتبر نیست."}
         rows = [{"name": "کاغذ A4", "qty": 10, "unit": "male"}, {"name": "", "qty": None}]
         assert engine.validate_data(d, {"items": rows}, Ctx()) == {"items": [rows[0]]}
@@ -446,3 +446,41 @@ class TestAdvancedProperties:
             {"id": "m", "type": "mobile", "label": "موبایل", "prefill": "mobile"},
         )
         assert engine.validate_data(d, {"name": "جعل", "m": "09120000000"}, Ctx(user=user)) == {"name": "سارا محمدی", "m": "09120000000"}
+
+
+class TestRepeatingGroup:
+    """3.6: گروه تکرارشونده با سه نمایش، شناسه‌ی یکتای فیلدهای درون گروه و «جمع» در فرمول."""
+
+    def group(self, display="table", columns=None, **props):
+        columns = columns or [{"id": "qty", "type": "number", "label": "تعداد"}, {"id": "price", "type": "amount", "label": "فی"}]
+        return {"id": "items", "type": "table", "label": "اقلام", "props": {"display": display, "columns": columns, **props}}
+
+    def test_displays_and_item_types(self, db):
+        att = [{"id": "doc", "type": "attachment", "label": "مدرک"}]
+        errs = definition_errors(form(self.group("list"), {"id": "b", "type": "text", "label": "ب"}))
+        assert "دقیقاً یک فیلد" in errs["sections.0.fields.0.props.display"]
+        errs = definition_errors(form(self.group("table", att)))
+        assert "نمایش «کارت»" in errs["sections.0.fields.0.props.columns.0.type"]
+        engine.check_definition(form(self.group("cards", att + [{"id": "who", "type": "user", "label": "کاربر"}], card_columns=3, item_label="فرد")))
+        engine.check_definition(form(self.group("list", [{"id": "phone", "type": "phone", "label": "تلفن"}])))
+        # فیلد درون گروه شرط، فقط‌خواندنی یا پهنا نمی‌گیرد
+        errs = definition_errors(form(self.group(columns=[{"id": "q", "type": "number", "label": "ت", "readonly": True, "visible_if": True}])))
+        assert "readonly" in errs["sections.0.fields.0.props.columns.0.readonly"] and "visible_if" in errs["sections.0.fields.0.props.columns.0.visible_if"]
+
+    def test_item_ids_unique_across_form(self, db):
+        errs = definition_errors(form({"id": "qty", "type": "number", "label": "تعداد کل"}, self.group()))
+        assert errs == {"sections.0.fields.1.props.columns.0.id": "شناسه‌ی «qty» تکراری است."}
+
+    def test_sum_formula(self, db):
+        def calc(formula):
+            return form(
+                self.group(), {"id": "name", "type": "text", "label": "نام"}, {"id": "t", "type": "calculated", "label": "جمع", "props": {"formula": formula}}
+            )
+
+        engine.check_definition(calc({"sum_of": [{"var": "items"}, "qty", "price"]}))
+        p = "sections.0.fields.2.props.formula"
+        assert "ستون عددی" in definition_errors(calc({"sum_of": [{"var": "items"}, "nope"]}))[p]
+        assert "فقط برای گروه" in definition_errors(calc({"sum_of": [{"var": "name"}, "qty"]}))[p]
+        assert "گروه و ستون" in definition_errors(calc({"sum_of": [{"var": "items"}]}))[p]
+        d = calc({"sum_of": [{"var": "items"}, "qty", "price"]})
+        assert engine.validate_data(d, {"items": [{"qty": 2, "price": 10}, {"qty": 1}]}, Ctx(partial=True))["t"] == 20

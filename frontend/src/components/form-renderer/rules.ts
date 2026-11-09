@@ -15,7 +15,24 @@ function daysBetween(start: unknown, end: unknown): number | null {
   return Math.round((b.getTime() - a.getTime()) / 86_400_000) + 1
 }
 
+const num = (v: unknown) => (typeof v === "number" && Number.isFinite(v) ? v : null)
+
+/** جمع یک ستون گروه تکرارشونده یا حاصل‌ضرب دو ستون در هر مورد (هم‌ارز _sum_of سرور). */
+function sumOf(rows: unknown, column: unknown, factor?: unknown): number | null {
+  if (!Array.isArray(rows)) return null
+  let total = 0
+  for (const row of rows) {
+    if (!row || typeof row !== "object") continue
+    const r = row as Record<string, unknown>
+    const a = num(r[String(column)])
+    const b = factor === undefined ? 1 : num(r[String(factor)])
+    if (a !== null && b !== null) total += a * b
+  }
+  return total
+}
+
 jsonLogic.add_operation("days_between", daysBetween)
+jsonLogic.add_operation("sum_of", sumOf)
 jsonLogic.add_operation("today", () => toJalaliString(new Date()))
 
 /** اجرای عبارت؛ خطای اجرا ← null. */

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import type { FormDefinition } from "@/components/form-renderer/definition"
+import { itemsOf, type FormDefinition } from "@/components/form-renderer/definition"
 import {
   addSection,
   allIds,
@@ -8,8 +8,11 @@ import {
   commit,
   duplicateField,
   errorsByItem,
+  findField,
   fitSpans,
-  moveField,
+  insertItems,
+  locateItem,
+  moveTo,
   newField,
   nudgeField,
   redo,
@@ -38,8 +41,8 @@ describe("designer model", () => {
   })
 
   it("moves, nudges across sections, duplicates and removes", () => {
-    expect(ids(moveField(def(), "f1", "a", 1))).toEqual([["f2", "f1"], ["f3"]])
-    expect(ids(moveField(def(), "f1", "b", 0))).toEqual([["f2"], ["f1", "f3"]])
+    expect(ids(moveTo(def(), "f1", { section: "a", index: 1 }))).toEqual([["f2", "f1"], ["f3"]])
+    expect(ids(moveTo(def(), "f1", { section: "b", index: 0 }))).toEqual([["f2"], ["f1", "f3"]])
     expect(ids(nudgeField(def(), "f2", 1))).toEqual([["f1"], ["f2", "f3"]])
     expect(ids(nudgeField(def(), "f3", -1))).toEqual([["f1", "f2", "f3"], []])
     const { def: d, id } = duplicateField(def(), "f1")
@@ -74,5 +77,31 @@ describe("designer model", () => {
   it("maps server errors to fields and sections", () => {
     const e = errorsByItem(def(), { "sections.0.fields.1.props.max": "بیشینه", "sections.1.title": "عنوان", definition: "کلی" })
     expect(e).toEqual({ f2: { "props.max": "بیشینه" }, b: { title: "عنوان" }, form: { definition: "کلی" } })
+  })
+
+  it("groups: new group, nested items by id, move in and out, errors of items", () => {
+    const taken = allIds(def())
+    const group = newField({ code: "table", title: "گروه تکرارشونده", label_required: true }, taken)
+    expect(group.span).toBe(3)
+    const [i1, i2] = itemsOf(group).map((c) => c.id)
+    let d = fitSpans({ ...def(), sections: [{ ...def().sections[0], fields: [...def().sections[0].fields, group] }, def().sections[1]] })
+    expect(findField(d, group.id)?.span).toBe(2)
+    expect(allIds(d).has(i2)).toBe(true)
+    // نوار ابزار فیلدِ درون گروه: جابه‌جایی، رونوشت، حذف
+    expect(locateItem(nudgeField(d, i1, 1), i1)).toEqual({ group: group.id, index: 1 })
+    const dup = duplicateField(d, i1)
+    expect(locateItem(dup.def, dup.id)).toEqual({ group: group.id, index: 1 })
+    expect(locateItem(removeField(d, i1), i2)).toEqual({ group: group.id, index: 0 })
+    // فیلد بخش به گروه می‌رود و ویژگی‌های چیدمانش برداشته می‌شود؛ و برمی‌گردد
+    d = moveTo({ ...d, sections: d.sections.map((s) => ({ ...s, fields: s.fields.map((f) => (f.id === "f1" ? { ...f, span: 2, visible_if: true } : f)) })) }, "f1", { group: group.id, index: 0 })
+    expect(locateItem(d, "f1")).toEqual({ group: group.id, index: 0 })
+    expect(findField(d, "f1")).toEqual({ id: "f1", type: "text", label: "۱" })
+    d = moveTo(d, "f1", { section: "b", index: 0 })
+    expect(ids(d)[1]).toEqual(["f1", "f3"])
+    expect(locateItem(insertItems(d, group.id, [{ id: "x", type: "text" }], 0), "x")).toEqual({ group: group.id, index: 0 })
+    expect(errorsByItem(d, { "sections.0.fields.1.props.columns.1.label": "برچسب", "sections.0.fields.1.props.columns": "ستون" })).toEqual({
+      [i2]: { label: "برچسب" },
+      [group.id]: { "props.columns": "ستون" },
+    })
   })
 })

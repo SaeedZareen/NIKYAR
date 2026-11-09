@@ -4,7 +4,7 @@ import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react"
 import { useRoleOptions } from "@/app/forms"
 import { useForm } from "react-hook-form"
 import { JalaliDateInput } from "@/components/form/inputs"
-import { toFormValues, toPayload, type ChoiceOption, type FieldDef, type FormDefinition, type FormRule, type FormValues, type PrefillSource, type SectionDef } from "@/components/form-renderer/definition"
+import { itemsOf, toFormValues, toPayload, type ChoiceOption, type FieldDef, type FormDefinition, type FormRule, type FormValues, type PrefillSource, type SectionDef } from "@/components/form-renderer/definition"
 import { FieldView } from "@/components/form-renderer/form-renderer"
 import { useUnitOptions } from "@/components/form-renderer/org-options"
 import { InfoTip } from "@/components/info-tip"
@@ -56,22 +56,26 @@ export function PropertiesPanel({ definition, selection, specs, errors, readOnly
     if (!section) return null
     return <SectionProperties definition={definition} section={section} errors={errors} readOnly={readOnly} onChange={(c, k) => onSection(section.id, c, k)} />
   }
-  for (const section of definition.sections) {
-    const field = section.fields.find((f) => f.id === selection.id)
-    if (field)
-      return (
-        <FieldProperties
-          key={field.id}
-          definition={definition}
-          field={field}
-          columns={section.columns ?? 1}
-          spec={specs[field.type]}
-          errors={errors}
-          readOnly={readOnly}
-          onChange={(c, k) => onField(field.id, c, k)}
-        />
-      )
-  }
+  for (const section of definition.sections)
+    for (const f of section.fields) {
+      // فیلد بخش، یا فیلد درون گروه (بدون چیدمان و شرط؛ هر مورد گروه همان فیلدها را دارد)
+      const item = f.id === selection.id ? undefined : itemsOf(f).find((i) => i.id === selection.id)
+      const field = f.id === selection.id ? f : item
+      if (field)
+        return (
+          <FieldProperties
+            key={field.id}
+            definition={definition}
+            field={field}
+            group={item ? f : undefined}
+            columns={item ? 1 : (section.columns ?? 1)}
+            spec={specs[field.type]}
+            errors={errors}
+            readOnly={readOnly}
+            onChange={(c, k) => onField(field.id, c, k)}
+          />
+        )
+    }
   return null
 }
 
@@ -148,6 +152,8 @@ function withCondition<T extends object>(item: T, key: ConditionKey, logic: unkn
 type FieldPropsEditor = {
   definition: FormDefinition
   field: FieldDef
+  /** گروهی که این فیلد درون آن است */
+  group?: FieldDef
   columns: number
   spec?: FieldTypeSpec
   errors: Record<string, string>
@@ -163,17 +169,22 @@ const setProp = (name: string, value: unknown) => (f: FieldDef): FieldDef => {
   return Object.keys(props).length ? { ...rest, props } : rest
 }
 
-function FieldProperties({ definition, field, columns, spec, errors, readOnly, onChange }: FieldPropsEditor) {
+function FieldProperties({ definition, field, group, columns, spec, errors, readOnly, onChange }: FieldPropsEditor) {
   if (!spec) return null
   const k = (name: string) => `${name}:${field.id}`
   const hasLabel = spec.label_required || field.type === "heading"
   const valueField = spec.has_value && spec.client_value
+  // ویژگی‌های سطح فرم (فقط‌خواندنی، یکتا، پیش‌پر، شرط‌ها) برای فیلد درون گروه نیستند
+  const formLevel = valueField && !group
   return (
     <fieldset disabled={readOnly} className="flex flex-col gap-3 p-3">
       <div className="flex items-baseline gap-2">
         <p className="text-xs font-semibold">{spec.title}</p>
-        <span className="text-2xs text-muted-foreground">{spec.group}</span>
+        <span className="text-2xs text-muted-foreground">{group ? `درون «${group.label}»` : spec.group}</span>
       </div>
+      {/* ایراد خود نوع (مثلاً پیوست در خانه‌ی جدول) */}
+      {errors.type && <FieldError>{errors.type}</FieldError>}
+      {field.type === "table" && <p className="text-2xs text-muted-foreground">برای افزودن فیلد به این گروه، گروه را روی بوم انتخاب کنید و نوع فیلد را از جعبه‌ابزار بزنید یا روی فیلدهای گروه بکشید.</p>}
       <FieldGroup className="gap-3">
         {hasLabel && (
           <Row id="prop-label" label="برچسب" error={errors.label}>
@@ -194,13 +205,13 @@ function FieldProperties({ definition, field, columns, spec, errors, readOnly, o
             {errors.required && <span className="text-2xs text-destructive">{errors.required}</span>}
           </div>
         )}
-        {valueField && (
+        {formLevel && (
           <FlagSwitch id="prop-readonly" label="فقط‌خواندنی" help="پرکننده مقدار را می‌بیند ولی نمی‌تواند تغییرش دهد؛ همراه «مقدار پیش‌فرض» یا «پیش‌پر» به کار می‌آید." checked={field.readonly === true} error={errors.readonly} onChange={(v) => onChange((f) => withFlag(f, "readonly", v), k("readonly"))} />
         )}
-        {spec.unique && (
+        {spec.unique && !group && (
           <FlagSwitch id="prop-unique" label="مقدار یکتا" help="همین مقدار در ثبت نهایی دیگری از این فرم پذیرفته نمی‌شود؛ مثل کد ملی در فرم ثبت‌نام." checked={field.unique === true} error={errors.unique} onChange={(v) => onChange((f) => withFlag(f, "unique", v), k("unique"))} />
         )}
-        {spec.prefill.length > 0 && (
+        {spec.prefill.length > 0 && !group && (
           <Row id="prop-prefill" label="پیش‌پر از حساب کاربر" help="در فرم تازه، این فیلد با اطلاعات حساب پرکننده پر می‌شود و او می‌تواند تغییرش دهد (مگر فقط‌خواندنی باشد)." error={errors.prefill}>
             <Select value={field.prefill ?? "none"} onValueChange={(v) => onChange((f) => withPrefill(f, v === "none" ? undefined : (v as PrefillSource)), k("prefill"))}>
               <SelectTrigger id="prop-prefill" className="w-full">
@@ -247,7 +258,7 @@ function FieldProperties({ definition, field, columns, spec, errors, readOnly, o
       {spec.props.length > 0 && <Separator />}
       <FieldGroup className="gap-3">
         {spec.props
-          .filter((p) => p.kind !== "columns" && (DEPENDS[p.name] === undefined || !!field.props?.[DEPENDS[p.name]]))
+          .filter((p) => p.kind !== "columns" && (DEPENDS[p.name]?.(field.props ?? {}) ?? true))
           .map((p) =>
             p.kind === "logic" ? (
               <FormulaEditor
@@ -264,15 +275,19 @@ function FieldProperties({ definition, field, columns, spec, errors, readOnly, o
             )
           )}
       </FieldGroup>
-      <Separator />
-      <ConditionsEditor
-        definition={definition}
-        owner={field.id}
-        keys={valueField ? ["visible_if", "required_if", "readonly_if"] : ["visible_if"]}
-        values={{ visible_if: field.visible_if, required_if: field.required_if, readonly_if: field.readonly_if }}
-        errors={errors}
-        onChange={(key, logic) => onChange((f) => withCondition(f, key, logic), k(key))}
-      />
+      {!group && (
+        <>
+          <Separator />
+          <ConditionsEditor
+            definition={definition}
+            owner={field.id}
+            keys={valueField ? ["visible_if", "required_if", "readonly_if"] : ["visible_if"]}
+            values={{ visible_if: field.visible_if, required_if: field.required_if, readonly_if: field.readonly_if }}
+            errors={errors}
+            onChange={(key, logic) => onChange((f) => withCondition(f, key, logic), k(key))}
+          />
+        </>
+      )}
       <Separator />
       <Row
         id="prop-id"
@@ -287,7 +302,11 @@ function FieldProperties({ definition, field, columns, spec, errors, readOnly, o
 }
 
 /** ویژگی‌هایی که فقط با روشن بودن ویژگی دیگری معنا دارند. */
-const DEPENDS: Record<string, string> = { other_label: "allow_other", pattern_message: "pattern" }
+const DEPENDS: Record<string, (props: Record<string, unknown>) => boolean> = {
+  other_label: (p) => !!p.allow_other,
+  pattern_message: (p) => !!p.pattern,
+  card_columns: (p) => p.display === "cards",
+}
 
 function withFlag(f: FieldDef, key: "readonly" | "unique", on: boolean): FieldDef {
   const next = { ...f }

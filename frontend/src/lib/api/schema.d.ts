@@ -1800,7 +1800,7 @@ export interface components {
             client_value: boolean;
             label_required: boolean;
             supports_default: boolean;
-            /** @description می‌تواند ستون جدول باشد */
+            /** @description می‌تواند درون گروه تکرارشونده بیاید */
             column: boolean;
             /** @description «مقدار یکتا» می‌پذیرد */
             unique: boolean;

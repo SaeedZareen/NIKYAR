@@ -1,7 +1,7 @@
 import type { Control } from "react-hook-form"
 import type { ChoiceOption, FieldDef, FormValues } from "./definition"
 
-export type FieldProps = { field: FieldDef; control: Control<FormValues>; className?: string; layout?: "side" | "stacked" }
+export type FieldProps = { field: FieldDef; control: Control<FormValues>; className?: string; layout?: "side" | "stacked" | "cell" }
 
 /** ویژگی مشترک FormField هر فیلد. */
 export function common({ field, control, className, layout }: FieldProps) {

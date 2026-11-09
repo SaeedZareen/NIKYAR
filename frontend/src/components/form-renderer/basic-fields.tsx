@@ -234,7 +234,7 @@ export function MultiChoiceField(p: FieldProps) {
 
 
 /** فیلد محاسبه‌ای: نتیجه‌ی فرمول، فقط‌خواندنی و زنده؛ تا ورودی‌های فرمول پر نشده‌اند «—». */
-export function CalculatedField({ field, value, className, layout }: { field: FieldDef; value?: number; className?: string; layout?: "side" | "stacked" }) {
+export function CalculatedField({ field, value, className, layout }: { field: FieldDef; value?: number; className?: string; layout?: FieldProps["layout"] }) {
   const format = field.props?.format
   const unit = format === "amount" ? "ریال" : format === "days" ? "روز" : str(field.props?.unit)
   return (

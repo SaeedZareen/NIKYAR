@@ -1,6 +1,6 @@
 // مدل سازنده‌ی دیداری قاعده‌ها: شرط‌ها و فرمول‌هایی که کاربر با فهرست‌های کشویی می‌سازد، به JsonLogic و برعکس.
 // فقط شکل‌هایی که خود سازنده می‌سازد خوانده می‌شوند؛ عبارت دیگر «پیشرفته» است و فقط حذف‌شدنی.
-import type { FieldDef, FieldType, FormDefinition } from "@/components/form-renderer/definition"
+import { itemsOf, type FieldDef, type FieldType, type FormDefinition } from "@/components/form-renderer/definition"
 
 export type Operand = { kind: "value"; value: string | number | boolean } | { kind: "field"; field: string } | { kind: "today" }
 export type Op = "eq" | "ne" | "gt" | "gte" | "lt" | "lte" | "empty" | "filled" | "has"
@@ -111,18 +111,25 @@ export function parseCondition(logic: unknown): Condition | null {
 
 // ─── فرمول فیلد محاسبه‌ای ───────────────────────────────────────────────
 
-export type FormulaOp = "sum" | "sub" | "mul" | "div" | "days"
-export type Formula = { op: FormulaOp; operands: Operand[] }
+export type FormulaOp = "sum" | "sub" | "mul" | "div" | "days" | "group"
+/** جمع یک گروه تکرارشونده: ستون column (و اگر factor هست، حاصل‌ضرب دو ستون در هر مورد). */
+export type GroupSum = { table: string; column: string; factor?: string }
+export type Formula = { op: FormulaOp; operands: Operand[]; group?: GroupSum }
 export const FORMULA_LABELS: Record<FormulaOp, string> = {
   sum: "جمع",
   sub: "تفاضل (اولی منهای دومی)",
   mul: "ضرب",
   div: "تقسیم (اولی بر دومی)",
   days: "شمار روز بین دو تاریخ (هر دو سر شامل)",
+  group: "جمع یک گروه تکرارشونده",
 }
-const FORMULA_SYMBOLS: Record<Exclude<FormulaOp, "days">, string> = { sum: "+", sub: "-", mul: "*", div: "/" }
+const FORMULA_SYMBOLS: Record<Exclude<FormulaOp, "days" | "group">, string> = { sum: "+", sub: "-", mul: "*", div: "/" }
 
 export function formulaLogic(f: Formula): unknown {
+  if (f.op === "group") {
+    const g = f.group ?? { table: "", column: "" }
+    return { sum_of: [{ var: g.table }, g.column, ...(g.factor ? [g.factor] : [])] }
+  }
   const args = f.operands.map(operandLogic)
   return f.op === "days" ? { days_between: args.slice(0, 2) } : { [FORMULA_SYMBOLS[f.op]]: f.op === "sum" ? args : args.slice(0, 2) }
 }
@@ -131,6 +138,11 @@ export function parseFormula(logic: unknown): Formula | null {
   if (!logic || typeof logic !== "object" || Array.isArray(logic)) return null
   const [sym, args] = Object.entries(logic)[0] ?? []
   if (!Array.isArray(args)) return null
+  if (sym === "sum_of") {
+    const [table, column, factor] = args as [{ var?: unknown } | undefined, unknown, unknown]
+    if (typeof table?.var !== "string" || typeof column !== "string") return null
+    return { op: "group", operands: [], group: { table: table.var, column, ...(typeof factor === "string" ? { factor } : {}) } }
+  }
   const operands = args.map(parseOperand)
   if (!operands.every(Boolean)) return null
   if (sym === "days_between") return { op: "days", operands: operands as Operand[] }
@@ -160,4 +172,13 @@ const REFERABLE = new Set<FieldType>([
 
 export function referableFields(def: FormDefinition, except?: string): FieldDef[] {
   return def.sections.flatMap((s) => s.fields).filter((f) => REFERABLE.has(f.type) && f.id !== except)
+}
+
+/** گروه‌های تکرارشونده با ستون‌های عددی‌شان (برای «جمع یک گروه»). */
+export function numericGroups(def: FormDefinition): { group: FieldDef; columns: FieldDef[] }[] {
+  return def.sections
+    .flatMap((s) => s.fields)
+    .filter((f) => f.type === "table")
+    .map((group) => ({ group, columns: itemsOf(group).filter((c) => c.type === "number" || c.type === "amount") }))
+    .filter((g) => g.columns.length > 0)
 }

@@ -19,7 +19,7 @@ type Props<TValues extends FieldValues> = {
 export function ErrorSummary<TValues extends FieldValues>({ errors, labels, submitCount }: Props<TValues>) {
   const ref = React.useRef<HTMLDivElement>(null)
   const general = errors.root?.server?.message
-  const items = flatten(errors).map(({ name, message }) => ({ name, label: labels[name] ?? name, message }))
+  const items = flatten(errors).map(({ name, message }) => ({ name, label: labels[name] ?? labels[name.split(".")[0]] ?? name, message }))
 
   // فوکوس فقط یک‌بار پس از هر ارسال ناموفق؛ نه با هر تغییر خطا هنگام تایپ.
   const focusedFor = React.useRef(0)
@@ -65,7 +65,9 @@ function flatten(errors: object, prefix = ""): { name: string; message: string }
   return Object.entries(errors).flatMap(([key, e]) => {
     if (!e || typeof e !== "object" || (prefix === "" && key === "root")) return []
     const name = key === "root" ? prefix.slice(0, -1) : `${prefix}${key}`
-    if ("message" in e && typeof e.message === "string" && e.message) return [{ name, message: e.message }]
-    return flatten(e, `${name}.`)
+    const own = "message" in e && typeof e.message === "string" && e.message ? [{ name, message: e.message }] : []
+    // خطای کل گروه و خطای خانه‌هایش در یک شیء می‌آیند؛ ref و types خود react-hook-form‌اند.
+    const nested = Object.fromEntries(Object.entries(e).filter(([k, v]) => k !== "ref" && k !== "types" && v && typeof v === "object"))
+    return [...own, ...flatten(nested, `${name}.`)]
   })
 }

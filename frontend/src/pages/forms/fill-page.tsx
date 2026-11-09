@@ -8,7 +8,7 @@ import { ConfirmDialog } from "@/components/confirm-dialog"
 import { ErrorSummary } from "@/components/form/error-summary"
 import { applyServerErrors } from "@/components/form/server-errors"
 import { UnsavedChangesGuard } from "@/components/form/unsaved-changes-guard"
-import { fieldLabels, toFormValues, toPayload, type FormDefinition, type FormValues } from "@/components/form-renderer/definition"
+import { fieldLabels, screenKey, toFormValues, toPayload, type FormDefinition, type FormValues } from "@/components/form-renderer/definition"
 import { FormRenderer } from "@/components/form-renderer/form-renderer"
 import { applyRules } from "@/components/form-renderer/rules"
 import { formResolver, validate, type JsonSchema } from "@/components/form-renderer/validate"
@@ -160,7 +160,7 @@ function FillForm({ context, initialData, initialSubmission, initialSavedAt, onC
       toast.success(`فرم «${context.title}» ثبت شد.`)
       navigate("/forms")
     } catch (e) {
-      applyServerErrors(form, e)
+      applyServerErrors(form, e, (name) => screenKey(definition, formValues, name))
       setSubmitting(false)
     }
   }

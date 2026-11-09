@@ -53,6 +53,21 @@ DEFINITION = {
                 {"id": "code", "type": "text", "label": "کد پرسنلی", "props": {"pattern": "^P-\\d{3}$", "pattern_message": "کد پرسنلی به شکل P-123 است."}},
                 {"id": "source", "type": "choice", "label": "منبع", "props": {"options": OPTIONS, "allow_other": True}},
                 {"id": "extras", "type": "multi_choice", "label": "امکانات", "props": {"options": OPTIONS, "allow_other": True}},
+                {
+                    "id": "family",
+                    "type": "table",
+                    "label": "افراد تحت تکفل",
+                    "props": {
+                        "display": "cards",
+                        "item_label": "فرد",
+                        "max_rows": 2,
+                        "columns": [
+                            {"id": "fname", "type": "text", "label": "نام", "required": True},
+                            {"id": "fnid", "type": "national_code", "label": "کد ملی"},
+                            {"id": "fdocs", "type": "attachment", "label": "مدارک"},
+                        ],
+                    },
+                },
             ],
         }
     ]
@@ -109,6 +124,19 @@ CASES = [
         "errors": None,
     },
     {"name": "pattern and other option", "partial": True, "data": {"code": "p-12", "source": {"other": ""}, "extras": ["a", {"text": "x"}]}, "errors": None},
+    {
+        "name": "group items",
+        "partial": False,
+        "data": {
+            "title": "abc",
+            "price": 1,
+            "ok": True,
+            "eval": {"skill": "a", "team": "b"},
+            "agree": True,
+            "family": [{"fnid": "123"}, {"fname": "سارا"}, {"fname": "علی"}],
+        },
+        "errors": None,
+    },
     {"name": "duplicate selection", "partial": True, "data": {"tags": ["a", "a"]}, "errors": None},
     {"name": "draft skips minimum selection", "partial": True, "data": {"tags": ["a"]}, "errors": {}},
     {
@@ -210,6 +238,20 @@ RULES_DEFINITION = {
                 {"id": "extra", "type": "text", "label": "توضیح الف", "visible_if": {"and": [{"!!": V("a")}, {">": [V("a"), 5]}]}},
                 {"id": "total", "type": "calculated", "label": "جمع", "props": {"formula": {"+": [V("a"), V("b")]}}},
                 {"id": "ratio", "type": "calculated", "label": "نسبت", "props": {"formula": {"/": [V("a"), V("b")]}, "decimals": 2}},
+                {
+                    "id": "items",
+                    "type": "table",
+                    "label": "اقلام",
+                    "props": {
+                        "columns": [
+                            {"id": "item", "type": "text", "label": "شرح", "required": True},
+                            {"id": "qty", "type": "number", "label": "تعداد"},
+                            {"id": "price", "type": "amount", "label": "فی"},
+                        ]
+                    },
+                },
+                {"id": "qty_total", "type": "calculated", "label": "جمع تعداد", "props": {"formula": {"sum_of": [V("items"), "qty"]}}},
+                {"id": "grand", "type": "calculated", "label": "جمع کل", "props": {"formula": {"sum_of": [V("items"), "qty", "price"]}, "format": "amount"}},
             ],
         },
         {
@@ -239,6 +281,16 @@ RULE_CASES = [
     {"name": "calculations", "partial": True, "data": {"a": 7, "b": 2}},
     {"name": "division by zero", "partial": True, "data": {"a": 7, "b": 0}},
     {"name": "readonly keeps default", "partial": False, "data": {"kind": "annual", "start": "1405/09/01", "end": "1405/09/05", "note": "تغییر"}},
+    {
+        "name": "group sums skip empty cells",
+        "partial": True,
+        "data": {"items": [{"item": "کاغذ", "qty": 2, "price": 1500}, {"item": "خودکار", "qty": 3}, {"item": "پوشه", "price": 900}]},
+    },
+    {
+        "name": "group row error",
+        "partial": False,
+        "data": {"kind": "annual", "start": "1405/09/01", "end": "1405/09/02", "items": [{"item": "کاغذ"}, {"qty": 1}]},
+    },
     {"name": "valid sick", "partial": False, "data": {"kind": "sick", "start": "1405/09/01", "end": "1405/09/03", "cert": "A-12"}},
 ]
 

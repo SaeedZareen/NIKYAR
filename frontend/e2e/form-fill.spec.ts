@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test"
-import { collectErrors, expectAccessible } from "./helpers"
+import { collectErrors, expectAccessible, isMobile } from "./helpers"
 
 const DEFINITION = {
   sections: [
@@ -61,6 +61,49 @@ const SYSTEM = {
         { id: "place", type: "region", label: "محل", required: true },
         { id: "docs", type: "attachment", label: "مدارک", props: { multiple: true, max_files: 2 } },
         { id: "receiver", type: "signature_pad", label: "امضای تحویل‌گیرنده", required: true },
+      ],
+    },
+  ],
+}
+
+const GROUPS = {
+  sections: [
+    {
+      id: "s",
+      title: "درخواست خرید",
+      columns: 2,
+      fields: [
+        {
+          id: "items",
+          type: "table",
+          label: "اقلام",
+          span: 2,
+          props: {
+            columns: [
+              { id: "item", type: "text", label: "شرح", required: true },
+              { id: "qty", type: "number", label: "تعداد" },
+              { id: "price", type: "amount", label: "فی" },
+            ],
+          },
+        },
+        { id: "grand", type: "calculated", label: "جمع کل", props: { formula: { sum_of: [{ var: "items" }, "qty", "price"] }, format: "amount" } },
+        {
+          id: "family",
+          type: "table",
+          label: "افراد تحت تکفل",
+          span: 2,
+          props: {
+            display: "cards",
+            item_label: "فرد",
+            card_columns: 2,
+            columns: [
+              { id: "fname", type: "text", label: "نام", required: true },
+              { id: "fnid", type: "national_code", label: "کد ملی" },
+              { id: "fdocs", type: "attachment", label: "مدارک" },
+            ],
+          },
+        },
+        { id: "phones", type: "table", label: "شماره‌های تماس", props: { display: "list", item_label: "شماره", columns: [{ id: "phone", type: "mobile", label: "موبایل" }] } },
       ],
     },
   ],
@@ -254,5 +297,54 @@ test.describe("پر کردن فرم", () => {
     await page.getByRole("alertdialog").getByRole("button", { name: "حذف پیش‌نویس" }).click()
     await expect(page.getByText("پیش‌نویس حذف شد.")).toBeVisible()
     await expect(page).toHaveURL(/\/forms$/)
+  })
+
+  test("گروه تکرارشونده: جدول با جمع، کارت، فهرست ساده، جابه‌جایی و خطای هر مورد", async ({ page }, info) => {
+    const errors = collectErrors(page)
+    const title = `گروه ${info.project.name} ${Date.now()}`
+    const id = await publishForm(page, title, GROUPS)
+    await page.goto(`/forms/${id}/fill`)
+    // خانه‌ی جدول: روی موبایل جدول کارتی می‌شود
+    const fa = (n: number) => String(n).replace(/\d/g, (d) => "۰۱۲۳۴۵۶۷۸۹"[Number(d)])
+    const cell = (n: number, label: string) =>
+      isMobile(page)
+        ? page.getByRole("group", { name: `ردیف ${fa(n)}`, exact: true }).getByLabel(label, { exact: true })
+        : page.getByLabel(`${label} ردیف ${fa(n)}`, { exact: true })
+
+    await cell(1, "شرح").fill("کاغذ")
+    await cell(1, "تعداد").fill("2")
+    await cell(1, "فی").fill("1500")
+    await page.getByRole("button", { name: "افزودن ردیف" }).click()
+    await cell(2, "تعداد").fill("3")
+    await cell(2, "فی").fill("1000")
+    await expect(page.getByRole("group", { name: "جمع کل" })).toContainText(/۶.?۰۰۰ ریال/)
+    // ردیف خالی نادیده گرفته می‌شود
+    await page.getByRole("button", { name: "افزودن ردیف" }).click()
+
+    const card = page.getByRole("group", { name: "فرد ۱", exact: true })
+    await card.getByLabel("نام", { exact: true }).fill("سارا")
+    await page.getByRole("button", { name: "افزودن فرد" }).click()
+    await expect(page.getByRole("group", { name: "فرد ۲", exact: true })).toBeVisible()
+
+    await page.getByLabel("موبایل ۱", { exact: true }).fill("09121234567")
+    await page.getByRole("button", { name: "افزودن شماره" }).click()
+    await page.getByLabel("موبایل ۲", { exact: true }).fill("0912")
+    await page.getByLabel("موبایل ۲", { exact: true }).blur()
+    await expect(page.getByText("شماره ۲: «موبایل» باید ۱۱ رقم باشد و با ۰۹ شروع شود.")).toBeVisible()
+
+    await page.getByRole("button", { name: "ثبت نهایی" }).click()
+    const summary = page.getByRole("alert").filter({ hasText: "لطفاً این موارد را اصلاح کنید" })
+    await expect(summary).toContainText("ردیف ۲: تکمیل «شرح» الزامی است.")
+    await expect(summary).toContainText("شماره ۲:")
+    await expectAccessible(page)
+
+    await cell(2, "شرح").fill("خودکار")
+    await page.getByRole("button", { name: "حذف شماره ۲" }).click()
+    // جابه‌جایی: «خودکار» ردیف اول می‌شود
+    await page.getByRole("button", { name: "پایین بردن ردیف ۱" }).click()
+    await expect(cell(1, "شرح")).toHaveValue("خودکار")
+    await page.getByRole("button", { name: "ثبت نهایی" }).click()
+    await expect(page.getByText(`فرم «${title}» ثبت شد.`)).toBeVisible()
+    expect(errors).toEqual([])
   })
 })

@@ -4,7 +4,7 @@ import { InfoTip } from "@/components/info-tip"
 import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field"
 import { cn } from "@/lib/utils"
 
-type FieldLayout = "side" | "stacked"
+type FieldLayout = "side" | "stacked" | "cell"
 
 type RenderArgs<TValues extends FieldValues, TName extends FieldPath<TValues>> = {
   field: ControllerRenderProps<TValues, TName>
@@ -23,7 +23,10 @@ type Props<TValues extends FieldValues, TName extends FieldPath<TValues>> = {
   description?: React.ReactNode
   /** اطلاعات پویا یا ضروری که همیشه باید دیده شود (مثل شمار نویسه یا نتیجه‌ی محاسبه)، با متن کوچک زیر فیلد. */
   hint?: React.ReactNode
-  /** side: برچسب کنار فیلد روی صفحه‌های بزرگ (سبک فرم‌های اداری)؛ stacked: برچسب بالای فیلد. */
+  /**
+   * side: برچسب کنار فیلد روی صفحه‌های بزرگ (سبک فرم‌های اداری)؛ stacked: برچسب بالای فیلد؛
+   * cell: خانه‌ی جدول یا فهرست، برچسب فقط برای صفحه‌خوان (سرستون جدول برچسب دیدنی است).
+   */
   layout?: FieldLayout
   /**
    * گروه گزینه‌ها (چند چک‌باکس یا رادیو): برچسب به گروه با aria-labelledby وصل می‌شود، نه با for.
@@ -65,7 +68,7 @@ export function FormField<TValues extends FieldValues, TName extends FieldPath<T
             data-invalid={invalid}
             className={cn(layout === "side" && "md:grid md:grid-cols-[8rem_minmax(0,1fr)] md:items-start md:gap-x-3", className)}
           >
-            <div className={cn("flex items-start gap-1", layout === "side" && "md:min-h-7 md:pt-1")}>
+            <div className={cn("flex items-start gap-1", layout === "side" && "md:min-h-7 md:pt-1", layout === "cell" && "sr-only")}>
               <FieldLabel htmlFor={group ? undefined : id} id={group ? `${id}-label` : undefined}>
                 {label}
               </FieldLabel>

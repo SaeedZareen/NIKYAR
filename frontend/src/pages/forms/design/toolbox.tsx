@@ -41,6 +41,7 @@ import {
   Timer,
   Blocks,
   Calculator,
+  Rows3,
   type LucideIcon,
 } from "lucide-react"
 import { BLOCKS, type FieldTypeSpec } from "./designer-model"
@@ -85,11 +86,9 @@ const ICONS: Record<string, LucideIcon> = {
   signature: FileSignature,
   signature_pad: PenLine,
   calculated: Calculator,
+  table: Rows3,
 }
 const BLOCK_ICONS: Record<string, LucideIcon> = { personal: Contact, contact: Phone, address: MapPin, bank: Landmark }
-
-/** نوع‌هایی که هنوز نمایش ندارند (جدول در 3.6) در جعبه‌ابزار نمی‌آیند. */
-const HIDDEN = new Set(["table"])
 
 type Props = {
   specs: FieldTypeSpec[]
@@ -103,7 +102,7 @@ type Props = {
 /** جعبه‌ابزار: نوع‌ها به تفکیک گروه و بلوک‌های آماده؛ با کلیک به بخش انتخاب‌شده اضافه می‌شوند یا روی بوم کشیده می‌شوند. */
 export function Toolbox({ specs, onAdd, onAddBlock, draggable, disabled }: Props) {
   const groups = new Map<string, FieldTypeSpec[]>()
-  for (const s of specs) if (!HIDDEN.has(s.code)) groups.set(s.group, [...(groups.get(s.group) ?? []), s])
+  for (const s of specs) groups.set(s.group, [...(groups.get(s.group) ?? []), s])
   return (
     <div className="flex flex-col gap-3 p-3">
       <ToolGroup title="بلوک‌های آماده" icon={Blocks}>

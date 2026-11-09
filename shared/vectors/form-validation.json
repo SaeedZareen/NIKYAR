@@ -290,6 +290,34 @@
        ],
        "allow_other": true
       }
+     },
+     {
+      "id": "family",
+      "type": "table",
+      "label": "افراد تحت تکفل",
+      "props": {
+       "display": "cards",
+       "item_label": "فرد",
+       "max_rows": 2,
+       "columns": [
+        {
+         "id": "fname",
+         "type": "text",
+         "label": "نام",
+         "required": true
+        },
+        {
+         "id": "fnid",
+         "type": "national_code",
+         "label": "کد ملی"
+        },
+        {
+         "id": "fdocs",
+         "type": "attachment",
+         "label": "مدارک"
+        }
+       ]
+      }
      }
     ]
    }
@@ -733,6 +761,65 @@
      "invalid": "گزینه‌ی انتخاب‌شده برای «امکانات» معتبر نیست.",
      "uniqueItems": "در «امکانات» مورد تکراری هست."
     }
+   },
+   "family": {
+    "type": "array",
+    "items": {
+     "type": "object",
+     "properties": {
+      "fname": {
+       "type": "string",
+       "maxLength": 200,
+       "title": "نام",
+       "x-nikyar-type": "text",
+       "x-messages": {
+        "required": "تکمیل «نام» الزامی است.",
+        "invalid": "مقدار «نام» معتبر نیست.",
+        "maxLength": "«نام» حداکثر ۲۰۰ نویسه باشد."
+       }
+      },
+      "fnid": {
+       "type": "string",
+       "format": "ir-national-code",
+       "title": "کد ملی",
+       "x-nikyar-type": "national_code",
+       "x-messages": {
+        "required": "تکمیل «کد ملی» الزامی است.",
+        "invalid": "«کد ملی» معتبر نیست؛ ده رقم کد ملی را بررسی کنید."
+       }
+      },
+      "fdocs": {
+       "type": "array",
+       "items": {
+        "type": "string",
+        "format": "uuid"
+       },
+       "uniqueItems": true,
+       "maxItems": 1,
+       "title": "مدارک",
+       "x-nikyar-type": "attachment",
+       "x-messages": {
+        "required": "برای «مدارک» فایل پیوست کنید.",
+        "invalid": "مقدار «مدارک» معتبر نیست.",
+        "maxItems": "برای «مدارک» حداکثر ۱ فایل پیوست کنید.",
+        "uniqueItems": "در «مدارک» مورد تکراری هست."
+       }
+      }
+     },
+     "additionalProperties": false,
+     "required": [
+      "fname"
+     ]
+    },
+    "maxItems": 2,
+    "x-item-label": "فرد",
+    "title": "افراد تحت تکفل",
+    "x-nikyar-type": "table",
+    "x-messages": {
+     "required": "«افراد تحت تکفل» دست‌کم یک مورد داشته باشد.",
+     "invalid": "مقدار «افراد تحت تکفل» معتبر نیست.",
+     "maxItems": "«افراد تحت تکفل» حداکثر ۲ مورد داشته باشد."
+    }
    }
   },
   "additionalProperties": false,
@@ -1169,6 +1256,62 @@
      "invalid": "گزینه‌ی انتخاب‌شده برای «امکانات» معتبر نیست.",
      "uniqueItems": "در «امکانات» مورد تکراری هست."
     }
+   },
+   "family": {
+    "type": "array",
+    "items": {
+     "type": "object",
+     "properties": {
+      "fname": {
+       "type": "string",
+       "maxLength": 200,
+       "title": "نام",
+       "x-nikyar-type": "text",
+       "x-messages": {
+        "required": "تکمیل «نام» الزامی است.",
+        "invalid": "مقدار «نام» معتبر نیست.",
+        "maxLength": "«نام» حداکثر ۲۰۰ نویسه باشد."
+       }
+      },
+      "fnid": {
+       "type": "string",
+       "format": "ir-national-code",
+       "title": "کد ملی",
+       "x-nikyar-type": "national_code",
+       "x-messages": {
+        "required": "تکمیل «کد ملی» الزامی است.",
+        "invalid": "«کد ملی» معتبر نیست؛ ده رقم کد ملی را بررسی کنید."
+       }
+      },
+      "fdocs": {
+       "type": "array",
+       "items": {
+        "type": "string",
+        "format": "uuid"
+       },
+       "uniqueItems": true,
+       "maxItems": 1,
+       "title": "مدارک",
+       "x-nikyar-type": "attachment",
+       "x-messages": {
+        "required": "برای «مدارک» فایل پیوست کنید.",
+        "invalid": "مقدار «مدارک» معتبر نیست.",
+        "maxItems": "برای «مدارک» حداکثر ۱ فایل پیوست کنید.",
+        "uniqueItems": "در «مدارک» مورد تکراری هست."
+       }
+      }
+     },
+     "additionalProperties": false
+    },
+    "maxItems": 2,
+    "x-item-label": "فرد",
+    "title": "افراد تحت تکفل",
+    "x-nikyar-type": "table",
+    "x-messages": {
+     "required": "«افراد تحت تکفل» دست‌کم یک مورد داشته باشد.",
+     "invalid": "مقدار «افراد تحت تکفل» معتبر نیست.",
+     "maxItems": "«افراد تحت تکفل» حداکثر ۲ مورد داشته باشد."
+    }
    }
   },
   "additionalProperties": false,
@@ -1376,6 +1519,37 @@
    "errors": {
     "code": "کد پرسنلی به شکل P-123 است.",
     "extras": "گزینه‌ی انتخاب‌شده برای «امکانات» معتبر نیست."
+   }
+  },
+  {
+   "name": "group items",
+   "partial": false,
+   "data": {
+    "title": "abc",
+    "price": 1,
+    "ok": true,
+    "eval": {
+     "skill": "a",
+     "team": "b"
+    },
+    "agree": true,
+    "family": [
+     {
+      "fnid": "123"
+     },
+     {
+      "fname": "سارا"
+     },
+     {
+      "fname": "علی"
+     }
+    ]
+   },
+   "cleaned": null,
+   "errors": {
+    "family": "«افراد تحت تکفل» حداکثر ۲ مورد داشته باشد.",
+    "family.0.fname": "فرد ۱: تکمیل «نام» الزامی است.",
+    "family.0.fnid": "فرد ۱: «کد ملی» معتبر نیست؛ ده رقم کد ملی را بررسی کنید."
    }
   },
   {

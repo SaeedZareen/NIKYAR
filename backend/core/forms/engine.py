@@ -56,7 +56,7 @@ for _name, _check in {
     FORMATS.checks(_name)(lambda value, check=_check: not isinstance(value, str) or check(value))
 
 FIELD_KEYS = {"id", "type", "label", "help", "required", "readonly", "unique", "prefill", "span", "new_row", "default", "props", *rules.FIELD_CONDITIONS}
-COLUMN_KEYS = FIELD_KEYS - {"span", "new_row", "unique", "prefill", *rules.FIELD_CONDITIONS}
+COLUMN_KEYS = FIELD_KEYS - {"span", "new_row", "readonly", "unique", "prefill", *rules.FIELD_CONDITIONS}
 SECTION_KEYS = {"id", "title", "help", "columns", "labels", "fields", "visible_if"}
 # جای برچسب در بخش: auto یعنی کنار فیلد تا دو ستون و بالای فیلد در بخش سه‌ستونه
 LABEL_POSITIONS = {"auto", "side", "top"}
@@ -111,13 +111,27 @@ def check_definition(definition) -> None:
         for fi, field in enumerate(fields):
             _check_field(field, f"{path}.fields.{fi}", field_ids, errors, columns=columns)
     if not errors:
+        _check_item_ids(definition, set(field_ids), errors)
+    if not errors:
         _check_rules(definition, field_ids, errors)
     if errors:
         raise BusinessError("تعریف فرم ایراد دارد؛ موارد مشخص‌شده را اصلاح کنید.", errors)
 
 
+def _check_item_ids(definition: dict, taken: set[str], errors: dict) -> None:
+    """شناسه‌ی فیلدهای درون گروه‌ها در کل فرم یکتاست (طراح هر فیلد را با شناسه‌اش پیدا می‌کند)."""
+    for si, section in enumerate(definition["sections"]):
+        for fi, field in enumerate(section.get("fields", [])):
+            for ci, column in enumerate(field.get("props", {}).get("columns", []) if field["type"] == "table" else []):
+                if column["id"] in taken:
+                    errors[f"sections.{si}.fields.{fi}.props.columns.{ci}.id"] = f"شناسه‌ی «{column['id']}» تکراری است."
+                taken.add(column["id"])
+
+
 def _check_rules(definition: dict, known: set[str], errors: dict) -> None:
     """عبارت‌های قاعده (شرط‌ها، فرمول‌ها، قاعده‌های فرم) فقط به فیلدهای همین فرم و عملگرهای مجاز اشاره می‌کنند."""
+    # ستون‌های عددی هر گروه، برای «جمع» در فرمول‌ها
+    tables = {f["id"]: {c["id"] for c in f["props"]["columns"] if c["type"] in ("number", "amount")} for f in iter_fields(definition) if f["type"] == "table"}
     for si, section in enumerate(definition["sections"]):
         if "visible_if" in section and (msg := rules.check_logic(section["visible_if"], known)):
             errors[f"sections.{si}.visible_if"] = msg
@@ -128,7 +142,7 @@ def _check_rules(definition: dict, known: set[str], errors: dict) -> None:
                     errors[f"{path}.{key}"] = msg
             if field["type"] == "calculated":
                 formula = field.get("props", {}).get("formula")
-                if msg := rules.check_logic(formula, known - {field["id"]}):
+                if msg := rules.check_logic(formula, known - {field["id"]}, tables):
                     errors[f"{path}.props.formula"] = msg
     form_rules = definition.get("rules", [])
     if not isinstance(form_rules, list):
@@ -463,10 +477,10 @@ def _field_errors(field: dict, value, ctx: Ctx) -> dict[str, str]:
             columns = {c["id"]: c for c in props["columns"]}
             if err.validator == "required":
                 for missing in (c for c in err.validator_value if c not in err.instance):
-                    errors.setdefault(f"{row}.{missing}", _row(row, _message(schema["items"]["properties"][missing], "required")))
+                    errors.setdefault(f"{row}.{missing}", _row(schema, row, _message(schema["items"]["properties"][missing], "required")))
                 continue
             if len(path) >= 2 and path[1] in columns:
-                errors.setdefault(f"{row}.{path[1]}", _row(row, _message(schema["items"]["properties"][path[1]], err.validator)))
+                errors.setdefault(f"{row}.{path[1]}", _row(schema, row, _message(schema["items"]["properties"][path[1]], err.validator)))
                 continue
         errors.setdefault("", _message(schema, err.validator))
     if errors:
@@ -477,14 +491,14 @@ def _field_errors(field: dict, value, ctx: Ctx) -> dict[str, str]:
                 if column["id"] in values:
                     msg = REGISTRY[column["type"]].check(values[column["id"]], props_of(column), ctx)
                     if msg:
-                        errors[f"{row}.{column['id']}"] = _row(row, msg.format(label=column["label"]))
+                        errors[f"{row}.{column['id']}"] = _row(schema, row, msg.format(label=column["label"]))
         return errors
     msg = ftype.check(value, props, ctx)
     return {"": msg.format(label=label)} if msg else {}
 
 
-def _row(row: int, message: str) -> str:
-    return f"ردیف {fa_digits(row + 1)}: {message}"
+def _row(schema: dict, row: int, message: str) -> str:
+    return f"{schema.get('x-item-label') or 'ردیف'} {fa_digits(row + 1)}: {message}"
 
 
 def _message(schema: dict, keyword: str) -> str:
