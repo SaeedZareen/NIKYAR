@@ -20,7 +20,7 @@ from functools import cache
 from pathlib import Path
 
 from django.core.files.uploadedfile import SimpleUploadedFile
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from rest_framework import serializers
 
 from core.files import service as files
@@ -107,18 +107,24 @@ def import_form(payload: dict, user) -> Form:
     if reset not in {"never", "year", "fiscal"} or (pattern and not _valid_pattern(pattern, reset)):
         pattern, reset = "", "year"
     category = LookupItem.objects.filter(list__code="form-category", code=meta.get("category")).first() if meta.get("category") else None
-    with transaction.atomic():
-        form = Form.objects.create(
-            code=_free_code(str(meta.get("code") or "form")),
-            title=title,
-            description=str(meta.get("description") or "")[:500],
-            category=category,
-            number_pattern=pattern,
-            number_reset=reset,
-        )
-        service.save_definition(service.create_form(form), definition)
-        service.sync_numbering(form)
-    return form
+    for _attempt in range(5):
+        try:
+            with transaction.atomic():
+                form = Form.objects.create(
+                    code=_free_code(str(meta.get("code") or "form")),
+                    title=title,
+                    description=str(meta.get("description") or "")[:500],
+                    category=category,
+                    number_pattern=pattern,
+                    number_reset=reset,
+                )
+                service.save_definition(service.create_form(form), definition)
+                service.sync_numbering(form)
+            return form
+        except IntegrityError:
+            # ورود هم‌زمان همان فرم: شناسه‌ی آزاد بعدی
+            continue
+    raise BusinessError("ساخت فرم ممکن نشد؛ دوباره تلاش کنید.")
 
 
 def _valid_pattern(pattern: str, reset: str) -> bool:

@@ -2,7 +2,7 @@ import * as React from "react"
 import { useNavigate, useParams, useSearchParams } from "react-router"
 import { useForm, useWatch } from "react-hook-form"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Send, Trash2 } from "lucide-react"
+import { ChevronLeft, ChevronRight, Send, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { ConfirmDialog } from "@/components/confirm-dialog"
 import { ErrorSummary } from "@/components/form/error-summary"
@@ -10,13 +10,15 @@ import { applyServerErrors } from "@/components/form/server-errors"
 import { UnsavedChangesGuard } from "@/components/form/unsaved-changes-guard"
 import { fieldLabels, screenKey, toFormValues, toPayload, type FormDefinition, type FormValues } from "@/components/form-renderer/definition"
 import { FormRenderer } from "@/components/form-renderer/form-renderer"
+import { StepHeader } from "@/components/form-renderer/form-steps"
+import { useFormSteps } from "@/components/form-renderer/use-form-steps"
 import { applyRules } from "@/components/form-renderer/rules"
 import { formResolver, validate, type JsonSchema } from "@/components/form-renderer/validate"
 import { PageHeader } from "@/components/layout/page-header"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 import { api, errorMessage, unwrap, type Schemas } from "@/lib/api/client"
-import { formatDateTime } from "@/lib/format"
+import { formatDateTime, toFaDigits } from "@/lib/format"
 import { useAuth } from "@/app/auth"
 import { SUBMISSIONS_KEY } from "@/app/forms"
 import { PageError, PageFallback } from "@/app/route-states"
@@ -157,16 +159,24 @@ function FillForm({ context, initialData, initialSubmission, initialSavedAt, onC
   const submitValid = async (formValues: FormValues) => {
     setSubmitting(true)
     try {
-      await send(applyRules(definition, toPayload(definition, formValues)).values, true)
+      const saved = await send(applyRules(definition, toPayload(definition, formValues)).values, true)
       qc.invalidateQueries({ queryKey: SUBMISSIONS_KEY })
-      toast.success(`فرم «${context.title}» ثبت شد.`)
+      toast.success(saved.number ? `فرم «${context.title}» با شماره‌ی ${toFaDigits(saved.number)} ثبت شد.` : `فرم «${context.title}» ثبت شد.`)
       navigate("/forms")
     } catch (e) {
       applyServerErrors(form, e, (name) => screenKey(definition, formValues, name))
       setSubmitting(false)
     }
   }
-  const onSubmit = (e: React.FormEvent) => form.handleSubmit(submitValid)(e)
+  const steps = useFormSteps(definition, rules, form, context.title)
+  // در فرم مرحله‌ای، Enter یا دکمه‌ی «بعدی» فقط به مرحله‌ی بعد می‌رود؛ ثبت نهایی در مرحله‌ی آخر
+  const onSubmit = (e: React.FormEvent) => {
+    if (steps.enabled && !steps.last) {
+      e.preventDefault()
+      return steps.next()
+    }
+    return form.handleSubmit(submitValid, steps.enabled ? steps.showErrors : undefined)(e)
+  }
 
   const remove = useMutation({
     mutationFn: async () => {
@@ -201,17 +211,30 @@ function FillForm({ context, initialData, initialSubmission, initialSavedAt, onC
       />
       <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
         <ErrorSummary errors={form.formState.errors} labels={fieldLabels(definition)} submitCount={form.formState.submitCount} />
+        {steps.enabled && <StepHeader steps={steps} />}
         <FormRenderer
           definition={definition}
           title={context.title}
           control={form.control}
           rules={rules}
+          only={steps.enabled ? steps.section?.id : undefined}
           footer={
             <>
-              <Button type="submit" disabled={submitting}>
-                {submitting ? <Spinner /> : <Send />}
-                {submitting ? "در حال ثبت…" : "ثبت نهایی"}
-              </Button>
+              {steps.enabled && !steps.first && (
+                <Button type="button" variant="outline" onClick={steps.prev}>
+                  <ChevronRight /> مرحله‌ی قبل
+                </Button>
+              )}
+              {steps.enabled && !steps.last ? (
+                <Button type="submit">
+                  مرحله‌ی بعد <ChevronLeft />
+                </Button>
+              ) : (
+                <Button type="submit" disabled={submitting}>
+                  {submitting ? <Spinner /> : <Send />}
+                  {submitting ? "در حال ثبت…" : "ثبت نهایی"}
+                </Button>
+              )}
               {submissionId !== null && (
                 <Button type="button" variant="ghost" className="text-destructive" disabled={submitting} onClick={() => setConfirmDelete(true)}>
                   <Trash2 /> حذف پیش‌نویس

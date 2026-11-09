@@ -95,13 +95,14 @@ class AvailableFormSerializer(serializers.ModelSerializer):
 
 
 class FormVersionSerializer(serializers.ModelSerializer):
+    form_title = serializers.CharField(source="form.title", read_only=True)
     status_label = serializers.CharField(source="get_status_display", read_only=True)
     published_by_name = serializers.CharField(source="published_by.get_full_name", read_only=True, default="")
     field_count = serializers.SerializerMethodField(help_text="تعداد فیلدهای قابل پر کردن")
 
     class Meta:
         model = FormVersion
-        fields = ["id", "form", "number", "status", "status_label", "field_count", "created_at", "updated_at", "published_at", "published_by_name"]
+        fields = ["id", "form", "form_title", "number", "status", "status_label", "field_count", "created_at", "updated_at", "published_at", "published_by_name"]
         read_only_fields = fields
 
     def get_field_count(self, obj) -> int:

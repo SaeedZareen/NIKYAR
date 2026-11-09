@@ -110,20 +110,20 @@ const GROUPS = {
 }
 
 /** فرم منتشرشده‌ی یکتا برای هر آزمون، با همان API که طراح (3.4) به کار می‌برد. */
-async function publishForm(page: Page, title: string, definition: object = DEFINITION): Promise<number> {
+async function publishForm(page: Page, title: string, definition: object = DEFINITION, settings: object = {}): Promise<number> {
   await page.goto("/forms")
   return page.evaluate(
-    async ({ title, definition }) => {
+    async ({ title, definition, settings }) => {
       const token = decodeURIComponent(document.cookie.match(/csrftoken=([^;]+)/)?.[1] ?? "")
       const call = (url: string, method: string, body?: unknown) =>
         fetch(url, { method, headers: { "X-CSRFToken": token, "Content-Type": "application/json" }, body: body ? JSON.stringify(body) : undefined }).then((r) => r.json())
       const code = `e2e-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
-      const form = await call("/api/forms/", "POST", { code, title, fill_by_everyone: true })
+      const form = await call("/api/forms/", "POST", { code, title, fill_by_everyone: true, ...settings })
       await call(`/api/forms/versions/${form.draft_version}/`, "PATCH", { definition })
       await call(`/api/forms/versions/${form.draft_version}/publish/`, "POST")
       return form.id as number
     },
-    { title, definition }
+    { title, definition, settings }
   )
 }
 
@@ -421,6 +421,41 @@ test.describe("پر کردن فرم", () => {
     const data = await page.evaluate(async (sid) => (await (await fetch(`/api/forms/submissions/${sid}/`)).json()).data, saved)
     expect(data).toMatchObject({ site: "https://nikyar.ir", desc: "<p><strong>بازدید فنی</strong></p>", code: "6260100000011", spot: { lat: 35.6892, lng: 51.389, accuracy: 20 }, src: "sms" })
     expect(data.memo).toHaveLength(1)
+    expect(errors).toEqual([])
+  })
+
+  test("فرم مرحله‌ای با بررسی هر مرحله و شماره‌ی ثبت", async ({ page }, info) => {
+    const errors = collectErrors(page)
+    const title = `مرحله‌ای ${info.project.name} ${Date.now()}`
+    const id = await publishForm(
+      page,
+      title,
+      {
+        steps: true,
+        sections: [
+          { id: "who", title: "متقاضی", fields: [{ id: "name", type: "text", label: "نام متقاضی", required: true }] },
+          { id: "what", title: "درخواست", fields: [{ id: "need", type: "textarea", label: "شرح درخواست", required: true }] },
+        ],
+      },
+      { number_pattern: "د-{year}-{seq:3}" }
+    )
+    await page.goto(`/forms/${id}/fill`)
+    const steps = page.getByRole("navigation", { name: "مراحل فرم" })
+    await expect(steps).toContainText("مرحله‌ی ۱ از ۲")
+    await expect(page.getByLabel("شرح درخواست", { exact: true })).toHaveCount(0)
+    // مرحله‌ی بعد تا پر شدن فیلد الزامی این مرحله نمی‌رود
+    await page.getByRole("button", { name: "مرحله‌ی بعد" }).click()
+    await expect(page.getByText("تکمیل «نام متقاضی» الزامی است.")).toBeVisible()
+    await page.getByLabel("نام متقاضی", { exact: true }).fill("سارا")
+    await page.getByRole("button", { name: "مرحله‌ی بعد" }).click()
+    await expect(steps).toContainText("مرحله‌ی ۲ از ۲")
+    await page.getByLabel("شرح درخواست", { exact: true }).fill("مرخصی")
+    await page.getByRole("button", { name: "مرحله‌ی قبل" }).click()
+    await expect(page.getByLabel("نام متقاضی", { exact: true })).toHaveValue("سارا")
+    await page.getByRole("button", { name: "مرحله‌ی بعد" }).click()
+    await expectAccessible(page)
+    await page.getByRole("button", { name: "ثبت نهایی" }).click()
+    await expect(page.getByText(new RegExp(`فرم «${title}» با شماره‌ی د-۱۴[۰-۹]{2}-۰۰۱ ثبت شد`))).toBeVisible()
     expect(errors).toEqual([])
   })
 })

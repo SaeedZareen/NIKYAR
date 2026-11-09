@@ -77,6 +77,9 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
+# پیش‌نمایش فرم در طراح (قاب همین سامانه) و پیش‌نمایش PDF؛ سایت‌های دیگر سامانه را در قاب نمی‌گذارند.
+X_FRAME_OPTIONS = "SAMEORIGIN"
+
 ROOT_URLCONF = "config.urls"
 WSGI_APPLICATION = "config.wsgi.application"
 

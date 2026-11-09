@@ -161,7 +161,7 @@ test.describe("قاعده‌های فرم", () => {
     await closeProps(page)
 
     // اعتبارسنجی: «تا تاریخ» بیشتر یا برابر «از تاریخ»
-    await page.getByRole("button", { name: /اعتبارسنجی بین فیلدها/ }).click()
+    await page.getByRole("button", { name: /ویژگی‌های فرم/ }).click()
     await panel.getByRole("button", { name: "قاعده‌ی تازه" }).click()
     await panel.getByRole("combobox", { name: "شرط ۱: فیلد" }).click()
     await page.getByRole("option", { name: "تا تاریخ", exact: true }).click()
@@ -423,5 +423,59 @@ test.describe("وب و رسانه در طراح", () => {
     await expect(page.getByText(/ذخیره شد/)).toBeVisible()
     await expectAccessible(page)
     expect(errors.filter((e) => !e.includes("status of 400"))).toEqual([])
+  })
+})
+
+test.describe("الگو، پیش‌نمایش، نسخه‌ها، خروجی و ورود فرم", () => {
+  test("فرم از الگو، پیش‌نمایش با آزمایش ثبت، مقایسه‌ی نسخه‌ها، خروجی و ورود همان فرم", async ({ page }) => {
+    test.slow()
+    const errors = collectErrors(page)
+    await page.goto("/forms/design")
+    await page.getByRole("button", { name: "فرم جدید از الگو" }).click()
+    await page.getByRole("button", { name: "ساخت فرم از الگوی «صورت‌جلسه»" }).click()
+    await expect(page.getByRole("heading", { level: 1, name: "صورت‌جلسه" })).toBeVisible()
+    await expect(page.getByRole("button", { name: /انتخاب «مصوبات»/ })).toBeVisible()
+
+    // پیش‌نمایش در قاب: قاعده‌ها و اعتبارسنجی، بی ذخیره
+    await page.getByRole("button", { name: "پیش‌نمایش" }).click()
+    const frame = page.frameLocator("iframe")
+    await frame.getByRole("button", { name: "آزمایش ثبت" }).click()
+    await expect(frame.getByRole("alert").filter({ hasText: "لطفاً این موارد" })).toContainText("تکمیل «موضوع جلسه» الزامی است.")
+    await frame.getByLabel("موضوع جلسه", { exact: true }).fill("بودجه‌ی ۱۴۰۶")
+    await frame.getByRole("button", { name: "آزمایش ثبت" }).click()
+    await expect(frame.getByText("همه‌ی فیلدها درست‌اند")).toBeVisible()
+    await page.getByRole("button", { name: "موبایل" }).click()
+    await expect(page.locator("iframe")).toHaveClass(/w-\[390px\]/)
+    await page.keyboard.press("Escape")
+
+    await page.getByRole("button", { name: "انتشار" }).click()
+    await expect(page.getByText(/نسخه‌ی ۱ «صورت‌جلسه» منتشر شد/)).toBeVisible()
+    await page.getByRole("button", { name: "ویرایش فرم" }).click()
+    await expect(page.getByText(/پیش‌نویس نسخه‌ی ۲/)).toBeVisible()
+    await page.getByRole("button", { name: /انتخاب «محل جلسه»/ }).click()
+    await props(page).getByLabel("برچسب", { exact: true }).fill("مکان")
+    await closeProps(page)
+    await expect(page.getByText(/ذخیره شد/)).toBeVisible()
+
+    await page.getByRole("button", { name: "نسخه‌ها" }).click()
+    const versions = page.getByRole("dialog", { name: "نسخه‌های فرم" })
+    await expect(versions.getByRole("list", { name: "نسخه‌ها" }).getByRole("listitem")).toHaveCount(2)
+    await expect(versions.getByText("برچسب: «محل جلسه» ← «مکان»")).toBeVisible()
+    const download = page.waitForEvent("download")
+    await versions.getByRole("link", { name: "خروجی نسخه‌ی ۲" }).click()
+    const file = await (await download).path()
+    await page.keyboard.press("Escape")
+
+    // ورود همان فایل: فرم تازه با همان تعریف
+    await page.goto("/forms/design")
+    await page.getByRole("button", { name: "ورود فرم" }).click()
+    const dialog = page.getByRole("dialog", { name: "ورود فرم" })
+    await dialog.locator("input[type=file]").setInputFiles({ name: "minutes.nikyar-form.json", mimeType: "application/json", buffer: await import("node:fs").then((fs) => fs.readFileSync(file)) })
+    await dialog.getByRole("button", { name: "ورود فرم" }).click()
+    await expect(page.getByRole("heading", { level: 1, name: "صورت‌جلسه" })).toBeVisible()
+    await expect(page.getByRole("button", { name: /انتخاب «مکان»/ })).toBeVisible()
+    await expect(page.getByText(/پیش‌نویس نسخه‌ی ۱/)).toBeVisible()
+    await expectAccessible(page)
+    expect(errors).toEqual([])
   })
 })

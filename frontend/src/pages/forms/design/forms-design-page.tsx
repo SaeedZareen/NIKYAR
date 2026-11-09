@@ -1,7 +1,7 @@
 import * as React from "react"
 import { Link, useNavigate } from "react-router"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Copy, PencilRuler, Plus, Settings2, Trash2 } from "lucide-react"
+import { Copy, FileDown, FileUp, LayoutTemplate, PencilRuler, Plus, Settings2, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { DESIGN_FORMS_KEY } from "@/app/forms"
 import { ConfirmDialog } from "@/components/confirm-dialog"
@@ -13,6 +13,7 @@ import { DropdownMenuItem, DropdownMenuSeparator } from "@/components/ui/dropdow
 import { api, errorMessage, unwrap, type Schemas } from "@/lib/api/client"
 import { formatNumber, toFaDigits } from "@/lib/format"
 import { FormSettingsSheet } from "./form-settings-sheet"
+import { ImportDialog, TemplatesDialog } from "./form-transfer-dialogs"
 
 type DesignForm = Schemas["Form"]
 const EMPTY: DesignForm[] = []
@@ -24,7 +25,7 @@ function statusOf(f: DesignForm) {
   return { label: f.draft_version ? `نسخه‌ی ${toFaDigits(f.published_version)} · پیش‌نویس باز` : `نسخه‌ی ${toFaDigits(f.published_version)}`, tone: "success" as const }
 }
 
-/** «طراحی فرم‌ها»: فهرست فرم‌ها برای طراحان، فرم جدید، تنظیمات، کپی و حذف. */
+/** «طراحی فرم‌ها»: فهرست فرم‌ها برای طراحان، فرم جدید (خالی، از الگو یا از فایل)، تنظیمات، کپی، خروجی و حذف. */
 export default function FormsDesignPage() {
   const qc = useQueryClient()
   const navigate = useNavigate()
@@ -32,6 +33,7 @@ export default function FormsDesignPage() {
   const forms = useQuery({ queryKey: [...DESIGN_FORMS_KEY, "list"], queryFn: () => unwrap(api.GET("/api/forms/", { params: { query: { page_size: 100 } } })) })
   const [editing, setEditing] = React.useState<{ form: DesignForm | null } | null>(null)
   const [deleting, setDeleting] = React.useState<DesignForm | null>(null)
+  const [dialog, setDialog] = React.useState<"templates" | "import" | null>(null)
 
   const remove = useMutation({
     mutationFn: (f: DesignForm) => unwrap(api.DELETE("/api/forms/{id}/", { params: { path: { id: String(f.id) } } })),
@@ -90,6 +92,11 @@ export default function FormsDesignPage() {
           <DropdownMenuItem onSelect={() => copy.mutate(f)}>
             <Copy /> کپی
           </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <a href={`/api/forms/${f.id}/export/`} download>
+              <FileDown /> خروجی فرم
+            </a>
+          </DropdownMenuItem>
           <DropdownMenuSeparator />
           <DropdownMenuItem variant="destructive" onSelect={() => setDeleting(f)}>
             <Trash2 /> حذف
@@ -107,9 +114,17 @@ export default function FormsDesignPage() {
         title="طراحی فرم‌ها"
         description="فرم‌های سازمان را بدون کدنویسی بسازید، منتشر کنید و تعیین کنید چه کسانی پر کنند."
         actions={
-          <Button onClick={() => setEditing({ form: null })}>
-            <Plus /> فرم جدید
-          </Button>
+          <>
+            <Button variant="outline" onClick={() => setDialog("import")}>
+              <FileUp /> ورود فرم
+            </Button>
+            <Button variant="outline" onClick={() => setDialog("templates")}>
+              <LayoutTemplate /> فرم جدید از الگو
+            </Button>
+            <Button onClick={() => setEditing({ form: null })}>
+              <Plus /> فرم جدید
+            </Button>
+          </>
         }
       />
       <DataTable
@@ -125,6 +140,8 @@ export default function FormsDesignPage() {
         empty={{ title: "هنوز فرمی ساخته نشده است", description: "با «فرم جدید» اولین فرم سازمان را بسازید." }}
       />
       {editing && <FormSettingsSheet key={editing.form?.id ?? "new"} form={editing.form} open onOpenChange={(o) => !o && setEditing(null)} />}
+      {dialog === "templates" && <TemplatesDialog onOpenChange={(o) => !o && setDialog(null)} />}
+      {dialog === "import" && <ImportDialog onOpenChange={(o) => !o && setDialog(null)} />}
       {deleting && (
         <ConfirmDialog
           open

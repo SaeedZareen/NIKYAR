@@ -12,6 +12,7 @@ const FormsPage = lazy(() => import("@/pages/forms/forms-page"))
 const FormFillPage = lazy(() => import("@/pages/forms/fill-page"))
 const FormsDesignPage = lazy(() => import("@/pages/forms/design/forms-design-page"))
 const DesignerPage = lazy(() => import("@/pages/forms/design/designer-page"))
+const FormPreviewPage = lazy(() => import("@/pages/forms/design/preview-page"))
 const AccountPage = lazy(() => import("@/pages/account/account-page"))
 const DelegationsPage = lazy(() => import("@/pages/admin/delegations-page"))
 const UsersPage = lazy(() => import("@/pages/admin/users-page"))
@@ -42,6 +43,8 @@ export const router = createBrowserRouter([
     element: <RequireAuth />,
     errorElement: <RouteError />,
     children: [
+      // پیش‌نمایش فرم درون قاب طراح، بی پوسته‌ی برنامه (پهنای قاب همان پهنای دستگاه است)
+      { path: "forms/preview/:versionId", element: page(<FormPreviewPage />, "forms.design") },
       {
         element: <AppShell />,
         children: [

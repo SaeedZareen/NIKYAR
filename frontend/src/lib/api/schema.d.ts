@@ -2152,6 +2152,7 @@ export interface components {
             readonly id: number;
             /** فرم */
             readonly form: number;
+            readonly form_title: string;
             /** شماره‌ی نسخه */
             readonly number: number;
             /**
@@ -2184,6 +2185,7 @@ export interface components {
             readonly id: number;
             /** فرم */
             readonly form: number;
+            readonly form_title: string;
             /** شماره‌ی نسخه */
             readonly number: number;
             /**
