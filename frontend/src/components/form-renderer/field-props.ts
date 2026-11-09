@@ -10,3 +10,6 @@ export function common({ field, control, className, layout }: FieldProps) {
 
 export const optionsOf = (field: FieldDef, key = "options") => (field.props?.[key] ?? []) as ChoiceOption[]
 export const str = (value: unknown) => (typeof value === "string" ? value : "")
+
+/** شناسه‌های فایل یک فیلد (پیوست، صدا) به شکل فهرست. */
+export const asList = (value: unknown): string[] => (Array.isArray(value) ? value.map(String) : value === "" || value == null ? [] : [String(value)])

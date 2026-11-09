@@ -7,7 +7,10 @@ import { JalaliDateInput } from "@/components/form/inputs"
 import { itemsOf, toFormValues, toPayload, type ChoiceOption, type FieldDef, type FormDefinition, type FormRule, type FormValues, type PrefillSource, type SectionDef } from "@/components/form-renderer/definition"
 import { FieldView } from "@/components/form-renderer/form-renderer"
 import { useUnitOptions } from "@/components/form-renderer/org-options"
+import { FileDropzone } from "@/components/files"
+import { FileIcon } from "@/components/files/file-icon"
 import { InfoTip } from "@/components/info-tip"
+import { RichTextEditor } from "@/components/rich-text"
 import { SearchPicker } from "@/components/search-picker"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -19,8 +22,8 @@ import { Separator } from "@/components/ui/separator"
 import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { api, unwrap } from "@/lib/api/client"
-import { useFilePolicy } from "@/lib/files"
-import { onlyDigits, toEnDigits, toFaDigits } from "@/lib/format"
+import { inlineUrl, useFileInfo, useFilePolicy, type StoredFile } from "@/lib/files"
+import { formatFileSize, onlyDigits, toEnDigits, toFaDigits } from "@/lib/format"
 import type { FieldTypeSpec } from "./designer-model"
 import { ConditionsEditor, FormRulesEditor, FormulaEditor, type ConditionKey } from "./rule-editors"
 
@@ -343,6 +346,17 @@ function withDefault(f: FieldDef, value: unknown): FieldDef {
  * مقدار هر تغییر مثل ارسال فرم پاک‌سازی می‌شود.
  */
 function DefaultEditor({ field, error, onChange }: { field: FieldDef; error?: string; onChange: (v: unknown) => void }) {
+  // فیلد پنهان کنترل دیدنی ندارد
+  if (field.type === "hidden")
+    return (
+      <Row id="prop-default" label="مقدار پیش‌فرض" help="وقتی پارامتر نشانی صفحه نیامده باشد." error={error}>
+        <Input id="prop-default" maxLength={500} value={typeof field.default === "string" ? field.default : ""} onChange={(e) => onChange(e.target.value || undefined)} />
+      </Row>
+    )
+  return <ControlDefaultEditor field={field} error={error} onChange={onChange} />
+}
+
+function ControlDefaultEditor({ field, error, onChange }: { field: FieldDef; error?: string; onChange: (v: unknown) => void }) {
   const [definition] = React.useState<FormDefinition>(() => ({
     sections: [{ id: "default", fields: [{ id: DEFAULT_ID, type: field.type, label: "مقدار پیش‌فرض", props: field.props }] }],
   }))
@@ -405,6 +419,16 @@ function PropEditor({ spec, value, error, onChange }: { spec: PropSpec; value: u
           )}
         </Row>
       )
+    case "html":
+      return (
+        <Field data-invalid={!!error}>
+          <FieldLabel id={`${id}-label`}>{spec.title}</FieldLabel>
+          <RichTextEditor id={id} value={String(value ?? "")} onChange={(v) => onChange(v || undefined)} labelledBy={`${id}-label`} invalid={!!error} />
+          {error && <FieldError>{error}</FieldError>}
+        </Field>
+      )
+    case "file":
+      return <FilePropEditor id={id} title={spec.title} accept={spec.accept} value={typeof value === "string" ? value : undefined} error={error} onChange={onChange} />
     case "date":
       return (
         <Row id={id} label={spec.title} error={error}>
@@ -553,3 +577,37 @@ function ExtensionsEditor({ id, title, value, error, onChange }: { id: string; t
     </Row>
   )
 }
+
+/** فایل تعریف فرم (تصویر یا فایل راهنما): پیش‌نمایش یا نام فایل فعلی و بارگذاری فایل تازه. */
+function FilePropEditor({ id, title, accept, value, error, onChange }: { id: string; title: string; accept: string[]; value?: string; error?: string; onChange: (v: unknown) => void }) {
+  const [added, setAdded] = React.useState<StoredFile | null>(null)
+  const known = useFileInfo(value && added?.id !== value ? [value] : []).data?.[0]
+  const file = added?.id === value ? added : known
+  return (
+    <Field data-invalid={!!error}>
+      <FieldLabel htmlFor={id}>{title}</FieldLabel>
+      {value && file && (
+        <div className="flex items-center gap-2 rounded-md border p-1.5">
+          {file.is_image ? <img src={inlineUrl(file)} alt="" className="size-10 rounded object-cover" /> : <FileIcon name={file.name} />}
+          <span className="min-w-0 flex-1 truncate text-xs" dir="auto">
+            {file.name}
+          </span>
+          <span className="text-2xs text-muted-foreground">{formatFileSize(file.size)}</span>
+        </div>
+      )}
+      <FileDropzone
+        id={id}
+        imagesOnly={accept.length > 0 && accept.every((e) => IMAGE_EXTENSIONS.has(e))}
+        extensions={accept.length ? accept : undefined}
+        onUploaded={(f) => {
+          setAdded(f)
+          onChange(f.id)
+        }}
+        aria-invalid={!!error}
+      />
+      {error && <FieldError>{error}</FieldError>}
+    </Field>
+  )
+}
+
+const IMAGE_EXTENSIONS = new Set(["jpg", "jpeg", "png", "webp", "gif"])

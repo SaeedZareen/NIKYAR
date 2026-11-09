@@ -11,8 +11,25 @@ export function useFilePolicy() {
   return useQuery({ queryKey: ["files", "policy"], queryFn: () => unwrap(api.GET("/api/files/policy/")), staleTime: 5 * 60_000 })
 }
 
-/** نشانی نمایش فایل در مرورگر (تصویر و PDF). */
+/** نشانی نمایش فایل در مرورگر (تصویر، PDF و صدا). */
 export const inlineUrl = (file: Pick<StoredFile, "url">) => `${file.url}?inline=1`
+
+/** نشانی فایل با شناسه (تصویر و فایل راهنمای تعریف فرم). */
+export const fileUrl = (id: string) => `/api/files/${id}/download/`
+
+const AUDIO = new Set(["mp3", "m4a", "ogg", "wav", "webm"])
+export const isAudio = (file: Pick<StoredFile, "extension">) => AUDIO.has(file.extension)
+
+/** نام، نوع و حجم فایل‌های ذخیره‌شده با شناسه. */
+export function useFileInfo(ids: string[]) {
+  const key = ids.join(",")
+  return useQuery({
+    queryKey: ["files", "info", key],
+    queryFn: () => unwrap(api.GET("/api/files/info/", { params: { query: { ids: key } } })),
+    enabled: ids.length > 0,
+    staleTime: Infinity,
+  })
+}
 
 /** نوع‌های مجاز یک ناحیه‌ی بارگذاری: مجاز در تنظیمات، و در صورت نیاز فقط تصویر یا فقط نوع‌های تعیین‌شده‌ی همان فیلد. */
 export function allowedTypes(policy: FilePolicy, imagesOnly = false, extensions?: string[]) {

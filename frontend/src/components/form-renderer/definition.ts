@@ -43,6 +43,14 @@ export type FieldType =
   | "submitter"
   | "table"
   | "calculated"
+  | "image"
+  | "download"
+  | "url"
+  | "rich_text"
+  | "voice"
+  | "barcode"
+  | "location"
+  | "hidden"
 
 export type ChoiceOption = { value: string; label: string }
 
@@ -78,7 +86,7 @@ export type FormDefinition = { sections: SectionDef[]; rules?: FormRule[] }
 /** مقدار ورودی‌ها در react-hook-form (متن عدد تا پیش از ارسال متن می‌ماند). */
 export type FormValues = Record<string, unknown>
 
-const DISPLAY_TYPES: ReadonlySet<FieldType> = new Set(["heading", "paragraph", "divider"])
+const DISPLAY_TYPES: ReadonlySet<FieldType> = new Set(["heading", "paragraph", "divider", "image", "download"])
 
 export const isDisplay = (field: FieldDef) => DISPLAY_TYPES.has(field.type)
 
@@ -106,7 +114,14 @@ function toInput(field: FieldDef, value: unknown): unknown {
     case "region":
       return value && typeof value === "object" ? value : {}
     case "attachment":
+    case "voice":
       return Array.isArray(value) ? value : []
+    case "location": {
+      // عدد‌ها تا ارسال متن‌اند (مثل فیلد عدد)
+      const v = (value ?? {}) as { lat?: unknown; lng?: unknown; accuracy?: unknown }
+      const text = (n: unknown) => (typeof n === "number" ? String(n) : "")
+      return { lat: text(v.lat), lng: text(v.lng), ...(typeof v.accuracy === "number" ? { accuracy: v.accuracy } : {}) }
+    }
     case "table":
       return Array.isArray(value) ? value.map((row) => toItem(itemsOf(field), row as Record<string, unknown>)) : []
     case "lookup":
@@ -156,10 +171,13 @@ function prefillDefault(field: FieldDef, me?: CurrentUser): string | undefined {
   return field.prefill ? me?.profile?.[field.prefill] || undefined : undefined
 }
 
-/** مقدار اولیه‌ی ورودی‌ها از داده‌ی ثبت؛ برای فرم تازه مقدار پیش‌فرض هر فیلد (ثابت، «امروز/اکنون»، «خودم»، «واحد من»، پیش‌پر). */
-export function toFormValues(definition: FormDefinition, data?: Record<string, unknown>, me?: CurrentUser, now = new Date()): FormValues {
+/** مقدار اولیه‌ی ورودی‌ها از داده‌ی ثبت؛ برای فرم تازه مقدار پیش‌فرض هر فیلد (ثابت، «امروز/اکنون»، «خودم»، «واحد من»، پیش‌پر، پارامتر نشانی). */
+export function toFormValues(definition: FormDefinition, data?: Record<string, unknown>, me?: CurrentUser, query?: URLSearchParams, now = new Date()): FormValues {
   return Object.fromEntries(
     valueFields(definition).map((f) => {
+      // فیلد پنهان: مقدار پارامتر نشانی صفحه (?param=…) در فرم تازه
+      const param = f.type === "hidden" && !data && typeof f.props?.param === "string" ? query?.get(f.props.param) : null
+      if (param) return [f.id, param]
       // گروه تازه با یک مورد خالی (یا به تعداد کمینه) شروع می‌شود تا پرکننده بی‌درنگ بنویسد.
       if (f.type === "table" && !data) return [f.id, Array.from({ length: Math.max(Number(f.props?.min_rows ?? 1), 1) }, () => toItem(itemsOf(f)))]
       return [f.id, toInput(f, data ? data[f.id] : (nowDefault(f, now) ?? selfDefault(f, me) ?? prefillDefault(f, me) ?? f.default))]
@@ -185,6 +203,11 @@ function toValue(field: FieldDef, value: unknown): unknown {
   if (field.type === "consent" && value !== true) return undefined
   if (field.type === "boolean" && (value === "true" || value === "false")) return value === "true"
   if (field.type === "table" && Array.isArray(value)) return value.map((row) => rowValue(field, row))
+  if (field.type === "location" && value && typeof value === "object") {
+    const v = value as Record<string, unknown>
+    const num = (n: unknown) => (typeof n === "string" && NUMBER.test(n.trim()) ? Number(n) : n)
+    return { ...v, lat: num(v.lat), lng: num(v.lng) }
+  }
   return value
 }
 

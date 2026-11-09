@@ -148,6 +148,7 @@ class FieldPropSpecSerializer(serializers.Serializer):
     choices = serializers.ListField(child=serializers.DictField(child=serializers.CharField()), help_text="[{value, label}]")
     min = serializers.FloatField(allow_null=True)
     max = serializers.FloatField(allow_null=True)
+    accept = serializers.ListField(child=serializers.CharField(), help_text="kind=file: پسوندهای پذیرفته (خالی یعنی همه‌ی نوع‌های مجاز)")
 
 
 class FieldTypeSpecSerializer(serializers.Serializer):
@@ -187,6 +188,7 @@ def field_type_specs() -> list[dict]:
                     "choices": [{"value": k, "label": v} for k, v in p.choices.items()],
                     "min": p.min,
                     "max": p.max,
+                    "accept": list(p.accept),
                 }
                 for name, p in t.props.items()
             ],

@@ -1795,6 +1795,8 @@ export interface components {
             min: number | null;
             /** Format: double */
             max: number | null;
+            /** @description kind=file: پسوندهای پذیرفته (خالی یعنی همه‌ی نوع‌های مجاز) */
+            accept: string[];
         };
         FieldTypeSpec: {
             code: string;
