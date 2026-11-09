@@ -41,30 +41,19 @@ type Props = {
   onSection: (id: string, change: (s: SectionDef) => SectionDef, key: string) => void
   /** تغییر قاعده‌های فرم (وقتی چیزی انتخاب نشده). */
   onRules: (rules: FormRule[]) => void
-  /** نمایش مرحله‌ای فرم (وقتی چیزی انتخاب نشده). */
-  onSteps: (on: boolean) => void
+  /** ویژگی سطح فرم (نمایش مرحله‌ای، نشانه‌ی الزامی، متن‌ها)؛ undefined یعنی برداشتن. */
+  onFormProp: (name: FormProp, value: unknown) => void
   /** خطاهای قاعده‌های فرم («rules.0.message»). */
   formErrors: Record<string, string>
 }
 
 /** پانل ویژگی‌ها: ویژگی‌های بخش یا فیلد انتخاب‌شده؛ ویژگی‌های هر نوع از کاتالوگ سرور ساخته می‌شوند. */
-export function PropertiesPanel({ definition, selection, specs, errors, readOnly, onField, onSection, onRules, onSteps, formErrors }: Props) {
+export function PropertiesPanel({ definition, selection, specs, errors, readOnly, onField, onSection, onRules, onFormProp, formErrors }: Props) {
   if (!selection)
     return (
       <fieldset disabled={readOnly}>
         <p className="px-3 pt-3 text-2xs text-muted-foreground">برای دیدن ویژگی‌ها، یک فیلد یا بخش را روی بوم انتخاب کنید.</p>
-        <div className="flex flex-col gap-2 px-3 pt-3">
-          <p className="text-xs font-semibold">ویژگی‌های فرم</p>
-          <FlagSwitch
-            id="form-steps"
-            label="نمایش مرحله‌ای"
-            help="هر بخش یک مرحله با نوار پیشرفت و دکمه‌های «مرحله‌ی قبل/بعد»؛ پیش از رفتن به مرحله‌ی بعد، فیلدهای همان مرحله بررسی می‌شوند."
-            checked={definition.steps === true}
-            error={formErrors.steps}
-            onChange={onSteps}
-          />
-        </div>
-        <Separator className="mt-3" />
+        <FormProperties definition={definition} errors={formErrors} onChange={onFormProp} />
         <FormRulesEditor definition={definition} errors={formErrors} onChange={onRules} />
       </fieldset>
     )
@@ -625,3 +614,64 @@ function FilePropEditor({ id, title, accept, value, error, onChange }: { id: str
 }
 
 const IMAGE_EXTENSIONS = new Set(["jpg", "jpeg", "png", "webp", "gif"])
+
+export type FormProp = "steps" | "numbered" | "required_mark" | "submit_label" | "intro" | "confirmation"
+
+/** ویژگی‌های سطح فرم که با نسخه ذخیره و در پیش‌نمایش دیده می‌شوند. */
+function FormProperties({ definition, errors, onChange }: { definition: FormDefinition; errors: Record<string, string>; onChange: (name: FormProp, value: unknown) => void }) {
+  return (
+    <div className="flex flex-col gap-3 px-3 pt-3">
+      <p className="text-xs font-semibold">ویژگی‌های فرم</p>
+      <FlagSwitch
+        id="form-steps"
+        label="نمایش مرحله‌ای"
+        help="هر بخش یک مرحله با نوار پیشرفت و دکمه‌های «مرحله‌ی قبل/بعد»؛ پیش از رفتن به مرحله‌ی بعد، فیلدهای همان مرحله بررسی می‌شوند."
+        checked={definition.steps === true}
+        error={errors.steps}
+        onChange={(v) => onChange("steps", v || undefined)}
+      />
+      <FlagSwitch
+        id="form-numbered"
+        label="شماره‌گذاری فیلدها"
+        help="هر فیلد دیدنی شماره‌ای (۱، ۲، …) پیش از برچسبش می‌گیرد؛ مناسب پرسش‌نامه."
+        checked={definition.numbered === true}
+        error={errors.numbered}
+        onChange={(v) => onChange("numbered", v || undefined)}
+      />
+      <Row id="form-required-mark" label="نشانه‌ی فیلد الزامی" help="«اختیاری روی اختیاری‌ها» برای فرم‌هایی که بیشتر فیلدهایشان الزامی است خواناتر است." error={errors.required_mark}>
+        <Select value={definition.required_mark ?? "star"} onValueChange={(v) => onChange("required_mark", v === "star" ? undefined : v)}>
+          <SelectTrigger id="form-required-mark" className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="star">ستاره (*)</SelectItem>
+            <SelectItem value="word">نوشته‌ی «(الزامی)»</SelectItem>
+            <SelectItem value="optional">«(اختیاری)» روی فیلدهای اختیاری</SelectItem>
+          </SelectContent>
+        </Select>
+      </Row>
+      <Row id="form-submit-label" label="متن دکمه‌ی ثبت" error={errors.submit_label}>
+        <Input id="form-submit-label" maxLength={40} placeholder="ثبت نهایی" value={definition.submit_label ?? ""} onChange={(e) => onChange("submit_label", e.target.value || undefined)} />
+      </Row>
+      <Field data-invalid={!!errors.intro}>
+        <div className="flex items-center gap-1">
+          <FieldLabel id="form-intro-label">متن آغاز فرم</FieldLabel>
+          <InfoTip label="راهنمای متن آغاز فرم">بالای فرم و پیش از نخستین بخش نمایش داده می‌شود؛ مثلاً مدارک لازم یا شرایط.</InfoTip>
+        </div>
+        <RichTextEditor id="form-intro" value={definition.intro ?? ""} onChange={(v) => onChange("intro", v || undefined)} labelledBy="form-intro-label" invalid={!!errors.intro} />
+        {errors.intro && <FieldError>{errors.intro}</FieldError>}
+      </Field>
+      <Field data-invalid={!!errors.confirmation}>
+        <div className="flex items-center gap-1">
+          <FieldLabel id="form-confirmation-label">پیام پس از ثبت</FieldLabel>
+          <InfoTip label="راهنمای پیام پس از ثبت">
+            در «صفحه‌ی تأیید» نمایش داده می‌شود (تنظیمات فرم › پس از ثبت). جای‌گذارها: {"{شماره}"} شماره‌ی ثبت، {"{نام}"} نام ثبت‌کننده، {"{تاریخ}"} زمان ثبت، {"{فرم}"} عنوان فرم.
+          </InfoTip>
+        </div>
+        <RichTextEditor id="form-confirmation" value={definition.confirmation ?? ""} onChange={(v) => onChange("confirmation", v || undefined)} labelledBy="form-confirmation-label" invalid={!!errors.confirmation} />
+        {errors.confirmation && <FieldError>{errors.confirmation}</FieldError>}
+      </Field>
+      <Separator />
+    </div>
+  )
+}

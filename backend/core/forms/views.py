@@ -324,6 +324,7 @@ class FillContextSerializer(serializers.Serializer):
     after_submit = serializers.CharField()
     after_submit_url = serializers.CharField(allow_blank=True)
     anonymous = serializers.BooleanField()
+    edit_hours = serializers.IntegerField(allow_null=True, help_text="ویرایش ثبت نهایی تا چند ساعت؛ null یعنی ویرایش‌پذیر نیست")
 
 
 def fill_context(version: FormVersion, user) -> dict:
@@ -334,6 +335,7 @@ def fill_context(version: FormVersion, user) -> dict:
         "after_submit": form.after_submit,
         "after_submit_url": form.after_submit_url,
         "anonymous": form.anonymous,
+        "edit_hours": form.edit_hours,
         "form": form.pk,
         "title": form.title,
         "description": form.description,

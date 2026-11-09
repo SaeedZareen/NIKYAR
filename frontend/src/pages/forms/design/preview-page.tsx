@@ -13,8 +13,11 @@ import { useFormSteps } from "@/components/form-renderer/use-form-steps"
 import { applyRules } from "@/components/form-renderer/rules"
 import { formResolver, type JsonSchema } from "@/components/form-renderer/validate"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { RichTextView } from "@/components/rich-text"
 import { Button } from "@/components/ui/button"
 import { api, unwrap, type Schemas } from "@/lib/api/client"
+import { formatDateTime } from "@/lib/format"
+import { confirmationHtml } from "../confirmation-text"
 
 /**
  * پیش‌نمایش یک نسخه‌ی فرم در قاب طراح (رایانه یا موبایل): همان نمایشگر پر کردن، قاعده‌ها و اعتبارسنجی زنده،
@@ -61,6 +64,7 @@ function Preview({ version }: { version: Schemas["FormVersionDetail"] }) {
   const { state: rules } = React.useMemo(() => applyRules(definition, toPayload(definition, values as FormValues)), [definition, values])
   const steps = useFormSteps(definition, rules, form, title)
   const [passed, setPassed] = React.useState(false)
+  const [sampleDate] = React.useState(() => formatDateTime(new Date().toISOString()))
   const onSubmit = (e: React.FormEvent) => {
     setPassed(false)
     if (steps.enabled && !steps.last) {
@@ -77,9 +81,16 @@ function Preview({ version }: { version: Schemas["FormVersionDetail"] }) {
         {passed && (
           <Alert>
             <CircleCheck />
-            <AlertDescription>همه‌ی فیلدها درست‌اند؛ در پیش‌نمایش چیزی ذخیره نمی‌شود.</AlertDescription>
+            <AlertDescription className="flex flex-col gap-2">
+              <span>همه‌ی فیلدها درست‌اند؛ در پیش‌نمایش چیزی ذخیره نمی‌شود. پیام پس از ثبت (با مقدارهای نمونه):</span>
+              <RichTextView
+                html={confirmationHtml(definition.confirmation, { number: "۱۴۰۵-۰۰۱", name: user?.full_name || "ثبت‌کننده", date: sampleDate, form: title })}
+                className="text-foreground"
+              />
+            </AlertDescription>
           </Alert>
         )}
+        {definition.intro && <RichTextView html={definition.intro} className="rounded-lg border bg-card p-3" />}
         {steps.enabled && <StepHeader steps={steps} />}
         <FormRenderer
           definition={definition}
@@ -94,7 +105,9 @@ function Preview({ version }: { version: Schemas["FormVersionDetail"] }) {
                   مرحله‌ی قبل
                 </Button>
               )}
-              <Button type="submit">{steps.enabled && !steps.last ? "مرحله‌ی بعد" : <><FlaskConical /> آزمایش ثبت</>}</Button>
+              <Button type="submit" aria-label={steps.enabled && !steps.last ? undefined : "آزمایش ثبت"}>
+                {steps.enabled && !steps.last ? "مرحله‌ی بعد" : <><FlaskConical /> {definition.submit_label || "ثبت نهایی"} (آزمایشی)</>}
+              </Button>
               <Button
                 type="button"
                 variant="ghost"

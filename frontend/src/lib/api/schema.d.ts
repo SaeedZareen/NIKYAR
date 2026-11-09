@@ -2007,6 +2007,8 @@ export interface components {
             after_submit: string;
             after_submit_url: string;
             anonymous: boolean;
+            /** @description ویرایش ثبت نهایی تا چند ساعت؛ null یعنی ویرایش‌پذیر نیست */
+            edit_hours: number | null;
         };
         FiscalYearSettings: {
             /**

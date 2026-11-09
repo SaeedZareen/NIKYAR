@@ -297,7 +297,14 @@ function Editor({ form, version, specs, onReload }: { form: DesignForm; version:
       }}
       onSection={(id, change, key) => apply((d) => updateSection(d, id, change), key)}
       onRules={(rules) => apply((d) => (rules.length ? { ...d, rules } : (({ rules: _r, ...rest }) => rest)(d)), "rules")}
-      onSteps={(on) => apply((d) => (on ? { ...d, steps: true } : (({ steps: _s, ...rest }) => rest)(d)))}
+      onFormProp={(name, value) =>
+        apply((d) => {
+          const next = { ...d } as Record<string, unknown>
+          if (value === undefined) delete next[name]
+          else next[name] = value
+          return next as FormDefinition
+        }, `form:${name}`)
+      }
       formErrors={errors.form ?? {}}
     />
   )
