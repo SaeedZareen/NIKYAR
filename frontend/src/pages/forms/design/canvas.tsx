@@ -2,13 +2,14 @@ import * as React from "react"
 import { useDroppable } from "@dnd-kit/core"
 import { rectSortingStrategy, SortableContext, useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { ArrowDown, ArrowUp, ChevronDown, ChevronUp, Copy, GitBranch, GripVertical, Plus, Trash2 } from "lucide-react"
+import { ArrowDown, ArrowUp, ChevronDown, ChevronUp, Copy, GitBranch, GripVertical, MoveHorizontal, Plus, Trash2 } from "lucide-react"
 import { useForm } from "react-hook-form"
 import { FormGrid } from "@/components/form/form-grid"
-import { spanClass, type FieldDef, type FormDefinition, type FormValues, type SectionDef } from "@/components/form-renderer/definition"
+import { labelLayout, spanClass, type FieldDef, type FormDefinition, type FormValues, type SectionDef } from "@/components/form-renderer/definition"
 import { FieldView } from "@/components/form-renderer/form-renderer"
 import { InfoTip } from "@/components/info-tip"
 import { Button } from "@/components/ui/button"
+import { toFaDigits } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import type { Selection } from "./properties-panel"
 
@@ -23,6 +24,9 @@ type Props = {
   onDuplicateField: (id: string) => void
   onRemoveField: (id: string) => void
   onMoveSection: (id: string, delta: -1 | 1) => void
+  /** تغییر مستقیم از روی بوم (ستون‌های بخش، پهنای فیلد). */
+  onSectionChange: (id: string, change: (s: SectionDef) => SectionDef, key: string) => void
+  onFieldChange: (id: string, change: (f: FieldDef) => FieldDef, key: string) => void
   onRemoveSection: (id: string) => void
   onAddSection: () => void
 }
@@ -51,7 +55,7 @@ export function Canvas(props: Props) {
 
 type SectionProps = Props & { section: SectionDef; first: boolean; last: boolean; control: ReturnType<typeof useForm<FormValues>>["control"] }
 
-function CanvasSection({ section, first, last, selection, invalid, readOnly, onSelect, onMoveSection, onRemoveSection, control, ...rest }: SectionProps) {
+function CanvasSection({ section, first, last, selection, invalid, readOnly, onSelect, onMoveSection, onRemoveSection, onSectionChange, control, ...rest }: SectionProps) {
   const { setNodeRef: dropRef, isOver } = useDroppable({ id: `section:${section.id}`, disabled: readOnly })
   const selected = selection?.kind === "section" && selection.id === section.id
   const columns = Math.min(Math.max(section.columns ?? 1, 1), 3) as 1 | 2 | 3
@@ -84,6 +88,22 @@ function CanvasSection({ section, first, last, selection, invalid, readOnly, onS
         )}
         {!readOnly && (
           <div className="ms-auto flex items-center gap-0.5">
+            <div role="group" aria-label={`ستون‌های بخش «${title}»`} className="me-2 flex items-center gap-0.5 rounded-md border p-0.5">
+              {([1, 2, 3] as const).map((n) => (
+                <Button
+                  key={n}
+                  type="button"
+                  variant={columns === n ? "secondary" : "ghost"}
+                  size="sm"
+                  className="h-6 px-2 text-2xs"
+                  aria-pressed={columns === n}
+                  aria-label={`${toFaDigits(n)} ستون`}
+                  onClick={() => onSectionChange(section.id, (s) => ({ ...s, columns: n }), `columns:${section.id}`)}
+                >
+                  {toFaDigits(n)} ستون
+                </Button>
+              ))}
+            </div>
             <Button type="button" variant="ghost" size="icon-sm" aria-label={`بالا بردن بخش «${title}»`} disabled={first} onClick={() => onMoveSection(section.id, -1)}>
               <ChevronUp />
             </Button>
@@ -96,14 +116,24 @@ function CanvasSection({ section, first, last, selection, invalid, readOnly, onS
           </div>
         )}
       </div>
-      <div className="p-3">
+      <div className="relative p-3">
+        {!readOnly && columns > 1 && (
+          // خطوط راهنمای ستون‌ها (فقط در طراح؛ موبایل تک‌ستونه است)
+          <div aria-hidden className={cn("pointer-events-none absolute inset-3 hidden gap-x-8 md:grid", columns === 2 ? "md:grid-cols-2" : "md:grid-cols-3")}>
+            {Array.from({ length: columns }, (_, i) => (
+              <div key={i} className="rounded-md border border-dashed border-border" />
+            ))}
+          </div>
+        )}
         <SortableContext items={section.fields.map((f) => f.id)} strategy={rectSortingStrategy} disabled={readOnly}>
-          <FormGrid columns={columns}>
+          <FormGrid columns={columns} fixed>
             {section.fields.map((field) => (
               <CanvasField
                 key={field.id}
                 field={field}
-                className={spanClass(field.span, columns)}
+                className={spanClass(field, columns)}
+                columns={columns}
+                layout={labelLayout(section)}
                 selected={selection?.kind === "field" && selection.id === field.id}
                 invalid={invalid.has(field.id)}
                 readOnly={readOnly}
@@ -124,8 +154,10 @@ function CanvasSection({ section, first, last, selection, invalid, readOnly, onS
   )
 }
 
-type FieldProps = Pick<Props, "onNudgeField" | "onDuplicateField" | "onRemoveField"> & {
+type FieldProps = Pick<Props, "onNudgeField" | "onDuplicateField" | "onRemoveField" | "onFieldChange"> & {
   field: FieldDef
+  columns: number
+  layout: "side" | "stacked"
   className: string
   selected: boolean
   invalid: boolean
@@ -134,7 +166,8 @@ type FieldProps = Pick<Props, "onNudgeField" | "onDuplicateField" | "onRemoveFie
   onSelect: () => void
 }
 
-function CanvasField({ field, className, selected, invalid, readOnly, control, onSelect, onNudgeField, onDuplicateField, onRemoveField }: FieldProps) {
+function CanvasField({ field, columns, layout, className, selected, invalid, readOnly, control, onSelect, onNudgeField, onDuplicateField, onRemoveField, onFieldChange }: FieldProps) {
+  const span = Math.min(field.span ?? 1, columns)
   const { setNodeRef, setActivatorNodeRef, attributes, listeners, transform, transition, isDragging } = useSortable({ id: field.id, disabled: readOnly })
   const name = field.label || (field.type === "divider" ? "جداکننده" : field.type === "paragraph" ? "متن راهنما" : field.id)
   const style: React.CSSProperties = { transform: CSS.Translate.toString(transform), transition }
@@ -158,7 +191,7 @@ function CanvasField({ field, className, selected, invalid, readOnly, control, o
         </span>
       )}
       <div inert>
-        <FieldView field={field} control={control} />
+        <FieldView field={field} control={control} layout={layout} />
       </div>
       {!readOnly && (
         <div
@@ -179,6 +212,18 @@ function CanvasField({ field, className, selected, invalid, readOnly, control, o
           >
             <GripVertical />
           </Button>
+          {columns > 1 && (
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-6 px-1.5 text-2xs"
+              aria-label={`پهنای «${name}»: ${span >= columns ? "تمام عرض" : `${toFaDigits(span)} ستون`} (زدن برای تغییر)`}
+              onClick={() => onFieldChange(field.id, (f) => ({ ...f, span: span >= columns ? 1 : span + 1 }), `span:${field.id}`)}
+            >
+              <MoveHorizontal /> {span >= columns ? "تمام عرض" : `${toFaDigits(span)} ستون`}
+            </Button>
+          )}
           <Button type="button" variant="ghost" size="icon-sm" aria-label={`بالا بردن «${name}»`} onClick={() => onNudgeField(field.id, -1)}>
             <ArrowUp />
           </Button>

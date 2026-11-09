@@ -191,6 +191,13 @@ RULES_DEFINITION = {
                     "required_if": {"==": [V("kind"), "sick"]},
                 },
                 {"id": "note", "type": "text", "label": "توضیح", "default": "استحقاقی", "readonly_if": {"==": [V("kind"), "annual"]}},
+                {
+                    "id": "followup",
+                    "type": "text",
+                    "label": "پیگیری",
+                    # شرط تودرتو: استعلاجی و (بیش از یک روز یا «الف» پر شده)
+                    "visible_if": {"and": [{"==": [V("kind"), "sick"]}, {"or": [{">": [V("days"), 1]}, {"!!": V("a")}]}]},
+                },
                 {"id": "a", "type": "number", "label": "الف"},
                 {"id": "b", "type": "number", "label": "ب"},
                 {"id": "extra", "type": "text", "label": "توضیح الف", "visible_if": {"and": [{"!!": V("a")}, {">": [V("a"), 5]}]}},

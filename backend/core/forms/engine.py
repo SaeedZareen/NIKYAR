@@ -41,9 +41,11 @@ for _name, _check in {
 }.items():
     FORMATS.checks(_name)(lambda value, check=_check: not isinstance(value, str) or check(value))
 
-FIELD_KEYS = {"id", "type", "label", "help", "required", "span", "default", "props", *rules.FIELD_CONDITIONS}
-COLUMN_KEYS = FIELD_KEYS - {"span", *rules.FIELD_CONDITIONS}
-SECTION_KEYS = {"id", "title", "help", "columns", "fields", "visible_if"}
+FIELD_KEYS = {"id", "type", "label", "help", "required", "span", "new_row", "default", "props", *rules.FIELD_CONDITIONS}
+COLUMN_KEYS = FIELD_KEYS - {"span", "new_row", *rules.FIELD_CONDITIONS}
+SECTION_KEYS = {"id", "title", "help", "columns", "labels", "fields", "visible_if"}
+# جای برچسب در بخش: auto یعنی کنار فیلد تا دو ستون و بالای فیلد در بخش سه‌ستونه
+LABEL_POSITIONS = {"auto", "side", "top"}
 RULE_KEYS = {"id", "condition", "message", "field"}
 
 
@@ -86,6 +88,8 @@ def check_definition(definition) -> None:
         if not _is_int(columns) or not 1 <= columns <= 3:
             errors[f"{path}.columns"] = "تعداد ستون‌های بخش ۱، ۲ یا ۳ است."
             columns = 3
+        if section.get("labels", "auto") not in LABEL_POSITIONS:
+            errors[f"{path}.labels"] = "جای برچسب «خودکار»، «کنار فیلد» یا «بالای فیلد» است."
         fields = section.get("fields", [])
         if not isinstance(fields, list):
             errors[f"{path}.fields"] = "فیلدهای بخش باید فهرست باشند."
@@ -178,6 +182,8 @@ def _check_field(field, path: str, seen: set, errors: dict, *, columns: int | No
         errors[f"{path}.required"] = "«الزامی» فقط برای فیلدهای دارای مقدار و به شکل بله/خیر است."
     if columns is not None and "span" in field and (not _is_int(field["span"]) or not 1 <= field["span"] <= columns):
         errors[f"{path}.span"] = f"پهنای فیلد باید بین ۱ و {fa_digits(columns)} ستون باشد."
+    if columns is not None and "new_row" in field and not isinstance(field["new_row"], bool):
+        errors[f"{path}.new_row"] = "«شروع از ردیف تازه» باید بله یا خیر باشد."
     props = field.get("props", {})
     if not isinstance(props, dict):
         errors[f"{path}.props"] = "ویژگی‌های فیلد باید یک شیء باشند."

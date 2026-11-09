@@ -53,6 +53,8 @@ export type FieldDef = {
   help?: string
   required?: boolean
   span?: number
+  /** شروع از ردیف تازه (فیلد پس از فیلدهای قبلی در ستون اول می‌نشیند). */
+  new_row?: boolean
   default?: unknown
   props?: Record<string, unknown>
   /** قاعده‌های JsonLogic (rules.ts) */
@@ -61,7 +63,8 @@ export type FieldDef = {
   readonly_if?: unknown
 }
 
-export type SectionDef = { id: string; title?: string; help?: string; columns?: number; fields: FieldDef[]; visible_if?: unknown }
+export type LabelPosition = "auto" | "side" | "top"
+export type SectionDef = { id: string; title?: string; help?: string; columns?: number; labels?: LabelPosition; fields: FieldDef[]; visible_if?: unknown }
 /** قاعده‌ی بین فیلدها: condition باید درست باشد وگرنه message زیر field می‌آید. */
 export type FormRule = { id: string; condition: unknown; message: string; field?: string | null }
 export type FormDefinition = { sections: SectionDef[]; rules?: FormRule[] }
@@ -173,9 +176,29 @@ export function clean(value: unknown): unknown {
   return value
 }
 
-/** کلاس پهنای فیلدی که span ستون از columns ستون بخش می‌گیرد (هماهنگ با FormGrid). */
-export function spanClass(span: number | undefined, columns: number): string {
-  const s = span ?? 1
-  if (s >= columns) return "col-span-full"
-  return s === 2 ? "@2xl:col-span-2" : ""
+/** کلاس پهنا و ردیف فیلد در شبکه‌ی ستون‌ثابت بخش (FormGrid fixed)؛ موبایل همیشه تک‌ستونه. */
+export function spanClass(field: Pick<FieldDef, "span" | "new_row">, columns: number): string {
+  const s = Math.min(field.span ?? 1, columns)
+  const width = s >= columns ? "col-span-full" : s === 2 ? "md:col-span-2" : ""
+  return [width, field.new_row ? "md:col-start-1" : ""].filter(Boolean).join(" ")
+}
+
+/** جای برچسب فیلدهای بخش: «خودکار» یعنی کنار فیلد تا دو ستون و بالای فیلد در بخش سه‌ستونه. */
+export function labelLayout(section: Pick<SectionDef, "labels" | "columns">): "side" | "stacked" {
+  const labels = section.labels ?? "auto"
+  if (labels === "top") return "stacked"
+  if (labels === "side") return "side"
+  return (section.columns ?? 1) >= 3 ? "stacked" : "side"
+}
+
+/** کلاس چیدمان گزینه‌ها (رادیویی و چک‌باکس): پشت سر هم یا تعداد ستون ثابت. */
+export function optionColumnsClass(value: unknown): string {
+  return (
+    {
+      "1": "grid grid-cols-1 gap-y-2",
+      "2": "grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-2",
+      "3": "grid grid-cols-1 gap-x-4 gap-y-2 sm:grid-cols-3",
+      "4": "grid grid-cols-2 gap-x-4 gap-y-2 sm:grid-cols-4",
+    }[String(value)] ?? "flex flex-wrap items-center gap-x-4 gap-y-2"
+  )
 }

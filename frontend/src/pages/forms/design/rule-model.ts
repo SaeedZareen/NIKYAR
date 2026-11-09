@@ -5,7 +5,9 @@ import type { FieldDef, FieldType, FormDefinition } from "@/components/form-rend
 export type Operand = { kind: "value"; value: string | number | boolean } | { kind: "field"; field: string } | { kind: "today" }
 export type Op = "eq" | "ne" | "gt" | "gte" | "lt" | "lte" | "empty" | "filled" | "has"
 export type Clause = { field: string; op: Op; right?: Operand }
-export type Condition = { mode: "all" | "any"; clauses: Clause[] }
+/** گروه شرط: «همه» (و) یا «یکی از» (یا)؛ هر عضو یک جمله یا گروهی تودرتو. */
+export type Condition = { mode: "all" | "any"; clauses: (Clause | Condition)[] }
+export const isGroup = (item: Clause | Condition): item is Condition => "mode" in item
 
 export const OP_LABELS: Record<Op, string> = {
   eq: "برابر است با",
@@ -50,9 +52,14 @@ export function clauseLogic(c: Clause): unknown {
   return { [BINARY[c.op]!]: [v(c.field), operandLogic(c.right)] }
 }
 
+function groupLogic(c: Condition): unknown {
+  return { [c.mode === "all" ? "and" : "or"]: c.clauses.map((item) => (isGroup(item) ? groupLogic(item) : clauseLogic(item))) }
+}
+
+/** شرط ← JsonLogic. گروه بالایی با یک جمله بی‌پوشش می‌ماند؛ گروه‌های تودرتو همیشه «و/یا» دارند تا گروه بمانند. */
 export function conditionLogic(c: Condition): unknown {
-  const parts = c.clauses.map(clauseLogic)
-  return parts.length === 1 ? parts[0] : { [c.mode === "all" ? "and" : "or"]: parts }
+  if (c.clauses.length === 1 && !isGroup(c.clauses[0])) return clauseLogic(c.clauses[0])
+  return groupLogic(c)
 }
 
 // شناسه‌ی خالی («فیلد دیگر» هنوز انتخاب نشده) هم خوانده می‌شود تا سازنده گیر نکند.
@@ -87,14 +94,17 @@ function parseClause(logic: unknown): Clause | null {
 }
 
 /** JsonLogic ← شرط سازنده؛ null یعنی عبارت پیشرفته‌ای که سازنده نمی‌سازد. */
+function parseGroup(logic: unknown): Condition | null {
+  if (!logic || typeof logic !== "object" || Array.isArray(logic)) return null
+  const [op, args] = Object.entries(logic)[0] ?? []
+  if ((op !== "and" && op !== "or") || !Array.isArray(args)) return null
+  const items = args.map((a) => parseGroup(a) ?? parseClause(a))
+  return items.every(Boolean) ? { mode: op === "and" ? "all" : "any", clauses: items as (Clause | Condition)[] } : null
+}
+
 export function parseCondition(logic: unknown): Condition | null {
-  if (logic && typeof logic === "object" && !Array.isArray(logic)) {
-    const [op, args] = Object.entries(logic)[0] ?? []
-    if ((op === "and" || op === "or") && Array.isArray(args)) {
-      const clauses = args.map(parseClause)
-      return clauses.every(Boolean) ? { mode: op === "and" ? "all" : "any", clauses: clauses as Clause[] } : null
-    }
-  }
+  const group = parseGroup(logic)
+  if (group) return group
   const single = parseClause(logic)
   return single ? { mode: "all", clauses: [single] } : null
 }

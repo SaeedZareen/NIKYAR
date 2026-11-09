@@ -368,6 +368,8 @@ function Editor({ form, version, specs, onReload }: { form: DesignForm; version:
                 if (selection?.id === id) setSelection(null)
               }}
               onMoveSection={(id, delta) => apply((d) => moveSection(d, id, delta))}
+              onSectionChange={(id, change, key) => apply((d) => updateSection(d, id, change), key)}
+              onFieldChange={(id, change, key) => apply((d) => updateField(d, id, change), key)}
               onRemoveSection={(id) => {
                 const section = definition.sections.find((s) => s.id === id)
                 if (section?.fields.length) setRemovingSection(id)

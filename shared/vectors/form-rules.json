@@ -111,6 +111,40 @@
       }
      },
      {
+      "id": "followup",
+      "type": "text",
+      "label": "پیگیری",
+      "visible_if": {
+       "and": [
+        {
+         "==": [
+          {
+           "var": "kind"
+          },
+          "sick"
+         ]
+        },
+        {
+         "or": [
+          {
+           ">": [
+            {
+             "var": "days"
+            },
+            1
+           ]
+          },
+          {
+           "!!": {
+            "var": "a"
+           }
+          }
+         ]
+        }
+       ]
+      }
+     },
+     {
       "id": "a",
       "type": "number",
       "label": "الف"
@@ -314,6 +348,17 @@
      "maxLength": "«توضیح» حداکثر ۲۰۰ نویسه باشد."
     }
    },
+   "followup": {
+    "type": "string",
+    "maxLength": 200,
+    "title": "پیگیری",
+    "x-nikyar-type": "text",
+    "x-messages": {
+     "required": "تکمیل «پیگیری» الزامی است.",
+     "invalid": "مقدار «پیگیری» معتبر نیست.",
+     "maxLength": "«پیگیری» حداکثر ۲۰۰ نویسه باشد."
+    }
+   },
    "a": {
     "type": "integer",
     "title": "الف",
@@ -464,6 +509,17 @@
      "maxLength": "«توضیح» حداکثر ۲۰۰ نویسه باشد."
     }
    },
+   "followup": {
+    "type": "string",
+    "maxLength": 200,
+    "title": "پیگیری",
+    "x-nikyar-type": "text",
+    "x-messages": {
+     "required": "تکمیل «پیگیری» الزامی است.",
+     "invalid": "مقدار «پیگیری» معتبر نیست.",
+     "maxLength": "«پیگیری» حداکثر ۲۰۰ نویسه باشد."
+    }
+   },
    "a": {
     "type": "integer",
     "title": "الف",
@@ -544,6 +600,7 @@
    "hidden": [
     "cert",
     "extra",
+    "followup",
     "hours"
    ],
    "required": [],
@@ -591,6 +648,7 @@
     "cert",
     "end",
     "extra",
+    "followup",
     "start"
    ],
    "required": [],
@@ -613,6 +671,7 @@
    "hidden": [
     "cert",
     "extra",
+    "followup",
     "hours"
    ],
    "required": [],
@@ -638,6 +697,7 @@
    },
    "hidden": [
     "extra",
+    "followup",
     "hours"
    ],
    "required": [
@@ -661,6 +721,7 @@
    },
    "hidden": [
     "cert",
+    "followup",
     "hours"
    ],
    "required": [],
@@ -686,6 +747,7 @@
    },
    "hidden": [
     "cert",
+    "followup",
     "hours"
    ],
    "required": [],
@@ -712,6 +774,7 @@
    "hidden": [
     "cert",
     "extra",
+    "followup",
     "hours"
    ],
    "required": [],
