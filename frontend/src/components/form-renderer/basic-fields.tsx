@@ -8,8 +8,9 @@ import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { cn } from "@/lib/utils"
 import { formatNumber, numberToWords, toEnDigits } from "@/lib/format"
-import type { ChoiceOption, FieldDef } from "./definition"
+import { optionColumnsClass, type ChoiceOption, type FieldDef } from "./definition"
 import { common, optionsOf, str, type FieldProps } from "./field-props"
 
 // نوع‌های پایه (3.2): متن، عدد، مبلغ، تاریخ، ساعت و انتخاب‌ها.
@@ -103,7 +104,7 @@ export function RadioField({ options, ...p }: FieldProps & { options: ChoiceOpti
       {...common(p)}
       group
       render={({ field, id, aria }) => (
-        <RadioGroup id={id} tabIndex={-1} value={str(field.value)} onValueChange={field.onChange} className="flex min-h-7 flex-wrap items-center gap-x-4 gap-y-2" {...aria}>
+        <RadioGroup id={id} tabIndex={-1} value={str(field.value)} onValueChange={field.onChange} className={cn("min-h-7", optionColumnsClass(p.field.props?.option_columns))} {...aria}>
           {options.map((o) => (
             <div key={o.value} className="flex items-center gap-2">
               <RadioGroupItem value={o.value} id={`${id}-${o.value}`} onBlur={field.onBlur} />
@@ -163,7 +164,7 @@ export function MultiChoiceField(p: FieldProps) {
         // ترتیب انتخاب‌ها همان ترتیب گزینه‌ها می‌ماند.
         const toggle = (value: string, on: boolean) => field.onChange(options.map((o) => o.value).filter((v) => (v === value ? on : selected.includes(v))))
         return (
-          <div id={id} role="group" tabIndex={-1} className="flex min-h-7 flex-wrap items-center gap-x-4 gap-y-2 outline-none" {...aria}>
+          <div id={id} role="group" tabIndex={-1} className={cn("min-h-7 outline-none", optionColumnsClass(p.field.props?.option_columns))} {...aria}>
             {options.map((o) => (
               <div key={o.value} className="flex items-center gap-2">
                 <Checkbox id={`${id}-${o.value}`} checked={selected.includes(o.value)} onCheckedChange={(c) => toggle(o.value, c === true)} onBlur={field.onBlur} />
@@ -181,11 +182,11 @@ export function MultiChoiceField(p: FieldProps) {
 
 
 /** فیلد محاسبه‌ای: نتیجه‌ی فرمول، فقط‌خواندنی و زنده؛ تا ورودی‌های فرمول پر نشده‌اند «—». */
-export function CalculatedField({ field, value, className }: { field: FieldDef; value?: number; className?: string }) {
+export function CalculatedField({ field, value, className, layout }: { field: FieldDef; value?: number; className?: string; layout?: "side" | "stacked" }) {
   const format = field.props?.format
   const unit = format === "amount" ? "ریال" : format === "days" ? "روز" : str(field.props?.unit)
   return (
-    <StaticField label={field.label ?? ""} className={className}>
+    <StaticField label={field.label ?? ""} className={className} layout={layout}>
       <output className="flex min-h-7 items-center text-xs font-medium tabular-nums" aria-live="polite">
         {value === undefined ? "—" : `${formatNumber(value)}${unit ? ` ${unit}` : ""}`}
       </output>

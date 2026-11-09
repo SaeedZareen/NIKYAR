@@ -96,7 +96,19 @@ function SectionProperties({ definition, section, errors, readOnly, onChange }: 
       <Row id="section-help" label="راهنمای بخش" help="در نشانه‌ی ⓘ کنار عنوان بخش نمایش داده می‌شود." error={errors.help}>
         <Textarea id="section-help" rows={2} maxLength={500} value={section.help ?? ""} onChange={(e) => onChange((s) => ({ ...s, help: e.target.value }), `help:${section.id}`)} />
       </Row>
-      <Row id="section-columns" label="تعداد ستون" help="بیشینه‌ی ستون‌ها روی صفحه‌ی پهن؛ روی موبایل همیشه یک ستون." error={errors.columns}>
+      <Row id="section-labels" label="جای برچسب‌ها" help="«خودکار»: کنار فیلد تا دو ستون و بالای فیلد در بخش سه‌ستونه." error={errors.labels}>
+        <Select value={section.labels ?? "auto"} onValueChange={(v) => onChange((s) => ({ ...s, labels: v as SectionDef["labels"] }), `labels:${section.id}`)}>
+          <SelectTrigger id="section-labels" className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="auto">خودکار</SelectItem>
+            <SelectItem value="side">کنار فیلد</SelectItem>
+            <SelectItem value="top">بالای فیلد</SelectItem>
+          </SelectContent>
+        </Select>
+      </Row>
+      <Row id="section-columns" label="تعداد ستون" help="از پهنای تبلت به بالا دقیقاً همین تعداد ستون، در طراح و هنگام پر کردن؛ روی موبایل همیشه یک ستون." error={errors.columns}>
         <Select value={String(section.columns ?? 1)} onValueChange={(v) => onChange((s) => ({ ...s, columns: Number(v) }), `columns:${section.id}`)}>
           <SelectTrigger id="section-columns" className="w-full">
             <SelectValue />
@@ -195,6 +207,15 @@ function FieldProperties({ definition, field, columns, spec, errors, readOnly, o
               </SelectContent>
             </Select>
           </Row>
+        )}
+        {columns > 1 && (
+          <div className="flex items-center gap-2">
+            <Switch id="prop-new-row" checked={field.new_row === true} onCheckedChange={(v) => onChange((f) => (v ? { ...f, new_row: true } : (({ new_row: _n, ...rest }) => rest)(f)), k("new_row"))} />
+            <Label htmlFor="prop-new-row" className="font-normal">
+              شروع از ردیف تازه
+            </Label>
+            <InfoTip label="راهنمای شروع از ردیف تازه">این فیلد از ستون اول یک ردیف تازه شروع می‌شود، حتی اگر در ردیف قبلی جا باشد.</InfoTip>
+          </div>
         )}
         {spec.supports_default && <DefaultEditor field={field} error={errors.default} onChange={(v) => onChange((f) => withDefault(f, v), k("default"))} />}
       </FieldGroup>

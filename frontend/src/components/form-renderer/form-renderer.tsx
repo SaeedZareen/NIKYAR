@@ -5,7 +5,7 @@ import { Section } from "@/components/layout/section"
 import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
 import { AmountField, BooleanField, CalculatedField, ChoiceField, DateField, MultiChoiceField, NumberField, TextareaField, TextField, TimeField } from "./basic-fields"
-import { spanClass, type FieldType, type FormDefinition, type FormValues } from "./definition"
+import { labelLayout, spanClass, type FieldType, type FormDefinition, type FormValues } from "./definition"
 import type { FieldProps } from "./field-props"
 import type { RuleState } from "./rules"
 import {
@@ -58,9 +58,9 @@ export function FormRenderer({ definition, title, control, footer, rules }: Prop
         const columns = Math.min(Math.max(section.columns ?? 1, 1), 3) as 1 | 2 | 3
         return (
           <Section key={section.id} title={section.title || title} description={section.help || undefined} footer={i === sections.length - 1 ? footer : undefined}>
-            <FormGrid columns={columns}>
+            <FormGrid columns={columns} fixed>
               {section.fields.map((field) => (
-                <FieldView key={field.id} field={field} control={control} className={spanClass(field.span, columns)} />
+                <FieldView key={field.id} field={field} control={control} className={spanClass(field, columns)} layout={labelLayout(section)} />
               ))}
             </FormGrid>
           </Section>
@@ -71,17 +71,17 @@ export function FormRenderer({ definition, title, control, footer, rules }: Prop
 }
 
 /** یک فیلد تعریف (نمایشی یا دارای مقدار) با کنترل همان نوع؛ طراح هم برای پیش‌نمایش زنده از آن استفاده می‌کند. */
-export function FieldView({ field, control, className }: FieldProps) {
+export function FieldView({ field, control, className, layout }: FieldProps) {
   const rules = React.useContext(RulesContext)
   const props = field.props ?? {}
   if (rules?.hidden.has(field.id)) return null
   if (field.type === "heading") return <h3 className={cn("col-span-full border-b pb-1 text-xs font-semibold", className)}>{field.label}</h3>
   if (field.type === "paragraph") return <p className="col-span-full text-xs whitespace-pre-line">{String(props.content ?? "")}</p>
   if (field.type === "divider") return <Separator className="col-span-full" />
-  if (field.type === "calculated") return <CalculatedField field={field} value={rules?.calculated[field.id]} className={className} />
+  if (field.type === "calculated") return <CalculatedField field={field} value={rules?.calculated[field.id]} className={className} layout={layout} />
   const Renderer = CONTROLS[field.type]
   if (!Renderer) return null
-  const view = <Renderer field={field} control={control} className={className} />
+  const view = <Renderer field={field} control={control} className={className} layout={layout} />
   // فقط‌خواندنی شرطی: همه‌ی کنترل‌های فیلد غیرفعال، بی‌آنکه چیدمان شبکه عوض شود.
   return rules?.readonly.has(field.id) ? (
     <fieldset disabled className="contents">

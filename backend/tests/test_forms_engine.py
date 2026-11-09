@@ -374,3 +374,16 @@ class TestRuleDefinitions:
         assert engine.validate_data(d, {"kind": "x", "note": "تازه"}, Ctx(previous={"note": "قبلی"})) == {"kind": "x", "note": "قبلی"}
         assert engine.validate_data(d, {"kind": "x", "note": "تازه"}, Ctx()) == {"kind": "x"}
         assert engine.validate_data(d, {"kind": "y", "note": "تازه"}, Ctx()) == {"kind": "y", "note": "تازه"}
+
+
+def test_layout_keys(db):
+    d = form(
+        {"id": "a", "type": "text", "label": "الف", "new_row": True},
+        {"id": "b", "type": "choice", "label": "ب", "props": {"options": [{"value": "x", "label": "x"}], "option_columns": "3"}},
+    )
+    d["sections"][0]["labels"] = "top"
+    engine.check_definition(d)
+    d["sections"][0]["labels"] = "left"
+    d["sections"][0]["fields"][0]["new_row"] = "yes"
+    errs = definition_errors(d)
+    assert "جای برچسب" in errs["sections.0.labels"] and "ردیف تازه" in errs["sections.0.fields.0.new_row"]

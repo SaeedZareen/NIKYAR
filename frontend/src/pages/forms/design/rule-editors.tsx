@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { toEnDigits, toFaDigits } from "@/lib/format"
+import { cn } from "@/lib/utils"
 import {
   conditionLogic,
   FORMULA_LABELS,
@@ -21,6 +22,7 @@ import {
   parseCondition,
   parseFormula,
   referableFields,
+  isGroup,
   type Clause,
   type Condition,
   type FormulaOp,
@@ -149,27 +151,60 @@ export function ConditionEditor({ id, definition, except, value, onChange }: Con
         </Button>
       </div>
     )
-  const set = (next: Condition) => onChange(conditionLogic(next))
+  return <GroupEditor id={id} fields={fields} group={parsed} depth={0} prefix="" onChange={(g) => onChange(conditionLogic(g))} />
+}
+
+type GroupProps = { id: string; fields: FieldDef[]; group: Condition; depth: number; prefix: string; onChange: (g: Condition) => void; onRemove?: () => void }
+
+/** یک گروه شرط («و» یا «یا») با جمله‌ها و گروه‌های تودرتو (تا دو سطح). */
+function GroupEditor({ id, fields, group, depth, prefix, onChange, onRemove }: GroupProps) {
   const fieldOf = (fid: string) => fields.find((f) => f.id === fid)
-  const updateClause = (i: number, patch: Partial<Clause>) => set({ ...parsed, clauses: parsed.clauses.map((c, j) => (j === i ? { ...c, ...patch } : c)) })
+  const setItem = (i: number, item: Clause | Condition) => onChange({ ...group, clauses: group.clauses.map((c, j) => (j === i ? item : c)) })
+  const removeItem = (i: number) => onChange({ ...group, clauses: group.clauses.filter((_, j) => j !== i) })
+  const canRemoveItem = group.clauses.length > 1
   return (
-    <div className="flex flex-col gap-2 rounded-md border bg-muted/30 p-2">
-      {parsed.clauses.length > 1 && (
-        <Pick
-          id={`${id}-mode`}
-          label="ترکیب شرط‌ها"
-          value={parsed.mode}
-          onChange={(m) => set({ ...parsed, mode: m as Condition["mode"] })}
-          items={[
-            { value: "all", label: "همه‌ی شرط‌های زیر درست باشند" },
-            { value: "any", label: "دست‌کم یکی درست باشد" },
-          ]}
-        />
+    <div className={cn("flex flex-col gap-2 rounded-md border p-2", depth === 0 ? "bg-muted/30" : "bg-background")}>
+      {(group.clauses.length > 1 || depth > 0) && (
+        <div className="flex items-center gap-1.5">
+          <div className="min-w-0 flex-1">
+            <Pick
+              id={`${id}-mode`}
+              label={`${prefix || ""}ترکیب شرط‌ها`}
+              value={group.mode}
+              onChange={(m) => onChange({ ...group, mode: m as Condition["mode"] })}
+              items={[
+                { value: "all", label: "همه‌ی شرط‌های زیر درست باشند (و)" },
+                { value: "any", label: "دست‌کم یکی درست باشد (یا)" },
+              ]}
+            />
+          </div>
+          {onRemove && (
+            <Button type="button" variant="ghost" size="icon-sm" aria-label={`حذف ${prefix.replace(/ ـ $/, "")}`} onClick={onRemove}>
+              <Trash2 />
+            </Button>
+          )}
+        </div>
       )}
-      {parsed.clauses.map((c, i) => {
+      {group.clauses.map((c, i) => {
+        if (isGroup(c)) {
+          const label = `${prefix}گروه ${toFaDigits(i + 1)} ـ `
+          return (
+            <GroupEditor
+              key={i}
+              id={`${id}-${i}`}
+              fields={fields}
+              group={c}
+              depth={depth + 1}
+              prefix={label}
+              onChange={(g) => setItem(i, g)}
+              onRemove={canRemoveItem ? () => removeItem(i) : undefined}
+            />
+          )
+        }
         const field = fieldOf(c.field)
         const ops = field ? opsFor(field) : (["eq", "ne", "empty", "filled"] as Op[])
-        const label = `شرط ${toFaDigits(i + 1)}`
+        const label = `${prefix}شرط ${toFaDigits(i + 1)}`
+        const update = (patch: Partial<Clause>) => setItem(i, { ...c, ...patch })
         return (
           <div key={i} className="flex flex-col gap-1.5 border-b pb-2 last:border-b-0 last:pb-0">
             <div className="flex items-center gap-1.5">
@@ -178,23 +213,35 @@ export function ConditionEditor({ id, definition, except, value, onChange }: Con
                   id={`${id}-${i}-field`}
                   label={`${label}: فیلد`}
                   value={c.field}
-                  onChange={(f) => updateClause(i, { field: f, op: opsFor(fieldOf(f)!)[0], right: undefined })}
+                  onChange={(f) => update({ field: f, op: opsFor(fieldOf(f)!)[0], right: undefined })}
                   items={fields.map((f) => ({ value: f.id, label: f.label || f.id }))}
                   placeholder="انتخاب فیلد"
                 />
               </div>
-              <Button type="button" variant="ghost" size="icon-sm" aria-label={`حذف ${label}`} disabled={parsed.clauses.length === 1} onClick={() => set({ ...parsed, clauses: parsed.clauses.filter((_, j) => j !== i) })}>
+              <Button type="button" variant="ghost" size="icon-sm" aria-label={`حذف ${label}`} disabled={!canRemoveItem} onClick={() => removeItem(i)}>
                 <Trash2 />
               </Button>
             </div>
-            <Pick id={`${id}-${i}-op`} label={`${label}: عملگر`} value={c.op} onChange={(op) => updateClause(i, { op: op as Op, right: needsRight(op as Op) ? c.right : undefined })} items={ops.map((o) => ({ value: o, label: OP_LABELS[o] }))} />
-            {needsRight(c.op) && <OperandInput id={`${id}-${i}-right`} label={label} field={field} fields={fields.filter((f) => f.id !== c.field)} value={c.right} onChange={(right) => updateClause(i, { right })} />}
+            <Pick id={`${id}-${i}-op`} label={`${label}: عملگر`} value={c.op} onChange={(op) => update({ op: op as Op, right: needsRight(op as Op) ? c.right : undefined })} items={ops.map((o) => ({ value: o, label: OP_LABELS[o] }))} />
+            {needsRight(c.op) && <OperandInput id={`${id}-${i}-right`} label={label} field={field} fields={fields.filter((f) => f.id !== c.field)} value={c.right} onChange={(right) => update({ right })} />}
           </div>
         )
       })}
-      <Button type="button" variant="outline" size="sm" className="w-fit" onClick={() => set({ ...parsed, clauses: [...parsed.clauses, defaultClause(fields)] })}>
-        <Plus /> شرط دیگر
-      </Button>
+      <div className="flex flex-wrap gap-2">
+        <Button type="button" variant="outline" size="sm" onClick={() => onChange({ ...group, clauses: [...group.clauses, defaultClause(fields)] })}>
+          <Plus /> شرط دیگر
+        </Button>
+        {depth < 2 && (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            onClick={() => onChange({ ...group, clauses: [...group.clauses, { mode: group.mode === "all" ? "any" : "all", clauses: [defaultClause(fields)] }] })}
+          >
+            <Plus /> گروه شرط ({group.mode === "all" ? "یا" : "و"})
+          </Button>
+        )}
+      </div>
     </div>
   )
 }

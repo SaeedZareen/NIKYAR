@@ -247,11 +247,13 @@ function Editor({ form, version, specs, onReload }: { form: DesignForm; version:
   const fieldCount = definition.sections.reduce((n, s) => n + s.fields.length, 0)
   const status = readOnly
     ? `نسخه‌ی ${toFaDigits(version.number)} منتشرشده · فقط خواندنی`
-    : {
+    : changed && save.kind === "saved"
+      ? "تغییرها چند لحظه‌ی دیگر ذخیره می‌شوند…"
+      : {
         saved: `پیش‌نویس نسخه‌ی ${toFaDigits(version.number)} · ${formatNumber(fieldCount)} فیلد${save.at ? ` · ذخیره شد ${formatDateTime(save.at)}` : ""}`,
         saving: "در حال ذخیره‌ی پیش‌نویس…",
-        error: `ذخیره نشد: ${save.message}`,
-      }[save.kind]
+          error: `ذخیره نشد: ${save.message}`,
+        }[save.kind]
   const errorCount = Object.keys(serverErrors).length
 
   const toolbox = <Toolbox specs={specs} onAdd={(c) => addType(c)} onAddBlock={(k) => addBlock(k)} draggable={wide} disabled={readOnly} />
@@ -368,6 +370,8 @@ function Editor({ form, version, specs, onReload }: { form: DesignForm; version:
                 if (selection?.id === id) setSelection(null)
               }}
               onMoveSection={(id, delta) => apply((d) => moveSection(d, id, delta))}
+              onSectionChange={(id, change, key) => apply((d) => updateSection(d, id, change), key)}
+              onFieldChange={(id, change, key) => apply((d) => updateField(d, id, change), key)}
               onRemoveSection={(id) => {
                 const section = definition.sections.find((s) => s.id === id)
                 if (section?.fields.length) setRemovingSection(id)

@@ -406,10 +406,20 @@ def is_jalali_date(value) -> bool:
 # ─── انتخاب ─────────────────────────────────────────────────────────────
 
 
+# چیدمان گزینه‌ها: خودکار (پشت سر هم و شکستن در انتهای خط) یا تعداد ستون ثابت
+OPTION_COLUMNS = Prop(
+    "choice",
+    "ستون‌های گزینه‌ها",
+    default="auto",
+    choices={"auto": "خودکار (پشت سر هم)", "1": "یک ستون (زیر هم)", "2": "دو ستون", "3": "سه ستون", "4": "چهار ستون"},
+)
+
+
 @register
 class Boolean(FieldType):
     code, title, group = "boolean", "بله/خیر", "انتخاب"
     supports_default = True
+    props = {"option_columns": OPTION_COLUMNS}
 
     def schema(self, props, partial):
         return {"type": "boolean"}
@@ -422,6 +432,7 @@ class Choice(FieldType):
     props = {
         "options": Prop("options", "گزینه‌ها", required=True, min=1, max=100),
         "display": Prop("choice", "نمایش", default="radio", choices={"radio": "دکمه‌های رادیویی", "select": "فهرست کشویی"}),
+        "option_columns": OPTION_COLUMNS,
     }
     invalid_message = "گزینه‌ی انتخاب‌شده برای «{label}» معتبر نیست."
 
@@ -437,6 +448,7 @@ class MultiChoice(FieldType):
         "options": Prop("options", "گزینه‌ها", required=True, min=1, max=100),
         "min_select": Prop("int", "کمینه‌ی انتخاب", min=1, max=100),
         "max_select": Prop("int", "بیشینه‌ی انتخاب", min=1, max=100),
+        "option_columns": OPTION_COLUMNS,
     }
     invalid_message = "گزینه‌ی انتخاب‌شده برای «{label}» معتبر نیست."
 
@@ -630,6 +642,7 @@ class Lookup(_Reference):
         "display": Prop(
             "choice", "نمایش", default="auto", choices={"auto": "خودکار به اندازه‌ی فهرست", "buttons": "دکمه", "select": "فهرست کشویی", "search": "جست‌وجوپذیر"}
         ),
+        "option_columns": OPTION_COLUMNS,
     }
 
     def existing(self, ids, props):

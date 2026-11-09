@@ -19,6 +19,7 @@ import { UserPicker } from "@/components/user-picker"
 import { api, unwrap } from "@/lib/api/client"
 import type { StoredFile } from "@/lib/files"
 import { cn } from "@/lib/utils"
+import { optionColumnsClass } from "./definition"
 import { common, str, type FieldProps } from "./field-props"
 
 // نوع‌های 3.3b: داده‌های سامانه (فهرست پایه، کاربر، واحد، سمت)، استان و شهر، مشخصات ثبت‌کننده، پیوست و امضا.
@@ -38,7 +39,7 @@ export function LookupField(p: FieldProps) {
       {...common(p)}
       group={display === "buttons"}
       render={({ field, id, aria }) => {
-        if (display === "buttons") return <ButtonChoices id={id} options={options} multiple={multiple} value={field.value} onChange={field.onChange} onBlur={field.onBlur} aria={aria} />
+        if (display === "buttons") return <ButtonChoices id={id} options={options} multiple={multiple} value={field.value} onChange={field.onChange} onBlur={field.onBlur} aria={aria} columns={props.option_columns} />
         if (display === "select" && !multiple)
           return (
             <Select value={str(field.value)} onValueChange={field.onChange}>
@@ -68,13 +69,14 @@ type ButtonChoicesProps = {
   onChange: (value: unknown) => void
   onBlur: () => void
   aria: Record<string, unknown>
+  columns?: unknown
 }
 
 /** گزینه‌های کوتاه: دکمه‌ی رادیویی برای یکی، چک‌باکس برای چند. */
-function ButtonChoices({ id, options, multiple, value, onChange, onBlur, aria }: ButtonChoicesProps) {
+function ButtonChoices({ id, options, multiple, value, onChange, onBlur, aria, columns }: ButtonChoicesProps) {
   if (!multiple)
     return (
-      <RadioGroup id={id} tabIndex={-1} value={str(value)} onValueChange={onChange} className="flex min-h-7 flex-wrap items-center gap-x-4 gap-y-2" {...aria}>
+      <RadioGroup id={id} tabIndex={-1} value={str(value)} onValueChange={onChange} className={cn("min-h-7", optionColumnsClass(columns))} {...aria}>
         {options.map((o) => (
           <div key={o.value} className="flex items-center gap-2">
             <RadioGroupItem value={o.value} id={`${id}-${o.value}`} onBlur={onBlur} />
@@ -89,7 +91,7 @@ function ButtonChoices({ id, options, multiple, value, onChange, onBlur, aria }:
   // role=group خصیصه‌ی aria-required نمی‌پذیرد.
   const { "aria-required": _required, ...groupAria } = aria
   return (
-    <div id={id} role="group" tabIndex={-1} className="flex min-h-7 flex-wrap items-center gap-x-4 gap-y-2 outline-none" {...groupAria}>
+    <div id={id} role="group" tabIndex={-1} className={cn("min-h-7 outline-none", optionColumnsClass(columns))} {...groupAria}>
       {options.map((o) => (
         <div key={o.value} className="flex items-center gap-2">
           <Checkbox
@@ -256,7 +258,7 @@ export function SubmitterField(p: FieldProps) {
     email: user?.email,
   }
   return (
-    <StaticField label={p.field.label ?? ""} className={p.className} hint="هنگام ثبت نهایی خودکار ذخیره می‌شود.">
+    <StaticField label={p.field.label ?? ""} className={p.className} layout={p.layout} hint="هنگام ثبت نهایی خودکار ذخیره می‌شود.">
       <dl className="flex min-h-7 flex-wrap items-center gap-x-6 gap-y-1">
         {items.map((k) => (
           <div key={k} className="flex items-baseline gap-2">
@@ -329,6 +331,7 @@ export function SignatureField(p: FieldProps) {
       label={p.field.label ?? ""}
       required={p.field.required}
       className={p.className}
+      layout={p.layout}
       hint={user?.signature ? "هنگام ثبت نهایی، رونوشت این امضا در فرم می‌ماند." : undefined}
     >
       {user?.signature ? (
