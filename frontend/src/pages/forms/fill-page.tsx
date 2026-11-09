@@ -25,6 +25,7 @@ import { useAuth } from "@/app/auth"
 import { SUBMISSIONS_KEY } from "@/app/forms"
 import { PageError, PageFallback } from "@/app/route-states"
 import { Confirmation } from "./confirmation"
+import { ReviewDialog } from "./review-dialog"
 
 type Context = Schemas["FillContext"]
 type Submission = Schemas["FormSubmission"]
@@ -167,7 +168,10 @@ function FillForm({ context, editing, initialData, initialSubmission, initialSav
     return () => window.clearTimeout(timer)
   }, [autosave, changed, serialized, submitting, draftSchema, send])
 
-  const submitValid = async (formValues: FormValues) => {
+  // ثبت نهایی دو گام دارد: پس از اعتبارسنجی، مرور اطلاعات در پنجره و «تأیید و ثبت»
+  const [review, setReview] = React.useState<FormValues | null>(null)
+  const submitValid = (formValues: FormValues) => setReview(formValues)
+  const confirmSubmit = async (formValues: FormValues) => {
     setSubmitting(true)
     try {
       const saved = await send(applyRules(definition, toPayload(definition, formValues)).values, true)
@@ -185,6 +189,7 @@ function FillForm({ context, editing, initialData, initialSubmission, initialSav
       if (context.after_submit === "url" && context.after_submit_url) window.location.assign(context.after_submit_url)
       else navigate("/forms")
     } catch (e) {
+      setReview(null)
       applyServerErrors(form, e, (name) => screenKey(definition, formValues, name))
       setSubmitting(false)
     }
@@ -290,6 +295,17 @@ function FillForm({ context, editing, initialData, initialSubmission, initialSav
           }
         />
       </form>
+      {review && (
+        <ReviewDialog
+          title={context.title}
+          definition={definition}
+          values={review}
+          confirmLabel={editing ? "تأیید و ذخیره" : "تأیید و ثبت"}
+          submitting={submitting}
+          onConfirm={() => confirmSubmit(review)}
+          onCancel={() => setReview(null)}
+        />
+      )}
       <ConfirmDialog
         open={confirmDelete}
         onOpenChange={setConfirmDelete}

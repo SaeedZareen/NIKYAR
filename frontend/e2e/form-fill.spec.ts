@@ -1,5 +1,5 @@
 import { expect, test, type Page } from "@playwright/test"
-import { collectErrors, expectAccessible, isMobile } from "./helpers"
+import { collectErrors, expectAccessible, isMobile, confirmReview } from "./helpers"
 
 const DEFINITION = {
   sections: [
@@ -168,6 +168,16 @@ test.describe("پر کردن فرم", () => {
     await page.getByRole("radio", { name: "بله" }).click()
     await page.getByRole("checkbox", { name: "خرید" }).click()
     await page.getByRole("button", { name: "ثبت نهایی" }).click()
+    // مرور پیش از ثبت: برچسب و مقدار خوانای هر فیلد؛ «بازگشت و ویرایش» به فرم برمی‌گردد
+    const review = page.getByRole("dialog", { name: "مرور و تأیید نهایی" })
+    await expect(review).toContainText("خرید کاغذ")
+    await expect(review).toContainText("۲٬۵۰۰٬۰۰۰ ریال")
+    await expect(review.getByRole("definition").filter({ hasText: "بله" })).toBeVisible()
+    await expectAccessible(page)
+    await review.getByRole("button", { name: "بازگشت و ویرایش" }).click()
+    await expect(review).toBeHidden()
+    await page.getByRole("button", { name: "ثبت نهایی" }).click()
+    await confirmReview(page)
     await expect(page.getByText(`فرم «${title}» ثبت شد.`)).toBeVisible()
     await expect(page).toHaveURL(/\/forms$/)
     await expect(page.getByRole("region", { name: "پیش‌نویس‌های من" }).getByText(title)).toHaveCount(0)
@@ -215,6 +225,7 @@ test.describe("پر کردن فرم", () => {
     await page.getByRole("radio", { name: "کیفیت: خوب" }).click()
     await page.getByRole("checkbox", { name: "صحت اطلاعات را تأیید می‌کنم." }).click()
     await page.getByRole("button", { name: "ثبت نهایی" }).click()
+    await confirmReview(page)
     await expect(page.getByText(`فرم «${title}» ثبت شد.`)).toBeVisible()
 
     // داده‌ی ذخیره‌شده همان شکل یکسان‌شده‌ی سرور است
@@ -275,6 +286,7 @@ test.describe("پر کردن فرم", () => {
     await expectAccessible(page)
 
     await page.getByRole("button", { name: "ثبت نهایی" }).click()
+    await confirmReview(page)
     await expect(page.getByText(`فرم «${title}» ثبت شد.`)).toBeVisible()
     const data = await page.evaluate(async (formId) => (await fetch(`/api/forms/submissions/?form=${formId}&mine=true`).then((r) => r.json())).results[0].data, id)
     expect(data.category).toBe("finance")
@@ -344,6 +356,7 @@ test.describe("پر کردن فرم", () => {
     await page.getByRole("button", { name: "پایین بردن ردیف ۱" }).click()
     await expect(cell(1, "شرح")).toHaveValue("خودکار")
     await page.getByRole("button", { name: "ثبت نهایی" }).click()
+    await confirmReview(page)
     await expect(page.getByText(`فرم «${title}» ثبت شد.`)).toBeVisible()
     expect(errors).toEqual([])
   })
@@ -416,6 +429,7 @@ test.describe("پر کردن فرم", () => {
     await expectAccessible(page)
 
     await page.getByRole("button", { name: "ثبت نهایی" }).click()
+    await confirmReview(page)
     await expect(page.getByText(`فرم «${title}» ثبت شد.`)).toBeVisible()
     // ثبت همین فرم (آزمون‌های هم‌زمان هم با همین کاربر ثبت می‌کنند)
     const saved = await page.evaluate(async (form) => (await (await fetch(`/api/forms/submissions/?mine=true&form=${form}`)).json()).results[0].id as number, id)
@@ -456,6 +470,7 @@ test.describe("پر کردن فرم", () => {
     await page.getByRole("button", { name: "مرحله‌ی بعد" }).click()
     await expectAccessible(page)
     await page.getByRole("button", { name: "ثبت نهایی" }).click()
+    await confirmReview(page)
     await expect(page.getByText(new RegExp(`فرم «${title}» با شماره‌ی د-۱۴[۰-۹]{2}-۰۰۱ ثبت شد`))).toBeVisible()
     expect(errors).toEqual([])
   })
@@ -483,6 +498,7 @@ test.describe("پر کردن فرم", () => {
     await expect(page.getByLabel("۲. توضیح", { exact: true })).toBeVisible()
     await expect(page.getByText("پس از ثبت، تا ۲ ساعت می‌توانید آن را ویرایش کنید.")).toBeVisible()
     await page.getByRole("button", { name: "ارسال درخواست" }).click()
+    await confirmReview(page)
 
     // صفحه‌ی تأیید با جای‌گذارها
     await expect(page.getByRole("status").filter({ hasText: "عزیز" })).toContainText("مدیر سامانه عزیز، درخواست شما با شماره‌ی ۰۰۱ رسید.")
@@ -492,6 +508,7 @@ test.describe("پر کردن فرم", () => {
     await expect(page.getByLabel("۱. نام", { exact: true })).toHaveValue("سارا")
     await page.getByLabel("۱. نام", { exact: true }).fill("سارا محمدی")
     await page.getByRole("button", { name: "ذخیره‌ی تغییرات" }).click()
+    await confirmReview(page)
     await expect(page.getByRole("status").filter({ hasText: "عزیز" })).toContainText("شماره‌ی ۰۰۱")
 
     // سقف یک‌بار برای هر کاربر

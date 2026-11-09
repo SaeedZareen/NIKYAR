@@ -30,3 +30,11 @@ export async function expectAccessible(page: Page) {
 }
 
 export const isMobile = (page: Page) => (page.viewportSize()?.width ?? 0) < 768
+
+/** پنجره‌ی «مرور و تأیید نهایی» پیش از ثبت فرم‌ساز: تأیید و ارسال. */
+export async function confirmReview(page: Page) {
+  await page
+    .getByRole("dialog", { name: "مرور و تأیید نهایی" })
+    .getByRole("button", { name: /^تأیید و (ثبت|ذخیره)$/ })
+    .click()
+}

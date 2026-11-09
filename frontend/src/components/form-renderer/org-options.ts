@@ -25,3 +25,18 @@ export function useUnitOptions(): PickerOption[] {
   }, [units])
 }
 
+/** نام کاربران ذخیره‌شده (برای نمایش مقدار پیش‌نویس یا پیش‌فرض «خودم»). */
+export function useUserNames(ids: number[]) {
+  const key = ids.join(",")
+  return useQuery({
+    queryKey: ["users", "names", key],
+    queryFn: () => unwrap(api.GET("/api/auth/user-lookup/", { params: { query: { ids: key } } })),
+    enabled: ids.length > 0,
+    staleTime: 5 * 60_000,
+  })
+}
+
+/** نام همه‌ی سمت‌ها (برای نمایش مقدار ذخیره‌شده). */
+export function usePositionNames() {
+  return useQuery({ queryKey: ["org", "position-lookup", undefined], queryFn: () => unwrap(api.GET("/api/org/position-lookup/")), staleTime: 5 * 60_000 }).data
+}

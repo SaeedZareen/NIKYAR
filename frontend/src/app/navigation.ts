@@ -7,37 +7,52 @@ import { Bell, Building2, ClipboardList, PencilRuler, KeyRound, UserRound, UserR
 export type Access = string | "superuser" | undefined
 
 type NavItem = { title: string; url: string; icon: LucideIcon; access?: Access; keywords?: string }
-type NavGroup = { title: string; items: NavItem[] }
+type NavGroup = { title: string; items: NavItem[]; collapsed?: boolean }
 
 const navigation: NavGroup[] = [
   {
-    title: "عمومی",
+    title: "کار من",
     items: [
       { title: "پیشخوان", url: "/", icon: LayoutDashboard, keywords: "خانه داشبورد" },
       { title: "فرم‌ها", url: "/forms", icon: ClipboardList, keywords: "فرم درخواست پر کردن پیش‌نویس" },
-      { title: "طراحی فرم‌ها", url: "/forms/design", icon: PencilRuler, access: "forms.design", keywords: "فرم‌ساز طراح فرم ساخت فرم انتشار" },
       { title: "اعلان‌ها", url: "/notifications", icon: Bell, keywords: "اعلان پیام زنگوله" },
       { title: "حساب من", url: "/account", icon: UserRound, keywords: "گذرواژه امضا جانشین پروفایل" },
     ],
   },
   {
-    title: "مدیریت سامانه",
+    title: "فرم‌ساز",
+    items: [{ title: "طراحی فرم‌ها", url: "/forms/design", icon: PencilRuler, access: "forms.design", keywords: "فرم‌ساز طراح فرم ساخت فرم انتشار الگو" }],
+  },
+  {
+    title: "سازمان و کاربران",
     items: [
       { title: "کاربران", url: "/admin/users", icon: Users, access: "accounts.users.view", keywords: "کاربر حساب گذرواژه" },
       { title: "نقش‌ها و مجوزها", url: "/admin/roles", icon: ShieldCheck, access: "accounts.roles.manage", keywords: "نقش مجوز دسترسی" },
       { title: "ساختار سازمانی", url: "/admin/org", icon: Building2, access: "org.view", keywords: "واحد سمت چارت انتصاب" },
-      { title: "فهرست‌های پایه", url: "/admin/lookups", icon: ListTree, access: "lookups.manage", keywords: "فهرست مقدار پایه" },
       { title: "جانشینی‌ها", url: "/admin/delegations", icon: UserRoundCog, access: "delegation.manage", keywords: "جانشین مرخصی نیابت" },
-      { title: "تقویم کاری", url: "/admin/calendar", icon: CalendarDays, access: "workcalendar.manage", keywords: "تعطیلات تقویم روز کاری" },
-      { title: "سوابق تغییرات", url: "/admin/audit", icon: History, access: "audit.view", keywords: "سابقه لاگ تغییر" },
-      { title: "پشتیبان‌گیری", url: "/admin/backups", icon: DatabaseBackup, access: "backup.manage", keywords: "پشتیبان بک‌آپ بازیابی" },
-      { title: "کارهای سامانه", url: "/admin/jobs", icon: ListChecks, access: "jobs.manage", keywords: "کار زمان‌بندی پس‌زمینه" },
-      { title: "ماژول‌ها و لایسنس", url: "/admin/license", icon: KeyRound, access: "license.manage", keywords: "لایسنس مجوز ماژول اعتبار" },
-      { title: "تنظیمات", url: "/admin/settings", icon: Settings, access: "settings.manage", keywords: "تنظیمات سازمان مشخصات سال مالی" },
     ],
   },
   {
+    title: "پیکربندی",
+    items: [
+      { title: "تنظیمات", url: "/admin/settings", icon: Settings, access: "settings.manage", keywords: "تنظیمات سازمان مشخصات سال مالی شماره‌گذاری اعلان" },
+      { title: "فهرست‌های پایه", url: "/admin/lookups", icon: ListTree, access: "lookups.manage", keywords: "فهرست مقدار پایه" },
+      { title: "تقویم کاری", url: "/admin/calendar", icon: CalendarDays, access: "workcalendar.manage", keywords: "تعطیلات تقویم روز کاری" },
+    ],
+  },
+  {
+    title: "نگه‌داری سامانه",
+    items: [
+      { title: "پشتیبان‌گیری", url: "/admin/backups", icon: DatabaseBackup, access: "backup.manage", keywords: "پشتیبان بک‌آپ بازیابی" },
+      { title: "کارهای سامانه", url: "/admin/jobs", icon: ListChecks, access: "jobs.manage", keywords: "کار زمان‌بندی پس‌زمینه" },
+      { title: "سوابق تغییرات", url: "/admin/audit", icon: History, access: "audit.view", keywords: "سابقه لاگ تغییر" },
+      { title: "ماژول‌ها و لایسنس", url: "/admin/license", icon: KeyRound, access: "license.manage", keywords: "لایسنس مجوز ماژول اعتبار" },
+    ],
+  },
+  {
+    // راهنمای توسعه، فقط برای مدیر کل؛ پیش‌فرض بسته
     title: "کیت رابط کاربری",
+    collapsed: true,
     items: [
       { title: "جدول داده", url: "/ui-kit/data-table", icon: Table2, access: "superuser", keywords: "جدول فهرست گرید" },
       { title: "اجزای فرم", url: "/ui-kit/forms", icon: FormInput, access: "superuser", keywords: "فرم فیلد ورودی تاریخ" },
@@ -45,6 +60,14 @@ const navigation: NavGroup[] = [
     ],
   },
 ]
+
+/** مورد منو برای نشانی فعلی: دقیق‌ترین پیوند (طولانی‌ترین پیشوند)؛ «/forms/design/۵» مال «طراحی فرم‌ها» است نه «فرم‌ها». */
+export function activeUrl(pathname: string): string | undefined {
+  const urls = navigation.flatMap((g) => g.items.map((i) => i.url))
+  return urls
+    .filter((u) => (u === "/" ? pathname === "/" : pathname === u || pathname.startsWith(`${u}/`)))
+    .sort((a, b) => b.length - a.length)[0]
+}
 
 /** منوی قابل دسترس برای کاربر فعلی (گروه‌های خالی حذف می‌شوند). */
 export function visibleNavigation(can: (permission: string) => boolean, isSuperuser: boolean): NavGroup[] {

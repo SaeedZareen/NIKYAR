@@ -161,11 +161,12 @@ function ToolButton({ id, label, icon: Icon, onClick, draggable, disabled }: { i
         aria-label={`افزودن «${label}»`}
         // فقط کشیدن با نشانگر؛ Enter و Space روی دکمه همان «افزودن» است (نه شروع کشیدن با صفحه‌کلید).
         onPointerDown={draggable ? (listeners?.onPointerDown as React.PointerEventHandler<HTMLButtonElement> | undefined) : undefined}
-        className="flex min-h-8 w-full items-center gap-1.5 rounded-md border bg-card px-2 py-1 text-start text-2xs hover:border-primary hover:bg-accent focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none disabled:opacity-50 data-[dragging=true]:opacity-50"
+        className="flex h-full min-h-8 w-full items-center gap-1.5 rounded-md border bg-card px-2 py-1 text-start text-2xs hover:border-primary hover:bg-accent focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none disabled:opacity-50 data-[dragging=true]:opacity-50"
         data-dragging={isDragging}
       >
         <Icon className="size-3.5 shrink-0 text-muted-foreground" aria-hidden />
-        <span className="truncate">{label}</span>
+        {/* نام کامل در دو سطر، نه بریده با «…» */}
+        <span className="min-w-0 leading-snug break-words">{label}</span>
       </button>
     </li>
   )

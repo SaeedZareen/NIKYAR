@@ -1,4 +1,4 @@
-import { NavLink, useLocation } from "react-router"
+import { Link, useLocation } from "react-router"
 import { ChevronDown } from "lucide-react"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import {
@@ -14,7 +14,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 import { useAuth } from "@/app/auth"
-import { visibleNavigation } from "@/app/navigation"
+import { activeUrl, visibleNavigation } from "@/app/navigation"
 
 /** منوی درختی اصلی: گروه‌ها باز و بسته می‌شوند؛ در حالت جمع‌شده فقط آیکون‌ها دیده می‌شوند. */
 export function AppSidebar() {
@@ -22,12 +22,14 @@ export function AppSidebar() {
   const { isMobile, setOpenMobile } = useSidebar()
   const { user, can } = useAuth()
   const groups = visibleNavigation(can, !!user?.is_superuser)
+  const active = activeUrl(pathname)
 
   return (
     <Sidebar side="right" collapsible="icon" className="top-(--header-height) h-[calc(100svh-var(--header-height))]">
       <SidebarContent>
         {groups.map((group) => (
-          <Collapsible key={group.title} defaultOpen className="group/collapsible">
+          // گروه بسته‌ی پیش‌فرض اگر صفحه‌ی جاری درونش باشد باز است
+          <Collapsible key={group.title} defaultOpen={!group.collapsed || group.items.some((i) => i.url === active)} className="group/collapsible">
             <SidebarGroup>
               <SidebarGroupLabel asChild>
                 <CollapsibleTrigger className="w-full text-xs font-semibold text-sidebar-foreground">
@@ -40,11 +42,11 @@ export function AppSidebar() {
                   <SidebarMenu>
                     {group.items.map((item) => (
                       <SidebarMenuItem key={item.url}>
-                        <SidebarMenuButton asChild isActive={item.url === "/" ? pathname === "/" : pathname.startsWith(item.url)} tooltip={item.title}>
-                          <NavLink to={item.url} onClick={() => isMobile && setOpenMobile(false)}>
+                        <SidebarMenuButton asChild isActive={item.url === active} tooltip={item.title}>
+                          <Link to={item.url} aria-current={item.url === active ? "page" : undefined} onClick={() => isMobile && setOpenMobile(false)}>
                             <item.icon aria-hidden />
                             <span>{item.title}</span>
-                          </NavLink>
+                          </Link>
                         </SidebarMenuButton>
                       </SidebarMenuItem>
                     ))}

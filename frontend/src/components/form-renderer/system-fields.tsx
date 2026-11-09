@@ -8,7 +8,7 @@ import { useLookupItems } from "@/app/lookups"
 import { FormField, StaticField } from "@/components/form/form-field"
 import { AttachmentList, FileDropzone } from "@/components/files"
 import { SearchPicker, type PickerOption } from "@/components/search-picker"
-import { useUnitOptions } from "./org-options"
+import { useUnitOptions, useUserNames } from "./org-options"
 import { SignaturePad } from "@/components/signature-pad"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -106,17 +106,6 @@ function ButtonChoices({ id, options, multiple, value, onChange, onBlur, aria, c
       ))}
     </div>
   )
-}
-
-/** نام کاربران ذخیره‌شده (برای نمایش مقدار پیش‌نویس یا پیش‌فرض «خودم»). */
-function useUserNames(ids: number[]) {
-  const key = ids.join(",")
-  return useQuery({
-    queryKey: ["users", "names", key],
-    queryFn: () => unwrap(api.GET("/api/auth/user-lookup/", { params: { query: { ids: key } } })),
-    enabled: ids.length > 0,
-    staleTime: 5 * 60_000,
-  })
 }
 
 /** کاربر: جست‌وجوی نام (محدود به واحد یا نقش اگر تعیین شده)؛ با multiple چند کاربر با دکمه‌ی حذف هر کدام. */
