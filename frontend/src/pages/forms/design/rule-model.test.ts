@@ -27,6 +27,13 @@ describe("rule builder model", () => {
     })
   })
 
+  it("keeps half-built rules readable (field not chosen yet)", () => {
+    const f: Formula = { op: "sum", operands: [{ kind: "field", field: "" }, { kind: "value", value: 0 }] }
+    expect(parseFormula(formulaLogic(f))).toEqual(f)
+    const c: Condition = { mode: "all", clauses: [{ field: "", op: "filled" }] }
+    expect(parseCondition(conditionLogic(c))).toEqual(c)
+  })
+
   it("round-trips formulas", () => {
     const cases: Formula[] = [
       { op: "sum", operands: [{ kind: "field", field: "a" }, { kind: "field", field: "b" }, { kind: "value", value: 5 }] },

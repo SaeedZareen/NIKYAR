@@ -72,7 +72,7 @@ function OperandInput({ id, label, field, fields, value, onChange, numeric }: { 
   const kind = value?.kind ?? "value"
   const kinds = [
     { value: "value", label: "مقدار" },
-    { value: "field", label: "فیلد دیگر" },
+    ...(fields.length || kind === "field" ? [{ value: "field", label: "فیلد دیگر" }] : []),
     ...(isDate ? [{ value: "today", label: "امروز" }] : []),
   ]
   const constant = value?.kind === "value" ? value.value : ""
@@ -263,7 +263,8 @@ export function FormulaEditor({ id, definition, except, value, error, onChange }
   const pool = parsed.op === "days" ? dateFields : numberFields
   const set = (op: FormulaOp, operands: Operand[]) => onChange(formulaLogic({ op, operands }))
   const count = parsed.op === "sum" ? Math.max(parsed.operands.length, 2) : 2
-  const operands = Array.from({ length: count }, (_, i) => parsed.operands[i] ?? ({ kind: "field", field: pool[i]?.id ?? "" } as Operand))
+  // عملوند پیش‌فرض: فیلد مناسب اگر هست، وگرنه عدد ثابت (نه فیلد خالی).
+  const operands = Array.from({ length: count }, (_, i): Operand => parsed.operands[i] ?? (pool[i] ? { kind: "field", field: pool[i].id } : { kind: "value", value: 0 }))
   return (
     <Field data-invalid={!!error}>
       <FieldLabel htmlFor={`${id}-op`}>فرمول</FieldLabel>
@@ -309,8 +310,13 @@ export function FormulaEditor({ id, definition, except, value, error, onChange }
             )}
           </div>
         ))}
+        {pool.length === 0 && (
+          <p className="text-2xs text-muted-foreground">
+            {parsed.op === "days" ? "برای این عمل دو فیلد «تاریخ» به فرم اضافه کنید." : "فیلد عددی (عدد، مبلغ، امتیاز یا محاسبه‌ای) در فرم نیست؛ عدد ثابت وارد کنید یا برای تاریخ‌ها عمل «شمار روز» را انتخاب کنید."}
+          </p>
+        )}
         {parsed.op === "sum" && (
-          <Button type="button" variant="outline" size="sm" className="w-fit" onClick={() => set("sum", [...operands, { kind: "field", field: numberFields[0]?.id ?? "" }])}>
+          <Button type="button" variant="outline" size="sm" className="w-fit" onClick={() => set("sum", [...operands, numberFields[0] ? { kind: "field", field: numberFields[0].id } : { kind: "value", value: 0 }])}>
             <Plus /> عملوند دیگر
           </Button>
         )}
