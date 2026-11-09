@@ -247,11 +247,13 @@ function Editor({ form, version, specs, onReload }: { form: DesignForm; version:
   const fieldCount = definition.sections.reduce((n, s) => n + s.fields.length, 0)
   const status = readOnly
     ? `نسخه‌ی ${toFaDigits(version.number)} منتشرشده · فقط خواندنی`
-    : {
+    : changed && save.kind === "saved"
+      ? "تغییرها چند لحظه‌ی دیگر ذخیره می‌شوند…"
+      : {
         saved: `پیش‌نویس نسخه‌ی ${toFaDigits(version.number)} · ${formatNumber(fieldCount)} فیلد${save.at ? ` · ذخیره شد ${formatDateTime(save.at)}` : ""}`,
         saving: "در حال ذخیره‌ی پیش‌نویس…",
-        error: `ذخیره نشد: ${save.message}`,
-      }[save.kind]
+          error: `ذخیره نشد: ${save.message}`,
+        }[save.kind]
   const errorCount = Object.keys(serverErrors).length
 
   const toolbox = <Toolbox specs={specs} onAdd={(c) => addType(c)} onAddBlock={(k) => addBlock(k)} draggable={wide} disabled={readOnly} />

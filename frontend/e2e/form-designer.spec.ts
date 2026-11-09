@@ -201,3 +201,48 @@ test.describe("قاعده‌های فرم", () => {
     expect(errors.filter((e) => !e.includes("status of 400"))).toEqual([])
   })
 })
+
+test.describe("چیدمان و شرط تودرتو", () => {
+  test("ستون‌های بخش روی بوم، پهنا، ردیف تازه و گروه «یا» درون «و»", async ({ page }, info) => {
+    test.skip(info.project.name === "mobile", "چیدمان چندستونه از پهنای تبلت به بالا")
+    test.slow()
+    const title = `چیدمان ${info.project.name} ${Date.now()}`
+    await createForm(page, title)
+    for (const label of ["الف", "ب", "ج"]) {
+      await addTool(page, "متن یک‌خطی")
+      await props(page).getByLabel("برچسب", { exact: true }).fill(label)
+      await closeProps(page)
+    }
+    const section = page.getByRole("region", { name: "مشخصات" })
+    await section.getByRole("button", { name: "۳ ستون", exact: true }).click()
+    await expect(section.getByRole("button", { name: "۳ ستون", exact: true })).toHaveAttribute("aria-pressed", "true")
+
+    await page.getByRole("button", { name: /انتخاب «الف»/ }).click()
+    await closeProps(page)
+    await page.getByRole("button", { name: /پهنای «الف»: ۱ ستون/ }).click()
+    await expect(page.getByRole("button", { name: /پهنای «الف»: ۲ ستون/ })).toBeVisible()
+
+    await page.getByRole("button", { name: /انتخاب «ج»/ }).click()
+    await props(page).getByLabel("شروع از ردیف تازه", { exact: true }).click()
+    await props(page).getByLabel("نمایش شرطی", { exact: true }).click()
+    await props(page).getByRole("button", { name: "گروه شرط (یا)" }).click()
+    await expect(props(page).getByRole("combobox", { name: "گروه ۲ ـ ترکیب شرط‌ها" })).toBeVisible()
+    await closeProps(page)
+    await expect(page.getByText(/ذخیره شد/)).toBeVisible()
+
+    const definition = await page.evaluate(async (formTitle) => {
+      const forms = (await fetch("/api/forms/?page_size=100").then((r) => r.json())).results as { id: number; title: string; draft_version: number }[]
+      const form = forms.find((f) => f.title === formTitle)!
+      const version = await fetch(`/api/forms/versions/${form.draft_version}/`).then((r) => r.json())
+      return version.definition ?? version
+    }, title)
+    expect(definition).toHaveProperty("sections")
+    const [section0] = definition.sections
+    const byLabel = (l: string) => section0.fields.find((f: { label: string }) => f.label === l)
+    expect(section0.columns).toBe(3)
+    expect(byLabel("الف").span).toBe(2)
+    expect(byLabel("ج").new_row).toBe(true)
+    expect(byLabel("ج").visible_if.and[1]).toHaveProperty("or")
+    await expectAccessible(page)
+  })
+})
