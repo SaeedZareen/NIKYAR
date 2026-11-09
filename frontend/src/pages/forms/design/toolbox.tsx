@@ -42,6 +42,14 @@ import {
   Blocks,
   Calculator,
   Rows3,
+  Image,
+  Download,
+  Link,
+  Bold,
+  Mic,
+  ScanBarcode,
+  MapPinned,
+  EyeOff,
   type LucideIcon,
 } from "lucide-react"
 import { BLOCKS, type FieldTypeSpec } from "./designer-model"
@@ -87,6 +95,14 @@ const ICONS: Record<string, LucideIcon> = {
   signature_pad: PenLine,
   calculated: Calculator,
   table: Rows3,
+  image: Image,
+  download: Download,
+  url: Link,
+  rich_text: Bold,
+  voice: Mic,
+  barcode: ScanBarcode,
+  location: MapPinned,
+  hidden: EyeOff,
 }
 const BLOCK_ICONS: Record<string, LucideIcon> = { personal: Contact, contact: Phone, address: MapPin, bank: Landmark }
 

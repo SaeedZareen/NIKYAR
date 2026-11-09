@@ -8,6 +8,7 @@ import { AmountField, BooleanField, CalculatedField, ChoiceField, DateField, Mul
 import { labelLayout, spanClass, type FieldType, type FormDefinition, type FormValues } from "./definition"
 import type { FieldProps } from "./field-props"
 import { GroupField } from "./group-fields"
+import { BarcodeField, DownloadBlock, ImageBlock, LocationField, ParagraphBlock, RichTextField, UrlField, VoiceField } from "./media-fields"
 import type { RuleState } from "./rules"
 import {
   CardField,
@@ -74,10 +75,13 @@ export function FormRenderer({ definition, title, control, footer, rules }: Prop
 /** یک فیلد تعریف (نمایشی یا دارای مقدار) با کنترل همان نوع؛ طراح هم برای پیش‌نمایش زنده از آن استفاده می‌کند. */
 export function FieldView({ field, control, className, layout }: FieldProps) {
   const rules = React.useContext(RulesContext)
-  const props = field.props ?? {}
   if (rules?.hidden.has(field.id)) return null
   if (field.type === "heading") return <h3 className={cn("col-span-full border-b pb-1 text-xs font-semibold", className)}>{field.label}</h3>
-  if (field.type === "paragraph") return <p className="col-span-full text-xs whitespace-pre-line">{String(props.content ?? "")}</p>
+  if (field.type === "paragraph") return <ParagraphBlock field={field} className={className} />
+  if (field.type === "image") return <ImageBlock field={field} className={className} />
+  if (field.type === "download") return <DownloadBlock field={field} className={className} />
+  // فیلد پنهان دیده نمی‌شود؛ مقدارش در داده‌ی فرم می‌ماند
+  if (field.type === "hidden") return null
   if (field.type === "divider") return <Separator className="col-span-full" />
   if (field.type === "calculated") return <CalculatedField field={field} value={rules?.calculated[field.id]} className={className} layout={layout} />
   const Renderer = CONTROLS[field.type]
@@ -131,4 +135,9 @@ const CONTROLS: Partial<Record<FieldType, (p: FieldProps) => React.ReactNode>> =
   signature: SignatureField,
   signature_pad: SignaturePadField,
   table: GroupField,
+  url: UrlField,
+  rich_text: RichTextField,
+  voice: VoiceField,
+  barcode: BarcodeField,
+  location: LocationField,
 }

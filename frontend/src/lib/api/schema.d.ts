@@ -1511,11 +1511,16 @@ export interface components {
          *     * `doc` - Word قدیمی (.doc)
          *     * `xls` - Excel قدیمی (.xls)
          *     * `zip` - فشرده‌ی ZIP (.zip)
+         *     * `mp3` - صدای MP3 (.mp3)
+         *     * `m4a` - صدای M4A (.m4a)
+         *     * `ogg` - صدای OGG (.ogg)
+         *     * `wav` - صدای WAV (.wav)
+         *     * `webm` - صدای WebM (.webm)
          *     * `txt` - متن ساده (.txt)
          *     * `csv` - CSV (.csv)
          * @enum {string}
          */
-        AllowedExtensionsEnum: "pdf" | "jpg" | "jpeg" | "png" | "webp" | "gif" | "docx" | "xlsx" | "pptx" | "doc" | "xls" | "zip" | "txt" | "csv";
+        AllowedExtensionsEnum: "pdf" | "jpg" | "jpeg" | "png" | "webp" | "gif" | "docx" | "xlsx" | "pptx" | "doc" | "xls" | "zip" | "mp3" | "m4a" | "ogg" | "wav" | "webm" | "txt" | "csv";
         Assignment: {
             readonly id: number;
             /** کاربر */
@@ -1790,6 +1795,8 @@ export interface components {
             min: number | null;
             /** Format: double */
             max: number | null;
+            /** @description kind=file: پسوندهای پذیرفته (خالی یعنی همه‌ی نوع‌های مجاز) */
+            accept: string[];
         };
         FieldTypeSpec: {
             code: string;
@@ -1834,7 +1841,12 @@ export interface components {
              *       "doc",
              *       "xls",
              *       "zip",
-             *       "txt"
+             *       "txt",
+             *       "mp3",
+             *       "m4a",
+             *       "ogg",
+             *       "wav",
+             *       "webm"
              *     ]
              */
             allowed_extensions: components["schemas"]["AllowedExtensionsEnum"][];
@@ -1857,7 +1869,12 @@ export interface components {
              *       "doc",
              *       "xls",
              *       "zip",
-             *       "txt"
+             *       "txt",
+             *       "mp3",
+             *       "m4a",
+             *       "ogg",
+             *       "wav",
+             *       "webm"
              *     ]
              */
             allowed_extensions: components["schemas"]["AllowedExtensionsEnum"][];

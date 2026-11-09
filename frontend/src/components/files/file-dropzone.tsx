@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Camera, Upload, X } from "lucide-react"
+import { Camera, Mic, Upload, X } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Progress } from "@/components/ui/progress"
 import { allowedLabels, allowedTypes, type StoredFile } from "@/lib/files"
@@ -17,6 +17,8 @@ type Props = {
   extensions?: string[]
   /** دکمه‌ی «عکس با دوربین» برای موبایل. */
   camera?: boolean
+  /** دکمه‌ی «ضبط صدا» برای موبایل (ضبط‌کننده‌ی خود گوشی باز می‌شود). */
+  record?: boolean
   disabled?: boolean
   onUploaded: (file: StoredFile) => void
   className?: string
@@ -28,9 +30,10 @@ type Props = {
  * ناحیه‌ی بارگذاری: کشیدن و رها کردن یا انتخاب فایل، بررسی نوع و حجم پیش از ارسال،
  * نوار پیشرفت و لغو هر فایل، و پیام خطای فارسی برای هر فایل ردشده.
  */
-export function FileDropzone({ id, multiple, imagesOnly, extensions, camera, disabled, onUploaded, className, ...aria }: Props) {
+export function FileDropzone({ id, multiple, imagesOnly, extensions, camera, record, disabled, onUploaded, className, ...aria }: Props) {
   const input = React.useRef<HTMLInputElement>(null)
   const cameraInput = React.useRef<HTMLInputElement>(null)
+  const recordInput = React.useRef<HTMLInputElement>(null)
   const [dragging, setDragging] = React.useState(false)
   const { policy, items, start, cancel, dismiss } = useUploads({ imagesOnly, extensions, onUploaded })
   const allowed = policy ? allowedTypes(policy, imagesOnly, extensions) : []
@@ -83,6 +86,11 @@ export function FileDropzone({ id, multiple, imagesOnly, extensions, camera, dis
             <Camera /> عکس با دوربین
           </Button>
         )}
+        {record && (
+          <Button type="button" variant="outline" size="sm" className="mt-1 md:hidden" disabled={disabled} onClick={() => recordInput.current?.click()}>
+            <Mic /> ضبط صدا
+          </Button>
+        )}
         <p id={hintId} className="text-2xs text-muted-foreground">
           {policy ? `${allowedLabels(allowed)} · حداکثر ${formatFileSize(policy.max_size)}` : " "}
         </p>
@@ -97,6 +105,19 @@ export function FileDropzone({ id, multiple, imagesOnly, extensions, camera, dis
             e.target.value = ""
           }}
         />
+        {record && (
+          <input
+            ref={recordInput}
+            type="file"
+            hidden
+            accept="audio/*"
+            capture="user"
+            onChange={(e) => {
+              pick(e.target.files)
+              e.target.value = ""
+            }}
+          />
+        )}
         {camera && (
           <input
             ref={cameraInput}

@@ -103,8 +103,12 @@ class FormVersionDetailSerializer(FormVersionSerializer):
     def validate_definition(self, value):
         if self.instance.status != FormVersion.Status.DRAFT:
             raise BusinessError("نسخه‌ی منتشرشده تغییر نمی‌کند؛ پیش‌نویس تازه بسازید.")
+        value = engine.normalize_definition(value)
         engine.check_definition(value)
         return value
+
+    def update(self, instance, validated_data):
+        return service.save_definition(instance, validated_data["definition"])
 
 
 class FormSubmissionSerializer(serializers.ModelSerializer):
@@ -144,6 +148,7 @@ class FieldPropSpecSerializer(serializers.Serializer):
     choices = serializers.ListField(child=serializers.DictField(child=serializers.CharField()), help_text="[{value, label}]")
     min = serializers.FloatField(allow_null=True)
     max = serializers.FloatField(allow_null=True)
+    accept = serializers.ListField(child=serializers.CharField(), help_text="kind=file: پسوندهای پذیرفته (خالی یعنی همه‌ی نوع‌های مجاز)")
 
 
 class FieldTypeSpecSerializer(serializers.Serializer):
@@ -183,6 +188,7 @@ def field_type_specs() -> list[dict]:
                     "choices": [{"value": k, "label": v} for k, v in p.choices.items()],
                     "min": p.min,
                     "max": p.max,
+                    "accept": list(p.accept),
                 }
                 for name, p in t.props.items()
             ],
@@ -273,7 +279,10 @@ class FormViewSet(AuditedModelViewSet):
     def perform_destroy(self, instance):
         if instance.submissions.exists():
             raise BusinessError("این فرم ثبت دارد و حذف نمی‌شود؛ آن را غیرفعال کنید.")
-        super().perform_destroy(instance)
+        with transaction.atomic():
+            files = service.form_files(instance)
+            super().perform_destroy(instance)
+            service.release_unused(files)
 
     @extend_schema(responses=AvailableFormSerializer(many=True))
     @action(detail=False, pagination_class=None)

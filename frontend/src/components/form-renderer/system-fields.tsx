@@ -17,14 +17,13 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { UserPicker } from "@/components/user-picker"
 import { api, unwrap } from "@/lib/api/client"
-import type { StoredFile } from "@/lib/files"
+import { useFileInfo, type StoredFile } from "@/lib/files"
 import { cn } from "@/lib/utils"
 import { optionColumnsClass } from "./definition"
-import { common, str, type FieldProps } from "./field-props"
+import { asList, common, str, type FieldProps } from "./field-props"
 
 // نوع‌های 3.3b: داده‌های سامانه (فهرست پایه، کاربر، واحد، سمت)، استان و شهر، مشخصات ثبت‌کننده، پیوست و امضا.
 
-const asList = (value: unknown): string[] => (Array.isArray(value) ? value.map(String) : value === "" || value == null ? [] : [String(value)])
 const asIds = (value: unknown): number[] => asList(value).map(Number)
 
 /** فهرست پایه: نمایش خودکار به اندازه‌ی فهرست (دکمه تا ۵ مورد، کشویی تا ۱۵، سپس جست‌وجوپذیر)؛ یکی یا چند. */
@@ -271,17 +270,6 @@ export function SubmitterField(p: FieldProps) {
       </dl>
     </StaticField>
   )
-}
-
-/** پیوست‌های ذخیره‌شده (شناسه‌ها) با نام و حجم، برای ادامه‌ی پیش‌نویس. */
-function useFileInfo(ids: string[]) {
-  const key = ids.join(",")
-  return useQuery({
-    queryKey: ["files", "info", key],
-    queryFn: () => unwrap(api.GET("/api/files/info/", { params: { query: { ids: key } } })),
-    enabled: ids.length > 0,
-    staleTime: Infinity,
-  })
 }
 
 /** پیوست: کشیدن و رها کردن با پیشرفت، نوع‌های مجاز فیلد، دوربین موبایل؛ فهرست فایل‌ها با پیش‌نمایش و حذف. */

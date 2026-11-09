@@ -347,4 +347,80 @@ test.describe("پر کردن فرم", () => {
     await expect(page.getByText(`فرم «${title}» ثبت شد.`)).toBeVisible()
     expect(errors).toEqual([])
   })
+
+  test("وب و رسانه: متن قالب‌دار، تصویر، فایل راهنما، پیوند، متن غنی، بارکد، موقعیت، صدا و فیلد پنهان", async ({ page }, info) => {
+    test.slow()
+    const errors = collectErrors(page)
+    const title = `رسانه ${info.project.name} ${Date.now()}`
+    await page.goto("/forms")
+    // تصویر و فایل راهنمای تعریف با همان بارگذاری طراح
+    const [image, guide] = await page.evaluate(async () => {
+      const token = decodeURIComponent(document.cookie.match(/csrftoken=([^;]+)/)?.[1] ?? "")
+      const png = Uint8Array.from(atob("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg=="), (c) => c.charCodeAt(0))
+      const send = async (name: string, bytes: BlobPart) => {
+        const body = new FormData()
+        body.append("file", new File([bytes], name))
+        const r = await fetch("/api/files/", { method: "POST", headers: { "X-CSRFToken": token }, body })
+        return (await r.json()).id as string
+      }
+      return [await send("chart.png", png), await send("contract.pdf", "%PDF-1.7\n" + "x".repeat(64))]
+    })
+    const id = await publishForm(page, title, {
+      sections: [
+        {
+          id: "s",
+          title: "درخواست",
+          columns: 2,
+          fields: [
+            { id: "intro", type: "paragraph", props: { content: "<p>لطفاً <strong>با دقت</strong> پر کنید.</p>" } },
+            { id: "chart", type: "image", label: "نمودار فرایند", props: { file: image, alt: "نمودار مراحل درخواست", size: "small" } },
+            { id: "sample", type: "download", label: "نمونه‌ی قرارداد", props: { file: guide } },
+            { id: "site", type: "url", label: "وب‌سایت" },
+            { id: "desc", type: "rich_text", label: "شرح کار", required: true, span: 2 },
+            { id: "code", type: "barcode", label: "بارکد کالا", props: { digits_only: true } },
+            { id: "spot", type: "location", label: "محل بازدید", span: 2 },
+            { id: "memo", type: "voice", label: "پیام صوتی" },
+            { id: "src", type: "hidden", label: "منبع", props: { param: "src" } },
+          ],
+        },
+      ],
+    })
+    await page.context().grantPermissions(["geolocation"])
+    await page.context().setGeolocation({ latitude: 35.6892, longitude: 51.389, accuracy: 20 })
+    await page.goto(`/forms/${id}/fill?src=sms`)
+
+    await expect(page.locator("strong", { hasText: "با دقت" })).toBeVisible()
+    await expect(page.getByRole("img", { name: "نمودار مراحل درخواست" })).toBeVisible()
+    await expect(page.getByRole("link", { name: "نمونه‌ی قرارداد" })).toHaveAttribute("href", `/api/files/${guide}/download/`)
+
+    await page.getByLabel("وب‌سایت", { exact: true }).fill("nikyar.ir")
+    await page.getByLabel("بارکد کالا", { exact: true }).fill("12a")
+    await page.getByLabel("بارکد کالا", { exact: true }).blur()
+    await expect(page.getByText("«بارکد کالا» فقط رقم دارد.")).toBeVisible()
+    await page.getByRole("button", { name: "ثبت نهایی" }).click()
+    const summary = page.getByRole("alert").filter({ hasText: "لطفاً این موارد را اصلاح کنید" })
+    await expect(summary).toContainText("نشانی وب معتبری نیست")
+    await expect(summary).toContainText("تکمیل «شرح کار» الزامی است.")
+
+    await page.getByLabel("وب‌سایت", { exact: true }).fill("https://nikyar.ir")
+    await page.getByLabel("بارکد کالا", { exact: true }).fill("6260100000011")
+    const editor = page.getByRole("textbox", { name: "شرح کار" })
+    await editor.click()
+    await page.getByRole("button", { name: "پررنگ" }).click()
+    await editor.pressSequentially("بازدید فنی")
+    await page.getByRole("button", { name: "موقعیت فعلی من" }).click()
+    await expect(page.getByLabel("محل بازدید — عرض جغرافیایی", { exact: true })).toHaveValue("35.689200")
+    await expect(page.getByText("دقت حدود ۲۰ متر")).toBeVisible()
+    await page.locator('input[type=file][accept*=".m4a"]').setInputFiles({ name: "memo.m4a", mimeType: "audio/mp4", buffer: Buffer.concat([Buffer.from([0, 0, 0, 32]), Buffer.from("ftypM4A "), Buffer.alloc(64)]) })
+    await expect(page.getByLabel("پخش «پیام صوتی»")).toBeVisible()
+    await expectAccessible(page)
+
+    await page.getByRole("button", { name: "ثبت نهایی" }).click()
+    await expect(page.getByText(`فرم «${title}» ثبت شد.`)).toBeVisible()
+    const saved = await page.evaluate(async () => (await (await fetch("/api/forms/submissions/?mine=true")).json()).results[0].id as number)
+    const data = await page.evaluate(async (sid) => (await (await fetch(`/api/forms/submissions/${sid}/`)).json()).data, saved)
+    expect(data).toMatchObject({ site: "https://nikyar.ir", desc: "<p><strong>بازدید فنی</strong></p>", code: "6260100000011", spot: { lat: 35.6892, lng: 51.389, accuracy: 20 }, src: "sms" })
+    expect(data.memo).toHaveLength(1)
+    expect(errors).toEqual([])
+  })
 })

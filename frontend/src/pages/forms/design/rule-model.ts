@@ -168,6 +168,9 @@ const REFERABLE = new Set<FieldType>([
   "mobile",
   "postal_code",
   "email",
+  "url",
+  "barcode",
+  "hidden",
 ])
 
 export function referableFields(def: FormDefinition, except?: string): FieldDef[] {

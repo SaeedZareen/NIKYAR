@@ -388,3 +388,40 @@ test.describe("گروه تکرارشونده در طراح", () => {
     expect(errors.filter((e) => !e.includes("status of 400"))).toEqual([])
   })
 })
+
+test.describe("وب و رسانه در طراح", () => {
+  test("تصویر با بارگذاری، متن راهنمای قالب‌دار و فیلد پنهان", async ({ page }, info) => {
+    test.slow()
+    const errors = collectErrors(page)
+    await createForm(page, `فرم رسانه ${info.project.name} ${Date.now()}`)
+
+    // تصویر بی‌فایل ایراد دارد؛ با بارگذاری درست می‌شود
+    await addTool(page, "تصویر")
+    await expect(props(page).getByText("تکمیل «تصویر» الزامی است.")).toBeVisible()
+    const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==", "base64")
+    await props(page).locator('input[type=file][accept*=".png"]').first().setInputFiles({ name: "chart.png", mimeType: "image/png", buffer: png })
+    await expect(props(page).getByText("chart.png")).toBeVisible()
+    await props(page).getByLabel("متن جایگزین (برای صفحه‌خوان)", { exact: true }).fill("نمودار")
+    await closeProps(page)
+    await expect(page.getByRole("img", { name: "نمودار" })).toBeVisible()
+
+    // متن راهنما با ویرایشگر قالب‌دار
+    await addTool(page, "متن راهنما")
+    const editor = props(page).getByRole("textbox", { name: "متن" })
+    await editor.click()
+    await page.keyboard.press("ControlOrMeta+a")
+    await editor.pressSequentially("مدارک را آماده کنید")
+    await props(page).getByRole("button", { name: "فهرست نقطه‌ای" }).click()
+    await closeProps(page)
+    await expect(page.locator("[inert] li", { hasText: "مدارک را آماده کنید" })).toBeVisible()
+
+    await addTool(page, "فیلد پنهان")
+    await props(page).getByLabel("برچسب", { exact: true }).fill("منبع")
+    await props(page).getByLabel("پارامتر نشانی صفحه", { exact: true }).fill("src")
+    await closeProps(page)
+    await expect(page.getByText("فیلد پنهان «منبع»")).toBeVisible()
+    await expect(page.getByText(/ذخیره شد/)).toBeVisible()
+    await expectAccessible(page)
+    expect(errors.filter((e) => !e.includes("status of 400"))).toEqual([])
+  })
+})

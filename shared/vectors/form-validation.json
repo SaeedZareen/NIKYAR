@@ -292,6 +292,24 @@
       }
      },
      {
+      "id": "site",
+      "type": "url",
+      "label": "وب‌سایت"
+     },
+     {
+      "id": "scan",
+      "type": "barcode",
+      "label": "بارکد",
+      "props": {
+       "digits_only": true
+      }
+     },
+     {
+      "id": "spot",
+      "type": "location",
+      "label": "محل"
+     },
+     {
       "id": "family",
       "type": "table",
       "label": "افراد تحت تکفل",
@@ -760,6 +778,62 @@
      "required": "تکمیل «امکانات» الزامی است.",
      "invalid": "گزینه‌ی انتخاب‌شده برای «امکانات» معتبر نیست.",
      "uniqueItems": "در «امکانات» مورد تکراری هست."
+    }
+   },
+   "site": {
+    "type": "string",
+    "maxLength": 2000,
+    "pattern": "^https?://[^\\s/$.?#][^\\s]*$",
+    "title": "وب‌سایت",
+    "x-nikyar-type": "url",
+    "x-messages": {
+     "required": "تکمیل «وب‌سایت» الزامی است.",
+     "invalid": "«وب‌سایت» نشانی وب معتبری نیست؛ با http:// یا https:// شروع کنید.",
+     "maxLength": "«وب‌سایت» حداکثر ۲٬۰۰۰ نویسه باشد.",
+     "pattern": "«وب‌سایت» نشانی وب معتبری نیست؛ با http:// یا https:// شروع کنید."
+    }
+   },
+   "scan": {
+    "type": "string",
+    "maxLength": 500,
+    "pattern": "^\\d+$",
+    "title": "بارکد",
+    "x-nikyar-type": "barcode",
+    "x-messages": {
+     "required": "تکمیل «بارکد» الزامی است.",
+     "invalid": "مقدار «بارکد» معتبر نیست.",
+     "maxLength": "«بارکد» حداکثر ۵۰۰ نویسه باشد.",
+     "pattern": "«بارکد» فقط رقم دارد."
+    }
+   },
+   "spot": {
+    "type": "object",
+    "properties": {
+     "lat": {
+      "type": "number",
+      "minimum": -90,
+      "maximum": 90
+     },
+     "lng": {
+      "type": "number",
+      "minimum": -180,
+      "maximum": 180
+     },
+     "accuracy": {
+      "type": "number",
+      "minimum": 0
+     }
+    },
+    "additionalProperties": false,
+    "required": [
+     "lat",
+     "lng"
+    ],
+    "title": "محل",
+    "x-nikyar-type": "location",
+    "x-messages": {
+     "required": "عرض و طول جغرافیایی «محل» را مشخص کنید.",
+     "invalid": "موقعیت «محل» معتبر نیست؛ عرض جغرافیایی بین −۹۰ و ۹۰ و طول بین −۱۸۰ و ۱۸۰ است."
     }
    },
    "family": {
@@ -1257,6 +1331,58 @@
      "uniqueItems": "در «امکانات» مورد تکراری هست."
     }
    },
+   "site": {
+    "type": "string",
+    "maxLength": 2000,
+    "pattern": "^https?://[^\\s/$.?#][^\\s]*$",
+    "title": "وب‌سایت",
+    "x-nikyar-type": "url",
+    "x-messages": {
+     "required": "تکمیل «وب‌سایت» الزامی است.",
+     "invalid": "«وب‌سایت» نشانی وب معتبری نیست؛ با http:// یا https:// شروع کنید.",
+     "maxLength": "«وب‌سایت» حداکثر ۲٬۰۰۰ نویسه باشد.",
+     "pattern": "«وب‌سایت» نشانی وب معتبری نیست؛ با http:// یا https:// شروع کنید."
+    }
+   },
+   "scan": {
+    "type": "string",
+    "maxLength": 500,
+    "pattern": "^\\d+$",
+    "title": "بارکد",
+    "x-nikyar-type": "barcode",
+    "x-messages": {
+     "required": "تکمیل «بارکد» الزامی است.",
+     "invalid": "مقدار «بارکد» معتبر نیست.",
+     "maxLength": "«بارکد» حداکثر ۵۰۰ نویسه باشد.",
+     "pattern": "«بارکد» فقط رقم دارد."
+    }
+   },
+   "spot": {
+    "type": "object",
+    "properties": {
+     "lat": {
+      "type": "number",
+      "minimum": -90,
+      "maximum": 90
+     },
+     "lng": {
+      "type": "number",
+      "minimum": -180,
+      "maximum": 180
+     },
+     "accuracy": {
+      "type": "number",
+      "minimum": 0
+     }
+    },
+    "additionalProperties": false,
+    "title": "محل",
+    "x-nikyar-type": "location",
+    "x-messages": {
+     "required": "عرض و طول جغرافیایی «محل» را مشخص کنید.",
+     "invalid": "موقعیت «محل» معتبر نیست؛ عرض جغرافیایی بین −۹۰ و ۹۰ و طول بین −۱۸۰ و ۱۸۰ است."
+    }
+   },
    "family": {
     "type": "array",
     "items": {
@@ -1553,6 +1679,45 @@
    }
   },
   {
+   "name": "web and location",
+   "partial": true,
+   "data": {
+    "site": "nikyar.ir",
+    "scan": "12-3",
+    "spot": {
+     "lat": 120,
+     "lng": 51
+    }
+   },
+   "cleaned": null,
+   "errors": {
+    "site": "«وب‌سایت» نشانی وب معتبری نیست؛ با http:// یا https:// شروع کنید.",
+    "scan": "«بارکد» فقط رقم دارد.",
+    "spot": "موقعیت «محل» معتبر نیست؛ عرض جغرافیایی بین −۹۰ و ۹۰ و طول بین −۱۸۰ و ۱۸۰ است."
+   }
+  },
+  {
+   "name": "incomplete location",
+   "partial": false,
+   "data": {
+    "title": "abc",
+    "price": 1,
+    "ok": true,
+    "eval": {
+     "skill": "a",
+     "team": "b"
+    },
+    "agree": true,
+    "spot": {
+     "lat": 35.7
+    }
+   },
+   "cleaned": null,
+   "errors": {
+    "spot": "عرض و طول جغرافیایی «محل» را مشخص کنید."
+   }
+  },
+  {
    "name": "duplicate selection",
    "partial": true,
    "data": {
@@ -1625,7 +1790,14 @@
      {
       "other": "پارکینگ"
      }
-    ]
+    ],
+    "site": "https://nikyar.ir/forms?a=1",
+    "scan": "6260100000011",
+    "spot": {
+     "lat": 35.6892,
+     "lng": 51.389,
+     "accuracy": 20
+    }
    },
    "cleaned": {
     "title": "خرید",
@@ -1668,7 +1840,14 @@
      {
       "other": "پارکینگ"
      }
-    ]
+    ],
+    "site": "https://nikyar.ir/forms?a=1",
+    "scan": "6260100000011",
+    "spot": {
+     "lat": 35.6892,
+     "lng": 51.389,
+     "accuracy": 20
+    }
    },
    "errors": {}
   }

@@ -357,3 +357,29 @@ def test_unique_value_across_submissions(designer, make_user, client_for):
     assert draft.status_code == 201
     r = b.patch(f"/api/forms/submissions/{draft.json()['id']}/", {"data": {"nid": "0084575948"}, "submit": True}, format="json")
     assert r.status_code == 400 and "پیش‌تر در ثبت دیگری" in r.json()["fields"]["nid"]
+
+
+@pytest.mark.django_db(transaction=True)
+def test_definition_files_claim_and_release(designer):
+    """تصویر و فایل راهنمای تعریف: تصاحب هنگام ذخیره، ماندن تا نسخه‌ای از آن استفاده می‌کند، حذف پس از آن."""
+    form = designer.post("/api/forms/", {"code": "guide", "title": "راهنما", "fill_by_everyone": True}, format="json").json()
+    img, guide = upload(designer, "chart.png", PNG), upload(designer, "contract.pdf", PDF)
+    fields = [
+        {"id": "img", "type": "image", "props": {"file": img}},
+        {"id": "dl", "type": "download", "label": "نمونه‌ی قرارداد", "props": {"file": guide}},
+        {"id": "p", "type": "paragraph", "props": {"content": "<p>متن <b>مهم</b><script>x</script></p>"}},
+        {"id": "name", "type": "text", "label": "نام"},
+    ]
+    url = f"/api/forms/versions/{form['draft_version']}/"
+    r = designer.patch(url, {"definition": {"sections": [{"id": "s", "fields": fields}]}}, format="json")
+    assert r.status_code == 200, r.json()
+    assert r.json()["definition"]["sections"][0]["fields"][2]["props"]["content"] == "<p>متن <b>مهم</b></p>"
+    assert StoredFile.objects.get(pk=img).claimed and StoredFile.objects.get(pk=guide).claimed
+    # نسخه‌ی منتشرشده و پیش‌نویس تازه همان فایل‌ها را دارند؛ برداشتن از پیش‌نویس فایل را حذف نمی‌کند
+    designer.post(f"{url}publish/")
+    draft = designer.post(f"/api/forms/{form['id']}/new-draft/").json()["id"]
+    assert designer.patch(f"/api/forms/versions/{draft}/", {"definition": {"sections": [{"id": "s", "fields": fields[2:]}]}}, format="json").status_code == 200
+    assert StoredFile.objects.filter(pk=img).exists()
+    # با حذف فرم (همه‌ی نسخه‌ها) فایل‌ها هم حذف می‌شوند
+    assert designer.delete(f"/api/forms/{form['id']}/").status_code == 204
+    assert not StoredFile.objects.filter(pk__in=[img, guide]).exists()

@@ -12,6 +12,7 @@
 
 from __future__ import annotations
 
+import copy
 import re
 
 from jsonschema import Draft202012Validator, FormatChecker
@@ -72,6 +73,48 @@ def props_of(field: dict) -> dict:
 def iter_fields(definition: dict):
     for section in definition.get("sections", []):
         yield from section.get("fields", [])
+
+
+def _with_items(definition: dict):
+    """همه‌ی فیلدها، از جمله فیلدهای درون گروه‌ها."""
+    for f in iter_fields(definition):
+        yield f
+        if f.get("type") == "table" and isinstance(f.get("props"), dict) and isinstance(f["props"].get("columns"), list):
+            yield from (c for c in f["props"]["columns"] if isinstance(c, dict))
+
+
+def _props_of_kind(field: dict, kind: str) -> list[str]:
+    ftype = REGISTRY.get(field.get("type"))
+    return [name for name, p in ftype.props.items() if p.kind == kind] if ftype else []
+
+
+def normalize_definition(definition):
+    """تعریف با متن‌های قالب‌دار پاک‌سازی‌شده (پیش از سنجش و ذخیره)؛ ساختار نادرست دست‌نخورده می‌ماند تا خطایش گزارش شود."""
+    from .html import sanitize
+
+    if not isinstance(definition, dict):
+        return definition
+    definition = copy.deepcopy(definition)
+    try:
+        for field in _with_items(definition):
+            props = field.get("props")
+            for name in _props_of_kind(field, "html") if isinstance(props, dict) else []:
+                if isinstance(props.get(name), str):
+                    props[name] = sanitize(props[name])
+    except (AttributeError, TypeError):
+        pass
+    return definition
+
+
+def definition_file_ids(definition: dict) -> set[str]:
+    """فایل‌هایی که خود تعریف نگه می‌دارد (تصویر و فایل راهنما)."""
+    ids: set[str] = set()
+    for field in _with_items(definition):
+        for name in _props_of_kind(field, "file"):
+            value = (field.get("props") or {}).get(name)
+            if isinstance(value, str):
+                ids.add(value)
+    return ids
 
 
 def value_fields(definition: dict) -> list[dict]:
@@ -291,6 +334,22 @@ def _check_prop(spec: Prop, value, path: str, errors: dict) -> str | None:
     elif spec.kind == "choice_list":
         if not isinstance(value, list) or not value or not all(v in spec.choices for v in value) or len(set(value)) != len(value):
             return f"«{spec.title}» دست‌کم یک مورد از گزینه‌های مجاز است."
+    elif spec.kind == "html":
+        from .html import text_of
+
+        if not isinstance(value, str) or (spec.max and len(value) > spec.max):
+            return f"«{spec.title}» باید متن حداکثر {fa_number(spec.max)} نویسه باشد."
+        if spec.required and not text_of(value):
+            return f"تکمیل «{spec.title}» الزامی است."
+    elif spec.kind == "file":
+        from core.files.models import StoredFile
+        from core.files.types import FILE_TYPES
+
+        stored = StoredFile.objects.filter(pk=value).first() if is_uuid(value) else None
+        if stored is None:
+            return f"فایل «{spec.title}» پیدا نشد؛ دوباره بارگذاری کنید."
+        if stored.extension not in (spec.accept or FILE_TYPES):
+            return f"نوع فایل برای «{spec.title}» مناسب نیست."
     elif spec.kind == "date":
         if not is_jalali_date(value):
             return f"«{spec.title}» تاریخ معتبری نیست؛ به شکل ۱۴۰۵/۰۸/۱۴ وارد کنید."
@@ -413,6 +472,8 @@ def validate_data(definition: dict, data, ctx: Ctx) -> dict:
         raise BusinessError("داده‌ی فرم ساختار درستی ندارد.", {"data": "داده‌ی فرم باید یک شیء باشد."})
     server_fields = {f["id"] for f in value_fields(definition) if not REGISTRY[f["type"]].client_value}
     cleaned = {k: c for k, x in data.items() if k not in server_fields and (c := clean(x)) is not None}
+    fields = {f["id"]: f for f in value_fields(definition)}
+    cleaned = {k: n for k, v in cleaned.items() if (n := _normalize(fields[k], v) if k in fields else v) is not None}
     unknown = set(cleaned) - {f["id"] for f in value_fields(definition)}
     if unknown:
         raise BusinessError("داده‌ی فرم فیلد ناشناخته دارد؛ صفحه را دوباره بارگذاری کنید.", {k: "این فیلد در فرم نیست." for k in sorted(unknown)})
@@ -441,6 +502,21 @@ def prefill_value(field: dict, user) -> str | None:
         return None
     value = user.get_full_name() if source == "full_name" else getattr(user, source, "")
     return (value or "").strip() or None
+
+
+def _normalize(field: dict, value):
+    """شکل یکسان مقدار هر نوع (FieldType.normalize)، در گروه برای هر خانه؛ None یعنی پر نشده."""
+    ftype, props = REGISTRY[field["type"]], props_of(field)
+    if ftype.code != "table" or not isinstance(value, list):
+        return ftype.normalize(value, props)
+    rows = []
+    for row in value:
+        if isinstance(row, dict):
+            columns = {c["id"]: c for c in props["columns"]}
+            row = {k: n for k, v in row.items() if (n := _normalize(columns[k], v) if k in columns else v) is not None}
+        if row:
+            rows.append(row)
+    return rows or None
 
 
 def _apply_rules(definition: dict, cleaned: dict, ctx: Ctx) -> tuple[dict, rules.RuleState]:

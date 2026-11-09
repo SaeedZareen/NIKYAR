@@ -2,7 +2,7 @@ import * as React from "react"
 import { useDroppable } from "@dnd-kit/core"
 import { rectSortingStrategy, SortableContext, useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { ArrowDown, ArrowUp, ChevronDown, ChevronUp, Copy, GitBranch, GripVertical, MoveHorizontal, Plus, Trash2 } from "lucide-react"
+import { ArrowDown, ArrowUp, ChevronDown, ChevronUp, Copy, EyeOff, GitBranch, GripVertical, MoveHorizontal, Plus, Trash2 } from "lucide-react"
 import { useForm } from "react-hook-form"
 import { FormGrid } from "@/components/form/form-grid"
 import { itemsOf, labelLayout, spanClass, type FieldDef, type FormDefinition, type FormValues, type SectionDef } from "@/components/form-renderer/definition"
@@ -200,6 +200,12 @@ function CanvasField(props: FieldProps) {
       )}
       {group ? (
         <CanvasGroup {...props} name={name} selected={selected} invalid={invalid} onSelectGroup={onSelect} />
+      ) : field.type === "hidden" ? (
+        // فیلد پنهان در فرم دیده نمی‌شود؛ روی بوم فقط نشانه‌ی آن
+        <p className="flex min-h-7 items-center gap-1.5 rounded-md border border-dashed px-2 text-2xs text-muted-foreground">
+          <EyeOff className="size-3.5" aria-hidden /> فیلد پنهان «{field.label}»
+          {typeof field.props?.param === "string" && field.props.param && <span dir="ltr">?{field.props.param}=</span>}
+        </p>
       ) : (
         <div inert>
           <FieldView field={field} control={control} layout={layout} />

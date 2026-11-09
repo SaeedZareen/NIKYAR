@@ -93,7 +93,9 @@ function FillForm({ context, initialData, initialSubmission, initialSavedAt, onC
         : undefined,
     [user]
   )
-  const defaults = React.useMemo(() => toFormValues(definition, initialData, me), [definition, initialData, me])
+  // پارامترهای نشانی صفحه برای فیلدهای پنهان (مثلاً ?src=sms)؛ فقط هنگام باز شدن فرم
+  const [query] = React.useState(() => new URLSearchParams(window.location.search))
+  const defaults = React.useMemo(() => toFormValues(definition, initialData, me, query), [definition, initialData, me, query])
   const form = useForm<FormValues>({ resolver: formResolver(definition, schema), defaultValues: defaults, mode: "onTouched", shouldFocusError: false })
   const values = useWatch({ control: form.control })
 
