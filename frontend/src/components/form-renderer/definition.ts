@@ -52,6 +52,12 @@ export type FieldDef = {
   label?: string
   help?: string
   required?: boolean
+  /** فقط‌خواندنی همیشگی (مقدار پیش‌فرض یا پیش‌پر). */
+  readonly?: boolean
+  /** همین مقدار در ثبت نهایی دیگری از همین فرم نیاید (بررسی سرور). */
+  unique?: boolean
+  /** پیش‌پر از «حساب من». */
+  prefill?: PrefillSource
   span?: number
   /** شروع از ردیف تازه (فیلد پس از فیلدهای قبلی در ستون اول می‌نشیند). */
   new_row?: boolean
@@ -123,8 +129,10 @@ function nowDefault(field: FieldDef, now: Date): string | undefined {
   return { date, time, datetime: `${date} ${time}` }[field.type as "date" | "time" | "datetime"]
 }
 
-/** کاربر جاری برای پیش‌فرض‌های «خودم» و «واحد من». */
-export type CurrentUser = { id: number; unitId?: number }
+export type PrefillSource = "full_name" | "first_name" | "last_name" | "username" | "mobile" | "email"
+
+/** کاربر جاری برای پیش‌فرض‌های «خودم» و «واحد من» و پیش‌پر از حساب. */
+export type CurrentUser = { id: number; unitId?: number; profile?: Partial<Record<PrefillSource, string>> }
 
 function selfDefault(field: FieldDef, me?: CurrentUser): unknown {
   const multiple = field.props?.multiple === true
@@ -134,10 +142,14 @@ function selfDefault(field: FieldDef, me?: CurrentUser): unknown {
   return undefined
 }
 
-/** مقدار اولیه‌ی ورودی‌ها از داده‌ی ثبت؛ برای فرم تازه مقدار پیش‌فرض هر فیلد (ثابت، «امروز/اکنون»، «خودم»، «واحد من»). */
+function prefillDefault(field: FieldDef, me?: CurrentUser): string | undefined {
+  return field.prefill ? me?.profile?.[field.prefill] || undefined : undefined
+}
+
+/** مقدار اولیه‌ی ورودی‌ها از داده‌ی ثبت؛ برای فرم تازه مقدار پیش‌فرض هر فیلد (ثابت، «امروز/اکنون»، «خودم»، «واحد من»، پیش‌پر). */
 export function toFormValues(definition: FormDefinition, data?: Record<string, unknown>, me?: CurrentUser, now = new Date()): FormValues {
   return Object.fromEntries(
-    valueFields(definition).map((f) => [f.id, toInput(f, data ? data[f.id] : (nowDefault(f, now) ?? selfDefault(f, me) ?? f.default))])
+    valueFields(definition).map((f) => [f.id, toInput(f, data ? data[f.id] : (nowDefault(f, now) ?? selfDefault(f, me) ?? prefillDefault(f, me) ?? f.default))])
   )
 }
 

@@ -158,7 +158,7 @@ def apply(definition: dict, data: dict) -> tuple[dict, RuleState]:
                 continue
             if "required_if" in f and truthy(evaluate(f["required_if"], values)):
                 state.required.add(f["id"])
-            if "readonly_if" in f and truthy(evaluate(f["readonly_if"], values)):
+            if f.get("readonly") or ("readonly_if" in f and truthy(evaluate(f["readonly_if"], values))):
                 state.readonly.add(f["id"])
     return values, state
 

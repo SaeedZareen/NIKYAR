@@ -86,7 +86,7 @@ class TestDefinition:
                 {"id": "l", "type": "lookup", "label": "فهرست", "props": {"list": "no-such-list"}},
                 {"id": "h", "type": "heading", "label": "عنوان", "required": True},
                 {"id": "w", "type": "text", "label": "پهن", "span": 2},
-                {"id": "d", "type": "date", "label": "تاریخ", "default": "1405/01/01"},
+                {"id": "d", "type": "attachment", "label": "پیوست", "default": "x"},
                 {"id": "m", "type": "multi_choice", "label": "چند", "props": {"options": [{"value": "a", "label": "الف"}], "max_select": 3}},
             )
         )
@@ -387,3 +387,62 @@ def test_layout_keys(db):
     d["sections"][0]["fields"][0]["new_row"] = "yes"
     errs = definition_errors(d)
     assert "جای برچسب" in errs["sections.0.labels"] and "ردیف تازه" in errs["sections.0.fields.0.new_row"]
+
+
+class TestAdvancedProperties:
+    """3.5c: فقط‌خواندنی، پیش‌فرض همه‌ی نوع‌ها، پیش‌پر، یکتا، الگوی دلخواه، بازه‌ی تاریخ و گزینه‌ی «سایر»."""
+
+    def test_definition_checks(self, db):
+        errs = definition_errors(
+            form(
+                {"id": "a", "type": "text", "label": "الف", "props": {"pattern": "^(P", "script": "latin"}},
+                {"id": "b", "type": "text", "label": "ب", "props": {"pattern": "^P$"}},
+                {"id": "c", "type": "date", "label": "ج", "props": {"min_date": "1405/13/01", "max_offset": 5, "min_offset": 10}},
+                {"id": "d", "type": "date", "label": "د", "props": {"min_date": "1405/02/01", "max_date": "1405/01/01"}},
+                {"id": "e", "type": "heading", "label": "ه", "readonly": True},
+                {"id": "f", "type": "choice", "label": "و", "unique": True, "props": {"options": [{"value": "x", "label": "x"}]}},
+                {"id": "g", "type": "number", "label": "ز", "prefill": "full_name"},
+                {"id": "h", "type": "text", "label": "ح", "prefill": "nope", "unique": "yes"},
+            )
+        )
+        p = "sections.0.fields"
+        assert "الگو درست نیست" in errs[f"{p}.0.props.pattern"] and "با هم نمی‌آیند" in errs[f"{p}.0.props.script"]
+        assert "پیام خطا" in errs[f"{p}.1.props.pattern_message"]
+        assert "تاریخ" in errs[f"{p}.2.props.min_date"]
+        assert "بعد از کمترین" in errs[f"{p}.3.props.max_date"]
+        assert "فقط‌خواندنی" in errs[f"{p}.4.readonly"]
+        assert "مقدار یکتا نمی‌پذیرد" in errs[f"{p}.5.unique"]
+        assert "پیش‌پر" in errs[f"{p}.6.prefill"] and "پیش‌پر" in errs[f"{p}.7.prefill"] and "بله/خیر" in errs[f"{p}.7.unique"]
+        # پیش‌فرض برای تاریخ، شناسه و چندانتخابی هم پذیرفته است
+        engine.check_definition(
+            form(
+                {"id": "d", "type": "date", "label": "تاریخ", "default": "1405/01/01", "readonly": True},
+                {"id": "n", "type": "national_code", "label": "کد ملی", "default": "0084575948", "unique": True},
+                {"id": "m", "type": "text", "label": "نام", "prefill": "full_name"},
+                {"id": "o", "type": "choice", "label": "منبع", "props": {"options": [{"value": "x", "label": "x"}], "allow_other": True}},
+            )
+        )
+
+    def test_date_bounds(self):
+        d = form(
+            {"id": "fixed", "type": "date", "label": "ثابت", "props": {"min_date": "1405/01/01", "max_date": "1405/06/31"}},
+            {"id": "rel", "type": "date", "label": "نسبی", "props": {"min_offset": -1, "max_offset": 30}},
+        )
+        errs = errors_of(d, {"fixed": "1404/12/29", "rel": jd(31)})
+        assert errs["fixed"] == "«ثابت» نباید پیش از ۱۴۰۵/۰۱/۰۱ باشد." and "نباید بعد از" in errs["rel"]
+        assert "نباید بعد از ۱۴۰۵/۰۶/۳۱" in errors_of(d, {"fixed": "1405/07/01"})["fixed"]
+        assert "نباید پیش از" in errors_of(d, {"rel": jd(-2)})["rel"]
+        assert engine.validate_data(d, {"fixed": "1405/06/31", "rel": jd(30)}, Ctx()) == {"fixed": "1405/06/31", "rel": jd(30)}
+
+    def test_static_readonly_keeps_default(self):
+        d = form({"id": "code", "type": "text", "label": "کد", "readonly": True, "default": "A-1"}, {"id": "x", "type": "text", "label": "x", "readonly": True})
+        assert engine.validate_data(d, {"code": "دستکاری", "x": "y"}, Ctx()) == {"code": "A-1"}
+        assert engine.validate_data(d, {"code": "دستکاری"}, Ctx(previous={"code": "A-0"})) == {"code": "A-0"}
+
+    def test_readonly_prefill_comes_from_account(self, make_user):
+        user = make_user("prefill", first_name="سارا", last_name="محمدی", mobile="09121112233")
+        d = form(
+            {"id": "name", "type": "text", "label": "نام", "readonly": True, "prefill": "full_name"},
+            {"id": "m", "type": "mobile", "label": "موبایل", "prefill": "mobile"},
+        )
+        assert engine.validate_data(d, {"name": "جعل", "m": "09120000000"}, Ctx(user=user)) == {"name": "سارا محمدی", "m": "09120000000"}

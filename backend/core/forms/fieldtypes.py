@@ -39,7 +39,7 @@ class Prop:
     یک ویژگی نوع فیلد. kind:
     int، number، bool، text، choice (یکی از choices)، options (گزینه‌های انتخاب)،
     lookup_list (کد فهرست پایه)، org_unit و role (شناسه‌ی واحد یا نقش)، choice_list (چند مورد از choices)،
-    extensions (نوع‌های فایل)، columns (ستون‌های جدول)، logic (عبارت JsonLogic؛ core/forms/rules.py).
+    extensions (نوع‌های فایل)، columns (ستون‌های جدول)، logic (عبارت JsonLogic؛ core/forms/rules.py)، date (تاریخ شمسی).
     """
 
     kind: str
@@ -161,15 +161,29 @@ class _Text(FieldType):
         s = {"type": "string", "maxLength": props["max_length"]}
         if props.get("min_length"):
             s["minLength"] = props["min_length"]
-        if props.get("script", "any") != "any":
+        if props.get("pattern"):
+            s["pattern"] = props["pattern"]
+        elif props.get("script", "any") != "any":
             s["pattern"] = SCRIPTS[props["script"]]
         return s
 
     def extra_messages(self, props):
+        if props.get("pattern"):
+            return {"pattern": props.get("pattern_message") or "«{label}» با الگوی خواسته‌شده سازگار نیست."}
         return {"pattern": SCRIPT_MESSAGES[props["script"]]} if props.get("script", "any") != "any" else {}
 
     def check_props(self, props):
-        return _min_max(props, "min_length", "max_length", "طول")
+        errors = _min_max(props, "min_length", "max_length", "طول")
+        if props.get("pattern"):
+            try:
+                re.compile(props["pattern"])
+            except re.error:
+                errors["pattern"] = "الگو درست نیست؛ نمونه: ^P-\\d{5}$"
+            if props.get("script", "any") != "any":
+                errors["script"] = "«خط نوشتار» با «الگوی دلخواه» با هم نمی‌آیند؛ یکی را بردارید."
+            if not props.get("pattern_message"):
+                errors["pattern_message"] = "برای الگو پیام خطا بنویسید."
+        return errors
 
 
 @register
@@ -180,6 +194,9 @@ class Text(_Text):
         "max_length": Prop("int", "بیشینه‌ی طول", default=200, min=1, max=1000),
         "placeholder": Prop("text", "متن نمونه", max=100),
         "script": Prop("choice", "خط نوشتار", default="any", choices={"any": "هر خطی", "persian": "فقط فارسی", "latin": "فقط لاتین"}),
+        # الگوی دلخواه (عبارت باقاعده) با پیام خطای طراح؛ مثل شماره‌ی پرسنلی ^P-\d{5}$
+        "pattern": Prop("text", "الگوی دلخواه", max=200),
+        "pattern_message": Prop("text", "پیام خطای الگو", max=200),
     }
 
 
@@ -249,6 +266,40 @@ def _today() -> str:
     return jdatetime.date.today().strftime("%Y/%m/%d")
 
 
+DATE_BOUNDS = {
+    "min_date": Prop("date", "کمترین تاریخ"),
+    "max_date": Prop("date", "بیشترین تاریخ"),
+    "min_offset": Prop("int", "کمترین (روز نسبت به امروز)", min=-3650, max=3650),
+    "max_offset": Prop("int", "بیشترین (روز نسبت به امروز)", min=-3650, max=3650),
+}
+
+
+def _bounds_error(value: str, props: dict) -> str | None:
+    """کمترین/بیشترین تاریخ ثابت یا نسبت به امروز (مثلاً بیشترین ۳۰ یعنی حداکثر ۳۰ روز آینده)."""
+    today = jdatetime.date.today()
+    lows = [props.get("min_date")] + (
+        [(today + jdatetime.timedelta(days=props["min_offset"])).strftime("%Y/%m/%d")] if props.get("min_offset") is not None else []
+    )
+    highs = [props.get("max_date")] + (
+        [(today + jdatetime.timedelta(days=props["max_offset"])).strftime("%Y/%m/%d")] if props.get("max_offset") is not None else []
+    )
+    low = max((d for d in lows if d), default=None)
+    high = min((d for d in highs if d), default=None)
+    if low and value < low:
+        return "«{label}» نباید پیش از " + fa_digits(low) + " باشد."
+    if high and value > high:
+        return "«{label}» نباید بعد از " + fa_digits(high) + " باشد."
+    return None
+
+
+def _bounds_props_error(props: dict) -> dict[str, str]:
+    if props.get("min_date") and props.get("max_date") and props["min_date"] > props["max_date"]:
+        return {"max_date": "بیشترین تاریخ باید بعد از کمترین تاریخ باشد."}
+    if props.get("min_offset") is not None and props.get("max_offset") is not None and props["min_offset"] > props["max_offset"]:
+        return {"max_offset": "بیشترین باید بزرگ‌تر یا برابر کمترین باشد."}
+    return {}
+
+
 def _range_error(value: str, rng: str) -> str | None:
     if rng == "past" and value > _today():
         return "«{label}» نباید بعد از امروز باشد."
@@ -260,8 +311,10 @@ def _range_error(value: str, rng: str) -> str | None:
 @register
 class Date(FieldType):
     code, title, group = "date", "تاریخ", "تاریخ و زمان"
+    supports_default = True
     props = {
         "range": Prop("choice", "بازه‌ی مجاز", default="any", choices=RANGE_CHOICES),
+        **DATE_BOUNDS,
         "default_now": Prop("bool", "پیش‌فرض امروز", default=False),
     }
     invalid_message = "«{label}» تاریخ معتبری نیست؛ به شکل ۱۴۰۵/۰۸/۱۴ وارد کنید."
@@ -270,7 +323,10 @@ class Date(FieldType):
         return {"type": "string", "format": "jalali-date"}
 
     def check(self, value, props, ctx):
-        return _range_error(value, props["range"])
+        return _range_error(value, props["range"]) or _bounds_error(value, props)
+
+    def check_props(self, props):
+        return _bounds_props_error(props)
 
 
 @register
@@ -289,6 +345,7 @@ class DateRange(FieldType):
     code, title, group = "date_range", "بازه‌ی تاریخ", "تاریخ و زمان"
     props = {
         "range": Prop("choice", "بازه‌ی مجاز", default="any", choices=RANGE_CHOICES),
+        **DATE_BOUNDS,
         "max_days": Prop("int", "بیشینه‌ی روز", min=1, max=3650),
     }
     invalid_message = "«{label}» را به شکل «از تاریخ» و «تا تاریخ» معتبر وارد کنید."
@@ -304,7 +361,7 @@ class DateRange(FieldType):
     def check(self, value, props, ctx):
         start, end = value.get("start"), value.get("end")
         for part in (start, end):
-            if part and (msg := _range_error(part, props["range"])):
+            if part and (msg := _range_error(part, props["range"]) or _bounds_error(part, props)):
                 return msg
         if start and end:
             if end < start:
@@ -314,6 +371,9 @@ class DateRange(FieldType):
                 return "«{label}» حداکثر " + fa_number(props["max_days"]) + " روز است."
         return None
 
+    def check_props(self, props):
+        return _bounds_props_error(props)
+
 
 def _now() -> str:
     return jdatetime.datetime.now().strftime("%Y/%m/%d %H:%M")
@@ -322,6 +382,7 @@ def _now() -> str:
 @register
 class DateTime(FieldType):
     code, title, group = "datetime", "تاریخ و ساعت", "تاریخ و زمان"
+    supports_default = True
     props = {
         "range": Prop("choice", "بازه‌ی مجاز", default="any", choices=RANGE_CHOICES),
         "default_now": Prop("bool", "پیش‌فرض اکنون", default=False),
@@ -415,6 +476,25 @@ OPTION_COLUMNS = Prop(
 )
 
 
+# گزینه‌ی «سایر» با کادر متن: مقدار {"other": "متن"} به‌جای کد یکی از گزینه‌ها
+OTHER_PROPS = {
+    "allow_other": Prop("bool", "گزینه‌ی «سایر» با کادر متن", default=False),
+    "other_label": Prop("text", "برچسب گزینه‌ی سایر", default="سایر", max=50),
+}
+
+
+def _with_other(option_schema: dict, props: dict) -> dict:
+    if not props.get("allow_other"):
+        return option_schema
+    other = {
+        "type": "object",
+        "properties": {"other": {"type": "string", "minLength": 1, "maxLength": 200}},
+        "required": ["other"],
+        "additionalProperties": False,
+    }
+    return {"anyOf": [option_schema, other]}
+
+
 @register
 class Boolean(FieldType):
     code, title, group = "boolean", "بله/خیر", "انتخاب"
@@ -433,11 +513,12 @@ class Choice(FieldType):
         "options": Prop("options", "گزینه‌ها", required=True, min=1, max=100),
         "display": Prop("choice", "نمایش", default="radio", choices={"radio": "دکمه‌های رادیویی", "select": "فهرست کشویی"}),
         "option_columns": OPTION_COLUMNS,
+        **OTHER_PROPS,
     }
     invalid_message = "گزینه‌ی انتخاب‌شده برای «{label}» معتبر نیست."
 
     def schema(self, props, partial):
-        return {"type": "string", "enum": [o["value"] for o in props["options"]]}
+        return _with_other({"type": "string", "enum": [o["value"] for o in props["options"]]}, props)
 
 
 @register
@@ -449,11 +530,12 @@ class MultiChoice(FieldType):
         "min_select": Prop("int", "کمینه‌ی انتخاب", min=1, max=100),
         "max_select": Prop("int", "بیشینه‌ی انتخاب", min=1, max=100),
         "option_columns": OPTION_COLUMNS,
+        **OTHER_PROPS,
     }
     invalid_message = "گزینه‌ی انتخاب‌شده برای «{label}» معتبر نیست."
 
     def schema(self, props, partial):
-        s = {"type": "array", "items": {"type": "string", "enum": [o["value"] for o in props["options"]]}, "uniqueItems": True}
+        s = {"type": "array", "items": _with_other({"type": "string", "enum": [o["value"] for o in props["options"]]}, props), "uniqueItems": True}
         if props.get("min_select") and not partial:
             s["minItems"] = props["min_select"]
         if props.get("max_select"):
@@ -529,6 +611,7 @@ class Consent(FieldType):
 
 class _Identifier(FieldType):
     group = "شناسه‌های ایرانی"
+    supports_default = True
     format = ""
     pattern = ""
 
@@ -634,6 +717,7 @@ class _Reference(FieldType):
 @register
 class Lookup(_Reference):
     code, title = "lookup", "فهرست پایه"
+    supports_default = True
     id_type = "string"
     props = {
         "list": Prop("lookup_list", "فهرست پایه", required=True),
@@ -920,6 +1004,37 @@ class Table(FieldType):
                 ids += REGISTRY[column["type"]].file_ids(row.get(column["id"]), props_of(column))
         return ids
 
+
+# نوع‌هایی که «مقدار یکتا» می‌پذیرند (مقدار ساده‌ی قابل مقایسه)
+UNIQUE_TYPES = frozenset(
+    {
+        "text",
+        "number",
+        "amount",
+        "date",
+        "national_code",
+        "legal_national_id",
+        "economic_code",
+        "registration_number",
+        "mobile",
+        "phone",
+        "postal_code",
+        "iban",
+        "card_number",
+        "email",
+        "vehicle_plate",
+    }
+)
+
+# پیش‌پر از «حساب من»: منبع ← نوع‌هایی که آن را می‌پذیرند
+PREFILL = {
+    "full_name": ("نام و نام خانوادگی", {"text", "textarea"}),
+    "first_name": ("نام", {"text"}),
+    "last_name": ("نام خانوادگی", {"text"}),
+    "username": ("نام کاربری", {"text"}),
+    "mobile": ("موبایل", {"mobile", "text"}),
+    "email": ("ایمیل", {"email", "text"}),
+}
 
 # نوع‌هایی که ستون جدول می‌شوند: هر نوع دارای مقدار که کاربر پر می‌کند، به‌جز خود جدول.
 COLUMN_TYPES = frozenset(code for code, t in REGISTRY.items() if t.has_value and t.client_value and code != "table")

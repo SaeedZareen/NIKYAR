@@ -96,6 +96,8 @@ def save_submission(*, user, data, submit: bool, form: Form | None = None, submi
     cleaned = engine.validate_data(
         definition, data, Ctx(user=user, previous_files=frozenset(previous), partial=not submit, previous=submission.data if submission else {})
     )
+    if submit:
+        _check_unique(form, submission, definition, cleaned)
     signatures = _fields_of(definition, "signature") if submit else []
     for field in signatures:
         if field.get("required") and user.signature_id is None:
@@ -140,6 +142,20 @@ def _check_own_draft(user, submission: Submission) -> None:
         raise PermissionDenied()
     if submission.status != Submission.Status.DRAFT:
         raise BusinessError("ثبت نهایی‌شده تغییر نمی‌کند.")
+
+
+def _check_unique(form: Form, submission: Submission | None, definition: dict, cleaned: dict) -> None:
+    """«مقدار یکتا»: همین مقدار در ثبت نهایی دیگری از همین فرم نیامده باشد."""
+    others = Submission.objects.filter(form=form, status=Submission.Status.SUBMITTED)
+    if submission is not None:
+        others = others.exclude(pk=submission.pk)
+    errors = {
+        f["id"]: f"این «{f['label']}» پیش‌تر در ثبت دیگری از همین فرم آمده است."
+        for f in engine.value_fields(definition)
+        if f.get("unique") and f["id"] in cleaned and others.filter(**{f"data__{f['id']}": cleaned[f["id"]]}).exists()
+    }
+    if errors:
+        raise BusinessError("فرم را بررسی کنید؛ برخی فیلدها ایراد دارند.", errors)
 
 
 def _fields_of(definition: dict, ftype: str) -> list[dict]:

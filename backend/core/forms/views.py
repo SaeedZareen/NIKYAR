@@ -13,7 +13,7 @@ from core.kernel.api import BusinessError, HasPerm, MultiValueFilter
 from core.lookups.models import LookupItem
 
 from . import engine, service
-from .fieldtypes import COLUMN_TYPES, REGISTRY, divisions
+from .fieldtypes import COLUMN_TYPES, PREFILL, REGISTRY, UNIQUE_TYPES, divisions
 from .models import Form, FormVersion, Submission
 
 CATEGORY_LIST = "form-category"
@@ -135,7 +135,9 @@ class FormSubmissionSerializer(serializers.ModelSerializer):
 
 class FieldPropSpecSerializer(serializers.Serializer):
     name = serializers.CharField()
-    kind = serializers.CharField(help_text="int، number، bool، text، choice، choice_list، options، lookup_list، org_unit، role، extensions، columns")
+    kind = serializers.CharField(
+        help_text="int، number، bool، text، date، choice، choice_list، options، lookup_list، org_unit، role، extensions، columns، logic"
+    )
     title = serializers.CharField()
     required = serializers.BooleanField()
     default = serializers.JSONField(allow_null=True)
@@ -153,6 +155,8 @@ class FieldTypeSpecSerializer(serializers.Serializer):
     label_required = serializers.BooleanField()
     supports_default = serializers.BooleanField()
     column = serializers.BooleanField(help_text="می‌تواند ستون جدول باشد")
+    unique = serializers.BooleanField(help_text="«مقدار یکتا» می‌پذیرد")
+    prefill = serializers.ListField(child=serializers.DictField(child=serializers.CharField()), help_text="منبع‌های پیش‌پر از حساب کاربر: [{value, label}]")
     props = FieldPropSpecSerializer(many=True)
 
 
@@ -167,6 +171,8 @@ def field_type_specs() -> list[dict]:
             "label_required": t.label_required,
             "supports_default": t.supports_default,
             "column": code in COLUMN_TYPES,
+            "unique": code in UNIQUE_TYPES,
+            "prefill": [{"value": k, "label": label} for k, (label, types) in PREFILL.items() if code in types],
             "props": [
                 {
                     "name": name,
