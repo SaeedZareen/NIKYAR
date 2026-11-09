@@ -417,7 +417,8 @@ test.describe("پر کردن فرم", () => {
 
     await page.getByRole("button", { name: "ثبت نهایی" }).click()
     await expect(page.getByText(`فرم «${title}» ثبت شد.`)).toBeVisible()
-    const saved = await page.evaluate(async () => (await (await fetch("/api/forms/submissions/?mine=true")).json()).results[0].id as number)
+    // ثبت همین فرم (آزمون‌های هم‌زمان هم با همین کاربر ثبت می‌کنند)
+    const saved = await page.evaluate(async (form) => (await (await fetch(`/api/forms/submissions/?mine=true&form=${form}`)).json()).results[0].id as number, id)
     const data = await page.evaluate(async (sid) => (await (await fetch(`/api/forms/submissions/${sid}/`)).json()).data, saved)
     expect(data).toMatchObject({ site: "https://nikyar.ir", desc: "<p><strong>بازدید فنی</strong></p>", code: "6260100000011", spot: { lat: 35.6892, lng: 51.389, accuracy: 20 }, src: "sms" })
     expect(data.memo).toHaveLength(1)

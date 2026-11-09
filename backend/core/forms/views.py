@@ -102,7 +102,19 @@ class FormVersionSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = FormVersion
-        fields = ["id", "form", "form_title", "number", "status", "status_label", "field_count", "created_at", "updated_at", "published_at", "published_by_name"]
+        fields = [
+            "id",
+            "form",
+            "form_title",
+            "number",
+            "status",
+            "status_label",
+            "field_count",
+            "created_at",
+            "updated_at",
+            "published_at",
+            "published_by_name",
+        ]
         read_only_fields = fields
 
     def get_field_count(self, obj) -> int:

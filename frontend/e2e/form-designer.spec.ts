@@ -19,7 +19,7 @@ async function closeProps(page: Page) {
 
 async function createForm(page: Page, title: string) {
   await page.goto("/forms/design")
-  await page.getByRole("button", { name: "فرم جدید" }).click()
+  await page.getByRole("button", { name: "فرم جدید", exact: true }).click()
   await page.getByLabel("عنوان", { exact: true }).fill(title)
   await page.getByRole("button", { name: "ساخت و رفتن به طراح" }).click()
   await expect(page.getByRole("heading", { level: 1, name: title })).toBeVisible()
