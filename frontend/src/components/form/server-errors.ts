@@ -3,14 +3,15 @@ import { ApiError, errorMessage } from "@/lib/api/client"
 
 /**
  * خطای سرور را روی فرم می‌نشاند: پیام هر فیلد زیر همان فیلد و در خلاصه‌ی خطا؛
- * خطای کلی (قاعده‌ی کسب‌وکار، شبکه) بالای فرم.
+ * خطای کلی (قاعده‌ی کسب‌وکار، شبکه) بالای فرم. toScreen نام خطای خانه‌ی گروه را به جای همان خانه روی صفحه می‌برد.
  */
-export function applyServerErrors<T extends FieldValues>(form: UseFormReturn<T>, error: unknown) {
+export function applyServerErrors<T extends FieldValues>(form: UseFormReturn<T>, error: unknown, toScreen: (name: string) => string = (n) => n) {
   const fields = error instanceof ApiError ? error.fields : {}
   const known = new Set(Object.keys(form.getValues()))
   let unmatched = ""
-  for (const [name, message] of Object.entries(fields)) {
-    if (known.has(name)) form.setError(name as Path<T>, { type: "server", message })
+  // خطای کل یک گروه پیش از خطای خانه‌هایش، تا روی آن‌ها ننشیند («items» پیش از «items.0.qty»)
+  for (const [name, message] of Object.entries(fields).sort(([a], [b]) => a.length - b.length)) {
+    if (known.has(name.split(".")[0])) form.setError(toScreen(name) as Path<T>, { type: "server", message })
     else unmatched ||= message
   }
   if (unmatched || Object.keys(fields).length === 0) {

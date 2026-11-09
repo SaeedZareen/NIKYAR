@@ -107,6 +107,8 @@ function toInput(field: FieldDef, value: unknown): unknown {
       return value && typeof value === "object" ? value : {}
     case "attachment":
       return Array.isArray(value) ? value : []
+    case "table":
+      return Array.isArray(value) ? value.map((row) => toItem(itemsOf(field), row as Record<string, unknown>)) : []
     case "lookup":
     case "user":
     case "org_unit":
@@ -119,6 +121,14 @@ function toInput(field: FieldDef, value: unknown): unknown {
     default:
       return value ?? ""
   }
+}
+
+/** فیلدهای هر مورد گروه تکرارشونده. */
+export const itemsOf = (field: FieldDef) => (field.props?.columns ?? []) as FieldDef[]
+
+/** حالت ورودی یک مورد گروه؛ مورد تازه مقدار پیش‌فرض فیلدهایش را می‌گیرد. */
+export function toItem(items: FieldDef[], row?: Record<string, unknown>): Record<string, unknown> {
+  return Object.fromEntries(items.map((f) => [f.id, toInput(f, row ? row[f.id] : f.default)]))
 }
 
 /** پیش‌فرض پویای «امروز» یا «اکنون» (default_now) برای فرم تازه. */
@@ -149,7 +159,11 @@ function prefillDefault(field: FieldDef, me?: CurrentUser): string | undefined {
 /** مقدار اولیه‌ی ورودی‌ها از داده‌ی ثبت؛ برای فرم تازه مقدار پیش‌فرض هر فیلد (ثابت، «امروز/اکنون»، «خودم»، «واحد من»، پیش‌پر). */
 export function toFormValues(definition: FormDefinition, data?: Record<string, unknown>, me?: CurrentUser, now = new Date()): FormValues {
   return Object.fromEntries(
-    valueFields(definition).map((f) => [f.id, toInput(f, data ? data[f.id] : (nowDefault(f, now) ?? selfDefault(f, me) ?? prefillDefault(f, me) ?? f.default))])
+    valueFields(definition).map((f) => {
+      // گروه تازه با یک مورد خالی (یا به تعداد کمینه) شروع می‌شود تا پرکننده بی‌درنگ بنویسد.
+      if (f.type === "table" && !data) return [f.id, Array.from({ length: Math.max(Number(f.props?.min_rows ?? 1), 1) }, () => toItem(itemsOf(f)))]
+      return [f.id, toInput(f, data ? data[f.id] : (nowDefault(f, now) ?? selfDefault(f, me) ?? prefillDefault(f, me) ?? f.default))]
+    })
   )
 }
 
@@ -159,15 +173,35 @@ const NUMBER = /^-?\d+(\.\d+)?$/
 export function toPayload(definition: FormDefinition, values: FormValues): Record<string, unknown> {
   const payload: Record<string, unknown> = {}
   for (const field of valueFields(definition)) {
-    let value = values[field.id]
-    if ((field.type === "number" || field.type === "amount" || field.type === "scale") && typeof value === "string" && NUMBER.test(value.trim())) value = Number(value)
-    // تعهد پذیرفته‌نشده یعنی پاسخ نداده (نه «false» که طرح آن را نادرست می‌داند).
-    if (field.type === "consent" && value !== true) value = undefined
-    if (field.type === "boolean" && (value === "true" || value === "false")) value = value === "true"
-    const cleaned = clean(value)
+    const cleaned = clean(toValue(field, values[field.id]))
     if (cleaned !== undefined) payload[field.id] = cleaned
   }
   return payload
+}
+
+function toValue(field: FieldDef, value: unknown): unknown {
+  if ((field.type === "number" || field.type === "amount" || field.type === "scale") && typeof value === "string" && NUMBER.test(value.trim())) return Number(value)
+  // تعهد پذیرفته‌نشده یعنی پاسخ نداده (نه «false» که طرح آن را نادرست می‌داند).
+  if (field.type === "consent" && value !== true) return undefined
+  if (field.type === "boolean" && (value === "true" || value === "false")) return value === "true"
+  if (field.type === "table" && Array.isArray(value)) return value.map((row) => rowValue(field, row))
+  return value
+}
+
+const rowValue = (field: FieldDef, row: unknown) =>
+  Object.fromEntries(itemsOf(field).map((f) => [f.id, toValue(f, (row as Record<string, unknown> | undefined)?.[f.id])]))
+
+/**
+ * کلید خطای خانه‌ی گروه («items.1.qty») در داده‌ی ارسالی به کلید همان خانه روی صفحه: مورد خالی ارسال نمی‌شود
+ * (مثل سرور)، پس شماره‌ی مورد پس از آن روی صفحه بیشتر است.
+ */
+export function screenKey(definition: FormDefinition, values: FormValues, key: string): string {
+  const [id, row, ...rest] = key.split(".")
+  const field = row !== undefined && /^\d+$/.test(row) ? valueFields(definition).find((f) => f.id === id && f.type === "table") : undefined
+  if (!field) return key
+  const rows = Array.isArray(values[id]) ? (values[id] as unknown[]) : []
+  const kept = rows.flatMap((r, i) => (clean(rowValue(field, r)) === undefined ? [] : [i]))
+  return [id, String(kept[Number(row)] ?? row), ...rest].join(".")
 }
 
 /** مقدار خالی (متن خالی، فهرست خالی، شیء خالی) یعنی «پر نشده»؛ هم‌ارز engine.clean سرور. */

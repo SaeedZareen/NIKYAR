@@ -13,7 +13,7 @@ import {
   isValidPhone,
   isValidPostalCode,
 } from "@/lib/validators"
-import { toPayload, type FormDefinition, type FormValues } from "./definition"
+import { screenKey, toPayload, type FormDefinition, type FormValues } from "./definition"
 import { applyRules, formRuleErrors } from "./rules"
 
 export type JsonSchema = Record<string, unknown>
@@ -114,10 +114,12 @@ export function formResolver(definition: FormDefinition, schema: JsonSchema): Re
     if (Object.keys(errors).length === 0) return { values, errors: {} }
     const nested: Record<string, unknown> = {}
     for (const [key, message] of Object.entries(errors)) {
-      const parts = key.split(".")
+      const parts = screenKey(definition, values, key).split(".")
       let node = nested
       for (const part of parts.slice(0, -1)) node = (node[part] ??= {}) as Record<string, unknown>
-      node[parts[parts.length - 1]] = { type: "validate", message }
+      // خطای کل گروه کنار خطای خانه‌هایش می‌نشیند (هر دو در یک شیء)
+      const last = parts[parts.length - 1]
+      node[last] = { ...(node[last] as object | undefined), type: "validate", message }
     }
     return { values: {}, errors: nested as FieldErrors<FormValues> }
   }

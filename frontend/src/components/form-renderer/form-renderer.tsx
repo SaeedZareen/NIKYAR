@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils"
 import { AmountField, BooleanField, CalculatedField, ChoiceField, DateField, MultiChoiceField, NumberField, TextareaField, TextField, TimeField } from "./basic-fields"
 import { labelLayout, spanClass, type FieldType, type FormDefinition, type FormValues } from "./definition"
 import type { FieldProps } from "./field-props"
+import { GroupField } from "./group-fields"
 import type { RuleState } from "./rules"
 import {
   CardField,
@@ -92,7 +93,7 @@ export function FieldView({ field, control, className, layout }: FieldProps) {
   )
 }
 
-/** کنترل هر نوع دارای مقدار (جدول در 3.6 اضافه می‌شود). */
+/** کنترل هر نوع دارای مقدار. */
 const CONTROLS: Partial<Record<FieldType, (p: FieldProps) => React.ReactNode>> = {
   text: TextField,
   textarea: TextareaField,
@@ -129,4 +130,5 @@ const CONTROLS: Partial<Record<FieldType, (p: FieldProps) => React.ReactNode>> =
   attachment: AttachmentField,
   signature: SignatureField,
   signature_pad: SignaturePadField,
+  table: GroupField,
 }
