@@ -27,6 +27,7 @@ async function createForm(page: Page, title: string) {
 
 test.describe("طراح فرم", () => {
   test("ساخت فرم، ویژگی‌ها، خطای سرور، واگرد، انتشار و پر کردن", async ({ page }, info) => {
+    test.slow()
     const errors = collectErrors(page)
     const title = `فرم طراحی ${info.project.name} ${Date.now()}`
     await createForm(page, title)
@@ -116,6 +117,7 @@ test.describe("طراح فرم", () => {
 
 test.describe("قاعده‌های فرم", () => {
   test("نمایش و الزام شرطی، فرمول شمار روز و اعتبارسنجی بین فیلدها", async ({ page }, info) => {
+    test.slow() // طراحی کامل یک فرم و پر کردنش؛ زیر بار سه اندازه‌ی هم‌زمان بیش از ۳۰ ثانیه
     const errors = collectErrors(page)
     const title = `مرخصی با قاعده ${info.project.name} ${Date.now()}`
     await createForm(page, title)
