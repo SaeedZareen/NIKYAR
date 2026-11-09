@@ -81,7 +81,8 @@ export type LabelPosition = "auto" | "side" | "top"
 export type SectionDef = { id: string; title?: string; help?: string; columns?: number; labels?: LabelPosition; fields: FieldDef[]; visible_if?: unknown }
 /** قاعده‌ی بین فیلدها: condition باید درست باشد وگرنه message زیر field می‌آید. */
 export type FormRule = { id: string; condition: unknown; message: string; field?: string | null }
-export type FormDefinition = { sections: SectionDef[]; rules?: FormRule[] }
+/** steps: نمایش مرحله‌ای (هر بخش یک مرحله). */
+export type FormDefinition = { sections: SectionDef[]; rules?: FormRule[]; steps?: boolean }
 
 /** مقدار ورودی‌ها در react-hook-form (متن عدد تا پیش از ارسال متن می‌ماند). */
 export type FormValues = Record<string, unknown>

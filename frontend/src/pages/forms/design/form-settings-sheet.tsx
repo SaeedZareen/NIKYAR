@@ -31,6 +31,8 @@ const schema = z.object({
   fill_by_everyone: z.boolean(),
   fill_roles: z.array(z.string()),
   view_roles: z.array(z.string()),
+  number_pattern: z.string().max(60, "الگو حداکثر ۶۰ نویسه است."),
+  number_reset: z.enum(["never", "year", "fiscal"]),
 })
 const LABELS = {
   title: "عنوان",
@@ -41,6 +43,8 @@ const LABELS = {
   fill_by_everyone: "همه‌ی کاربران پر کنند",
   fill_roles: "نقش‌های پرکننده",
   view_roles: "نقش‌های بیننده",
+  number_pattern: "الگوی شماره",
+  number_reset: "شروع دوباره‌ی شماره",
 }
 
 /** فرم جدید یا تنظیمات فرم: عنوان، شناسه، دسته، چه کسانی پر کنند و چه کسانی همه‌ی ثبت‌ها را ببینند. */
@@ -60,8 +64,11 @@ export function FormSettingsSheet({ form, open, onOpenChange }: { form: DesignFo
     fill_by_everyone: form?.fill_by_everyone ?? true,
     fill_roles: (form?.fill_roles ?? []).map(String),
     view_roles: (form?.view_roles ?? []).map(String),
+    number_pattern: form?.number_pattern ?? "",
+    number_reset: (form?.number_reset ?? "year") as "never" | "year" | "fiscal",
   })
   const everyone = values.watch("fill_by_everyone")
+  const numbered = values.watch("number_pattern").trim() !== ""
 
   const save = useMutation({
     mutationFn: (v: z.infer<typeof schema>) => {
@@ -163,6 +170,32 @@ export function FormSettingsSheet({ form, open, onOpenChange }: { form: DesignFo
           description="دارندگان این نقش‌ها همه‌ی ثبت‌های نهایی این فرم را می‌بینند (هر کس ثبت‌های خودش را همیشه می‌بیند)."
           render={({ field, id, aria }) => <SearchPicker id={id} options={roles} multiple value={field.value} onChange={field.onChange} onBlur={field.onBlur} placeholder="انتخاب نقش‌ها" {...aria} />}
         />
+        <FormField
+          control={values.control}
+          name="number_pattern"
+          label="الگوی شماره"
+          description="هر ثبت نهایی شماره‌ی یکتا با شمارنده‌ی همین فرم می‌گیرد؛ خالی یعنی بی‌شماره. نشانه‌ها: {year} سال، {yy} دو رقم سال، {fyear} سال مالی، {month} ماه، {seq:4} شمارنده با چهار رقم. نمونه: خ-{year}-{seq:4}"
+          render={({ field, id, aria }) => <Input id={id} dir="auto" className="text-start" placeholder="خ-{year}-{seq:4}" {...field} {...aria} />}
+        />
+        {numbered && (
+          <FormField
+            control={values.control}
+            name="number_reset"
+            label="شروع دوباره‌ی شماره"
+            render={({ field, id, aria }) => (
+              <Select value={field.value} onValueChange={field.onChange}>
+                <SelectTrigger id={id} className="w-full" onBlur={field.onBlur} {...aria}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="year">آغاز هر سال شمسی</SelectItem>
+                  <SelectItem value="fiscal">آغاز هر سال مالی</SelectItem>
+                  <SelectItem value="never">هرگز (ادامه‌دار)</SelectItem>
+                </SelectContent>
+              </Select>
+            )}
+          />
+        )}
       </FieldGroup>
     </FormSheet>
   )

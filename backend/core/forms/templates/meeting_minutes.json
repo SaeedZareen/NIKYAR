@@ -1,0 +1,109 @@
+{
+ "format": "nikyar-form",
+ "format_version": 1,
+ "form": {
+  "code": "meeting-minutes",
+  "title": "صورت‌جلسه",
+  "description": "صورت‌جلسه با حاضران، شرح مذاکرات و مصوبات (مسئول و مهلت هر مصوبه).",
+  "category": null,
+  "number_pattern": "",
+  "number_reset": "year"
+ },
+ "definition": {
+  "sections": [
+   {
+    "id": "meeting",
+    "title": "جلسه",
+    "columns": 2,
+    "fields": [
+     {
+      "id": "subject",
+      "type": "text",
+      "label": "موضوع جلسه",
+      "required": true,
+      "span": 2,
+      "props": {
+       "max_length": 200
+      }
+     },
+     {
+      "id": "meeting_date",
+      "type": "date",
+      "label": "تاریخ جلسه",
+      "required": true,
+      "props": {
+       "default_now": true
+      }
+     },
+     {
+      "id": "meeting_time",
+      "type": "time_range",
+      "label": "ساعت جلسه"
+     },
+     {
+      "id": "place",
+      "type": "text",
+      "label": "محل جلسه",
+      "props": {
+       "max_length": 120
+      }
+     },
+     {
+      "id": "attendees",
+      "type": "user",
+      "label": "حاضران",
+      "props": {
+       "multiple": true
+      }
+     },
+     {
+      "id": "discussion",
+      "type": "rich_text",
+      "label": "شرح مذاکرات",
+      "span": 2
+     }
+    ]
+   },
+   {
+    "id": "decisions_section",
+    "title": "مصوبات",
+    "columns": 1,
+    "fields": [
+     {
+      "id": "decisions",
+      "type": "table",
+      "label": "مصوبات",
+      "props": {
+       "display": "cards",
+       "item_label": "مصوبه",
+       "card_columns": 2,
+       "columns": [
+        {
+         "id": "decision",
+         "type": "textarea",
+         "label": "شرح مصوبه",
+         "required": true,
+         "props": {
+          "max_length": 1000,
+          "rows": 2
+         }
+        },
+        {
+         "id": "owner",
+         "type": "user",
+         "label": "مسئول اجرا"
+        },
+        {
+         "id": "deadline",
+         "type": "date",
+         "label": "مهلت"
+        }
+       ]
+      }
+     }
+    ]
+   }
+  ]
+ },
+ "files": {}
+}

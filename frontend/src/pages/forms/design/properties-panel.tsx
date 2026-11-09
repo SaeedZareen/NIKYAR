@@ -41,16 +41,30 @@ type Props = {
   onSection: (id: string, change: (s: SectionDef) => SectionDef, key: string) => void
   /** تغییر قاعده‌های فرم (وقتی چیزی انتخاب نشده). */
   onRules: (rules: FormRule[]) => void
+  /** نمایش مرحله‌ای فرم (وقتی چیزی انتخاب نشده). */
+  onSteps: (on: boolean) => void
   /** خطاهای قاعده‌های فرم («rules.0.message»). */
   formErrors: Record<string, string>
 }
 
 /** پانل ویژگی‌ها: ویژگی‌های بخش یا فیلد انتخاب‌شده؛ ویژگی‌های هر نوع از کاتالوگ سرور ساخته می‌شوند. */
-export function PropertiesPanel({ definition, selection, specs, errors, readOnly, onField, onSection, onRules, formErrors }: Props) {
+export function PropertiesPanel({ definition, selection, specs, errors, readOnly, onField, onSection, onRules, onSteps, formErrors }: Props) {
   if (!selection)
     return (
       <fieldset disabled={readOnly}>
         <p className="px-3 pt-3 text-2xs text-muted-foreground">برای دیدن ویژگی‌ها، یک فیلد یا بخش را روی بوم انتخاب کنید.</p>
+        <div className="flex flex-col gap-2 px-3 pt-3">
+          <p className="text-xs font-semibold">ویژگی‌های فرم</p>
+          <FlagSwitch
+            id="form-steps"
+            label="نمایش مرحله‌ای"
+            help="هر بخش یک مرحله با نوار پیشرفت و دکمه‌های «مرحله‌ی قبل/بعد»؛ پیش از رفتن به مرحله‌ی بعد، فیلدهای همان مرحله بررسی می‌شوند."
+            checked={definition.steps === true}
+            error={formErrors.steps}
+            onChange={onSteps}
+          />
+        </div>
+        <Separator className="mt-3" />
         <FormRulesEditor definition={definition} errors={formErrors} onChange={onRules} />
       </fieldset>
     )

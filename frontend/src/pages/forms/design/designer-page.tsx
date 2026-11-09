@@ -16,7 +16,7 @@ import {
 } from "@dnd-kit/core"
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { ListChecks, PencilLine, Plus, Redo2, Send, Settings2, SlidersHorizontal, Undo2 } from "lucide-react"
+import { Eye, History as HistoryIcon, ListChecks, PencilLine, Plus, Redo2, Send, Settings2, SlidersHorizontal, Undo2 } from "lucide-react"
 import { toast } from "sonner"
 import { DESIGN_FORMS_KEY, useFieldTypes } from "@/app/forms"
 import { PageError, PageFallback } from "@/app/route-states"
@@ -63,6 +63,8 @@ import {
   type Target,
 } from "./designer-model"
 import { FormSettingsSheet } from "./form-settings-sheet"
+import { PreviewDialog } from "./preview-dialog"
+import { VersionsSheet } from "./versions-sheet"
 import { PropertiesPanel, type Selection } from "./properties-panel"
 import { Toolbox } from "./toolbox"
 
@@ -104,6 +106,8 @@ function Editor({ form, version, specs, onReload }: { form: DesignForm; version:
   const [save, setSave] = React.useState<SaveState>({ kind: "saved", at: version.updated_at })
   const [serverErrors, setServerErrors] = React.useState<Record<string, string>>({})
   const [settings, setSettings] = React.useState(false)
+  const [previewing, setPreviewing] = React.useState(false)
+  const [showVersions, setShowVersions] = React.useState(false)
   const [toolsOpen, setToolsOpen] = React.useState(false)
   const [propsOpen, setPropsOpen] = React.useState(false)
   const [removingSection, setRemovingSection] = React.useState<string | null>(null)
@@ -293,6 +297,7 @@ function Editor({ form, version, specs, onReload }: { form: DesignForm; version:
       }}
       onSection={(id, change, key) => apply((d) => updateSection(d, id, change), key)}
       onRules={(rules) => apply((d) => (rules.length ? { ...d, rules } : (({ rules: _r, ...rest }) => rest)(d)), "rules")}
+      onSteps={(on) => apply((d) => (on ? { ...d, steps: true } : (({ steps: _s, ...rest }) => rest)(d)))}
       formErrors={errors.form ?? {}}
     />
   )
@@ -315,6 +320,13 @@ function Editor({ form, version, specs, onReload }: { form: DesignForm; version:
                 </Button>
               </>
             )}
+            <Button variant="outline" onClick={() => setShowVersions(true)}>
+              <HistoryIcon /> نسخه‌ها
+            </Button>
+            {/* پیش‌نمایش آخرین تعریف ذخیره‌شده؛ تا ذخیره‌ی خودکار تمام نشده غیرفعال است */}
+            <Button variant="outline" disabled={!readOnly && (changed || save.kind !== "saved")} onClick={() => setPreviewing(true)}>
+              <Eye /> پیش‌نمایش
+            </Button>
             <Button variant="outline" onClick={() => setSettings(true)}>
               <Settings2 /> تنظیمات
             </Button>
@@ -370,7 +382,7 @@ function Editor({ form, version, specs, onReload }: { form: DesignForm; version:
                   if (!wide) setPropsOpen(true)
                 }}
               >
-                <ListChecks /> اعتبارسنجی بین فیلدها{definition.rules?.length ? ` (${formatNumber(definition.rules.length)})` : ""}
+                <ListChecks /> ویژگی‌های فرم{definition.rules?.length ? ` (${formatNumber(definition.rules.length)} قاعده)` : ""}
               </Button>
             </div>
             <Canvas
@@ -437,6 +449,8 @@ function Editor({ form, version, specs, onReload }: { form: DesignForm; version:
         </>
       )}
       {settings && <FormSettingsSheet form={form} open onOpenChange={setSettings} />}
+      {previewing && <PreviewDialog versionId={version.id} title={form.title} onOpenChange={setPreviewing} />}
+      {showVersions && <VersionsSheet formId={form.id} specs={specMap} onOpenChange={setShowVersions} />}
       {removingSection && (
         <ConfirmDialog
           open

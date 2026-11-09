@@ -44,6 +44,8 @@ type Props = {
   footer?: React.ReactNode
   /** نتیجه‌ی قاعده‌ها برای داده‌ی فعلی (پنهان، فقط‌خواندنی، محاسبه‌ها)؛ بدون آن همه‌ی فیلدها دیده می‌شوند (مثل بوم طراح). */
   rules?: RuleState
+  /** فقط همین بخش (مرحله‌ی جاری فرم مرحله‌ای) */
+  only?: string
 }
 
 const RulesContext = React.createContext<RuleState | undefined>(undefined)
@@ -52,8 +54,8 @@ const RulesContext = React.createContext<RuleState | undefined>(undefined)
  * نمایشگر فرم فرم‌ساز: هر بخش تعریف یک Section و هر فیلد یک FormField کیت؛ پس فرم ساخته‌شده همان ظاهر
  * فرم‌های دست‌ساز سامانه را دارد (برچسب کنار فیلد، راهنمای ⓘ، خطای زیر فیلد).
  */
-export function FormRenderer({ definition, title, control, footer, rules }: Props) {
-  const sections = definition.sections.filter((s) => !rules?.hiddenSections.has(s.id))
+export function FormRenderer({ definition, title, control, footer, rules, only }: Props) {
+  const sections = definition.sections.filter((s) => !rules?.hiddenSections.has(s.id) && (only === undefined || s.id === only))
   return (
     <RulesContext.Provider value={rules}>
       {sections.map((section, i) => {

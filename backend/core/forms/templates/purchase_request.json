@@ -1,0 +1,166 @@
+{
+ "format": "nikyar-form",
+ "format_version": 1,
+ "form": {
+  "code": "purchase-request",
+  "title": "درخواست خرید",
+  "description": "درخواست خرید کالا یا خدمت با اقلام، برآورد هزینه و پیش‌فاکتور.",
+  "category": null,
+  "number_pattern": "",
+  "number_reset": "year"
+ },
+ "definition": {
+  "sections": [
+   {
+    "id": "request",
+    "title": "درخواست",
+    "columns": 2,
+    "fields": [
+     {
+      "id": "requester",
+      "type": "submitter",
+      "label": "درخواست‌کننده",
+      "span": 2,
+      "props": {
+       "items": [
+        "name",
+        "unit",
+        "position"
+       ]
+      }
+     },
+     {
+      "id": "request_date",
+      "type": "date",
+      "label": "تاریخ درخواست",
+      "required": true,
+      "props": {
+       "default_now": true
+      }
+     },
+     {
+      "id": "priority",
+      "type": "choice",
+      "label": "اولویت",
+      "required": true,
+      "default": "normal",
+      "props": {
+       "options": [
+        {
+         "value": "normal",
+         "label": "عادی"
+        },
+        {
+         "value": "urgent",
+         "label": "فوری"
+        },
+        {
+         "value": "critical",
+         "label": "خیلی فوری"
+        }
+       ]
+      }
+     },
+     {
+      "id": "need",
+      "type": "textarea",
+      "label": "شرح نیاز",
+      "required": true,
+      "span": 2,
+      "help": "کاربرد کالا یا خدمت و دلیل خرید را بنویسید.",
+      "props": {
+       "max_length": 1000,
+       "rows": 3
+      }
+     }
+    ]
+   },
+   {
+    "id": "items_section",
+    "title": "اقلام",
+    "columns": 1,
+    "fields": [
+     {
+      "id": "items",
+      "type": "table",
+      "label": "اقلام درخواستی",
+      "required": true,
+      "props": {
+       "item_label": "ردیف",
+       "min_rows": 1,
+       "columns": [
+        {
+         "id": "item_name",
+         "type": "text",
+         "label": "شرح کالا یا خدمت",
+         "required": true
+        },
+        {
+         "id": "qty",
+         "type": "number",
+         "label": "تعداد",
+         "required": true,
+         "props": {
+          "min": 1
+         }
+        },
+        {
+         "id": "unit_name",
+         "type": "text",
+         "label": "واحد",
+         "props": {
+          "max_length": 30
+         }
+        },
+        {
+         "id": "unit_price",
+         "type": "amount",
+         "label": "فی برآوردی"
+        }
+       ]
+      }
+     },
+     {
+      "id": "estimate",
+      "type": "calculated",
+      "label": "جمع برآورد",
+      "props": {
+       "formula": {
+        "sum_of": [
+         {
+          "var": "items"
+         },
+         "qty",
+         "unit_price"
+        ]
+       },
+       "format": "amount"
+      }
+     }
+    ]
+   },
+   {
+    "id": "docs_section",
+    "title": "پیوست و امضا",
+    "columns": 2,
+    "fields": [
+     {
+      "id": "quotes",
+      "type": "attachment",
+      "label": "پیش‌فاکتور",
+      "props": {
+       "multiple": true,
+       "max_files": 5
+      }
+     },
+     {
+      "id": "signature",
+      "type": "signature",
+      "label": "امضای درخواست‌کننده"
+     }
+    ]
+   }
+  ]
+ },
+ "files": {}
+}
