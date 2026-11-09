@@ -1,5 +1,5 @@
 import { useWatch } from "react-hook-form"
-import { FormField } from "@/components/form/form-field"
+import { FormField, StaticField } from "@/components/form/form-field"
 import { JalaliDateInput, MoneyInput, TimeInput } from "@/components/form/inputs"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
@@ -9,7 +9,7 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { formatNumber, numberToWords, toEnDigits } from "@/lib/format"
-import type { ChoiceOption } from "./definition"
+import type { ChoiceOption, FieldDef } from "./definition"
 import { common, optionsOf, str, type FieldProps } from "./field-props"
 
 // نوع‌های پایه (3.2): متن، عدد، مبلغ، تاریخ، ساعت و انتخاب‌ها.
@@ -179,3 +179,16 @@ export function MultiChoiceField(p: FieldProps) {
   )
 }
 
+
+/** فیلد محاسبه‌ای: نتیجه‌ی فرمول، فقط‌خواندنی و زنده؛ تا ورودی‌های فرمول پر نشده‌اند «—». */
+export function CalculatedField({ field, value, className }: { field: FieldDef; value?: number; className?: string }) {
+  const format = field.props?.format
+  const unit = format === "amount" ? "ریال" : format === "days" ? "روز" : str(field.props?.unit)
+  return (
+    <StaticField label={field.label ?? ""} className={className}>
+      <output className="flex min-h-7 items-center text-xs font-medium tabular-nums" aria-live="polite">
+        {value === undefined ? "—" : `${formatNumber(value)}${unit ? ` ${unit}` : ""}`}
+      </output>
+    </StaticField>
+  )
+}
