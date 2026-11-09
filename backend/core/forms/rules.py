@@ -22,7 +22,7 @@ from json_logic.builtins import BUILTINS, to_bool
 FIELD_CONDITIONS = ("visible_if", "required_if", "readonly_if")
 
 # عملگرهای مجاز در تعریف فرم (زیرمجموعه‌ای که هر دو اجراکننده یکسان اجرا می‌کنند)
-ALLOWED = {"and", "or", "!", "==", "!=", "<", "<=", ">", ">=", "in", "var", "+", "-", "*", "/", "if", "min", "max", "days_between", "today"}
+ALLOWED = {"and", "or", "!", "!!", "==", "!=", "<", "<=", ">", ">=", "in", "var", "+", "-", "*", "/", "if", "min", "max", "days_between", "today"}
 
 
 def _jalali(value) -> jdatetime.date | None:

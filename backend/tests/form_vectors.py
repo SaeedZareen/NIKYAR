@@ -193,6 +193,7 @@ RULES_DEFINITION = {
                 {"id": "note", "type": "text", "label": "توضیح", "default": "استحقاقی", "readonly_if": {"==": [V("kind"), "annual"]}},
                 {"id": "a", "type": "number", "label": "الف"},
                 {"id": "b", "type": "number", "label": "ب"},
+                {"id": "extra", "type": "text", "label": "توضیح الف", "visible_if": {"and": [{"!!": V("a")}, {">": [V("a"), 5]}]}},
                 {"id": "total", "type": "calculated", "label": "جمع", "props": {"formula": {"+": [V("a"), V("b")]}}},
                 {"id": "ratio", "type": "calculated", "label": "نسبت", "props": {"formula": {"/": [V("a"), V("b")]}, "decimals": 2}},
             ],

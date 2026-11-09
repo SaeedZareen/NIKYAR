@@ -2,7 +2,7 @@ import * as React from "react"
 import { useDroppable } from "@dnd-kit/core"
 import { rectSortingStrategy, SortableContext, useSortable } from "@dnd-kit/sortable"
 import { CSS } from "@dnd-kit/utilities"
-import { ArrowDown, ArrowUp, ChevronDown, ChevronUp, Copy, GripVertical, Plus, Trash2 } from "lucide-react"
+import { ArrowDown, ArrowUp, ChevronDown, ChevronUp, Copy, GitBranch, GripVertical, Plus, Trash2 } from "lucide-react"
 import { useForm } from "react-hook-form"
 import { FormGrid } from "@/components/form/form-grid"
 import { spanClass, type FieldDef, type FormDefinition, type FormValues, type SectionDef } from "@/components/form-renderer/definition"
@@ -77,6 +77,11 @@ function CanvasSection({ section, first, last, selection, invalid, readOnly, onS
           {title}
         </button>
         {section.help && <InfoTip label={`راهنمای ${title}`}>{section.help}</InfoTip>}
+        {section.visible_if !== undefined && (
+          <span className="flex items-center gap-1 text-2xs text-muted-foreground">
+            <GitBranch className="size-3" aria-hidden /> نمایش شرطی
+          </span>
+        )}
         {!readOnly && (
           <div className="ms-auto flex items-center gap-0.5">
             <Button type="button" variant="ghost" size="icon-sm" aria-label={`بالا بردن بخش «${title}»`} disabled={first} onClick={() => onMoveSection(section.id, -1)}>
@@ -147,6 +152,11 @@ function CanvasField({ field, className, selected, invalid, readOnly, control, o
     >
       {/* پوشش انتخاب روی پیش‌نمایش؛ خود پیش‌نمایش غیرتعاملی است (inert) */}
       <button type="button" onClick={onSelect} aria-pressed={selected} aria-label={`انتخاب «${name}»${invalid ? " (ایراد دارد)" : ""}`} className="absolute inset-0 z-[1] rounded-md focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none" />
+      {(field.visible_if !== undefined || field.required_if !== undefined || field.readonly_if !== undefined) && (
+        <span className="absolute -top-2.5 start-2 z-[2] flex items-center gap-1 rounded-sm border bg-background px-1 text-2xs text-muted-foreground">
+          <GitBranch className="size-3" aria-hidden /> شرطی
+        </span>
+      )}
       <div inert>
         <FieldView field={field} control={control} />
       </div>

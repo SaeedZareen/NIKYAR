@@ -40,6 +40,7 @@ import {
   Pilcrow,
   Timer,
   Blocks,
+  Calculator,
   type LucideIcon,
 } from "lucide-react"
 import { BLOCKS, type FieldTypeSpec } from "./designer-model"
@@ -83,6 +84,7 @@ const ICONS: Record<string, LucideIcon> = {
   attachment: Paperclip,
   signature: FileSignature,
   signature_pad: PenLine,
+  calculated: Calculator,
 }
 const BLOCK_ICONS: Record<string, LucideIcon> = { personal: Contact, contact: Phone, address: MapPin, bank: Landmark }
 

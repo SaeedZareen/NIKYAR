@@ -121,6 +121,28 @@
       "label": "ب"
      },
      {
+      "id": "extra",
+      "type": "text",
+      "label": "توضیح الف",
+      "visible_if": {
+       "and": [
+        {
+         "!!": {
+          "var": "a"
+         }
+        },
+        {
+         ">": [
+          {
+           "var": "a"
+          },
+          5
+         ]
+        }
+       ]
+      }
+     },
+     {
       "id": "total",
       "type": "calculated",
       "label": "جمع",
@@ -310,6 +332,17 @@
      "invalid": "«ب» باید عدد باشد."
     }
    },
+   "extra": {
+    "type": "string",
+    "maxLength": 200,
+    "title": "توضیح الف",
+    "x-nikyar-type": "text",
+    "x-messages": {
+     "required": "تکمیل «توضیح الف» الزامی است.",
+     "invalid": "مقدار «توضیح الف» معتبر نیست.",
+     "maxLength": "«توضیح الف» حداکثر ۲۰۰ نویسه باشد."
+    }
+   },
    "total": {
     "type": "number",
     "readOnly": true,
@@ -449,6 +482,17 @@
      "invalid": "«ب» باید عدد باشد."
     }
    },
+   "extra": {
+    "type": "string",
+    "maxLength": 200,
+    "title": "توضیح الف",
+    "x-nikyar-type": "text",
+    "x-messages": {
+     "required": "تکمیل «توضیح الف» الزامی است.",
+     "invalid": "مقدار «توضیح الف» معتبر نیست.",
+     "maxLength": "«توضیح الف» حداکثر ۲۰۰ نویسه باشد."
+    }
+   },
    "total": {
     "type": "number",
     "readOnly": true,
@@ -499,6 +543,7 @@
    "data": {},
    "hidden": [
     "cert",
+    "extra",
     "hours"
    ],
    "required": [],
@@ -520,6 +565,7 @@
     "end": "1405/09/02"
    },
    "hidden": [
+    "extra",
     "hours"
    ],
    "required": [
@@ -544,6 +590,7 @@
    "hidden": [
     "cert",
     "end",
+    "extra",
     "start"
    ],
    "required": [],
@@ -565,6 +612,7 @@
    },
    "hidden": [
     "cert",
+    "extra",
     "hours"
    ],
    "required": [],
@@ -589,6 +637,7 @@
     "cert": "123"
    },
    "hidden": [
+    "extra",
     "hours"
    ],
    "required": [
@@ -662,6 +711,7 @@
    },
    "hidden": [
     "cert",
+    "extra",
     "hours"
    ],
    "required": [],
@@ -690,6 +740,7 @@
     "cert": "A-12"
    },
    "hidden": [
+    "extra",
     "hours"
    ],
    "required": [

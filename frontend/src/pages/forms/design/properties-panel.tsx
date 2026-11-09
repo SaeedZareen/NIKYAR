@@ -3,7 +3,7 @@ import { useQuery } from "@tanstack/react-query"
 import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react"
 import { useRoleOptions } from "@/app/forms"
 import { TimeInput } from "@/components/form/inputs"
-import type { ChoiceOption, FieldDef, FormDefinition, SectionDef } from "@/components/form-renderer/definition"
+import type { ChoiceOption, FieldDef, FormDefinition, FormRule, SectionDef } from "@/components/form-renderer/definition"
 import { useUnitOptions } from "@/components/form-renderer/org-options"
 import { InfoTip } from "@/components/info-tip"
 import { SearchPicker } from "@/components/search-picker"
@@ -20,6 +20,7 @@ import { api, unwrap } from "@/lib/api/client"
 import { useFilePolicy } from "@/lib/files"
 import { onlyDigits, toEnDigits, toFaDigits } from "@/lib/format"
 import type { FieldTypeSpec } from "./designer-model"
+import { ConditionsEditor, FormRulesEditor, FormulaEditor, type ConditionKey } from "./rule-editors"
 
 type PropSpec = FieldTypeSpec["props"][number]
 export type Selection = { kind: "field" | "section"; id: string } | null
@@ -33,15 +34,25 @@ type Props = {
   readOnly: boolean
   onField: (id: string, change: (f: FieldDef) => FieldDef, key: string) => void
   onSection: (id: string, change: (s: SectionDef) => SectionDef, key: string) => void
+  /** تغییر قاعده‌های فرم (وقتی چیزی انتخاب نشده). */
+  onRules: (rules: FormRule[]) => void
+  /** خطاهای قاعده‌های فرم («rules.0.message»). */
+  formErrors: Record<string, string>
 }
 
 /** پانل ویژگی‌ها: ویژگی‌های بخش یا فیلد انتخاب‌شده؛ ویژگی‌های هر نوع از کاتالوگ سرور ساخته می‌شوند. */
-export function PropertiesPanel({ definition, selection, specs, errors, readOnly, onField, onSection }: Props) {
-  if (!selection) return <p className="p-3 text-xs text-muted-foreground">برای دیدن ویژگی‌ها، یک فیلد یا بخش را روی بوم انتخاب کنید.</p>
+export function PropertiesPanel({ definition, selection, specs, errors, readOnly, onField, onSection, onRules, formErrors }: Props) {
+  if (!selection)
+    return (
+      <fieldset disabled={readOnly}>
+        <p className="px-3 pt-3 text-2xs text-muted-foreground">برای دیدن ویژگی‌ها، یک فیلد یا بخش را روی بوم انتخاب کنید.</p>
+        <FormRulesEditor definition={definition} errors={formErrors} onChange={onRules} />
+      </fieldset>
+    )
   if (selection.kind === "section") {
     const section = definition.sections.find((s) => s.id === selection.id)
     if (!section) return null
-    return <SectionProperties section={section} errors={errors} readOnly={readOnly} onChange={(c, k) => onSection(section.id, c, k)} />
+    return <SectionProperties definition={definition} section={section} errors={errors} readOnly={readOnly} onChange={(c, k) => onSection(section.id, c, k)} />
   }
   for (const section of definition.sections) {
     const field = section.fields.find((f) => f.id === selection.id)
@@ -49,6 +60,7 @@ export function PropertiesPanel({ definition, selection, specs, errors, readOnly
       return (
         <FieldProperties
           key={field.id}
+          definition={definition}
           field={field}
           columns={section.columns ?? 1}
           spec={specs[field.type]}
@@ -74,7 +86,7 @@ function Row({ id, label, help, error, children }: { id: string; label: string; 
   )
 }
 
-function SectionProperties({ section, errors, readOnly, onChange }: { section: SectionDef; errors: Record<string, string>; readOnly: boolean; onChange: (c: (s: SectionDef) => SectionDef, key: string) => void }) {
+function SectionProperties({ definition, section, errors, readOnly, onChange }: { definition: FormDefinition; section: SectionDef; errors: Record<string, string>; readOnly: boolean; onChange: (c: (s: SectionDef) => SectionDef, key: string) => void }) {
   return (
     <fieldset disabled={readOnly} className="flex flex-col gap-3 p-3">
       <p className="text-xs font-semibold">ویژگی‌های بخش</p>
@@ -98,11 +110,29 @@ function SectionProperties({ section, errors, readOnly, onChange }: { section: S
           </SelectContent>
         </Select>
       </Row>
+      <Separator />
+      <ConditionsEditor
+        definition={definition}
+        owner={section.id}
+        keys={["visible_if"]}
+        values={{ visible_if: section.visible_if }}
+        errors={errors}
+        onChange={(_key, logic) => onChange((s) => withCondition(s, "visible_if", logic), `visible_if:${section.id}`)}
+      />
     </fieldset>
   )
 }
 
+/** افزودن یا برداشتن یک قاعده از فیلد یا بخش. */
+function withCondition<T extends object>(item: T, key: ConditionKey, logic: unknown): T {
+  const next = { ...item } as Record<string, unknown>
+  if (logic === undefined) delete next[key]
+  else next[key] = logic
+  return next as T
+}
+
 type FieldPropsEditor = {
+  definition: FormDefinition
   field: FieldDef
   columns: number
   spec?: FieldTypeSpec
@@ -119,7 +149,7 @@ const setProp = (name: string, value: unknown) => (f: FieldDef): FieldDef => {
   return Object.keys(props).length ? { ...rest, props } : rest
 }
 
-function FieldProperties({ field, columns, spec, errors, readOnly, onChange }: FieldPropsEditor) {
+function FieldProperties({ definition, field, columns, spec, errors, readOnly, onChange }: FieldPropsEditor) {
   if (!spec) return null
   const k = (name: string) => `${name}:${field.id}`
   const hasLabel = spec.label_required || field.type === "heading"
@@ -172,10 +202,31 @@ function FieldProperties({ field, columns, spec, errors, readOnly, onChange }: F
       <FieldGroup className="gap-3">
         {spec.props
           .filter((p) => p.kind !== "columns")
-          .map((p) => (
-            <PropEditor key={p.name} spec={p} value={field.props?.[p.name]} error={errors[`props.${p.name}`]} onChange={(v) => onChange(setProp(p.name, v), k(`props.${p.name}`))} />
-          ))}
+          .map((p) =>
+            p.kind === "logic" ? (
+              <FormulaEditor
+                key={p.name}
+                id={`prop-${p.name}`}
+                definition={definition}
+                except={field.id}
+                value={field.props?.[p.name]}
+                error={errors[`props.${p.name}`]}
+                onChange={(v) => onChange(setProp(p.name, v), k(`props.${p.name}`))}
+              />
+            ) : (
+              <PropEditor key={p.name} spec={p} value={field.props?.[p.name]} error={errors[`props.${p.name}`]} onChange={(v) => onChange(setProp(p.name, v), k(`props.${p.name}`))} />
+            )
+          )}
       </FieldGroup>
+      <Separator />
+      <ConditionsEditor
+        definition={definition}
+        owner={field.id}
+        keys={valueField ? ["visible_if", "required_if", "readonly_if"] : ["visible_if"]}
+        values={{ visible_if: field.visible_if, required_if: field.required_if, readonly_if: field.readonly_if }}
+        errors={errors}
+        onChange={(key, logic) => onChange((f) => withCondition(f, key, logic), k(key))}
+      />
       <Separator />
       <Row
         id="prop-id"
