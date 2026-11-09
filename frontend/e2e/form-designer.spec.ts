@@ -511,6 +511,8 @@ test.describe("تنظیمات پیشرفته‌ی فرم در طراح", () => {
     await expect(sheet.getByText("نشانی پس از ثبت را وارد کنید.").first()).toBeVisible()
     await sheet.getByLabel("نشانی پس از ثبت", { exact: true }).fill("https://nikyar.ir/thanks")
     await sheet.getByLabel("اعلان تأیید به ثبت‌کننده", { exact: true }).click()
+    // نشانگر روی دکمه‌ی «ذخیره» (حالت hover) نماند
+    await page.mouse.move(0, 0)
     await expectAccessible(page)
     await sheet.getByRole("button", { name: "ذخیره" }).click()
     await expect(page.getByText(`تنظیمات «${title}» ذخیره شد.`)).toBeVisible()
