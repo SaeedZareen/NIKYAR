@@ -1,4 +1,5 @@
 import json
+from dataclasses import asdict
 
 from django.db import transaction
 from django.db.models import Count, Max, OuterRef, Q
@@ -11,14 +12,14 @@ from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
 
-from core.accounts.models import Role
+from core.accounts.models import Role, User
 from core.audit.models import AuditLog
 from core.audit.service import AuditedModelViewSet, record
 from core.kernel.api import BusinessError, HasPerm, MultiValueFilter
 from core.lookups.models import LookupItem
 from core.numbering.pattern import validate as validate_pattern
 
-from . import engine, service, transfer
+from . import acceptance, engine, service, transfer
 from .fieldtypes import COLUMN_TYPES, PREFILL, REGISTRY, UNIQUE_TYPES, divisions
 from .models import Form, FormVersion, Submission
 
@@ -30,6 +31,8 @@ class FormSerializer(serializers.ModelSerializer):
     category_title = serializers.CharField(source="category.title", read_only=True, default="")
     fill_roles = serializers.PrimaryKeyRelatedField(queryset=Role.objects.all(), many=True, required=False, label="نقش‌های پرکننده")
     view_roles = serializers.PrimaryKeyRelatedField(queryset=Role.objects.all(), many=True, required=False, label="نقش‌های بیننده")
+    notify_users = serializers.PrimaryKeyRelatedField(queryset=User.objects.filter(is_active=True), many=True, required=False, label="اطلاع به کاربران")
+    notify_roles = serializers.PrimaryKeyRelatedField(queryset=Role.objects.all(), many=True, required=False, label="اطلاع به نقش‌ها")
     published_version = serializers.IntegerField(read_only=True, allow_null=True, help_text="شماره‌ی آخرین نسخه‌ی منتشرشده؛ null یعنی هنوز منتشر نشده.")
     draft_version = serializers.IntegerField(read_only=True, allow_null=True, help_text="شناسه‌ی نسخه‌ی پیش‌نویس باز؛ null یعنی پیش‌نویسی نیست.")
     submission_count = serializers.IntegerField(read_only=True)
@@ -49,6 +52,20 @@ class FormSerializer(serializers.ModelSerializer):
             "view_roles",
             "number_pattern",
             "number_reset",
+            "opens_at",
+            "closes_at",
+            "capacity",
+            "per_user_limit",
+            "per_user_period",
+            "edit_hours",
+            "allow_drafts",
+            "draft_days",
+            "after_submit",
+            "after_submit_url",
+            "notify_submitter",
+            "notify_users",
+            "notify_roles",
+            "anonymous",
             "published_version",
             "draft_version",
             "submission_count",
@@ -65,6 +82,17 @@ class FormSerializer(serializers.ModelSerializer):
         return value
 
     def validate(self, attrs):
+        def value(name, default=None):
+            return attrs.get(name, getattr(self.instance, name, default))
+
+        if value("opens_at") and value("closes_at") and value("closes_at") <= value("opens_at"):
+            raise serializers.ValidationError({"closes_at": "پایان پذیرش باید بعد از آغاز آن باشد."})
+        if value("after_submit", "forms") == "url" and not value("after_submit_url", ""):
+            raise serializers.ValidationError({"after_submit_url": "نشانی پس از ثبت را وارد کنید."})
+        if value("anonymous", False) and self.instance is not None:
+            version = self.instance.current_version() or self.instance.versions.order_by("-number").first()
+            if version and any(f["type"] in ("submitter", "signature") for f in engine.value_fields(version.definition)):
+                raise serializers.ValidationError({"anonymous": "فرم بی‌نام فیلد «ثبت‌کننده» یا «امضا» نمی‌پذیرد؛ نخست آن‌ها را از فرم بردارید."})
         pattern = attrs.get("number_pattern", getattr(self.instance, "number_pattern", ""))
         reset = attrs.get("number_reset", getattr(self.instance, "number_reset", "year"))
         if pattern:
@@ -86,12 +114,27 @@ class FormTemplateSerializer(serializers.Serializer):
     field_count = serializers.IntegerField()
 
 
+class AvailabilitySerializer(serializers.Serializer):
+    code = serializers.ChoiceField(choices=["open", "not_yet", "closed", "full", "limit"], help_text="open: پذیرای ثبت")
+    message = serializers.CharField(allow_blank=True)
+    remaining = serializers.IntegerField(allow_null=True, help_text="ظرفیت باقی‌مانده؛ null یعنی بی‌سقف")
+
+
+def availability_of(form: Form, user) -> dict:
+    return asdict(acceptance.availability(form, user))
+
+
 class AvailableFormSerializer(serializers.ModelSerializer):
     category_title = serializers.CharField(source="category.title", read_only=True, default="")
+    availability = serializers.SerializerMethodField()
 
     class Meta:
         model = Form
-        fields = ["id", "code", "title", "description", "category_title"]
+        fields = ["id", "code", "title", "description", "category_title", "availability"]
+
+    @extend_schema_field(AvailabilitySerializer)
+    def get_availability(self, obj):
+        return availability_of(obj, self.context["request"].user)
 
 
 class FormVersionSerializer(serializers.ModelSerializer):
@@ -157,8 +200,27 @@ class FormSubmissionSerializer(serializers.ModelSerializer):
     form_title = serializers.CharField(source="form.title", read_only=True)
     version_number = serializers.IntegerField(source="version.number", read_only=True)
     status_label = serializers.CharField(source="get_status_display", read_only=True)
-    created_by_name = serializers.CharField(source="created_by.get_full_name", read_only=True)
+    created_by_name = serializers.SerializerMethodField(help_text="در فرم بی‌نام فقط برای خود ثبت‌کننده")
+    editable_until = serializers.SerializerMethodField(help_text="ثبت‌کننده تا این زمان می‌تواند ثبت نهایی را ویرایش کند؛ null یعنی ویرایش‌پذیر نیست")
     data = JsonObjectField(read_only=True)
+
+    def _own(self, obj) -> bool:
+        request = self.context.get("request")
+        return request is None or obj.created_by_id == request.user.pk
+
+    def get_created_by_name(self, obj) -> str:
+        return obj.created_by.get_full_name() if self._own(obj) or not obj.form.anonymous else "بی‌نام"
+
+    @extend_schema_field(serializers.DateTimeField(allow_null=True))
+    def get_editable_until(self, obj):
+        until = acceptance.editable_until(obj)
+        return until.isoformat() if until and acceptance.can_edit(obj) and self._own(obj) else None
+
+    def to_representation(self, obj):
+        data = super().to_representation(obj)
+        if obj.form.anonymous and not self._own(obj):
+            data["created_by"] = None
+        return data
 
     class Meta:
         model = Submission
@@ -176,6 +238,7 @@ class FormSubmissionSerializer(serializers.ModelSerializer):
             "updated_at",
             "submitted_at",
             "number",
+            "editable_until",
         ]
         read_only_fields = fields
 
@@ -256,11 +319,21 @@ class FillContextSerializer(serializers.Serializer):
     definition = JsonObjectField()
     schema = JsonObjectField(help_text="طرح ثبت نهایی (با الزامی‌ها)")
     draft_schema = JsonObjectField(help_text="طرح پیش‌نویس (بدون الزامی‌ها)")
+    availability = AvailabilitySerializer()
+    allow_drafts = serializers.BooleanField()
+    after_submit = serializers.CharField()
+    after_submit_url = serializers.CharField(allow_blank=True)
+    anonymous = serializers.BooleanField()
 
 
-def fill_context(version: FormVersion) -> dict:
+def fill_context(version: FormVersion, user) -> dict:
     form = version.form
     return {
+        "availability": availability_of(form, user),
+        "allow_drafts": form.allow_drafts,
+        "after_submit": form.after_submit,
+        "after_submit_url": form.after_submit_url,
+        "anonymous": form.anonymous,
         "form": form.pk,
         "title": form.title,
         "description": form.description,
@@ -280,7 +353,7 @@ class FormSubmissionDetailSerializer(FormSubmissionSerializer):
 
     @extend_schema_field(FillContextSerializer)
     def get_context(self, obj):
-        return fill_context(obj.version)
+        return fill_context(obj.version, self.context["request"].user)
 
 
 class FormSubmissionWriteSerializer(serializers.Serializer):
@@ -339,7 +412,7 @@ class FormViewSet(AuditedModelViewSet):
     def available(self, request):
         """فرم‌هایی که کاربر جاری می‌تواند پر کند."""
         forms = service.fillable_forms(request.user).select_related("category").order_by("category__order", "title")
-        return Response(AvailableFormSerializer(forms, many=True).data)
+        return Response(AvailableFormSerializer(forms, many=True, context={"request": request}).data)
 
     @extend_schema(responses=FieldTypeSpecSerializer(many=True))
     @action(detail=False, url_path="field-types", pagination_class=None)
@@ -363,7 +436,7 @@ class FormViewSet(AuditedModelViewSet):
         version = form.current_version()
         if version is None:
             raise BusinessError("این فرم هنوز منتشر نشده است.")
-        return Response(fill_context(version))
+        return Response(fill_context(version, request.user))
 
     @extend_schema(request=None, responses={201: FormVersionDetailSerializer})
     @action(detail=True, methods=["post"], url_path="new-draft")

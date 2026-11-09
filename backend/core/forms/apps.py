@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
-from core.kernel.registry import LookupItemSpec, LookupSpec
+from core.kernel.registry import LookupItemSpec, LookupSpec, NotificationKind
 
 
 class FormsConfig(AppConfig):
@@ -19,5 +19,23 @@ class FormsConfig(AppConfig):
                 LookupItemSpec("finance", "مالی"),
                 LookupItemSpec("hr", "منابع انسانی"),
             ],
+        ),
+    ]
+    nikyar_notifications = [
+        NotificationKind(
+            code="forms.submitted",
+            title="تأیید ثبت فرم (به ثبت‌کننده)",
+            template="فرم «{form}» ثبت شد؛ شماره‌ی پیگیری: {number}.",
+            placeholders={"form": ("عنوان فرم", "درخواست خرید"), "number": ("شماره‌ی ثبت (یا —)", "خ-۱۴۰۵-۰۰۱۲")},
+        ),
+        NotificationKind(
+            code="forms.new_submission",
+            title="ثبت تازه‌ی فرم (به کاربران و نقش‌های تعیین‌شده)",
+            template="ثبت تازه در فرم «{form}» از {submitter}؛ شماره: {number}.",
+            placeholders={
+                "form": ("عنوان فرم", "درخواست خرید"),
+                "submitter": ("نام ثبت‌کننده (در فرم بی‌نام: بی‌نام)", "سارا محمدی"),
+                "number": ("شماره‌ی ثبت (یا —)", "خ-۱۴۰۵-۰۰۱۲"),
+            },
         ),
     ]

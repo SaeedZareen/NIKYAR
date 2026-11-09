@@ -437,3 +437,97 @@ def test_export_import_and_templates(designer):
     created = designer.post("/api/forms/templates/purchase_request/").json()
     assert created["code"] == "purchase-request" and created["title"] == "درخواست خرید"
     assert designer.post(f"/api/forms/versions/{created['draft_version']}/publish/").status_code == 200
+
+
+def _simple_form(designer, code, **settings):
+    form = designer.post("/api/forms/", {"code": code, "title": code, "fill_by_everyone": True, **settings}, format="json").json()
+    fields = [{"id": "t", "type": "text", "label": "عنوان"}]
+    designer.patch(f"/api/forms/versions/{form['draft_version']}/", {"definition": {"sections": [{"id": "s", "fields": fields}]}}, format="json")
+    assert designer.post(f"/api/forms/versions/{form['draft_version']}/publish/").status_code == 200
+    return form
+
+
+def _submit(client, form, submit=True, text="الف"):
+    return client.post("/api/forms/submissions/", {"form": form["id"], "data": {"t": text}, "submit": submit}, format="json")
+
+
+@pytest.mark.django_db(transaction=True)
+def test_acceptance_window_capacity_and_user_limit(designer, make_user, client_for):
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    later = (timezone.now() + timedelta(days=2)).isoformat()
+    soon = _simple_form(designer, "soon", opens_at=later)
+    a = client_for(make_user("acc_a"))
+    r = _submit(a, soon, submit=False)
+    assert r.status_code == 400 and "باز می‌شود" in r.json()["detail"]
+    status = {f["code"]: f["availability"] for f in a.get("/api/forms/available/").json()}
+    assert status["soon"]["code"] == "not_yet"
+    # پایان پیش از آغاز پذیرفته نیست
+    bad = designer.patch(f"/api/forms/{soon['id']}/", {"closes_at": (timezone.now() + timedelta(days=1)).isoformat()}, format="json")
+    assert "بعد از آغاز" in bad.json()["fields"]["closes_at"]
+
+    capped = _simple_form(designer, "capped", capacity=2, per_user_limit=1)
+    b = client_for(make_user("acc_b"))
+    assert _submit(a, capped).status_code == 201
+    again = _submit(a, capped)
+    assert again.status_code == 400 and "پیش‌تر پر کرده‌اید" in again.json()["detail"]
+    assert {f["code"]: f["availability"] for f in b.get("/api/forms/available/").json()}["capped"] == {"code": "open", "message": "", "remaining": 1}
+    assert _submit(b, capped).status_code == 201
+    full = _submit(client_for(make_user("acc_c")), capped)
+    assert full.status_code == 400 and "ظرفیت" in full.json()["detail"]
+
+
+@pytest.mark.django_db(transaction=True)
+def test_drafts_edit_window_anonymous_and_notifications(designer, make_user, client_for):
+    from core.notifications.models import Notification
+
+    watcher = make_user("watcher")
+    form = _simple_form(
+        designer,
+        "settings",
+        allow_drafts=False,
+        edit_hours=2,
+        notify_submitter=True,
+        notify_users=[watcher.pk],
+        anonymous=True,
+        number_pattern="{seq:2}",
+        number_reset="never",
+    )
+    user = make_user("anon_filler", first_name="سارا", last_name="محمدی")
+    c = client_for(user)
+    assert "پیش‌نویس نمی‌پذیرد" in _submit(c, form, submit=False).json()["detail"]
+    sub = _submit(c, form).json()
+    assert sub["editable_until"] and sub["number"] == "01"
+    # ویرایش در مهلت: همان شماره؛ برگشت به پیش‌نویس نه
+    r = c.patch(f"/api/forms/submissions/{sub['id']}/", {"data": {"t": "تازه"}, "submit": True}, format="json")
+    assert r.status_code == 200 and r.json()["data"] == {"t": "تازه"} and r.json()["number"] == "01"
+    assert "برنمی‌گردد" in c.patch(f"/api/forms/submissions/{sub['id']}/", {"data": {"t": "x"}, "submit": False}, format="json").json()["detail"]
+    # بینندگان نام ثبت‌کننده‌ی فرم بی‌نام را نمی‌بینند
+    seen = designer.get(f"/api/forms/submissions/{sub['id']}/").json()
+    assert seen["created_by_name"] == "بی‌نام" and seen["created_by"] is None and seen["editable_until"] is None
+    assert c.get(f"/api/forms/submissions/{sub['id']}/").json()["created_by_name"] == "سارا محمدی"
+    texts = dict(Notification.objects.values_list("user__username", "text"))
+    assert texts["anon_filler"] == "فرم «settings» ثبت شد؛ شماره‌ی پیگیری: ۰۱." and texts["watcher"] == "ثبت تازه در فرم «settings» از بی‌نام؛ شماره: ۰۱."
+    # فرم بی‌نام فیلد ثبت‌کننده نمی‌پذیرد
+    draft = designer.post(f"/api/forms/{form['id']}/new-draft/").json()["id"]
+    fields = [{"id": "t", "type": "text", "label": "عنوان"}, {"id": "me", "type": "submitter", "label": "ثبت‌کننده"}]
+    designer.patch(f"/api/forms/versions/{draft}/", {"definition": {"sections": [{"id": "s", "fields": fields}]}}, format="json")
+    assert "بی‌نام" in designer.post(f"/api/forms/versions/{draft}/publish/").json()["detail"]
+
+
+@pytest.mark.django_db(transaction=True)
+def test_old_drafts_removed(designer, make_user, client_for):
+    from datetime import timedelta
+
+    from django.utils import timezone
+
+    from core.forms.service import remove_old_drafts
+
+    form = _simple_form(designer, "drafty", draft_days=7)
+    c = client_for(make_user("drafter"))
+    old, fresh = _submit(c, form, submit=False).json(), _submit(c, form, submit=False).json()
+    Submission.objects.filter(pk=old["id"]).update(updated_at=timezone.now() - timedelta(days=8))
+    assert remove_old_drafts() == 1
+    assert not Submission.objects.filter(pk=old["id"]).exists() and Submission.objects.filter(pk=fresh["id"]).exists()

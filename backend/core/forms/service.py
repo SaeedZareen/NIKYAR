@@ -1,6 +1,7 @@
 """قواعد فرم‌ساز: چه کسی چه فرمی را پر می‌کند و می‌بیند، انتشار نسخه‌ها، و ذخیره‌ی ثبت‌ها همراه با فایل‌هایشان."""
 
 import copy
+from datetime import timedelta
 
 from django.db import transaction
 from django.db.models import Q
@@ -9,10 +10,12 @@ from rest_framework.exceptions import PermissionDenied
 
 from core.files import service as files
 from core.kernel.api import BusinessError, has_perm
+from core.kernel.validators import fa_digits
+from core.notifications.service import notify
 from core.numbering import service as numbering
 from core.numbering.models import NumberSequence
 
-from . import engine
+from . import acceptance, engine
 from .fieldtypes import REGISTRY, Ctx, submitter_snapshot
 from .models import Form, FormVersion, Submission
 
@@ -99,6 +102,8 @@ def publish(version: FormVersion, user) -> FormVersion:
     engine.check_definition(version.definition)
     if not engine.value_fields(version.definition):
         raise BusinessError("فرم دست‌کم یک فیلد قابل پر کردن لازم دارد.")
+    if version.form.anonymous and any(f["type"] in ("submitter", "signature") for f in engine.value_fields(version.definition)):
+        raise BusinessError("این فرم بی‌نام است و فیلد «ثبت‌کننده» یا «امضا» نمی‌پذیرد؛ آن‌ها را بردارید یا در تنظیمات فرم «بی‌نام» را خاموش کنید.")
     version.status, version.published_at, version.published_by = FormVersion.Status.PUBLISHED, timezone.now(), user
     version.save(update_fields=["status", "published_at", "published_by", "updated_at"])
     return version
@@ -117,19 +122,25 @@ def new_draft(form: Form) -> FormVersion:
 
 def save_submission(*, user, data, submit: bool, form: Form | None = None, submission: Submission | None = None) -> Submission:
     """
-    ایجاد یا ویرایش پیش‌نویس، یا ثبت نهایی (submit). پیش‌نویس فقط نوع مقدارها را می‌سنجد؛ ثبت نهایی الزامی‌ها را هم.
+    ایجاد یا ویرایش پیش‌نویس، ثبت نهایی (submit)، یا ویرایش ثبت نهایی در مهلت «ویرایش پس از ثبت».
+    پیش‌نویس فقط نوع مقدارها را می‌سنجد؛ ثبت نهایی الزامی‌ها و قواعد پذیرش فرم (acceptance) را هم.
     فایل‌های تازه تصاحب و فایل‌های کنارگذاشته پس از ثبت قطعی حذف می‌شوند.
     """
+    editing = False
     if submission is None:
         if not can_fill(user, form):
             raise PermissionDenied()
         version = form.current_version()
         if version is None:
             raise BusinessError("این فرم هنوز منتشر نشده است.")
+        acceptance.check_window(form)
+        if not submit and not form.allow_drafts:
+            raise BusinessError("این فرم پیش‌نویس نمی‌پذیرد؛ آن را یک‌جا ثبت کنید.")
     else:
-        _check_own_draft(user, submission)
+        editing = submission.status == Submission.Status.SUBMITTED
+        _check_editable(user, submission, submit)
         form, version = submission.form, submission.version
-        if submit and not can_fill(user, form):
+        if submit and not editing and not can_fill(user, form):
             raise BusinessError("این فرم دیگر برای شما قابل ثبت نیست.")
 
     definition = version.definition
@@ -139,7 +150,7 @@ def save_submission(*, user, data, submit: bool, form: Form | None = None, submi
     )
     if submit:
         _check_unique(form, submission, definition, cleaned)
-    signatures = _fields_of(definition, "signature") if submit else []
+    signatures = _fields_of(definition, "signature") if submit and not editing else []
     for field in signatures:
         if field.get("required") and user.signature_id is None:
             raise BusinessError(REGISTRY["signature"].required_message, {field["id"]: REGISTRY["signature"].required_message})
@@ -149,11 +160,21 @@ def save_submission(*, user, data, submit: bool, form: Form | None = None, submi
             submission = Submission(form=form, version=version, created_by=user)
         else:
             submission = Submission.objects.select_for_update().get(pk=submission.pk)
-            _check_own_draft(user, submission)
+            _check_editable(user, submission, submit)
+        first_submit = submit and submission.status == Submission.Status.DRAFT
+        if first_submit:
+            # قفل ردیف فرم: دو ثبت هم‌زمان از ظرفیت یا سقف هر کاربر نمی‌گذرند
+            Form.objects.select_for_update().get(pk=form.pk)
+            acceptance.check_submit(form, user)
+        if editing:
+            # ویرایش ثبت نهایی: امضا و مشخصات ثبت‌کننده همان لحظه‌ی ثبت نخست می‌مانند
+            for field in _fields_of(definition, "signature") + _fields_of(definition, "submitter"):
+                if field["id"] in submission.data:
+                    cleaned[field["id"]] = submission.data[field["id"]]
         if user.signature_id is not None:
             for field in signatures:
                 cleaned[field["id"]] = str(files.duplicate(user.signature, user).pk)
-        if submit:
+        if first_submit:
             # مشخصات ثبت‌کننده همان لحظه‌ی ثبت؛ تغییر بعدی سمت یا واحد ثبت‌های گذشته را عوض نمی‌کند.
             for field in _fields_of(definition, "submitter"):
                 cleaned[field["id"]] = submitter_snapshot(user, engine.props_of(field)["items"])
@@ -161,14 +182,27 @@ def save_submission(*, user, data, submit: bool, form: Form | None = None, submi
         for file_id in current - previous:
             files.claim(file_id)
         submission.data = cleaned
-        if submit:
+        if first_submit:
             submission.status, submission.submitted_at = Submission.Status.SUBMITTED, timezone.now()
             if form.number_pattern:
                 submission.number = numbering.allocate(sequence_code(form))
         submission.save()
         for file_id in previous - current:
             transaction.on_commit(lambda file_id=file_id: files.release(file_id))
+        if first_submit:
+            _notify_submitted(form, submission, user)
     return submission
+
+
+def _notify_submitted(form: Form, submission: Submission, user) -> None:
+    number = fa_digits(submission.number) if submission.number else "—"
+    if form.notify_submitter:
+        notify([user], "forms.submitted", url="/forms", form=form.title, number=number)
+    watchers = {u.pk: u for u in form.notify_users.all()}
+    watchers.update({u.pk: u for role in form.notify_roles.all() for u in role.users.all()})
+    if watchers:
+        submitter = "بی‌نام" if form.anonymous else (user.get_full_name() or user.username)
+        notify(watchers.values(), "forms.new_submission", url="/forms", form=form.title, number=number, submitter=submitter)
 
 
 def delete_draft(user, submission: Submission) -> None:
@@ -187,6 +221,18 @@ def _check_own_draft(user, submission: Submission) -> None:
         raise BusinessError("ثبت نهایی‌شده تغییر نمی‌کند.")
 
 
+def _check_editable(user, submission: Submission, submit: bool) -> None:
+    """پیش‌نویس خود کاربر، یا ثبت نهایی خودش در مهلت «ویرایش پس از ثبت» (که فقط با ثبت دوباره ذخیره می‌شود)."""
+    if submission.status == Submission.Status.DRAFT:
+        return _check_own_draft(user, submission)
+    if submission.created_by_id != user.pk:
+        raise PermissionDenied()
+    if not acceptance.can_edit(submission):
+        raise BusinessError("ثبت نهایی‌شده تغییر نمی‌کند." if not submission.form.edit_hours else "مهلت ویرایش این ثبت گذشته است.")
+    if not submit:
+        raise BusinessError("ثبت نهایی به پیش‌نویس برنمی‌گردد؛ تغییرها را با «ذخیره‌ی تغییرات» ثبت کنید.")
+
+
 def _check_unique(form: Form, submission: Submission | None, definition: dict, cleaned: dict) -> None:
     """«مقدار یکتا»: همین مقدار در ثبت نهایی دیگری از همین فرم نیامده باشد."""
     others = Submission.objects.filter(form=form, status=Submission.Status.SUBMITTED)
@@ -203,3 +249,21 @@ def _check_unique(form: Form, submission: Submission | None, definition: dict, c
 
 def _fields_of(definition: dict, ftype: str) -> list[dict]:
     return [f for f in engine.value_fields(definition) if f["type"] == ftype]
+
+
+def remove_old_drafts(now=None) -> int:
+    """حذف پیش‌نویس‌های قدیمی‌تر از «حذف پیش‌نویس پس از» هر فرم، با فایل‌هایشان."""
+    now = now or timezone.now()
+    removed = 0
+    for form in Form.objects.filter(draft_days__isnull=False):
+        stale = Submission.objects.filter(form=form, status=Submission.Status.DRAFT, updated_at__lt=now - timedelta(days=form.draft_days)).select_related(
+            "version"
+        )
+        for submission in stale:
+            ids = engine.file_ids(submission.version.definition, submission.data)
+            with transaction.atomic():
+                submission.delete()
+                for file_id in ids:
+                    transaction.on_commit(lambda file_id=file_id: files.release(file_id))
+            removed += 1
+    return removed

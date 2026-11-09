@@ -1567,6 +1567,13 @@ export interface components {
          */
         ActionEnum: "create" | "update" | "delete" | "login" | "logout" | "login_failed";
         /**
+         * @description * `forms` - بازگشت به «فرم‌ها»
+         *     * `page` - صفحه‌ی تأیید
+         *     * `url` - رفتن به نشانی
+         * @enum {string}
+         */
+        AfterSubmitEnum: "forms" | "page" | "url";
+        /**
          * @description * `pdf` - PDF (.pdf)
          *     * `jpg` - تصویر JPEG (.jpg)
          *     * `jpeg` - تصویر JPEG (.jpeg)
@@ -1659,6 +1666,21 @@ export interface components {
             /** نشانی IP */
             ip: string | null;
         };
+        Availability: {
+            /**
+             * @description open: پذیرای ثبت
+             *
+             *     * `open` - open
+             *     * `not_yet` - not_yet
+             *     * `closed` - closed
+             *     * `full` - full
+             *     * `limit` - limit
+             */
+            code: components["schemas"]["CodeEnum"];
+            message: string;
+            /** @description ظرفیت باقی‌مانده؛ null یعنی بی‌سقف */
+            remaining: number | null;
+        };
         AvailableForm: {
             readonly id: number;
             /**
@@ -1672,6 +1694,7 @@ export interface components {
             description: string;
             /** @default  */
             readonly category_title: string;
+            readonly availability: components["schemas"]["Availability"];
         };
         Backup: {
             name: string;
@@ -1765,6 +1788,15 @@ export interface components {
             /** @description شماره یا ایمیل کاربر؛ خالی یعنی ثبت نشده */
             address: string;
         };
+        /**
+         * @description * `open` - open
+         *     * `not_yet` - not_yet
+         *     * `closed` - closed
+         *     * `full` - full
+         *     * `limit` - limit
+         * @enum {string}
+         */
+        CodeEnum: "open" | "not_yet" | "closed" | "full" | "limit";
         Delegation: {
             readonly id: number;
             /** اصیل */
@@ -1970,6 +2002,11 @@ export interface components {
             draft_schema: {
                 [key: string]: unknown;
             };
+            availability: components["schemas"]["Availability"];
+            allow_drafts: boolean;
+            after_submit: string;
+            after_submit_url: string;
+            anonymous: boolean;
         };
         FiscalYearSettings: {
             /**
@@ -2012,6 +2049,52 @@ export interface components {
             number_pattern: string;
             /** شروع دوباره‌ی شماره */
             number_reset: components["schemas"]["NumberResetEnum"];
+            /**
+             * آغاز پذیرش
+             * Format: date-time
+             */
+            opens_at: string | null;
+            /**
+             * پایان پذیرش
+             * Format: date-time
+             */
+            closes_at: string | null;
+            /**
+             * ظرفیت کل
+             * Format: int64
+             */
+            capacity: number | null;
+            /**
+             * سقف ثبت هر کاربر
+             * Format: int64
+             */
+            per_user_limit: number | null;
+            /** دوره‌ی سقف هر کاربر */
+            per_user_period: components["schemas"]["PerUserPeriodEnum"];
+            /**
+             * ویرایش پس از ثبت (ساعت)
+             * Format: int64
+             */
+            edit_hours: number | null;
+            /** پیش‌نویس */
+            allow_drafts: boolean;
+            /**
+             * حذف پیش‌نویس پس از (روز)
+             * Format: int64
+             */
+            draft_days: number | null;
+            /** پس از ثبت */
+            after_submit: components["schemas"]["AfterSubmitEnum"];
+            /** نشانی پس از ثبت */
+            after_submit_url: string;
+            /** اعلان تأیید به ثبت‌کننده */
+            notify_submitter: boolean;
+            /** اطلاع به کاربران */
+            notify_users: number[];
+            /** اطلاع به نقش‌ها */
+            notify_roles: number[];
+            /** بی‌نام */
+            anonymous: boolean;
             /** @description شماره‌ی آخرین نسخه‌ی منتشرشده؛ null یعنی هنوز منتشر نشده. */
             readonly published_version: number | null;
             /** @description شناسه‌ی نسخه‌ی پیش‌نویس باز؛ null یعنی پیش‌نویسی نیست. */
@@ -2054,6 +2137,52 @@ export interface components {
             number_pattern?: string;
             /** شروع دوباره‌ی شماره */
             number_reset?: components["schemas"]["NumberResetEnum"];
+            /**
+             * آغاز پذیرش
+             * Format: date-time
+             */
+            opens_at?: string | null;
+            /**
+             * پایان پذیرش
+             * Format: date-time
+             */
+            closes_at?: string | null;
+            /**
+             * ظرفیت کل
+             * Format: int64
+             */
+            capacity?: number | null;
+            /**
+             * سقف ثبت هر کاربر
+             * Format: int64
+             */
+            per_user_limit?: number | null;
+            /** دوره‌ی سقف هر کاربر */
+            per_user_period?: components["schemas"]["PerUserPeriodEnum"];
+            /**
+             * ویرایش پس از ثبت (ساعت)
+             * Format: int64
+             */
+            edit_hours?: number | null;
+            /** پیش‌نویس */
+            allow_drafts?: boolean;
+            /**
+             * حذف پیش‌نویس پس از (روز)
+             * Format: int64
+             */
+            draft_days?: number | null;
+            /** پس از ثبت */
+            after_submit?: components["schemas"]["AfterSubmitEnum"];
+            /** نشانی پس از ثبت */
+            after_submit_url?: string;
+            /** اعلان تأیید به ثبت‌کننده */
+            notify_submitter?: boolean;
+            /** اطلاع به کاربران */
+            notify_users?: number[];
+            /** اطلاع به نقش‌ها */
+            notify_roles?: number[];
+            /** بی‌نام */
+            anonymous?: boolean;
         };
         FormSubmission: {
             readonly id: number;
@@ -2069,6 +2198,7 @@ export interface components {
             };
             /** ثبت‌کننده */
             readonly created_by: number;
+            /** @description در فرم بی‌نام فقط برای خود ثبت‌کننده */
             readonly created_by_name: string;
             /**
              * زمان ایجاد
@@ -2087,6 +2217,11 @@ export interface components {
             readonly submitted_at: string | null;
             /** شماره */
             readonly number: string;
+            /**
+             * Format: date-time
+             * @description ثبت‌کننده تا این زمان می‌تواند ثبت نهایی را ویرایش کند؛ null یعنی ویرایش‌پذیر نیست
+             */
+            readonly editable_until: string | null;
         };
         FormSubmissionDetail: {
             readonly id: number;
@@ -2102,6 +2237,7 @@ export interface components {
             };
             /** ثبت‌کننده */
             readonly created_by: number;
+            /** @description در فرم بی‌نام فقط برای خود ثبت‌کننده */
             readonly created_by_name: string;
             /**
              * زمان ایجاد
@@ -2120,6 +2256,11 @@ export interface components {
             readonly submitted_at: string | null;
             /** شماره */
             readonly number: string;
+            /**
+             * Format: date-time
+             * @description ثبت‌کننده تا این زمان می‌تواند ثبت نهایی را ویرایش کند؛ null یعنی ویرایش‌پذیر نیست
+             */
+            readonly editable_until: string | null;
             /** @description تعریف و طرح نسخه‌ای که این ثبت با آن پر شده است */
             readonly context: components["schemas"]["FillContext"];
         };
@@ -2820,6 +2961,52 @@ export interface components {
             number_pattern?: string;
             /** شروع دوباره‌ی شماره */
             number_reset?: components["schemas"]["NumberResetEnum"];
+            /**
+             * آغاز پذیرش
+             * Format: date-time
+             */
+            opens_at?: string | null;
+            /**
+             * پایان پذیرش
+             * Format: date-time
+             */
+            closes_at?: string | null;
+            /**
+             * ظرفیت کل
+             * Format: int64
+             */
+            capacity?: number | null;
+            /**
+             * سقف ثبت هر کاربر
+             * Format: int64
+             */
+            per_user_limit?: number | null;
+            /** دوره‌ی سقف هر کاربر */
+            per_user_period?: components["schemas"]["PerUserPeriodEnum"];
+            /**
+             * ویرایش پس از ثبت (ساعت)
+             * Format: int64
+             */
+            edit_hours?: number | null;
+            /** پیش‌نویس */
+            allow_drafts?: boolean;
+            /**
+             * حذف پیش‌نویس پس از (روز)
+             * Format: int64
+             */
+            draft_days?: number | null;
+            /** پس از ثبت */
+            after_submit?: components["schemas"]["AfterSubmitEnum"];
+            /** نشانی پس از ثبت */
+            after_submit_url?: string;
+            /** اعلان تأیید به ثبت‌کننده */
+            notify_submitter?: boolean;
+            /** اطلاع به کاربران */
+            notify_users?: number[];
+            /** اطلاع به نقش‌ها */
+            notify_roles?: number[];
+            /** بی‌نام */
+            anonymous?: boolean;
         };
         PatchedFormSubmissionWriteRequest: {
             /** @description فقط هنگام ایجاد */
@@ -2969,6 +3156,14 @@ export interface components {
             /** گذرواژه */
             password?: string;
         };
+        /**
+         * @description * `ever` - در کل
+         *     * `day` - در هر روز
+         *     * `month` - در هر ماه
+         *     * `year` - در هر سال
+         * @enum {string}
+         */
+        PerUserPeriodEnum: "ever" | "day" | "month" | "year";
         PermissionGroup: {
             app: string;
             title: string;
