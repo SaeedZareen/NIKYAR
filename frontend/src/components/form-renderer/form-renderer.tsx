@@ -5,7 +5,9 @@ import { Section } from "@/components/layout/section"
 import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib/utils"
 import { AmountField, BooleanField, CalculatedField, ChoiceField, DateField, MultiChoiceField, NumberField, TextareaField, TextField, TimeField } from "./basic-fields"
-import { labelLayout, spanClass, type FieldType, type FormDefinition, type FormValues } from "./definition"
+import { RequiredMarkContext } from "@/components/form/required-mark"
+import { toFaDigits } from "@/lib/format"
+import { isDisplay, labelLayout, spanClass, type FieldType, type FormDefinition, type FormValues } from "./definition"
 import type { FieldProps } from "./field-props"
 import { GroupField } from "./group-fields"
 import { BarcodeField, DownloadBlock, ImageBlock, LocationField, ParagraphBlock, RichTextField, UrlField, VoiceField } from "./media-fields"
@@ -49,6 +51,7 @@ type Props = {
 }
 
 const RulesContext = React.createContext<RuleState | undefined>(undefined)
+const NumbersContext = React.createContext<Map<string, number> | undefined>(undefined)
 
 /**
  * نمایشگر فرم فرم‌ساز: هر بخش تعریف یک Section و هر فیلد یک FormField کیت؛ پس فرم ساخته‌شده همان ظاهر
@@ -56,7 +59,16 @@ const RulesContext = React.createContext<RuleState | undefined>(undefined)
  */
 export function FormRenderer({ definition, title, control, footer, rules, only }: Props) {
   const sections = definition.sections.filter((s) => !rules?.hiddenSections.has(s.id) && (only === undefined || s.id === only))
+  // شماره‌ی فیلدهای دیدنی در کل فرم (پایدار میان مرحله‌ها)؛ فیلدهای نمایشی و پنهان شماره نمی‌گیرند
+  const numbers = React.useMemo(() => {
+    if (!definition.numbered) return undefined
+    const visible = definition.sections.filter((s) => !rules?.hiddenSections.has(s.id)).flatMap((s) => s.fields)
+    const counted = visible.filter((f) => !isDisplay(f) && f.type !== "hidden" && !rules?.hidden.has(f.id))
+    return new Map(counted.map((f, i) => [f.id, i + 1]))
+  }, [definition, rules])
   return (
+    <RequiredMarkContext.Provider value={definition.required_mark ?? "star"}>
+    <NumbersContext.Provider value={numbers}>
     <RulesContext.Provider value={rules}>
       {sections.map((section, i) => {
         const columns = Math.min(Math.max(section.columns ?? 1, 1), 3) as 1 | 2 | 3
@@ -71,12 +83,16 @@ export function FormRenderer({ definition, title, control, footer, rules, only }
         )
       })}
     </RulesContext.Provider>
+    </NumbersContext.Provider>
+    </RequiredMarkContext.Provider>
   )
 }
 
 /** یک فیلد تعریف (نمایشی یا دارای مقدار) با کنترل همان نوع؛ طراح هم برای پیش‌نمایش زنده از آن استفاده می‌کند. */
-export function FieldView({ field, control, className, layout }: FieldProps) {
+export function FieldView({ field: original, control, className, layout }: FieldProps) {
   const rules = React.useContext(RulesContext)
+  const number = React.useContext(NumbersContext)?.get(original.id)
+  const field = number ? { ...original, label: `${toFaDigits(number)}. ${original.label ?? ""}` } : original
   if (rules?.hidden.has(field.id)) return null
   if (field.type === "heading") return <h3 className={cn("col-span-full border-b pb-1 text-xs font-semibold", className)}>{field.label}</h3>
   if (field.type === "paragraph") return <ParagraphBlock field={field} className={className} />

@@ -459,4 +459,47 @@ test.describe("پر کردن فرم", () => {
     await expect(page.getByText(new RegExp(`فرم «${title}» با شماره‌ی د-۱۴[۰-۹]{2}-۰۰۱ ثبت شد`))).toBeVisible()
     expect(errors).toEqual([])
   })
+
+  test("تنظیمات فرم: متن‌ها، صفحه‌ی تأیید، ویرایش در مهلت و سقف ثبت هر کاربر", async ({ page }, info) => {
+    const errors = collectErrors(page)
+    const title = `تنظیمات ${info.project.name} ${Date.now()}`
+    const id = await publishForm(
+      page,
+      title,
+      {
+        required_mark: "word",
+        numbered: true,
+        submit_label: "ارسال درخواست",
+        intro: "<p>مدارک را <strong>آماده</strong> کنید.</p>",
+        confirmation: "<p>{نام} عزیز، درخواست شما با شماره‌ی {شماره} رسید.</p>",
+        sections: [{ id: "s", title: "درخواست", fields: [{ id: "name", type: "text", label: "نام", required: true }, { id: "note", type: "text", label: "توضیح" }] }],
+      },
+      { after_submit: "page", edit_hours: 2, per_user_limit: 1, number_pattern: "{seq:3}", number_reset: "never" }
+    )
+    await page.goto(`/forms/${id}/fill`)
+    await expect(page.locator("strong", { hasText: "آماده" })).toBeVisible()
+    await expect(page.getByText("(الزامی)")).toBeVisible()
+    await page.getByLabel("۱. نام", { exact: true }).fill("سارا")
+    await expect(page.getByLabel("۲. توضیح", { exact: true })).toBeVisible()
+    await expect(page.getByText("پس از ثبت، تا ۲ ساعت می‌توانید آن را ویرایش کنید.")).toBeVisible()
+    await page.getByRole("button", { name: "ارسال درخواست" }).click()
+
+    // صفحه‌ی تأیید با جای‌گذارها
+    await expect(page.getByRole("status").filter({ hasText: "عزیز" })).toContainText("مدیر سامانه عزیز، درخواست شما با شماره‌ی ۰۰۱ رسید.")
+    await expectAccessible(page)
+    await page.getByRole("link", { name: "ویرایش ثبت" }).click()
+    await expect(page.getByText(/ویرایش ثبت شماره‌ی ۰۰۱/)).toBeVisible()
+    await expect(page.getByLabel("۱. نام", { exact: true })).toHaveValue("سارا")
+    await page.getByLabel("۱. نام", { exact: true }).fill("سارا محمدی")
+    await page.getByRole("button", { name: "ذخیره‌ی تغییرات" }).click()
+    await expect(page.getByRole("status").filter({ hasText: "عزیز" })).toContainText("شماره‌ی ۰۰۱")
+
+    // سقف یک‌بار برای هر کاربر
+    await page.goto("/forms")
+    await expect(page.getByRole("listitem").filter({ hasText: title })).toContainText("پر کرده‌اید")
+    await page.goto(`/forms/${id}/fill`)
+    await expect(page.getByText("شما این فرم را پیش‌تر پر کرده‌اید.")).toBeVisible()
+    await expect(page.getByRole("button", { name: "ارسال درخواست" })).toBeDisabled()
+    expect(errors).toEqual([])
+  })
 })

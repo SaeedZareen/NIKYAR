@@ -11,7 +11,8 @@ export function applyServerErrors<T extends FieldValues>(form: UseFormReturn<T>,
   let unmatched = ""
   // خطای کل یک گروه پیش از خطای خانه‌هایش، تا روی آن‌ها ننشیند («items» پیش از «items.0.qty»)
   for (const [name, message] of Object.entries(fields).sort(([a], [b]) => a.length - b.length)) {
-    if (known.has(name.split(".")[0])) form.setError(toScreen(name) as Path<T>, { type: "server", message })
+    const screen = toScreen(name)
+    if (known.has(screen.split(".")[0])) form.setError(screen as Path<T>, { type: "server", message })
     else unmatched ||= message
   }
   if (unmatched || Object.keys(fields).length === 0) {

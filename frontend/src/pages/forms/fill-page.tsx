@@ -2,7 +2,7 @@ import * as React from "react"
 import { useNavigate, useParams, useSearchParams } from "react-router"
 import { useForm, useWatch } from "react-hook-form"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { ChevronLeft, ChevronRight, Send, Trash2 } from "lucide-react"
+import { ChevronLeft, ChevronRight, CircleSlash, Send, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { ConfirmDialog } from "@/components/confirm-dialog"
 import { ErrorSummary } from "@/components/form/error-summary"
@@ -15,15 +15,19 @@ import { useFormSteps } from "@/components/form-renderer/use-form-steps"
 import { applyRules } from "@/components/form-renderer/rules"
 import { formResolver, validate, type JsonSchema } from "@/components/form-renderer/validate"
 import { PageHeader } from "@/components/layout/page-header"
+import { RichTextView } from "@/components/rich-text"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 import { api, errorMessage, unwrap, type Schemas } from "@/lib/api/client"
-import { formatDateTime, toFaDigits } from "@/lib/format"
+import { formatDateTime, formatNumber, toFaDigits } from "@/lib/format"
 import { useAuth } from "@/app/auth"
 import { SUBMISSIONS_KEY } from "@/app/forms"
 import { PageError, PageFallback } from "@/app/route-states"
+import { Confirmation } from "./confirmation"
 
 type Context = Schemas["FillContext"]
+type Submission = Schemas["FormSubmission"]
 const AUTOSAVE_DELAY = 1500
 
 /**
@@ -33,17 +37,18 @@ const AUTOSAVE_DELAY = 1500
 export default function FormFillPage() {
   const { formId } = useParams()
   const [search] = useSearchParams()
-  const draft = search.get("draft")
+  // پیش‌نویس (?draft=) یا ویرایش ثبت نهایی در مهلت «ویرایش پس از ثبت» (?edit=)
+  const draft = search.get("draft") ?? search.get("edit")
 
   const query = useQuery({
     queryKey: ["forms", "fill", formId, draft],
     queryFn: async () => {
       if (draft) {
         const sub = await unwrap(api.GET("/api/forms/submissions/{id}/", { params: { path: { id: Number(draft) } } }))
-        return { context: sub.context, data: sub.data, submissionId: sub.id, updatedAt: sub.updated_at }
+        return { context: sub.context, data: sub.data, submissionId: sub.id, updatedAt: sub.updated_at, editing: sub.status === "submitted" ? sub : null }
       }
       const context = await unwrap(api.GET("/api/forms/{id}/fill/", { params: { path: { id: formId ?? "" } } }))
-      return { context, data: undefined, submissionId: null, updatedAt: null }
+      return { context, data: undefined, submissionId: null, updatedAt: null, editing: null }
     },
     staleTime: Infinity,
     gcTime: 0,
@@ -51,11 +56,12 @@ export default function FormFillPage() {
 
   if (query.isPending) return <PageFallback />
   if (query.error) return <PageError error={query.error} onRetry={() => query.refetch()} />
-  const { context, data, submissionId, updatedAt } = query.data
+  const { context, data, submissionId, updatedAt, editing } = query.data
   return (
     <FillForm
       key={draft ?? "new"}
       context={context}
+      editing={editing}
       initialData={data}
       initialSubmission={submissionId}
       initialSavedAt={updatedAt}
@@ -71,13 +77,15 @@ type SaveState = { kind: "idle" | "saving" | "saved" | "invalid" | "error"; at?:
 
 type FillProps = {
   context: Context
+  /** ثبت نهایی‌ای که در مهلت ویرایش، ویرایش می‌شود */
+  editing: Submission | null
   initialData?: Record<string, unknown>
   initialSubmission: number | null
   initialSavedAt: string | null
   onCreated: (id: number) => void
 }
 
-function FillForm({ context, initialData, initialSubmission, initialSavedAt, onCreated }: FillProps) {
+function FillForm({ context, editing, initialData, initialSubmission, initialSavedAt, onCreated }: FillProps) {
   const navigate = useNavigate()
   const qc = useQueryClient()
   const definition = context.definition as FormDefinition
@@ -109,6 +117,7 @@ function FillForm({ context, initialData, initialSubmission, initialSavedAt, onC
   const [save, setSave] = React.useState<SaveState>(initialSavedAt ? { kind: "saved", at: initialSavedAt } : { kind: "idle" })
   const [submitting, setSubmitting] = React.useState(false)
   const [confirmDelete, setConfirmDelete] = React.useState(false)
+  const [done, setDone] = React.useState<Submission | null>(null)
 
   // قاعده‌ها زنده: فیلدهای پنهان در داده‌ی ارسالی نمی‌آیند (مقدارشان در فرم می‌ماند تا اگر دوباره دیده شدند، از دست نرود).
   const { values: payload, state: rules } = React.useMemo(() => applyRules(definition, toPayload(definition, values as FormValues)), [definition, values])
@@ -138,8 +147,10 @@ function FillForm({ context, initialData, initialSubmission, initialSavedAt, onC
   )
 
   // ذخیره‌ی خودکار پیش‌نویس، کمی پس از آخرین تغییر؛ فقط اگر داده با طرح پیش‌نویس درست باشد.
+  // بی‌پیش‌نویس: فرمی که پیش‌نویس نمی‌پذیرد، یا ویرایش ثبت نهایی (که فقط با «ذخیره‌ی تغییرات» ذخیره می‌شود)
+  const autosave = context.allow_drafts && !editing
   React.useEffect(() => {
-    if (!changed || submitting) return
+    if (!autosave || !changed || submitting) return
     const timer = window.setTimeout(() => {
       const body = JSON.parse(serialized) as Record<string, unknown>
       if (Object.keys(validate(draftSchema, body)).length > 0) {
@@ -154,15 +165,25 @@ function FillForm({ context, initialData, initialSubmission, initialSavedAt, onC
       )
     }, AUTOSAVE_DELAY)
     return () => window.clearTimeout(timer)
-  }, [changed, serialized, submitting, draftSchema, send])
+  }, [autosave, changed, serialized, submitting, draftSchema, send])
 
   const submitValid = async (formValues: FormValues) => {
     setSubmitting(true)
     try {
       const saved = await send(applyRules(definition, toPayload(definition, formValues)).values, true)
       qc.invalidateQueries({ queryKey: SUBMISSIONS_KEY })
-      toast.success(saved.number ? `فرم «${context.title}» با شماره‌ی ${toFaDigits(saved.number)} ثبت شد.` : `فرم «${context.title}» ثبت شد.`)
-      navigate("/forms")
+      qc.invalidateQueries({ queryKey: ["forms", "available"] })
+      // پس از ثبت: صفحه‌ی تأیید، رفتن به نشانی، یا بازگشت به «فرم‌ها» (تنظیمات فرم)
+      if (context.after_submit === "page") {
+        setDone(saved)
+        window.scrollTo({ top: 0 })
+        return
+      }
+      toast.success(
+        editing ? `تغییرهای ثبت «${context.title}» ذخیره شد.` : saved.number ? `فرم «${context.title}» با شماره‌ی ${toFaDigits(saved.number)} ثبت شد.` : `فرم «${context.title}» ثبت شد.`
+      )
+      if (context.after_submit === "url" && context.after_submit_url) window.location.assign(context.after_submit_url)
+      else navigate("/forms")
     } catch (e) {
       applyServerErrors(form, e, (name) => screenKey(definition, formValues, name))
       setSubmitting(false)
@@ -193,23 +214,43 @@ function FillForm({ context, initialData, initialSubmission, initialSavedAt, onC
     onError: (e) => toast.error(errorMessage(e)),
   })
 
-  const status = {
+  const blocked = !editing && context.availability.code !== "open"
+  const draftStatus = {
     idle: undefined,
     saving: "در حال ذخیره‌ی پیش‌نویس…",
     saved: save.at ? `پیش‌نویس ذخیره شد · ${formatDateTime(save.at)}` : undefined,
     invalid: "پیش‌نویس ذخیره نشد؛ فیلدهای دارای ایراد را اصلاح کنید.",
     error: `پیش‌نویس ذخیره نشد: ${save.message}`,
   }[save.kind]
+  const status = editing
+    ? `ویرایش ثبت${editing.number ? ` شماره‌ی ${toFaDigits(editing.number)}` : ""}${editing.editable_until ? ` · تا ${formatDateTime(editing.editable_until)}` : ""}`
+    : autosave
+      ? draftStatus
+      : "این فرم پیش‌نویس ندارد؛ آن را یک‌جا ثبت کنید."
+  const header = <PageHeader title={context.title} description={context.description || undefined} breadcrumbs={[{ label: "فرم‌ها", to: "/forms" }]} meta={<span aria-live="polite">{status}</span>} />
+
+  if (done)
+    return (
+      <>
+        {header}
+        <Confirmation title={context.title} template={definition.confirmation} submission={done} name={user?.full_name || user?.username || ""} formId={context.form} />
+      </>
+    )
 
   return (
     <>
-      <PageHeader
-        title={context.title}
-        description={context.description || undefined}
-        breadcrumbs={[{ label: "فرم‌ها", to: "/forms" }]}
-        meta={<span aria-live="polite">{status}</span>}
-      />
+      {header}
       <form onSubmit={onSubmit} noValidate className="flex flex-col gap-4">
+        {blocked && (
+          <Alert variant="destructive">
+            <CircleSlash />
+            <AlertDescription>{context.availability.message}</AlertDescription>
+          </Alert>
+        )}
+        {!blocked && context.availability.remaining !== null && !editing && (
+          <p className="text-2xs text-muted-foreground">ظرفیت باقی‌مانده: {formatNumber(context.availability.remaining)}</p>
+        )}
+        {definition.intro && <RichTextView html={definition.intro} className="rounded-lg border bg-card p-3" />}
         <ErrorSummary errors={form.formState.errors} labels={fieldLabels(definition)} submitCount={form.formState.submitCount} />
         {steps.enabled && <StepHeader steps={steps} />}
         <FormRenderer
@@ -230,17 +271,21 @@ function FillForm({ context, initialData, initialSubmission, initialSavedAt, onC
                   مرحله‌ی بعد <ChevronLeft />
                 </Button>
               ) : (
-                <Button type="submit" disabled={submitting}>
+                <Button type="submit" disabled={submitting || blocked}>
                   {submitting ? <Spinner /> : <Send />}
-                  {submitting ? "در حال ثبت…" : "ثبت نهایی"}
+                  {submitting ? "در حال ثبت…" : editing ? "ذخیره‌ی تغییرات" : definition.submit_label || "ثبت نهایی"}
                 </Button>
               )}
-              {submissionId !== null && (
+              {submissionId !== null && !editing && (
                 <Button type="button" variant="ghost" className="text-destructive" disabled={submitting} onClick={() => setConfirmDelete(true)}>
                   <Trash2 /> حذف پیش‌نویس
                 </Button>
               )}
-              <span className="text-2xs text-muted-foreground">پس از ثبت نهایی، فرم دیگر تغییر نمی‌کند.</span>
+              {!editing && (
+                <span className="text-2xs text-muted-foreground">
+                  {context.edit_hours ? `پس از ثبت، تا ${formatNumber(context.edit_hours)} ساعت می‌توانید آن را ویرایش کنید.` : "پس از ثبت نهایی، فرم دیگر تغییر نمی‌کند."}
+                </span>
+              )}
             </>
           }
         />
@@ -254,7 +299,7 @@ function FillForm({ context, initialData, initialSubmission, initialSavedAt, onC
         destructive
         onConfirm={() => remove.mutateAsync()}
       />
-      <UnsavedChangesGuard when={changed && !submitting && !remove.isPending} />
+      <UnsavedChangesGuard when={changed && !submitting && !remove.isPending && !done} />
     </>
   )
 }

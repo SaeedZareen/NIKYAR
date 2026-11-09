@@ -95,6 +95,9 @@ def normalize_definition(definition):
     if not isinstance(definition, dict):
         return definition
     definition = copy.deepcopy(definition)
+    for key in FORM_HTML_KEYS:
+        if isinstance(definition.get(key), str):
+            definition[key] = sanitize(definition[key])
     try:
         for field in with_items(definition):
             props = field.get("props")
@@ -129,11 +132,9 @@ def check_definition(definition) -> None:
     errors: dict[str, str] = {}
     if not isinstance(definition, dict) or not isinstance(definition.get("sections"), list):
         raise BusinessError("تعریف فرم ساختار درستی ندارد.", {"definition": "تعریف فرم باید فهرست بخش‌ها (sections) را داشته باشد."})
-    for key in set(definition) - {"sections", "rules", "steps"}:
+    for key in set(definition) - {"sections", "rules", *FORM_KEYS}:
         errors[key] = f"ویژگی «{key}» در تعریف فرم شناخته‌شده نیست."
-    # نمایش مرحله‌ای: هر بخش یک مرحله با «قبلی/بعدی»
-    if "steps" in definition and not isinstance(definition["steps"], bool):
-        errors["steps"] = "«نمایش مرحله‌ای» باید بله یا خیر باشد."
+    _check_form_keys(definition, errors)
     section_ids, field_ids = set(), set()
     for si, section in enumerate(definition["sections"]):
         path = f"sections.{si}"
@@ -162,6 +163,32 @@ def check_definition(definition) -> None:
         _check_rules(definition, field_ids, errors)
     if errors:
         raise BusinessError("تعریف فرم ایراد دارد؛ موارد مشخص‌شده را اصلاح کنید.", errors)
+
+
+# ویژگی‌های سطح فرم در تعریف (نسخه‌دار، در پیش‌نمایش دیده می‌شوند):
+# steps نمایش مرحله‌ای؛ required_mark نشانه‌ی الزامی؛ numbered شماره‌ی فیلدها؛ submit_label متن دکمه‌ی ثبت؛
+# intro متن آغاز فرم و confirmation پیام صفحه‌ی تأیید (قالب‌دار، با جای‌گذارهای {شماره}، {نام}، {تاریخ}، {فرم}).
+FORM_KEYS = {"steps", "required_mark", "numbered", "submit_label", "intro", "confirmation"}
+FORM_HTML_KEYS = ("intro", "confirmation")
+REQUIRED_MARKS = {"star", "word", "optional"}
+
+
+def _check_form_keys(definition: dict, errors: dict) -> None:
+    from .html import text_of
+
+    for key in ("steps", "numbered"):
+        if key in definition and not isinstance(definition[key], bool):
+            errors[key] = "این ویژگی باید بله یا خیر باشد."
+    if definition.get("required_mark", "star") not in REQUIRED_MARKS:
+        errors["required_mark"] = "نشانه‌ی الزامی «ستاره»، «(الزامی)» یا «(اختیاری) روی اختیاری‌ها» است."
+    label = definition.get("submit_label", "ثبت")
+    if not isinstance(label, str) or not label.strip() or len(label) > 40:
+        errors["submit_label"] = "متن دکمه‌ی ثبت لازم است و حداکثر ۴۰ نویسه."
+    for key in FORM_HTML_KEYS:
+        if key in definition and (not isinstance(definition[key], str) or len(definition[key]) > 5000):
+            errors[key] = "متن حداکثر ۵۰۰۰ نویسه است."
+        elif key in definition and not text_of(definition[key]):
+            errors[key] = "متن خالی است؛ آن را بنویسید یا بردارید."
 
 
 def _check_item_ids(definition: dict, taken: set[str], errors: dict) -> None:

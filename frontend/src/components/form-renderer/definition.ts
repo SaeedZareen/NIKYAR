@@ -81,8 +81,20 @@ export type LabelPosition = "auto" | "side" | "top"
 export type SectionDef = { id: string; title?: string; help?: string; columns?: number; labels?: LabelPosition; fields: FieldDef[]; visible_if?: unknown }
 /** قاعده‌ی بین فیلدها: condition باید درست باشد وگرنه message زیر field می‌آید. */
 export type FormRule = { id: string; condition: unknown; message: string; field?: string | null }
-/** steps: نمایش مرحله‌ای (هر بخش یک مرحله). */
-export type FormDefinition = { sections: SectionDef[]; rules?: FormRule[]; steps?: boolean }
+/**
+ * ویژگی‌های سطح فرم: steps نمایش مرحله‌ای؛ required_mark نشانه‌ی الزامی؛ numbered شماره‌ی فیلدها؛ submit_label متن دکمه‌ی ثبت؛
+ * intro متن آغاز و confirmation پیام صفحه‌ی تأیید (قالب‌دار، با جای‌گذارهای {شماره}، {نام}، {تاریخ}، {فرم}).
+ */
+export type FormDefinition = {
+  sections: SectionDef[]
+  rules?: FormRule[]
+  steps?: boolean
+  required_mark?: "star" | "word" | "optional"
+  numbered?: boolean
+  submit_label?: string
+  intro?: string
+  confirmation?: string
+}
 
 /** مقدار ورودی‌ها در react-hook-form (متن عدد تا پیش از ارسال متن می‌ماند). */
 export type FormValues = Record<string, unknown>

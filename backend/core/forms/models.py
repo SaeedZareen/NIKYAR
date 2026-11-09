@@ -34,6 +34,29 @@ class Form(models.Model):
         default="year",
         choices=[("never", "هرگز (ادامه‌دار)"), ("year", "آغاز هر سال شمسی"), ("fiscal", "آغاز هر سال مالی")],
     )
+
+    # پذیرش و محدودیت‌ها (3.7b): بی‌نیاز به انتشار، فوری؛ هنگام ثبت نهایی در سرور بررسی می‌شوند
+    opens_at = models.DateTimeField("آغاز پذیرش", null=True, blank=True)
+    closes_at = models.DateTimeField("پایان پذیرش", null=True, blank=True)
+    capacity = models.PositiveIntegerField("ظرفیت کل", null=True, blank=True)
+    per_user_limit = models.PositiveSmallIntegerField("سقف ثبت هر کاربر", null=True, blank=True)
+    per_user_period = models.CharField(
+        "دوره‌ی سقف هر کاربر",
+        max_length=10,
+        default="ever",
+        choices=[("ever", "در کل"), ("day", "در هر روز"), ("month", "در هر ماه"), ("year", "در هر سال")],
+    )
+    edit_hours = models.PositiveSmallIntegerField("ویرایش پس از ثبت (ساعت)", null=True, blank=True)
+    allow_drafts = models.BooleanField("پیش‌نویس", default=True)
+    draft_days = models.PositiveSmallIntegerField("حذف پیش‌نویس پس از (روز)", null=True, blank=True)
+    after_submit = models.CharField(
+        "پس از ثبت", max_length=10, default="forms", choices=[("forms", "بازگشت به «فرم‌ها»"), ("page", "صفحه‌ی تأیید"), ("url", "رفتن به نشانی")]
+    )
+    after_submit_url = models.URLField("نشانی پس از ثبت", max_length=500, blank=True)
+    notify_submitter = models.BooleanField("اعلان تأیید به ثبت‌کننده", default=False)
+    notify_users = models.ManyToManyField(settings.AUTH_USER_MODEL, verbose_name="اطلاع به کاربران", blank=True, related_name="+")
+    notify_roles = models.ManyToManyField("accounts.Role", verbose_name="اطلاع به نقش‌ها", blank=True, related_name="+")
+    anonymous = models.BooleanField("بی‌نام", default=False)
     created_at = models.DateTimeField("زمان ساخت", auto_now_add=True)
 
     class Meta:

@@ -546,3 +546,20 @@ class TestWebAndMedia:
         d = engine.normalize_definition(form({"id": "p", "type": "paragraph", "props": {"content": '<p>متن <a href="javascript:x">بد</a><img src=x></p>'}}))
         assert d["sections"][0]["fields"][0]["props"]["content"] == '<p>متن <a target="_blank" rel="noopener noreferrer">بد</a></p>'
         assert engine.definition_file_ids(form({"id": "dl", "type": "download", "label": "ر", "props": {"file": pdf}})) == {pdf}
+
+
+def test_form_level_keys(db):
+    d = form({"id": "t", "type": "text", "label": "عنوان"})
+    engine.check_definition(
+        {
+            **d,
+            "required_mark": "optional",
+            "numbered": True,
+            "submit_label": "ارسال درخواست",
+            "intro": "<p>سلام</p>",
+            "confirmation": "<p>شماره‌ی شما {شماره}</p>",
+        }
+    )
+    errs = definition_errors({**d, "required_mark": "x", "numbered": "yes", "submit_label": " ", "intro": "<p> </p>"})
+    assert set(errs) == {"required_mark", "numbered", "submit_label", "intro"}
+    assert engine.normalize_definition({**d, "intro": "<p>سلام<script>x</script></p>"})["intro"] == "<p>سلام</p>"

@@ -479,3 +479,47 @@ test.describe("الگو، پیش‌نمایش، نسخه‌ها، خروجی و 
     expect(errors).toEqual([])
   })
 })
+
+test.describe("تنظیمات پیشرفته‌ی فرم در طراح", () => {
+  test("ویژگی‌های فرم (نشانه‌ی الزامی، متن دکمه، پیام پس از ثبت) و بخش‌های تازه‌ی تنظیمات", async ({ page }, info) => {
+    test.slow()
+    const errors = collectErrors(page)
+    const title = `فرم تنظیمات ${info.project.name} ${Date.now()}`
+    await createForm(page, title)
+    await addTool(page, "متن یک‌خطی")
+    await props(page).getByLabel("الزامی", { exact: true }).click()
+    await closeProps(page)
+
+    await page.getByRole("button", { name: /ویژگی‌های فرم/ }).click()
+    await props(page).getByRole("combobox", { name: "نشانه‌ی فیلد الزامی" }).click()
+    await page.getByRole("option", { name: "نوشته‌ی «(الزامی)»" }).click()
+    await props(page).getByLabel("متن دکمه‌ی ثبت", { exact: true }).fill("ارسال درخواست")
+    await props(page).getByRole("textbox", { name: "پیام پس از ثبت" }).click()
+    await page.keyboard.type("درخواست شما رسید.")
+    await closeProps(page)
+    await expect(page.getByText("(الزامی)").first()).toBeVisible()
+    await expect(page.getByText(/ذخیره شد/)).toBeVisible()
+
+    // تنظیمات: پذیرش، پس از ثبت، حریم
+    await page.getByRole("button", { name: "تنظیمات", exact: true }).click()
+    const sheet = page.getByRole("dialog", { name: `تنظیمات «${title}»` })
+    await sheet.getByLabel("ظرفیت کل", { exact: true }).fill("5")
+    await sheet.getByLabel("ویرایش پس از ثبت (ساعت)", { exact: true }).fill("3")
+    await sheet.getByRole("combobox", { name: "پس از ثبت" }).click()
+    await page.getByRole("option", { name: "رفتن به نشانی" }).click()
+    await sheet.getByRole("button", { name: "ذخیره" }).click()
+    await expect(sheet.getByText("نشانی پس از ثبت را وارد کنید.").first()).toBeVisible()
+    await sheet.getByLabel("نشانی پس از ثبت", { exact: true }).fill("https://nikyar.ir/thanks")
+    await sheet.getByLabel("اعلان تأیید به ثبت‌کننده", { exact: true }).click()
+    // نشانگر روی دکمه‌ی «ذخیره» (حالت hover) نماند
+    await page.mouse.move(0, 0)
+    await expectAccessible(page)
+    await sheet.getByRole("button", { name: "ذخیره" }).click()
+    await expect(page.getByText(`تنظیمات «${title}» ذخیره شد.`)).toBeVisible()
+
+    await page.getByRole("button", { name: "تنظیمات", exact: true }).click()
+    await expect(page.getByRole("dialog", { name: `تنظیمات «${title}»` }).getByLabel("ظرفیت کل", { exact: true })).toHaveValue("5")
+    expect(errors.filter((e) => !e.includes("status of 400"))).toEqual([])
+  })
+})
+

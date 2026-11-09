@@ -5,6 +5,7 @@ import { CSS } from "@dnd-kit/utilities"
 import { ArrowDown, ArrowUp, ChevronDown, ChevronUp, Copy, EyeOff, GitBranch, GripVertical, MoveHorizontal, Plus, Trash2 } from "lucide-react"
 import { useForm } from "react-hook-form"
 import { FormGrid } from "@/components/form/form-grid"
+import { RequiredMarkContext } from "@/components/form/required-mark"
 import { itemsOf, labelLayout, spanClass, type FieldDef, type FormDefinition, type FormValues, type SectionDef } from "@/components/form-renderer/definition"
 import { FieldView } from "@/components/form-renderer/form-renderer"
 import { InfoTip } from "@/components/info-tip"
@@ -40,6 +41,7 @@ export function Canvas(props: Props) {
   // فرم ساختگی فقط برای نمایش کنترل‌ها؛ مقدارهای بوم جایی ذخیره نمی‌شوند.
   const preview = useForm<FormValues>({ defaultValues: {} })
   return (
+    <RequiredMarkContext.Provider value={definition.required_mark ?? "star"}>
     <div className="flex flex-col gap-4">
       {definition.sections.map((section, i) => (
         <CanvasSection key={section.id} {...props} section={section} first={i === 0} last={i === definition.sections.length - 1} control={preview.control} />
@@ -50,6 +52,7 @@ export function Canvas(props: Props) {
         </Button>
       )}
     </div>
+    </RequiredMarkContext.Provider>
   )
 }
 

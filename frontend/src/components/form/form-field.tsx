@@ -3,6 +3,7 @@ import { Controller, type Control, type ControllerRenderProps, type FieldPath, t
 import { InfoTip } from "@/components/info-tip"
 import { Field, FieldDescription, FieldError, FieldLabel } from "@/components/ui/field"
 import { cn } from "@/lib/utils"
+import { RequiredMarkContext } from "./required-mark"
 
 type FieldLayout = "side" | "stacked" | "cell"
 
@@ -56,6 +57,7 @@ export function FormField<TValues extends FieldValues, TName extends FieldPath<T
   render,
 }: Props<TValues, TName>) {
   const id = fieldId(name)
+  const mark = React.useContext(RequiredMarkContext)
   return (
     <Controller
       control={control}
@@ -72,10 +74,20 @@ export function FormField<TValues extends FieldValues, TName extends FieldPath<T
               <FieldLabel htmlFor={group ? undefined : id} id={group ? `${id}-label` : undefined}>
                 {label}
               </FieldLabel>
-              {/* ستاره بیرون از برچسب: نام دسترس‌پذیر فیلد دقیقاً همان برچسب است (الزامی بودن با aria-required) */}
-              {required && (
+              {/* نشانه بیرون از برچسب: نام دسترس‌پذیر فیلد دقیقاً همان برچسب است (الزامی بودن با aria-required) */}
+              {required && mark === "star" && (
                 <span className="-ms-0.5 text-xs/relaxed text-destructive" aria-hidden>
                   *
+                </span>
+              )}
+              {required && mark === "word" && (
+                <span className="text-2xs/relaxed text-destructive" aria-hidden>
+                  (الزامی)
+                </span>
+              )}
+              {!required && mark === "optional" && (
+                <span className="text-2xs/relaxed text-muted-foreground" aria-hidden>
+                  (اختیاری)
                 </span>
               )}
               {description && (

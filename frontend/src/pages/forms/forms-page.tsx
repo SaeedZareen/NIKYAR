@@ -1,5 +1,6 @@
 import * as React from "react"
 import { Link } from "react-router"
+import { StatusBadge } from "@/components/status-badge"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { ClipboardList, FileText, Pencil, Trash2 } from "lucide-react"
 import { toast } from "sonner"
@@ -66,6 +67,13 @@ export default function FormsPage() {
                     {f.title}
                   </Link>
                   {f.description && <InfoTip label={`راهنمای ${f.title}`}>{f.description}</InfoTip>}
+                  {f.availability.code !== "open" ? (
+                    <StatusBadge tone={f.availability.code === "limit" ? "success" : "neutral"} className="shrink-0">
+                      <span title={f.availability.message}>{CLOSED[f.availability.code]}</span>
+                    </StatusBadge>
+                  ) : (
+                    f.availability.remaining !== null && <span className="shrink-0 text-2xs text-muted-foreground">ظرفیت: {formatNumber(f.availability.remaining)}</span>
+                  )}
                 </li>
               ))}
             </ul>
@@ -75,6 +83,9 @@ export default function FormsPage() {
     </div>
   )
 }
+
+/** وضعیت فرمی که اکنون ثبت نمی‌پذیرد (شرح کامل در صفحه‌ی خود فرم). */
+const CLOSED: Record<string, string> = { not_yet: "هنوز باز نشده", closed: "بسته", full: "تکمیل ظرفیت", limit: "پر کرده‌اید" }
 
 function DraftsTable({ rows, loading, error, onRetry }: { rows: Draft[]; loading: boolean; error: unknown; onRetry: () => void }) {
   const qc = useQueryClient()
