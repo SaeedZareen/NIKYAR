@@ -90,8 +90,11 @@ test.describe("طراح فرم", () => {
     const live = page.locator("[id^=DndLiveRegion]")
     await page.keyboard.press("Space")
     await expect(live).toContainText("«دوم» روی «دوم» است.")
-    await page.keyboard.press("ArrowRight")
-    await expect(live).toContainText("«دوم» روی «اول» است.")
+    // کلید جهت گاهی پیش از اندازه‌گیری مقصدها می‌رسد؛ تا اعلام جای تازه تکرار می‌شود (در لبه اثری ندارد)
+    await expect(async () => {
+      await page.keyboard.press("ArrowRight")
+      await expect(live).toContainText("«دوم» روی «اول» است.", { timeout: 1000 })
+    }).toPass()
     await page.keyboard.press("Space")
     await expect.poll(order).toEqual(["انتخاب «دوم»", "انتخاب «اول»"])
 
