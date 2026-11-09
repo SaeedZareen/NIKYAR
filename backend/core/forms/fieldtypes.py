@@ -39,7 +39,7 @@ class Prop:
     یک ویژگی نوع فیلد. kind:
     int، number، bool، text، choice (یکی از choices)، options (گزینه‌های انتخاب)،
     lookup_list (کد فهرست پایه)، org_unit و role (شناسه‌ی واحد یا نقش)، choice_list (چند مورد از choices)،
-    extensions (نوع‌های فایل)، columns (ستون‌های جدول).
+    extensions (نوع‌های فایل)، columns (ستون‌های جدول)، logic (عبارت JsonLogic؛ core/forms/rules.py).
     """
 
     kind: str
@@ -59,6 +59,8 @@ class Ctx:
     user: object = None
     previous_files: frozenset[str] = frozenset()
     partial: bool = False
+    # داده‌ی ذخیره‌شده‌ی همین ثبت (برای فیلدهای فقط‌خواندنی شرطی)
+    previous: dict = field(default_factory=dict)
 
 
 class FieldType:
@@ -688,6 +690,29 @@ class PositionRef(_Reference):
 
             positions = positions.filter(unit_id__in=subtree_ids(props["unit"]))
         return set(positions.values_list("pk", flat=True))
+
+
+# ─── محاسبه‌ای ───────────────────────────────────────────────────────────
+
+
+@register
+class Calculated(FieldType):
+    """
+    فیلد محاسبه‌ای: مقدار را سرور از فرمول (JsonLogic) و مقدار فیلدهای دیگر می‌سازد؛ مرورگر همان را زنده نشان می‌دهد.
+    مقدار فرستاده‌ی مرورگر نادیده گرفته می‌شود.
+    """
+
+    code, title, group = "calculated", "محاسبه‌ای", "محاسبه‌ای"
+    client_value = False
+    props = {
+        "formula": Prop("logic", "فرمول", required=True),
+        "format": Prop("choice", "نمایش", default="number", choices={"number": "عدد", "amount": "مبلغ (ریال)", "days": "روز"}),
+        "decimals": Prop("int", "رقم اعشار", default=0, min=0, max=6),
+        "unit": Prop("text", "واحد", max=20),
+    }
+
+    def schema(self, props, partial):
+        return {"type": "number", "readOnly": True}
 
 
 # ─── نشانی ──────────────────────────────────────────────────────────────

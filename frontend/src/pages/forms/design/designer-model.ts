@@ -36,6 +36,8 @@ const REQUIRED_DEFAULTS: Partial<Record<FieldType, Record<string, unknown>>> = {
     ],
   },
   consent: { text: "صحت اطلاعات بالا را تأیید می‌کنم." },
+  // فرمول را طراح در پانل ویژگی‌ها با فیلدهای فرم می‌سازد.
+  calculated: { formula: { "+": [0, 0] } },
 }
 
 /** فیلد تازه از یک نوع کاتالوگ با برچسب و ویژگی‌های الزامی پیش‌فرض. */

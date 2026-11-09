@@ -27,6 +27,7 @@ async function createForm(page: Page, title: string) {
 
 test.describe("طراح فرم", () => {
   test("ساخت فرم، ویژگی‌ها، خطای سرور، واگرد، انتشار و پر کردن", async ({ page }, info) => {
+    test.slow()
     const errors = collectErrors(page)
     const title = `فرم طراحی ${info.project.name} ${Date.now()}`
     await createForm(page, title)
@@ -111,5 +112,92 @@ test.describe("طراح فرم", () => {
     await page.getByRole("button", { name: "انتشار" }).click()
     await page.getByRole("button", { name: "ویرایش فرم" }).click()
     await expect(page.getByText(/پیش‌نویس نسخه‌ی ۲/)).toBeVisible()
+  })
+})
+
+test.describe("قاعده‌های فرم", () => {
+  test("نمایش و الزام شرطی، فرمول شمار روز و اعتبارسنجی بین فیلدها", async ({ page }, info) => {
+    test.slow() // طراحی کامل یک فرم و پر کردنش؛ زیر بار سه اندازه‌ی هم‌زمان بیش از ۳۰ ثانیه
+    const errors = collectErrors(page)
+    const title = `مرخصی با قاعده ${info.project.name} ${Date.now()}`
+    await createForm(page, title)
+    const panel = props(page)
+
+    await addTool(page, "انتخاب یکی")
+    await panel.getByLabel("برچسب", { exact: true }).fill("نوع مرخصی")
+    await panel.getByLabel("گزینه‌ها ۱", { exact: true }).fill("استحقاقی")
+    await panel.getByLabel("گزینه‌ها ۲", { exact: true }).fill("استعلاجی")
+    await panel.getByLabel("الزامی", { exact: true }).click()
+    await closeProps(page)
+    for (const label of ["از تاریخ", "تا تاریخ"]) {
+      await addTool(page, "تاریخ")
+      await panel.getByLabel("برچسب", { exact: true }).fill(label)
+      await closeProps(page)
+    }
+    await addTool(page, "محاسبه‌ای")
+    await panel.getByLabel("برچسب", { exact: true }).fill("شمار روز")
+    const pick = async (name: string, option: string) => {
+      await panel.getByRole("combobox", { name, exact: true }).click()
+      await page.getByRole("option", { name: option, exact: true }).click()
+    }
+    await pick("عمل", "شمار روز بین دو تاریخ (هر دو سر شامل)")
+    await pick("از تاریخ", "از تاریخ")
+    await pick("تا تاریخ", "تا تاریخ")
+    await closeProps(page)
+
+    await addTool(page, "متن یک‌خطی")
+    await panel.getByLabel("برچسب", { exact: true }).fill("شماره‌ی گواهی پزشک")
+    for (const rule of ["نمایش شرطی", "الزامی شرطی"]) {
+      await panel.getByLabel(rule, { exact: true }).click()
+      const editor = panel.getByRole("switch", { name: rule }).locator("xpath=ancestor::*[@data-slot='field'][1]")
+      await editor.getByRole("combobox", { name: "شرط ۱: فیلد" }).click()
+      await page.getByRole("option", { name: "نوع مرخصی", exact: true }).click()
+      await editor.getByRole("combobox", { name: "شرط ۱: مقدار" }).click()
+      await page.getByRole("option", { name: "استعلاجی", exact: true }).click()
+    }
+    await closeProps(page)
+
+    // اعتبارسنجی: «تا تاریخ» بیشتر یا برابر «از تاریخ»
+    await page.getByRole("button", { name: /اعتبارسنجی بین فیلدها/ }).click()
+    await panel.getByRole("button", { name: "قاعده‌ی تازه" }).click()
+    await panel.getByRole("combobox", { name: "شرط ۱: فیلد" }).click()
+    await page.getByRole("option", { name: "تا تاریخ", exact: true }).click()
+    await panel.getByRole("combobox", { name: "شرط ۱: عملگر" }).click()
+    await page.getByRole("option", { name: "بیشتر یا برابر", exact: true }).click()
+    await panel.getByRole("combobox", { name: "شرط ۱: نوع" }).click()
+    await page.getByRole("option", { name: "فیلد دیگر", exact: true }).click()
+    await panel.getByRole("combobox", { name: "شرط ۱: فیلد", exact: true }).nth(1).click()
+    await page.getByRole("option", { name: "از تاریخ", exact: true }).click()
+    await panel.getByLabel("پیام خطا", { exact: true }).fill("«تا تاریخ» باید بعد از «از تاریخ» باشد.")
+    await panel.getByRole("combobox", { name: "نمایش پیام زیر" }).click()
+    await page.getByRole("option", { name: "تا تاریخ", exact: true }).click()
+    await closeProps(page)
+    await expect(page.getByText(/ذخیره شد/)).toBeVisible()
+    await expectAccessible(page)
+    await page.getByRole("button", { name: "انتشار" }).click()
+    await expect(page.getByRole("button", { name: "ویرایش فرم" })).toBeVisible()
+
+    // پر کردن: گواهی فقط برای استعلاجی، شمار روز زنده، خطای بازه
+    await page.goto("/forms")
+    await page.getByRole("link", { name: title }).click()
+    await expect(page.getByLabel("شماره‌ی گواهی پزشک", { exact: true })).toHaveCount(0)
+    await page.getByRole("radio", { name: "استعلاجی" }).click()
+    await expect(page.getByLabel("شماره‌ی گواهی پزشک", { exact: true })).toBeVisible()
+    await page.getByLabel("از تاریخ", { exact: true }).fill("14050905")
+    await page.getByLabel("تا تاریخ", { exact: true }).fill("14050901")
+    // فرمول شمار روز زنده (هنوز بازه نادرست است)
+    await expect(page.getByRole("group", { name: "شمار روز" }).getByRole("status")).toHaveText(/−۳/)
+    await page.getByRole("button", { name: "ثبت نهایی" }).click()
+    await expect(page.getByRole("alert").filter({ hasText: "لطفاً این موارد" })).toContainText("تکمیل «شماره‌ی گواهی پزشک» الزامی است.")
+    await page.getByLabel("شماره‌ی گواهی پزشک", { exact: true }).fill("پ-۱۲۳")
+    await page.getByRole("button", { name: "ثبت نهایی" }).click()
+    await expect(page.getByRole("alert").filter({ hasText: "لطفاً این موارد" })).toContainText("«تا تاریخ» باید بعد از «از تاریخ» باشد.")
+    await page.getByLabel("تا تاریخ", { exact: true }).fill("14050907")
+    await expect(page.getByRole("group", { name: "شمار روز" }).getByRole("status")).toHaveText("۳")
+    await page.getByRole("button", { name: "ثبت نهایی" }).click()
+    await expect(page.getByText(`فرم «${title}» ثبت شد.`)).toBeVisible()
+    const data = await page.evaluate(async () => (await fetch("/api/forms/submissions/?mine=true").then((r) => r.json())).results[0].data)
+    expect(Object.values(data)).toContain(3)
+    expect(errors.filter((e) => !e.includes("status of 400"))).toEqual([])
   })
 })

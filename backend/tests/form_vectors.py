@@ -11,6 +11,7 @@ import json
 from pathlib import Path
 
 PATH = Path(__file__).resolve().parents[2] / "shared" / "vectors" / "form-validation.json"
+RULES_PATH = PATH.with_name("form-rules.json")
 
 OPTIONS = [{"value": "a", "label": "الف"}, {"value": "b", "label": "ب"}, {"value": "c", "label": "ج"}]
 ROWS = [{"value": "skill", "label": "مهارت"}, {"value": "team", "label": "کار گروهی"}]
@@ -160,6 +161,106 @@ def build() -> dict:
     }
 
 
+V = lambda name: {"var": name}  # noqa: E731
+
+# فرم مرخصی با همه‌ی گونه‌های قاعده: نمایش و الزام شرطی، بخش شرطی، فقط‌خواندنی، محاسبه و قاعده‌ی بین فیلدها.
+RULES_DEFINITION = {
+    "sections": [
+        {
+            "id": "main",
+            "title": "مرخصی",
+            "columns": 2,
+            "fields": [
+                {
+                    "id": "kind",
+                    "type": "choice",
+                    "label": "نوع",
+                    "required": True,
+                    "props": {
+                        "options": [{"value": "annual", "label": "استحقاقی"}, {"value": "sick", "label": "استعلاجی"}, {"value": "hourly", "label": "ساعتی"}]
+                    },
+                },
+                {"id": "start", "type": "date", "label": "از تاریخ", "required": True, "visible_if": {"!=": [V("kind"), "hourly"]}},
+                {"id": "end", "type": "date", "label": "تا تاریخ", "required": True, "visible_if": {"!=": [V("kind"), "hourly"]}},
+                {"id": "days", "type": "calculated", "label": "شمار روز", "props": {"formula": {"days_between": [V("start"), V("end")]}, "format": "days"}},
+                {
+                    "id": "cert",
+                    "type": "text",
+                    "label": "شماره‌ی گواهی پزشک",
+                    "visible_if": {"==": [V("kind"), "sick"]},
+                    "required_if": {"==": [V("kind"), "sick"]},
+                },
+                {"id": "note", "type": "text", "label": "توضیح", "default": "استحقاقی", "readonly_if": {"==": [V("kind"), "annual"]}},
+                {"id": "a", "type": "number", "label": "الف"},
+                {"id": "b", "type": "number", "label": "ب"},
+                {"id": "extra", "type": "text", "label": "توضیح الف", "visible_if": {"and": [{"!!": V("a")}, {">": [V("a"), 5]}]}},
+                {"id": "total", "type": "calculated", "label": "جمع", "props": {"formula": {"+": [V("a"), V("b")]}}},
+                {"id": "ratio", "type": "calculated", "label": "نسبت", "props": {"formula": {"/": [V("a"), V("b")]}, "decimals": 2}},
+            ],
+        },
+        {
+            "id": "hourly",
+            "title": "ساعتی",
+            "visible_if": {"==": [V("kind"), "hourly"]},
+            "fields": [{"id": "hours", "type": "time_range", "label": "ساعت", "required": True}],
+        },
+    ],
+    "rules": [
+        {"id": "order", "condition": {">=": [V("end"), V("start")]}, "message": "«تا تاریخ» باید بعد از «از تاریخ» باشد.", "field": "end"},
+        {
+            "id": "annual_max",
+            "condition": {"or": [{"!=": [V("kind"), "annual"]}, {"<=": [V("days"), 10]}]},
+            "message": "مرخصی استحقاقی حداکثر ۱۰ روز است.",
+            "field": "days",
+        },
+    ],
+}
+
+RULE_CASES = [
+    {"name": "empty", "partial": False, "data": {}},
+    {"name": "sick needs certificate", "partial": False, "data": {"kind": "sick", "start": "1405/09/01", "end": "1405/09/02"}},
+    {"name": "hourly hides dates and shows section", "partial": False, "data": {"kind": "hourly", "start": "1405/09/01"}},
+    {"name": "annual too long and readonly note", "partial": False, "data": {"kind": "annual", "start": "1405/09/01", "end": "1405/09/20", "note": "تغییر"}},
+    {"name": "end before start", "partial": False, "data": {"kind": "sick", "start": "1405/09/05", "end": "1405/09/01", "cert": "123"}},
+    {"name": "calculations", "partial": True, "data": {"a": 7, "b": 2}},
+    {"name": "division by zero", "partial": True, "data": {"a": 7, "b": 0}},
+    {"name": "readonly keeps default", "partial": False, "data": {"kind": "annual", "start": "1405/09/01", "end": "1405/09/05", "note": "تغییر"}},
+    {"name": "valid sick", "partial": False, "data": {"kind": "sick", "start": "1405/09/01", "end": "1405/09/03", "cert": "A-12"}},
+]
+
+
+def build_rules() -> dict:
+    from core.forms import engine, rules
+    from core.forms.fieldtypes import Ctx
+    from core.kernel.api import BusinessError
+
+    cases = []
+    for case in RULE_CASES:
+        values, state = rules.apply(RULES_DEFINITION, case["data"])
+        try:
+            cleaned, errors = engine.validate_data(RULES_DEFINITION, case["data"], Ctx(partial=case["partial"])), {}
+        except BusinessError as exc:
+            cleaned, errors = None, exc.fields
+        cases.append(
+            {
+                **case,
+                "hidden": sorted(state.hidden),
+                "required": sorted(state.required),
+                "readonly": sorted(state.readonly),
+                "calculated": state.calculated,
+                "cleaned": cleaned,
+                "errors": errors,
+            }
+        )
+    return {
+        "description": "Generated by backend/tests/form_vectors.py; read by backend and frontend tests. Do not edit by hand.",
+        "definition": RULES_DEFINITION,
+        "schema": engine.compile_schema(RULES_DEFINITION),
+        "draft_schema": engine.compile_schema(RULES_DEFINITION, partial=True),
+        "cases": cases,
+    }
+
+
 def dump(data: dict) -> str:
     return json.dumps(data, ensure_ascii=False, indent=1) + "\n"
 
@@ -172,4 +273,5 @@ if __name__ == "__main__":
     os.environ.setdefault("DJANGO_SETTINGS_MODULE", "config.settings")
     django.setup()
     PATH.write_text(dump(build()), encoding="utf-8")
-    print(f"written {PATH}")
+    RULES_PATH.write_text(dump(build_rules()), encoding="utf-8")
+    print(f"written {PATH} and {RULES_PATH}")

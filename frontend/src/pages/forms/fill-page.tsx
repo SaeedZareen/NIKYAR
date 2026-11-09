@@ -10,6 +10,7 @@ import { applyServerErrors } from "@/components/form/server-errors"
 import { UnsavedChangesGuard } from "@/components/form/unsaved-changes-guard"
 import { fieldLabels, toFormValues, toPayload, type FormDefinition, type FormValues } from "@/components/form-renderer/definition"
 import { FormRenderer } from "@/components/form-renderer/form-renderer"
+import { applyRules } from "@/components/form-renderer/rules"
 import { formResolver, validate, type JsonSchema } from "@/components/form-renderer/validate"
 import { PageHeader } from "@/components/layout/page-header"
 import { Button } from "@/components/ui/button"
@@ -93,13 +94,14 @@ function FillForm({ context, initialData, initialSubmission, initialSavedAt, onC
   // شناسه‌ی ثبت در ref برای درخواست‌های زنجیره‌ای و در state برای نمایش (دکمه‌ی حذف پیش‌نویس).
   const submission = React.useRef<number | null>(initialSubmission)
   const [submissionId, setSubmissionId] = React.useState(initialSubmission)
-  const [lastSaved, setLastSaved] = React.useState(() => JSON.stringify(toPayload(definition, defaults)))
+  const [lastSaved, setLastSaved] = React.useState(() => JSON.stringify(applyRules(definition, toPayload(definition, defaults)).values))
   const pending = React.useRef<Promise<unknown>>(Promise.resolve())
   const [save, setSave] = React.useState<SaveState>(initialSavedAt ? { kind: "saved", at: initialSavedAt } : { kind: "idle" })
   const [submitting, setSubmitting] = React.useState(false)
   const [confirmDelete, setConfirmDelete] = React.useState(false)
 
-  const payload = toPayload(definition, values as FormValues)
+  // قاعده‌ها زنده: فیلدهای پنهان در داده‌ی ارسالی نمی‌آیند (مقدارشان در فرم می‌ماند تا اگر دوباره دیده شدند، از دست نرود).
+  const { values: payload, state: rules } = React.useMemo(() => applyRules(definition, toPayload(definition, values as FormValues)), [definition, values])
   const serialized = JSON.stringify(payload)
   const changed = serialized !== lastSaved
 
@@ -147,7 +149,7 @@ function FillForm({ context, initialData, initialSubmission, initialSavedAt, onC
   const submitValid = async (formValues: FormValues) => {
     setSubmitting(true)
     try {
-      await send(toPayload(definition, formValues), true)
+      await send(applyRules(definition, toPayload(definition, formValues)).values, true)
       qc.invalidateQueries({ queryKey: SUBMISSIONS_KEY })
       toast.success(`فرم «${context.title}» ثبت شد.`)
       navigate("/forms")
@@ -195,6 +197,7 @@ function FillForm({ context, initialData, initialSubmission, initialSavedAt, onC
           definition={definition}
           title={context.title}
           control={form.control}
+          rules={rules}
           footer={
             <>
               <Button type="submit" disabled={submitting}>

@@ -8,3 +8,4 @@ waitress>=3.0,<4
 jdatetime>=5.2,<6
 cryptography>=44,<51
 jsonschema>=4.23,<5
+panzi-json-logic>=1.0.1,<2

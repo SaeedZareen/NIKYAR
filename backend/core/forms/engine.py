@@ -20,6 +20,7 @@ from core.kernel import validators as v
 from core.kernel.api import BusinessError
 from core.kernel.validators import fa_digits
 
+from . import rules
 from .fieldtypes import COLUMN_TYPES, ID_PATTERN, OPTION_VALUE_PATTERN, REGISTRY, Ctx, FieldType, Prop, fa_number, is_jalali_date, is_jalali_datetime, is_uuid
 
 JSON_SCHEMA_DIALECT = "https://json-schema.org/draft/2020-12/schema"
@@ -40,9 +41,10 @@ for _name, _check in {
 }.items():
     FORMATS.checks(_name)(lambda value, check=_check: not isinstance(value, str) or check(value))
 
-FIELD_KEYS = {"id", "type", "label", "help", "required", "span", "default", "props"}
-COLUMN_KEYS = FIELD_KEYS - {"span"}
-SECTION_KEYS = {"id", "title", "help", "columns", "fields"}
+FIELD_KEYS = {"id", "type", "label", "help", "required", "span", "default", "props", *rules.FIELD_CONDITIONS}
+COLUMN_KEYS = FIELD_KEYS - {"span", *rules.FIELD_CONDITIONS}
+SECTION_KEYS = {"id", "title", "help", "columns", "fields", "visible_if"}
+RULE_KEYS = {"id", "condition", "message", "field"}
 
 
 def props_of(field: dict) -> dict:
@@ -68,7 +70,7 @@ def check_definition(definition) -> None:
     errors: dict[str, str] = {}
     if not isinstance(definition, dict) or not isinstance(definition.get("sections"), list):
         raise BusinessError("تعریف فرم ساختار درستی ندارد.", {"definition": "تعریف فرم باید فهرست بخش‌ها (sections) را داشته باشد."})
-    for key in set(definition) - {"sections"}:
+    for key in set(definition) - {"sections", "rules"}:
         errors[key] = f"ویژگی «{key}» در تعریف فرم شناخته‌شده نیست."
     section_ids, field_ids = set(), set()
     for si, section in enumerate(definition["sections"]):
@@ -90,8 +92,45 @@ def check_definition(definition) -> None:
             continue
         for fi, field in enumerate(fields):
             _check_field(field, f"{path}.fields.{fi}", field_ids, errors, columns=columns)
+    if not errors:
+        _check_rules(definition, field_ids, errors)
     if errors:
         raise BusinessError("تعریف فرم ایراد دارد؛ موارد مشخص‌شده را اصلاح کنید.", errors)
+
+
+def _check_rules(definition: dict, known: set[str], errors: dict) -> None:
+    """عبارت‌های قاعده (شرط‌ها، فرمول‌ها، قاعده‌های فرم) فقط به فیلدهای همین فرم و عملگرهای مجاز اشاره می‌کنند."""
+    for si, section in enumerate(definition["sections"]):
+        if "visible_if" in section and (msg := rules.check_logic(section["visible_if"], known)):
+            errors[f"sections.{si}.visible_if"] = msg
+        for fi, field in enumerate(section.get("fields", [])):
+            path = f"sections.{si}.fields.{fi}"
+            for key in rules.FIELD_CONDITIONS:
+                if key in field and (msg := rules.check_logic(field[key], known)):
+                    errors[f"{path}.{key}"] = msg
+            if field["type"] == "calculated":
+                formula = field.get("props", {}).get("formula")
+                if msg := rules.check_logic(formula, known - {field["id"]}):
+                    errors[f"{path}.props.formula"] = msg
+    form_rules = definition.get("rules", [])
+    if not isinstance(form_rules, list):
+        errors["rules"] = "قاعده‌های فرم باید فهرست باشند."
+        return
+    seen: set = set()
+    for ri, rule in enumerate(form_rules):
+        path = f"rules.{ri}"
+        if not isinstance(rule, dict):
+            errors[path] = "هر قاعده باید یک شیء باشد."
+            continue
+        _unknown_keys(rule, RULE_KEYS, path, errors)
+        _check_id(rule.get("id"), seen, f"{path}.id", errors, "قاعده")
+        if not isinstance(rule.get("condition"), dict) or (msg := rules.check_logic(rule["condition"], known)):
+            errors[f"{path}.condition"] = msg if isinstance(rule.get("condition"), dict) else "شرط قاعده را تعیین کنید."
+        message = rule.get("message")
+        if not isinstance(message, str) or not message.strip() or len(message) > 200:
+            errors[f"{path}.message"] = "پیام قاعده الزامی و حداکثر ۲۰۰ نویسه است."
+        if rule.get("field") is not None and rule.get("field") not in known:
+            errors[f"{path}.field"] = "فیلد نمایش پیام در فرم نیست."
 
 
 def _is_int(value) -> bool:
@@ -211,6 +250,10 @@ def _check_prop(spec: Prop, value, path: str, errors: dict) -> str | None:
     elif spec.kind == "choice_list":
         if not isinstance(value, list) or not value or not all(v in spec.choices for v in value) or len(set(value)) != len(value):
             return f"«{spec.title}» دست‌کم یک مورد از گزینه‌های مجاز است."
+    elif spec.kind == "logic":
+        # ساختار و فیلدها در _check_rules سنجیده می‌شوند (پس از شناختن همه‌ی شناسه‌ها)
+        if not isinstance(value, (dict, list, int, float, str)) or isinstance(value, bool):
+            return f"«{spec.title}» ساختار درستی ندارد."
     elif spec.kind == "extensions":
         from core.files.types import FILE_TYPES
 
@@ -295,7 +338,9 @@ def compile_schema(definition: dict, *, title: str = "", partial: bool = False) 
     }
     if title:
         schema["title"] = title
-    required = [f["id"] for f in fields if f.get("required") and REGISTRY[f["type"]].client_value]
+    # الزامی شرطی یا فیلدی که ممکن است پنهان شود در طرح ایستا نمی‌آید؛ آن را قاعده‌ها (هر دو طرف) می‌سنجند.
+    conditional = {f["id"] for s in definition.get("sections", []) for f in s.get("fields", []) if "visible_if" in s or "visible_if" in f}
+    required = [f["id"] for f in fields if f.get("required") and REGISTRY[f["type"]].client_value and f["id"] not in conditional]
     if required and not partial:
         schema["required"] = required
     return schema
@@ -324,21 +369,43 @@ def validate_data(definition: dict, data, ctx: Ctx) -> dict:
         raise BusinessError("داده‌ی فرم ساختار درستی ندارد.", {"data": "داده‌ی فرم باید یک شیء باشد."})
     server_fields = {f["id"] for f in value_fields(definition) if not REGISTRY[f["type"]].client_value}
     cleaned = {k: c for k, x in data.items() if k not in server_fields and (c := clean(x)) is not None}
-    errors = {}
-    for field in value_fields(definition):
-        if field["id"] in server_fields:
-            continue
-        if field["id"] not in cleaned:
-            if field.get("required") and not ctx.partial:
-                errors[field["id"]] = _message(field_schema(field), "required")
-            continue
-        errors.update({(f"{field['id']}.{k}" if k else field["id"]): m for k, m in _field_errors(field, cleaned[field["id"]], ctx).items()})
     unknown = set(cleaned) - {f["id"] for f in value_fields(definition)}
     if unknown:
         raise BusinessError("داده‌ی فرم فیلد ناشناخته دارد؛ صفحه را دوباره بارگذاری کنید.", {k: "این فیلد در فرم نیست." for k in sorted(unknown)})
+    cleaned, state = _apply_rules(definition, cleaned, ctx)
+    errors = {}
+    for field in value_fields(definition):
+        if field["id"] in server_fields or field["id"] in state.hidden:
+            continue
+        if field["id"] not in cleaned:
+            if (field.get("required") or field["id"] in state.required) and not ctx.partial:
+                errors[field["id"]] = _message(field_schema(field), "required")
+            continue
+        errors.update({(f"{field['id']}.{k}" if k else field["id"]): m for k, m in _field_errors(field, cleaned[field["id"]], ctx).items()})
+    if not ctx.partial and not errors:
+        errors.update(rules.form_rule_errors(definition, cleaned, state.hidden))
     if errors:
-        raise BusinessError("فرم را بررسی کنید؛ برخی فیلدها ایراد دارند.", errors)
+        general = errors.pop("__form__", None)
+        raise BusinessError(general or "فرم را بررسی کنید؛ برخی فیلدها ایراد دارند.", errors)
     return cleaned
+
+
+def _apply_rules(definition: dict, cleaned: dict, ctx: Ctx) -> tuple[dict, rules.RuleState]:
+    """
+    قاعده‌ها: مقدار فیلدهای پنهان حذف و فیلدهای محاسبه‌ای پر می‌شوند؛ فیلد فقط‌خواندنی مقدار ذخیره‌شده‌ی قبلی
+    (یا پیش‌فرض) را نگه می‌دارد و مقدار تازه‌ی مرورگر را نمی‌پذیرد.
+    """
+    values, state = rules.apply(definition, cleaned)
+    if state.readonly:
+        fields = {f["id"]: f for f in value_fields(definition)}
+        for fid in state.readonly:
+            kept = ctx.previous.get(fid, fields[fid].get("default"))
+            if kept is None:
+                cleaned.pop(fid, None)
+            else:
+                cleaned[fid] = kept
+        values, state = rules.apply(definition, cleaned)
+    return values, state
 
 
 def _field_errors(field: dict, value, ctx: Ctx) -> dict[str, str]:

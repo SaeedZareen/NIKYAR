@@ -42,6 +42,7 @@ export type FieldType =
   | "region"
   | "submitter"
   | "table"
+  | "calculated"
 
 export type ChoiceOption = { value: string; label: string }
 
@@ -54,10 +55,16 @@ export type FieldDef = {
   span?: number
   default?: unknown
   props?: Record<string, unknown>
+  /** قاعده‌های JsonLogic (rules.ts) */
+  visible_if?: unknown
+  required_if?: unknown
+  readonly_if?: unknown
 }
 
-export type SectionDef = { id: string; title?: string; help?: string; columns?: number; fields: FieldDef[] }
-export type FormDefinition = { sections: SectionDef[] }
+export type SectionDef = { id: string; title?: string; help?: string; columns?: number; fields: FieldDef[]; visible_if?: unknown }
+/** قاعده‌ی بین فیلدها: condition باید درست باشد وگرنه message زیر field می‌آید. */
+export type FormRule = { id: string; condition: unknown; message: string; field?: string | null }
+export type FormDefinition = { sections: SectionDef[]; rules?: FormRule[] }
 
 /** مقدار ورودی‌ها در react-hook-form (متن عدد تا پیش از ارسال متن می‌ماند). */
 export type FormValues = Record<string, unknown>

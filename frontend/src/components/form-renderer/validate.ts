@@ -14,6 +14,7 @@ import {
   isValidPostalCode,
 } from "@/lib/validators"
 import { toPayload, type FormDefinition, type FormValues } from "./definition"
+import { applyRules, formRuleErrors } from "./rules"
 
 export type JsonSchema = Record<string, unknown>
 
@@ -82,10 +83,32 @@ export function validate(schema: JsonSchema, payload: Record<string, unknown>): 
   return errors
 }
 
-/** حل‌کننده‌ی react-hook-form: داده‌ی ارسالی را با طرح ثبت نهایی می‌سنجد و خطاها را روی فیلدها می‌نشاند. */
+/** نوع‌هایی که مقدارشان را سرور می‌گذارد (امضا، ثبت‌کننده، محاسبه‌ای). */
+const SERVER_TYPES = new Set(["signature", "submitter", "calculated"])
+
+/**
+ * سنجش کامل مثل engine.validate_data سرور: قاعده‌ها (پنهان، الزامی شرطی، محاسبه)، طرح JSON، الزامی‌های شرطی و
+ * سپس قاعده‌های بین فیلدها. کلید «__form__» پیام کلی است.
+ */
+export function validateForm(definition: FormDefinition, schema: JsonSchema, payload: Record<string, unknown>, partial: boolean): Record<string, string> {
+  const { values, state } = applyRules(definition, payload)
+  const errors = validate(schema, values)
+  const root = schema as SchemaNode
+  if (!partial)
+    for (const f of definition.sections.flatMap((s) => s.fields)) {
+      if (SERVER_TYPES.has(f.type) || state.hidden.has(f.id) || f.id in values) continue
+      const node = root.properties?.[f.id]
+      if ((f.required || state.required.has(f.id)) && node) errors[f.id] ??= message(node, "required")
+    }
+  if (!partial && Object.keys(errors).length === 0) Object.assign(errors, formRuleErrors(definition, values, state.hidden))
+  return errors
+}
+
+/** حل‌کننده‌ی react-hook-form: داده‌ی ارسالی را مثل سرور می‌سنجد و خطاها را روی فیلدها می‌نشاند. */
 export function formResolver(definition: FormDefinition, schema: JsonSchema): Resolver<FormValues> {
   return async (values) => {
-    const errors = validate(schema, toPayload(definition, values))
+    const { __form__: general, ...errors } = validateForm(definition, schema, toPayload(definition, values), false)
+    if (general) errors["root.server"] = general
     if (Object.keys(errors).length === 0) return { values, errors: {} }
     const nested: Record<string, unknown> = {}
     for (const [key, message] of Object.entries(errors)) {

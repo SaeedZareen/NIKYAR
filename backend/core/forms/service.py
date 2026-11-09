@@ -93,7 +93,9 @@ def save_submission(*, user, data, submit: bool, form: Form | None = None, submi
 
     definition = version.definition
     previous = engine.file_ids(definition, submission.data if submission else None)
-    cleaned = engine.validate_data(definition, data, Ctx(user=user, previous_files=frozenset(previous), partial=not submit))
+    cleaned = engine.validate_data(
+        definition, data, Ctx(user=user, previous_files=frozenset(previous), partial=not submit, previous=submission.data if submission else {})
+    )
     signatures = _fields_of(definition, "signature") if submit else []
     for field in signatures:
         if field.get("required") and user.signature_id is None:

@@ -16,7 +16,7 @@ import {
 } from "@dnd-kit/core"
 import { sortableKeyboardCoordinates } from "@dnd-kit/sortable"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { PencilLine, Plus, Redo2, Send, Settings2, SlidersHorizontal, Undo2 } from "lucide-react"
+import { ListChecks, PencilLine, Plus, Redo2, Send, Settings2, SlidersHorizontal, Undo2 } from "lucide-react"
 import { toast } from "sonner"
 import { DESIGN_FORMS_KEY, useFieldTypes } from "@/app/forms"
 import { PageError, PageFallback } from "@/app/route-states"
@@ -270,6 +270,8 @@ function Editor({ form, version, specs, onReload }: { form: DesignForm; version:
         if (after && after.id !== id) setSelection({ kind: "field", id: after.id })
       }}
       onSection={(id, change, key) => apply((d) => updateSection(d, id, change), key)}
+      onRules={(rules) => apply((d) => (rules.length ? { ...d, rules } : (({ rules: _r, ...rest }) => rest)(d)), "rules")}
+      formErrors={errors.form ?? {}}
     />
   )
 
@@ -327,16 +329,28 @@ function Editor({ form, version, specs, onReload }: { form: DesignForm; version:
             </Section>
           )}
           <div className="flex min-w-0 flex-col gap-3">
-            {!wide && !readOnly && (
-              <div className="flex flex-wrap gap-2">
-                <Button variant="outline" onClick={() => setToolsOpen(true)}>
-                  <Plus /> افزودن فیلد
-                </Button>
-                <Button variant="outline" disabled={!selection} onClick={() => setPropsOpen(true)}>
-                  <SlidersHorizontal /> ویژگی‌ها
-                </Button>
-              </div>
-            )}
+            <div className="flex flex-wrap gap-2">
+              {!wide && !readOnly && (
+                <>
+                  <Button variant="outline" onClick={() => setToolsOpen(true)}>
+                    <Plus /> افزودن فیلد
+                  </Button>
+                  <Button variant="outline" disabled={!selection} onClick={() => setPropsOpen(true)}>
+                    <SlidersHorizontal /> ویژگی‌ها
+                  </Button>
+                </>
+              )}
+              <Button
+                variant="outline"
+                aria-pressed={!selection}
+                onClick={() => {
+                  setSelection(null)
+                  if (!wide) setPropsOpen(true)
+                }}
+              >
+                <ListChecks /> اعتبارسنجی بین فیلدها{definition.rules?.length ? ` (${formatNumber(definition.rules.length)})` : ""}
+              </Button>
+            </div>
             <Canvas
               definition={definition}
               selection={selection}
@@ -388,7 +402,7 @@ function Editor({ form, version, specs, onReload }: { form: DesignForm; version:
               {toolbox}
             </SheetContent>
           </Sheet>
-          <Sheet open={propsOpen && !!selection} onOpenChange={setPropsOpen}>
+          <Sheet open={propsOpen} onOpenChange={setPropsOpen}>
             <SheetContent side="left" className="gap-0 overflow-y-auto p-0">
               <SheetHeader className="border-b bg-muted/50 py-3">
                 <SheetTitle className="text-sm">ویژگی‌ها</SheetTitle>

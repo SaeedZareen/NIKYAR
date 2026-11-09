@@ -65,6 +65,7 @@ class TestDefinition:
             "table": {"columns": [{"id": "c", "type": "text", "label": "ستون"}]},
             "matrix": {"rows": [{"value": "r", "label": "معیار"}], "columns": [{"value": "1", "label": "ضعیف"}, {"value": "2", "label": "خوب"}]},
             "consent": {"text": "مفاد را می‌پذیرم."},
+            "calculated": {"formula": {"+": [1, 2]}},
         }
         fields = [{"id": f"f_{code}", "type": code, "label": t.title, "props": minimal_props.get(code, {})} for code, t in REGISTRY.items()]
         engine.check_definition(form(*fields))
@@ -278,6 +279,7 @@ def test_shared_form_validation_vectors_are_current():
     from tests import form_vectors
 
     assert form_vectors.PATH.read_text(encoding="utf-8") == form_vectors.dump(form_vectors.build())
+    assert form_vectors.RULES_PATH.read_text(encoding="utf-8") == form_vectors.dump(form_vectors.build_rules())
 
 
 class TestSpecialisedFields:
@@ -342,3 +344,33 @@ class TestSpecialisedFields:
         assert engine.validate_data(d, ok, Ctx()) == ok
         errs = definition_errors(form({"id": "s", "type": "scale", "label": "امتیاز", "props": {"min": 0, "display": "stars"}}))
         assert "ستاره" in errs["sections.0.fields.0.props.min"]
+
+
+class TestRuleDefinitions:
+    """قاعده‌ها فقط به فیلدهای همین فرم و عملگرهای مجاز اشاره می‌کنند (رفتار اجرا در نمونه‌های مشترک form-rules.json)."""
+
+    def test_invalid_logic_and_form_rules(self, db):
+        d = form(
+            {"id": "a", "type": "number", "label": "الف", "visible_if": {"==": [{"var": "ghost"}, 1]}},
+            {"id": "b", "type": "number", "label": "ب", "required_if": {"eval": ["x"]}},
+            {"id": "c", "type": "calculated", "label": "ج", "props": {"formula": {"+": [{"var": "c"}, 1]}}},
+        )
+        d["rules"] = [{"id": "r1", "condition": {">": [{"var": "a"}, 1]}, "message": "", "field": "zz"}, {"id": "r1", "condition": None, "message": "پیام"}]
+        errs = definition_errors(d)
+        assert "ghost" in errs["sections.0.fields.0.visible_if"]
+        assert "eval" in errs["sections.0.fields.1.required_if"]
+        assert "«c»" in errs["sections.0.fields.2.props.formula"]
+
+        d = form({"id": "a", "type": "number", "label": "الف"})
+        d["rules"] = [{"id": "r1", "condition": {">": [{"var": "a"}, 1]}, "message": "", "field": "zz"}, {"id": "r1", "condition": None, "message": "پیام"}]
+        errs = definition_errors(d)
+        assert "پیام قاعده" in errs["rules.0.message"] and "در فرم نیست" in errs["rules.0.field"]
+        assert errs["rules.1.id"] == "شناسه‌ی «r1» تکراری است." and "شرط" in errs["rules.1.condition"]
+
+    def test_readonly_keeps_previous_value(self):
+        d = form(
+            {"id": "kind", "type": "text", "label": "نوع"}, {"id": "note", "type": "text", "label": "یادداشت", "readonly_if": {"==": [{"var": "kind"}, "x"]}}
+        )
+        assert engine.validate_data(d, {"kind": "x", "note": "تازه"}, Ctx(previous={"note": "قبلی"})) == {"kind": "x", "note": "قبلی"}
+        assert engine.validate_data(d, {"kind": "x", "note": "تازه"}, Ctx()) == {"kind": "x"}
+        assert engine.validate_data(d, {"kind": "y", "note": "تازه"}, Ctx()) == {"kind": "y", "note": "تازه"}
