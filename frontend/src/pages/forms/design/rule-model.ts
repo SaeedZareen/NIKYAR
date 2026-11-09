@@ -55,12 +55,13 @@ export function conditionLogic(c: Condition): unknown {
   return parts.length === 1 ? parts[0] : { [c.mode === "all" ? "and" : "or"]: parts }
 }
 
+// شناسه‌ی خالی («فیلد دیگر» هنوز انتخاب نشده) هم خوانده می‌شود تا سازنده گیر نکند.
 const varName = (x: unknown): string | null =>
   x && typeof x === "object" && !Array.isArray(x) && Object.keys(x).length === 1 && typeof (x as { var?: unknown }).var === "string" ? (x as { var: string }).var : null
 
 function parseOperand(x: unknown): Operand | null {
   const name = varName(x)
-  if (name) return { kind: "field", field: name }
+  if (name !== null) return { kind: "field", field: name }
   if (x && typeof x === "object" && "today" in (x as object)) return { kind: "today" }
   if (typeof x === "string" || typeof x === "number" || typeof x === "boolean") return { kind: "value", value: x }
   return null
@@ -71,18 +72,18 @@ function parseClause(logic: unknown): Clause | null {
   const [op, args] = Object.entries(logic)[0] ?? []
   if (op === "!" || op === "!!") {
     const field = varName(Array.isArray(args) ? args[0] : args)
-    return field ? { field, op: op === "!" ? "empty" : "filled" } : null
+    return field !== null ? { field, op: op === "!" ? "empty" : "filled" } : null
   }
   if (!Array.isArray(args) || args.length !== 2) return null
   if (op === "in") {
     const field = varName(args[1])
     const right = parseOperand(args[0])
-    return field && right ? { field, op: "has", right } : null
+    return field !== null && right ? { field, op: "has", right } : null
   }
   const found = (Object.entries(BINARY) as [Op, string][]).find(([, sym]) => sym === op)
   const field = varName(args[0])
   const right = parseOperand(args[1])
-  return found && field && right ? { field, op: found[0], right } : null
+  return found && field !== null && right ? { field, op: found[0], right } : null
 }
 
 /** JsonLogic ← شرط سازنده؛ null یعنی عبارت پیشرفته‌ای که سازنده نمی‌سازد. */
