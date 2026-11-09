@@ -3,7 +3,7 @@
 Modular Persian BPMS/ERP for on-premise installs in Iran (10–500 users). The product owner is not a developer: explain results in Persian, plainly (what was built, what to try on the laptop after `update.bat`, what comes next). Read `docs/ROADMAP.md` and `docs/ARCHITECTURE.md` first.
 
 ## Status and process
-- Released: v0.3.0 (phases 0, 1, 2a, 2b). In progress: phase 3 (form builder, 11 packages; status column and detailed plan in `docs/ROADMAP.md`). Start a package only after the owner approves it.
+- Released: v0.3.0 (phases 0, 1, 2a, 2b). In progress: phase 3 (form builder, 13 packages; status column and detailed plan in `docs/ROADMAP.md`). Start a package only after the owner approves it.
 - Form builder rule: every field type lives in the engine catalogue (`backend/core/forms/fieldtypes.py`) with JSON Schema, Persian `x-messages` and shared vectors (`shared/vectors/`); the browser never writes its own validation messages.
 - One work package (e.g. `3.1`) per session on branch `wp/<id>`; commit and push often so an interrupted session can resume from the branch. Merge to `main` (`--no-ff`) when the package meets the roadmap's definition of done.
 - Keep docs current without being asked (owner rule): every package updates `ROADMAP.md` (status, implementation decisions, waiting list), `ARCHITECTURE.md`, `README.md` and `docs/CHANGELOG.md` as needed. When the owner approves a package ("تایید"، "start"), record the approval date in `ROADMAP.md` before starting the next one.
