@@ -42,11 +42,14 @@ import {
   duplicateField,
   ensureSection,
   errorsByItem,
+  findField,
   fitSpans,
   insertFields,
+  insertItems,
   locate,
-  moveField,
+  locateItem,
   moveSection,
+  moveTo,
   newField,
   nudgeField,
   redo,
@@ -57,6 +60,7 @@ import {
   updateSection,
   type FieldTypeSpec,
   type History,
+  type Target,
 } from "./designer-model"
 import { FormSettingsSheet } from "./form-settings-sheet"
 import { PropertiesPanel, type Selection } from "./properties-panel"
@@ -156,24 +160,37 @@ function Editor({ form, version, specs, onReload }: { form: DesignForm; version:
     return () => window.removeEventListener("keydown", onKey)
   }, [readOnly])
 
-  /** جای افزودن: پس از فیلد انتخاب‌شده، یا انتهای بخش انتخاب‌شده، یا انتهای آخرین بخش. */
-  const insertPoint = (): { section: string; index?: number } => {
+  /**
+   * جای افزودن: پس از فیلد انتخاب‌شده (درون گروه اگر فیلد درون گروه است)، انتهای گروه انتخاب‌شده، انتهای بخش
+   * انتخاب‌شده، یا انتهای آخرین بخش.
+   */
+  const insertPoint = (): Target => {
     if (selection?.kind === "field") {
+      const inGroup = locateItem(definition, selection.id)
+      if (inGroup) return { group: inGroup.group, index: inGroup.index + 1 }
+      if (findField(definition, selection.id)?.type === "table") return { group: selection.id }
       const at = locate(definition, selection.id)
       if (at) return { section: definition.sections[at.section].id, index: at.index + 1 }
     }
     if (selection?.kind === "section") return { section: selection.id }
     return { section: definition.sections[definition.sections.length - 1].id }
   }
-  const addFields = (make: (taken: Set<string>) => FieldDef[], target = insertPoint()) => {
+  /** فیلدی که درون گروه نمی‌آید (گروه، فیلد نمایشی، امضا…) پس از همان گروه در بخش می‌نشیند. */
+  const placeable = (fields: FieldDef[], target: Target): Target => {
+    if (!("group" in target) || fields.every((f) => specMap[f.type]?.column)) return target
+    const at = locate(definition, target.group)!
+    return { section: definition.sections[at.section].id, index: at.index + 1 }
+  }
+  const addFields = (make: (taken: Set<string>) => FieldDef[], at = insertPoint()) => {
     const fields = make(allIds(definition))
-    apply((d) => insertFields(d, target.section, fields, target.index))
+    const target = placeable(fields, at)
+    apply((d) => ("group" in target ? insertItems(d, target.group, fields, target.index) : insertFields(d, target.section, fields, target.index)))
     setSelection({ kind: "field", id: fields[0].id })
     setToolsOpen(false)
     if (!wide) setPropsOpen(true)
   }
-  const addType = (code: string, target?: { section: string; index?: number }) => addFields((taken) => [newField(specMap[code], taken)], target)
-  const addBlock = (key: string, target?: { section: string; index?: number }) => addFields((taken) => blockFields(BLOCKS.find((b) => b.key === key)!, taken), target)
+  const addType = (code: string, target?: Target) => addFields((taken) => [newField(specMap[code], taken)], target)
+  const addBlock = (key: string, target?: Target) => addFields((taken) => blockFields(BLOCKS.find((b) => b.key === key)!, taken), target)
 
   const select = (s: Selection) => {
     setSelection(s)
@@ -188,10 +205,7 @@ function Editor({ form, version, specs, onReload }: { form: DesignForm; version:
     return closestCenter({ ...args, droppableContainers: args.droppableContainers.filter((c) => !String(c.id).startsWith("section:")) })
   }
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }))
-  const labelOf = (id: string) => {
-    for (const s of definition.sections) for (const f of s.fields) if (f.id === id) return f.label || id
-    return id
-  }
+  const labelOf = (id: string) => findField(definition, id)?.label || id
   const announcements: Announcements = {
     onDragStart: ({ active }) => `«${labelOf(String(active.id))}» برداشته شد.`,
     onDragOver: ({ active, over }) => (over ? `«${labelOf(String(active.id))}» روی «${labelOf(String(over.id))}» است.` : `«${labelOf(String(active.id))}» بیرون از فهرست است.`),
@@ -204,8 +218,10 @@ function Editor({ form, version, specs, onReload }: { form: DesignForm; version:
     if (!over) return
     const activeId = String(active.id)
     const overId = String(over.id)
-    let target: { section: string; index?: number } | null = null
+    let target: Target | null = null
+    const inGroup = locateItem(definition, overId)
     if (overId.startsWith("section:")) target = { section: overId.slice("section:".length) }
+    else if (inGroup) target = { group: inGroup.group, index: inGroup.index }
     else {
       const at = locate(definition, overId)
       if (at) target = { section: definition.sections[at.section].id, index: at.index }
@@ -214,8 +230,12 @@ function Editor({ form, version, specs, onReload }: { form: DesignForm; version:
     if (activeId.startsWith("new:")) addType(activeId.slice(4), target)
     else if (activeId.startsWith("block:")) addBlock(activeId.slice(6), target)
     else if (activeId !== overId) {
-      const section = definition.sections.find((s) => s.id === target.section)!
-      apply((d) => moveField(d, activeId, target.section, target.index ?? section.fields.length))
+      const field = findField(definition, activeId)
+      if (!field) return
+      const to = placeable([field], target)
+      // گروه درون خودش نمی‌رود
+      if ("group" in to && to.group === activeId) return
+      apply((d) => moveTo(d, activeId, to))
     }
   }
 
@@ -244,7 +264,7 @@ function Editor({ form, version, specs, onReload }: { form: DesignForm; version:
     onError: (e) => toast.error(errorMessage(e)),
   })
 
-  const fieldCount = definition.sections.reduce((n, s) => n + s.fields.length, 0)
+  const fieldCount = allIds(definition).size - definition.sections.length
   const status = readOnly
     ? `نسخه‌ی ${toFaDigits(version.number)} منتشرشده · فقط خواندنی`
     : changed && save.kind === "saved"
@@ -266,7 +286,7 @@ function Editor({ form, version, specs, onReload }: { form: DesignForm; version:
       readOnly={readOnly}
       onField={(id, change, key) => {
         // تغییر شناسه‌ی فنی، انتخاب را با فیلد نگه می‌دارد.
-        const before = definition.sections.flatMap((s) => s.fields).find((f) => f.id === id)
+        const before = findField(definition, id)
         const after = before && change(before)
         apply((d) => updateField(d, id, change), key)
         if (after && after.id !== id) setSelection({ kind: "field", id: after.id })

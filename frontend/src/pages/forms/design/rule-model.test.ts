@@ -54,8 +54,11 @@ describe("rule builder model", () => {
       { op: "sum", operands: [{ kind: "field", field: "a" }, { kind: "field", field: "b" }, { kind: "value", value: 5 }] },
       { op: "div", operands: [{ kind: "field", field: "a" }, { kind: "value", value: 2 }] },
       { op: "days", operands: [{ kind: "field", field: "start" }, { kind: "field", field: "end" }] },
+      { op: "group", operands: [], group: { table: "items", column: "qty" } },
+      { op: "group", operands: [], group: { table: "items", column: "qty", factor: "price" } },
     ]
     for (const f of cases) expect(parseFormula(formulaLogic(f))).toEqual(f)
     expect(formulaLogic(cases[2])).toEqual({ days_between: [{ var: "start" }, { var: "end" }] })
+    expect(formulaLogic(cases[4])).toEqual({ sum_of: [{ var: "items" }, "qty", "price"] })
   })
 })

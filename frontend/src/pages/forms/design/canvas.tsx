@@ -5,7 +5,7 @@ import { CSS } from "@dnd-kit/utilities"
 import { ArrowDown, ArrowUp, ChevronDown, ChevronUp, Copy, GitBranch, GripVertical, MoveHorizontal, Plus, Trash2 } from "lucide-react"
 import { useForm } from "react-hook-form"
 import { FormGrid } from "@/components/form/form-grid"
-import { labelLayout, spanClass, type FieldDef, type FormDefinition, type FormValues, type SectionDef } from "@/components/form-renderer/definition"
+import { itemsOf, labelLayout, spanClass, type FieldDef, type FormDefinition, type FormValues, type SectionDef } from "@/components/form-renderer/definition"
 import { FieldView } from "@/components/form-renderer/form-renderer"
 import { InfoTip } from "@/components/info-tip"
 import { Button } from "@/components/ui/button"
@@ -134,11 +134,11 @@ function CanvasSection({ section, first, last, selection, invalid, readOnly, onS
                 className={spanClass(field, columns)}
                 columns={columns}
                 layout={labelLayout(section)}
-                selected={selection?.kind === "field" && selection.id === field.id}
-                invalid={invalid.has(field.id)}
+                selection={selection}
+                invalidIds={invalid}
                 readOnly={readOnly}
                 control={control}
-                onSelect={() => onSelect({ kind: "field", id: field.id })}
+                onSelect={onSelect}
                 {...rest}
               />
             ))}
@@ -154,50 +154,62 @@ function CanvasSection({ section, first, last, selection, invalid, readOnly, onS
   )
 }
 
-type FieldProps = Pick<Props, "onNudgeField" | "onDuplicateField" | "onRemoveField" | "onFieldChange"> & {
+type FieldProps = Pick<Props, "onNudgeField" | "onDuplicateField" | "onRemoveField" | "onFieldChange" | "onSelect" | "selection"> & {
   field: FieldDef
   columns: number
   layout: "side" | "stacked"
   className: string
-  selected: boolean
-  invalid: boolean
+  invalidIds: Set<string>
   readOnly: boolean
   control: SectionProps["control"]
-  onSelect: () => void
+  /** فیلد درون گروه تکرارشونده (بدون دکمه‌ی پهنا) */
+  nested?: boolean
 }
 
-function CanvasField({ field, columns, layout, className, selected, invalid, readOnly, control, onSelect, onNudgeField, onDuplicateField, onRemoveField, onFieldChange }: FieldProps) {
+const DISPLAYS: Record<string, string> = { table: "جدول", cards: "کارت", list: "فهرست ساده" }
+
+function CanvasField(props: FieldProps) {
+  const { field, columns, layout, className, selection, invalidIds, readOnly, control, nested, onSelect: select, onNudgeField, onDuplicateField, onRemoveField, onFieldChange } = props
+  const selected = selection?.kind === "field" && selection.id === field.id
+  const invalid = invalidIds.has(field.id)
+  const onSelect = () => select({ kind: "field", id: field.id })
   const span = Math.min(field.span ?? 1, columns)
   const { setNodeRef, setActivatorNodeRef, attributes, listeners, transform, transition, isDragging } = useSortable({ id: field.id, disabled: readOnly })
   const name = field.label || (field.type === "divider" ? "جداکننده" : field.type === "paragraph" ? "متن راهنما" : field.id)
   const style: React.CSSProperties = { transform: CSS.Translate.toString(transform), transition }
+  const group = field.type === "table"
   return (
     <div
       ref={setNodeRef}
       style={style}
       className={cn(
-        "group/field relative rounded-md border border-transparent p-1.5 transition-colors hover:border-border",
+        "relative rounded-md border border-transparent p-1.5 transition-colors hover:border-border",
+        nested ? "group/item" : "group/field",
         className,
         selected && "border-primary bg-accent/30",
         invalid && "border-destructive",
         isDragging && "z-10 opacity-60"
       )}
     >
-      {/* پوشش انتخاب روی پیش‌نمایش؛ خود پیش‌نمایش غیرتعاملی است (inert) */}
-      <button type="button" onClick={onSelect} aria-pressed={selected} aria-label={`انتخاب «${name}»${invalid ? " (ایراد دارد)" : ""}`} className="absolute inset-0 z-[1] rounded-md focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none" />
+      {/* پوشش انتخاب روی پیش‌نمایش (در گروه فقط روی سربرگش)؛ خود پیش‌نمایش غیرتعاملی است (inert) */}
+      {!group && <SelectOverlay name={name} selected={selected} invalid={invalid} onSelect={onSelect} />}
       {(field.visible_if !== undefined || field.required_if !== undefined || field.readonly_if !== undefined) && (
         <span className="absolute -top-2.5 start-2 z-[2] flex items-center gap-1 rounded-sm border bg-background px-1 text-2xs text-muted-foreground">
           <GitBranch className="size-3" aria-hidden /> شرطی
         </span>
       )}
-      <div inert>
-        <FieldView field={field} control={control} layout={layout} />
-      </div>
+      {group ? (
+        <CanvasGroup {...props} name={name} selected={selected} invalid={invalid} onSelectGroup={onSelect} />
+      ) : (
+        <div inert>
+          <FieldView field={field} control={control} layout={layout} />
+        </div>
+      )}
       {!readOnly && (
         <div
           className={cn(
             "absolute -top-3 end-2 z-[2] flex items-center gap-0.5 rounded-md border bg-background p-0.5 shadow-sm",
-            selected ? "flex" : "hidden group-focus-within/field:flex group-hover/field:flex"
+            selected ? "flex" : nested ? "hidden group-focus-within/item:flex group-hover/item:flex" : "hidden group-focus-within/field:flex group-hover/field:flex"
           )}
         >
           <Button
@@ -212,7 +224,7 @@ function CanvasField({ field, columns, layout, className, selected, invalid, rea
           >
             <GripVertical />
           </Button>
-          {columns > 1 && (
+          {columns > 1 && !nested && (
             <Button
               type="button"
               variant="ghost"
@@ -238,6 +250,50 @@ function CanvasField({ field, columns, layout, className, selected, invalid, rea
           </Button>
         </div>
       )}
+    </div>
+  )
+}
+
+function SelectOverlay({ name, selected, invalid, onSelect }: { name: string; selected: boolean; invalid: boolean; onSelect: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      aria-pressed={selected}
+      aria-label={`انتخاب «${name}»${invalid ? " (ایراد دارد)" : ""}`}
+      className="absolute inset-0 z-[1] rounded-md focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
+    />
+  )
+}
+
+/**
+ * گروه تکرارشونده روی بوم: سربرگ (انتخاب خود گروه) و فیلدهای هر مورد، هر کدام جدا قابل انتخاب و جابه‌جایی؛
+ * چیدمان همان نمایش گروه است (جدول: هر فیلد یک ستون، کارت: ستون‌های کارت، فهرست ساده: یک فیلد).
+ */
+function CanvasGroup({ name, selected, invalid, onSelectGroup, ...props }: FieldProps & { name: string; selected: boolean; invalid: boolean; onSelectGroup: () => void }) {
+  const { field, readOnly } = props
+  const items = itemsOf(field)
+  const display = String(field.props?.display ?? "table")
+  const count = display === "cards" ? Number(field.props?.card_columns ?? 2) : display === "list" ? 1 : items.length
+  const columns = Math.min(Math.max(count, 1), 3) as 1 | 2 | 3
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="relative flex min-h-7 flex-wrap items-center gap-x-2 px-1">
+        <SelectOverlay name={name} selected={selected} invalid={invalid} onSelect={onSelectGroup} />
+        <span className="text-xs font-medium">{field.label}</span>
+        <span className="text-2xs text-muted-foreground">
+          گروه تکرارشونده · {DISPLAYS[display] ?? display} · هر مورد: {String(field.props?.item_label || "ردیف")}
+        </span>
+      </div>
+      <div className="rounded-md border border-dashed p-1.5">
+        <SortableContext items={items.map((i) => i.id)} strategy={rectSortingStrategy} disabled={readOnly}>
+          <FormGrid columns={columns} fixed>
+            {items.map((item) => (
+              <CanvasField key={item.id} {...props} field={item} columns={columns} layout="stacked" className="" nested />
+            ))}
+          </FormGrid>
+        </SortableContext>
+      </div>
     </div>
   )
 }

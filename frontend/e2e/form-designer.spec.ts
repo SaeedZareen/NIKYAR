@@ -322,3 +322,66 @@ test.describe("ویژگی‌های پیشرفته‌ی فیلد", () => {
     expect(errors.filter((e) => !e.includes("status of 400"))).toEqual([])
   })
 })
+
+test.describe("گروه تکرارشونده در طراح", () => {
+  test("افزودن فیلد به گروه، ایراد فیلد درون گروه، نمایش، جمع گروه در فرمول و پر کردن", async ({ page }, info) => {
+    test.slow()
+    const errors = collectErrors(page)
+    const title = `فرم گروه ${info.project.name} ${Date.now()}`
+    await createForm(page, title)
+
+    await addTool(page, "گروه تکرارشونده")
+    await props(page).getByLabel("برچسب", { exact: true }).fill("اقلام")
+    await closeProps(page)
+    // گروه انتخاب‌شده است: نوع تازه درون گروه می‌رود
+    await addTool(page, "مبلغ (ریال)")
+    await expect(props(page).getByText("درون «اقلام»")).toBeVisible()
+    await props(page).getByLabel("برچسب", { exact: true }).fill("فی")
+    await closeProps(page)
+
+    // پیوست در خانه‌ی جدول جا نمی‌شود: ایراد سرور روی همان فیلد درون گروه
+    await addTool(page, "پیوست")
+    await expect(props(page).getByText(/در خانه‌ی جدول جا نمی‌شود/)).toBeVisible()
+    await closeProps(page)
+    await page.getByRole("button", { name: "حذف «پیوست»" }).click()
+    await expect(page.getByText(/ذخیره شد/)).toBeVisible()
+
+    // نمایش «کارت» و ستون‌های کارت
+    await page.getByRole("button", { name: "انتخاب «اقلام»" }).click()
+    await props(page).getByRole("combobox", { name: "نمایش" }).click()
+    await page.getByRole("option", { name: "کارت (فرم کوچک برای هر مورد)" }).click()
+    await expect(props(page).getByLabel("ستون‌های کارت", { exact: true })).toBeVisible()
+    await props(page).getByLabel("نام هر مورد", { exact: true }).fill("قلم")
+    await closeProps(page)
+    await expect(page.getByText(/کارت · هر مورد: قلم/)).toBeVisible()
+
+    // فیلد محاسبه‌ای در بخش: جمع تعداد × فی
+    await page.getByRole("button", { name: "مشخصات", exact: true }).click()
+    await closeProps(page)
+    await addTool(page, "محاسبه‌ای")
+    await props(page).getByLabel("برچسب", { exact: true }).fill("جمع کل")
+    await props(page).getByRole("combobox", { name: "عمل", exact: true }).click()
+    await page.getByRole("option", { name: "جمع یک گروه تکرارشونده" }).click()
+    await props(page).getByRole("combobox", { name: "ضرب در (در هر مورد)" }).click()
+    await page.getByRole("option", { name: "فی", exact: true }).click()
+    await closeProps(page)
+    await expect(page.getByText(/ذخیره شد/)).toBeVisible()
+    await expectAccessible(page)
+
+    await page.getByRole("button", { name: "انتشار" }).click()
+    await expect(page.getByText(new RegExp(`نسخه‌ی ۱ «${title}» منتشر شد`))).toBeVisible()
+    await page.goto("/forms")
+    await page.getByRole("link", { name: title }).click()
+    const item = page.getByRole("group", { name: "قلم ۱", exact: true })
+    await item.getByLabel("شرح", { exact: true }).fill("کاغذ")
+    await item.getByLabel("تعداد", { exact: true }).fill("4")
+    await item.getByLabel("فی", { exact: true }).fill("250")
+    await page.getByRole("button", { name: "افزودن قلم" }).click()
+    await page.getByRole("group", { name: "قلم ۲", exact: true }).getByLabel("تعداد", { exact: true }).fill("1")
+    await page.getByRole("group", { name: "قلم ۲", exact: true }).getByLabel("فی", { exact: true }).fill("500")
+    await expect(page.getByRole("group", { name: "جمع کل" })).toContainText(/۱.?۵۰۰/)
+    await page.getByRole("button", { name: "ثبت نهایی" }).click()
+    await expect(page.getByText(`فرم «${title}» ثبت شد.`)).toBeVisible()
+    expect(errors.filter((e) => !e.includes("status of 400"))).toEqual([])
+  })
+})

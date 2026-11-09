@@ -23,9 +23,11 @@ import {
   parseFormula,
   referableFields,
   isGroup,
+  numericGroups,
   type Clause,
   type Condition,
   type FormulaOp,
+  type GroupSum,
   type Op,
   type Operand,
 } from "./rule-model"
@@ -308,8 +310,10 @@ export function FormulaEditor({ id, definition, except, value, error, onChange }
   const numberFields = fields.filter((f) => NUMBER_TYPES.has(f.type))
   const dateFields = fields.filter((f) => f.type === "date")
   const pool = parsed.op === "days" ? dateFields : numberFields
+  const groups = numericGroups(definition)
   const set = (op: FormulaOp, operands: Operand[]) => onChange(formulaLogic({ op, operands }))
-  const count = parsed.op === "sum" ? Math.max(parsed.operands.length, 2) : 2
+  const setGroup = (g: GroupSum) => onChange(formulaLogic({ op: "group", operands: [], group: g }))
+  const count = parsed.op === "sum" ? Math.max(parsed.operands.length, 2) : parsed.op === "group" ? 0 : 2
   // عملوند پیش‌فرض: فیلد مناسب اگر هست، وگرنه عدد ثابت (نه فیلد خالی).
   const operands = Array.from({ length: count }, (_, i): Operand => parsed.operands[i] ?? (pool[i] ? { kind: "field", field: pool[i].id } : { kind: "value", value: 0 }))
   return (
@@ -321,6 +325,10 @@ export function FormulaEditor({ id, definition, except, value, error, onChange }
           label="عمل"
           value={parsed.op}
           onChange={(op) => {
+            if (op === "group") {
+              const g = groups[0]
+              return setGroup({ table: g?.group.id ?? "", column: g?.columns[0].id ?? "" })
+            }
             // عملوندهای پیش‌فرض همان‌جا ذخیره می‌شوند (نه فقط نمایش)، تا فرمول بی‌عملوند منتشر نشود.
             const next = op === "days" ? dateFields : numberFields
             set(op as FormulaOp, [0, 1].map((i): Operand => (next[i] ? { kind: "field", field: next[i].id } : { kind: "value", value: 0 })))
@@ -357,7 +365,8 @@ export function FormulaEditor({ id, definition, except, value, error, onChange }
             )}
           </div>
         ))}
-        {pool.length === 0 && (
+        {parsed.op === "group" && <GroupSumEditor id={id} groups={groups} value={parsed.group ?? { table: "", column: "" }} onChange={setGroup} />}
+        {parsed.op !== "group" && pool.length === 0 && (
           <p className="text-2xs text-muted-foreground">
             {parsed.op === "days" ? "برای این عمل دو فیلد «تاریخ» به فرم اضافه کنید." : "فیلد عددی (عدد، مبلغ، امتیاز یا محاسبه‌ای) در فرم نیست؛ عدد ثابت وارد کنید یا برای تاریخ‌ها عمل «شمار روز» را انتخاب کنید."}
           </p>
@@ -415,5 +424,31 @@ export function FormRulesEditor({ definition, errors, onChange }: { definition: 
         <Plus /> قاعده‌ی تازه
       </Button>
     </div>
+  )
+}
+
+/** «جمع یک گروه»: گروه، ستون عددی و (اختیاری) ستونی که در هر مورد در آن ضرب می‌شود؛ مثل تعداد × فی. */
+function GroupSumEditor({ id, groups, value, onChange }: { id: string; groups: ReturnType<typeof numericGroups>; value: GroupSum; onChange: (g: GroupSum) => void }) {
+  if (!groups.length) return <p className="text-2xs text-muted-foreground">گروه تکرارشونده‌ای با فیلد عدد یا مبلغ در فرم نیست.</p>
+  const columns = groups.find((g) => g.group.id === value.table)?.columns ?? []
+  const items = columns.map((c) => ({ value: c.id, label: c.label || c.id }))
+  return (
+    <>
+      <Pick
+        id={`${id}-group`}
+        label="گروه"
+        value={value.table}
+        onChange={(table) => onChange({ table, column: groups.find((g) => g.group.id === table)?.columns[0].id ?? "" })}
+        items={groups.map((g) => ({ value: g.group.id, label: g.group.label || g.group.id }))}
+      />
+      <Pick id={`${id}-column`} label="ستون" value={value.column} onChange={(column) => onChange({ ...value, column })} items={items} />
+      <Pick
+        id={`${id}-factor`}
+        label="ضرب در (در هر مورد)"
+        value={value.factor ?? "none"}
+        onChange={(f) => onChange(f === "none" ? { table: value.table, column: value.column } : { ...value, factor: f })}
+        items={[{ value: "none", label: "بدون ضرب" }, ...items.filter((c) => c.value !== value.column)]}
+      />
+    </>
   )
 }
