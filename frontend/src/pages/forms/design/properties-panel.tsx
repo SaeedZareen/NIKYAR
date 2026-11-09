@@ -2,8 +2,10 @@ import * as React from "react"
 import { useQuery } from "@tanstack/react-query"
 import { ArrowDown, ArrowUp, Plus, Trash2 } from "lucide-react"
 import { useRoleOptions } from "@/app/forms"
-import { TimeInput } from "@/components/form/inputs"
-import type { ChoiceOption, FieldDef, FormDefinition, FormRule, SectionDef } from "@/components/form-renderer/definition"
+import { useForm } from "react-hook-form"
+import { JalaliDateInput } from "@/components/form/inputs"
+import { toFormValues, toPayload, type ChoiceOption, type FieldDef, type FormDefinition, type FormRule, type FormValues, type PrefillSource, type SectionDef } from "@/components/form-renderer/definition"
+import { FieldView } from "@/components/form-renderer/form-renderer"
 import { useUnitOptions } from "@/components/form-renderer/org-options"
 import { InfoTip } from "@/components/info-tip"
 import { SearchPicker } from "@/components/search-picker"
@@ -192,6 +194,29 @@ function FieldProperties({ definition, field, columns, spec, errors, readOnly, o
             {errors.required && <span className="text-2xs text-destructive">{errors.required}</span>}
           </div>
         )}
+        {valueField && (
+          <FlagSwitch id="prop-readonly" label="فقط‌خواندنی" help="پرکننده مقدار را می‌بیند ولی نمی‌تواند تغییرش دهد؛ همراه «مقدار پیش‌فرض» یا «پیش‌پر» به کار می‌آید." checked={field.readonly === true} error={errors.readonly} onChange={(v) => onChange((f) => withFlag(f, "readonly", v), k("readonly"))} />
+        )}
+        {spec.unique && (
+          <FlagSwitch id="prop-unique" label="مقدار یکتا" help="همین مقدار در ثبت نهایی دیگری از این فرم پذیرفته نمی‌شود؛ مثل کد ملی در فرم ثبت‌نام." checked={field.unique === true} error={errors.unique} onChange={(v) => onChange((f) => withFlag(f, "unique", v), k("unique"))} />
+        )}
+        {spec.prefill.length > 0 && (
+          <Row id="prop-prefill" label="پیش‌پر از حساب کاربر" help="در فرم تازه، این فیلد با اطلاعات حساب پرکننده پر می‌شود و او می‌تواند تغییرش دهد (مگر فقط‌خواندنی باشد)." error={errors.prefill}>
+            <Select value={field.prefill ?? "none"} onValueChange={(v) => onChange((f) => withPrefill(f, v === "none" ? undefined : (v as PrefillSource)), k("prefill"))}>
+              <SelectTrigger id="prop-prefill" className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="none">بدون پیش‌پر</SelectItem>
+                {spec.prefill.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </Row>
+        )}
         {columns > 1 && (
           <Row id="prop-span" label="پهنا" error={errors.span}>
             <Select value={String(Math.min(field.span ?? 1, columns))} onValueChange={(v) => onChange((f) => ({ ...f, span: Number(v) }), k("span"))}>
@@ -222,7 +247,7 @@ function FieldProperties({ definition, field, columns, spec, errors, readOnly, o
       {spec.props.length > 0 && <Separator />}
       <FieldGroup className="gap-3">
         {spec.props
-          .filter((p) => p.kind !== "columns")
+          .filter((p) => p.kind !== "columns" && (DEPENDS[p.name] === undefined || !!field.props?.[DEPENDS[p.name]]))
           .map((p) =>
             p.kind === "logic" ? (
               <FormulaEditor
@@ -261,76 +286,62 @@ function FieldProperties({ definition, field, columns, spec, errors, readOnly, o
   )
 }
 
+/** ویژگی‌هایی که فقط با روشن بودن ویژگی دیگری معنا دارند. */
+const DEPENDS: Record<string, string> = { other_label: "allow_other", pattern_message: "pattern" }
+
+function withFlag(f: FieldDef, key: "readonly" | "unique", on: boolean): FieldDef {
+  const next = { ...f }
+  if (on) next[key] = true
+  else delete next[key]
+  return next
+}
+
+function withPrefill(f: FieldDef, source: PrefillSource | undefined): FieldDef {
+  const { prefill: _old, ...rest } = f
+  return source ? { ...rest, prefill: source } : rest
+}
+
+function FlagSwitch({ id, label, help, checked, error, onChange }: { id: string; label: string; help: string; checked: boolean; error?: string; onChange: (v: boolean) => void }) {
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <Switch id={id} checked={checked} onCheckedChange={onChange} />
+      <Label htmlFor={id} className="font-normal">
+        {label}
+      </Label>
+      <InfoTip label={`راهنمای ${label}`}>{help}</InfoTip>
+      {error && <span className="text-2xs text-destructive">{error}</span>}
+    </div>
+  )
+}
+
 function withDefault(f: FieldDef, value: unknown): FieldDef {
   const { default: _old, ...rest } = f
   return value === undefined || value === "" ? rest : { ...rest, default: value }
 }
 
-/** مقدار پیش‌فرض با کنترل ساده‌ی همان نوع. */
+/**
+ * مقدار پیش‌فرض با همان کنترلی که پرکننده می‌بیند (تاریخ، چندانتخابی، کد ملی، پلاک، فهرست پایه و…)؛
+ * مقدار هر تغییر مثل ارسال فرم پاک‌سازی می‌شود.
+ */
 function DefaultEditor({ field, error, onChange }: { field: FieldDef; error?: string; onChange: (v: unknown) => void }) {
-  const value = field.default
-  const id = "prop-default"
-  let control: React.ReactNode
-  switch (field.type) {
-    case "number":
-    case "amount":
-    case "scale":
-      control = (
-        <Input
-          id={id}
-          dir="ltr"
-          inputMode="decimal"
-          className="text-start tabular-nums"
-          value={value === undefined ? "" : String(value)}
-          onChange={(e) => {
-            const raw = toEnDigits(e.target.value).trim()
-            onChange(raw === "" ? undefined : Number.isNaN(Number(raw)) ? raw : Number(raw))
-          }}
-        />
-      )
-      break
-    case "time":
-      control = <TimeInput id={id} value={typeof value === "string" ? value : ""} onChange={(v) => onChange(v)} />
-      break
-    case "boolean":
-    case "choice": {
-      const options: ChoiceOption[] =
-        field.type === "boolean"
-          ? [
-              { value: "true", label: "بله" },
-              { value: "false", label: "خیر" },
-            ]
-          : ((field.props?.options as ChoiceOption[] | undefined) ?? [])
-      control = (
-        <Select value={value === undefined ? "none" : String(value)} onValueChange={(v) => onChange(v === "none" ? undefined : field.type === "boolean" ? v === "true" : v)}>
-          <SelectTrigger id={id} className="w-full">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="none">بدون پیش‌فرض</SelectItem>
-            {options.map((o) => (
-              <SelectItem key={o.value} value={o.value}>
-                {o.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      )
-      break
-    }
-    case "text":
-    case "textarea":
-      control = <Input id={id} value={typeof value === "string" ? value : ""} onChange={(e) => onChange(e.target.value)} />
-      break
-    default:
-      return null
-  }
+  const [definition] = React.useState<FormDefinition>(() => ({
+    sections: [{ id: "default", fields: [{ id: DEFAULT_ID, type: field.type, label: "مقدار پیش‌فرض", props: field.props }] }],
+  }))
+  const { control, subscribe } = useForm<FormValues>({ defaultValues: toFormValues(definition, { [DEFAULT_ID]: field.default }) })
+  const changed = React.useEffectEvent((values: FormValues) => {
+    const next = toPayload(definition, values)[DEFAULT_ID]
+    if (JSON.stringify(next) !== JSON.stringify(field.default)) onChange(next)
+  })
+  React.useEffect(() => subscribe({ formState: { values: true }, callback: ({ values }) => changed(values) }), [subscribe])
   return (
-    <Row id={id} label="مقدار پیش‌فرض" error={error}>
-      {control}
-    </Row>
+    <div className="flex flex-col gap-1">
+      <FieldView field={{ ...definition.sections[0].fields[0], props: field.props }} control={control} layout="stacked" />
+      {error && <FieldError>{error}</FieldError>}
+    </div>
   )
 }
+
+const DEFAULT_ID = "default_value"
 
 /** ویرایشگر یک ویژگی بر اساس نوعش در کاتالوگ. */
 function PropEditor({ spec, value, error, onChange }: { spec: PropSpec; value: unknown; error?: string; onChange: (v: unknown) => void }) {
@@ -373,6 +384,12 @@ function PropEditor({ spec, value, error, onChange }: { spec: PropSpec; value: u
           ) : (
             <Input id={id} maxLength={spec.max ?? undefined} value={String(current ?? "")} onChange={(e) => onChange(e.target.value)} />
           )}
+        </Row>
+      )
+    case "date":
+      return (
+        <Row id={id} label={spec.title} error={error}>
+          <JalaliDateInput id={id} value={typeof value === "string" ? value : ""} onChange={(v) => onChange(v || undefined)} />
         </Row>
       )
     case "choice":

@@ -438,3 +438,11 @@ class TestAdvancedProperties:
         d = form({"id": "code", "type": "text", "label": "کد", "readonly": True, "default": "A-1"}, {"id": "x", "type": "text", "label": "x", "readonly": True})
         assert engine.validate_data(d, {"code": "دستکاری", "x": "y"}, Ctx()) == {"code": "A-1"}
         assert engine.validate_data(d, {"code": "دستکاری"}, Ctx(previous={"code": "A-0"})) == {"code": "A-0"}
+
+    def test_readonly_prefill_comes_from_account(self, make_user):
+        user = make_user("prefill", first_name="سارا", last_name="محمدی", mobile="09121112233")
+        d = form(
+            {"id": "name", "type": "text", "label": "نام", "readonly": True, "prefill": "full_name"},
+            {"id": "m", "type": "mobile", "label": "موبایل", "prefill": "mobile"},
+        )
+        assert engine.validate_data(d, {"name": "جعل", "m": "09120000000"}, Ctx(user=user)) == {"name": "سارا محمدی", "m": "09120000000"}

@@ -246,3 +246,79 @@ test.describe("چیدمان و شرط تودرتو", () => {
     await expectAccessible(page)
   })
 })
+
+test.describe("ویژگی‌های پیشرفته‌ی فیلد", () => {
+  test("پیش‌پر و فقط‌خواندنی، الگوی دلخواه، مقدار یکتا، گزینه‌ی «سایر»، بازه‌ی تاریخ و پیش‌فرض", async ({ page }, info) => {
+    test.slow()
+    const errors = collectErrors(page)
+    const title = `فرم پیشرفته ${info.project.name} ${Date.now()}`
+    await createForm(page, title)
+
+    await addTool(page, "متن یک‌خطی")
+    await props(page).getByLabel("برچسب", { exact: true }).fill("ثبت‌کننده")
+    await props(page).getByLabel("پیش‌پر از حساب کاربر", { exact: true }).click()
+    await page.getByRole("option", { name: "نام کاربری" }).click()
+    await props(page).getByLabel("فقط‌خواندنی", { exact: true }).click()
+    await closeProps(page)
+
+    await addTool(page, "متن یک‌خطی")
+    await props(page).getByLabel("برچسب", { exact: true }).fill("کد پرسنلی")
+    await props(page).getByLabel("الگوی دلخواه", { exact: true }).fill("^P-\\d{3}$")
+    // بی پیام خطا، سرور الگو را نمی‌پذیرد
+    await expect(props(page).getByText("برای الگو پیام خطا بنویسید.")).toBeVisible()
+    await props(page).getByLabel("پیام خطای الگو", { exact: true }).fill("کد پرسنلی به شکل P-123 است.")
+    await closeProps(page)
+
+    await addTool(page, "کد ملی")
+    await props(page).getByLabel("برچسب", { exact: true }).fill("کد ملی متقاضی")
+    await props(page).getByLabel("مقدار یکتا", { exact: true }).click()
+    await closeProps(page)
+
+    await addTool(page, "انتخاب یکی")
+    await props(page).getByLabel("برچسب", { exact: true }).fill("آشنایی")
+    await props(page).getByLabel("گزینه‌ی «سایر» با کادر متن", { exact: true }).click()
+    await expect(props(page).getByLabel("برچسب گزینه‌ی سایر", { exact: true })).toHaveValue("سایر")
+    // پیش‌فرض با همان کنترل پرکننده
+    await props(page).getByRole("radio", { name: "گزینه‌ی ۲" }).click()
+    await closeProps(page)
+
+    await addTool(page, "تاریخ")
+    await props(page).getByLabel("برچسب", { exact: true }).fill("تاریخ مراجعه")
+    await props(page).getByLabel("بیشترین (روز نسبت به امروز)", { exact: true }).fill("0")
+    await closeProps(page)
+    await expect(page.getByText(/ذخیره شد/)).toBeVisible()
+    await expectAccessible(page)
+
+    await page.getByRole("button", { name: "انتشار" }).click()
+    await expect(page.getByText(new RegExp(`نسخه‌ی ۱ «${title}» منتشر شد`))).toBeVisible()
+
+    const fill = async (nid: string) => {
+      await page.goto("/forms")
+      await page.getByRole("link", { name: title }).click()
+      await expect(page.getByLabel("ثبت‌کننده", { exact: true })).toHaveValue("admin")
+      await expect(page.getByLabel("ثبت‌کننده", { exact: true })).toBeDisabled()
+      await expect(page.getByRole("radio", { name: "گزینه‌ی ۲" })).toBeChecked()
+      await page.getByLabel("کد پرسنلی", { exact: true }).fill("x-1")
+      await page.getByLabel("کد ملی متقاضی", { exact: true }).fill(nid)
+      await page.getByRole("radio", { name: "سایر" }).click()
+      await page.getByLabel("سایر (آشنایی)", { exact: true }).fill("همکار")
+      await page.getByLabel("تاریخ مراجعه", { exact: true }).fill("14990101")
+      await page.getByRole("button", { name: "ثبت نهایی" }).click()
+      // الگو در مرورگر و بازه‌ی تاریخ (نسبت به امروز سرور) در سرور سنجیده می‌شود
+      const summary = page.getByRole("alert").filter({ hasText: "لطفاً این موارد را اصلاح کنید" })
+      await expect(summary).toContainText("کد پرسنلی به شکل P-123 است.")
+      await page.getByLabel("کد پرسنلی", { exact: true }).fill("P-123")
+      await page.getByRole("button", { name: "ثبت نهایی" }).click()
+      await expect(page.getByText(/«تاریخ مراجعه» نباید بعد از/).first()).toBeVisible()
+      await page.getByLabel("تاریخ مراجعه", { exact: true }).fill("14000101")
+      await page.getByRole("button", { name: "ثبت نهایی" }).click()
+    }
+    await fill("0084575948")
+    await expect(page.getByText(`فرم «${title}» ثبت شد.`)).toBeVisible()
+    // همان کد ملی در ثبت دوم: خطای یکتایی از سرور
+    await fill("0084575948")
+    await expect(page.getByText("این «کد ملی متقاضی» پیش‌تر در ثبت دیگری از همین فرم آمده است.").first()).toBeVisible()
+    await expectAccessible(page)
+    expect(errors.filter((e) => !e.includes("status of 400"))).toEqual([])
+  })
+})

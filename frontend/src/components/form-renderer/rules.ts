@@ -88,7 +88,7 @@ export function applyRules(def: FormDefinition, data: Record<string, unknown>): 
     if (f.type === "calculated" && typeof values[f.id] === "number") state.calculated[f.id] = values[f.id] as number
     if (hidden.has(f.id)) continue
     if (f.required_if !== undefined && truthy(evaluate(f.required_if, values))) state.required.add(f.id)
-    if (f.readonly_if !== undefined && truthy(evaluate(f.readonly_if, values))) state.readonly.add(f.id)
+    if (f.readonly === true || (f.readonly_if !== undefined && truthy(evaluate(f.readonly_if, values)))) state.readonly.add(f.id)
   }
   return { values, state }
 }

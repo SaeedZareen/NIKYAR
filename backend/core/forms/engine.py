@@ -420,16 +420,25 @@ def validate_data(definition: dict, data, ctx: Ctx) -> dict:
     return cleaned
 
 
+def prefill_value(field: dict, user) -> str | None:
+    """مقدار «پیش‌پر از حساب من» برای کاربر (همان که مرورگر در فرم تازه می‌گذارد)."""
+    source = field.get("prefill")
+    if source is None or user is None:
+        return None
+    value = user.get_full_name() if source == "full_name" else getattr(user, source, "")
+    return (value or "").strip() or None
+
+
 def _apply_rules(definition: dict, cleaned: dict, ctx: Ctx) -> tuple[dict, rules.RuleState]:
     """
     قاعده‌ها: مقدار فیلدهای پنهان حذف و فیلدهای محاسبه‌ای پر می‌شوند؛ فیلد فقط‌خواندنی مقدار ذخیره‌شده‌ی قبلی
-    (یا پیش‌فرض) را نگه می‌دارد و مقدار تازه‌ی مرورگر را نمی‌پذیرد.
+    (یا پیش‌پر از حساب کاربر، یا پیش‌فرض) را نگه می‌دارد و مقدار تازه‌ی مرورگر را نمی‌پذیرد.
     """
     values, state = rules.apply(definition, cleaned)
     if state.readonly:
         fields = {f["id"]: f for f in value_fields(definition)}
         for fid in state.readonly:
-            kept = ctx.previous.get(fid, fields[fid].get("default"))
+            kept = ctx.previous.get(fid, prefill_value(fields[fid], ctx.user) or fields[fid].get("default"))
             if kept is None:
                 cleaned.pop(fid, None)
             else:

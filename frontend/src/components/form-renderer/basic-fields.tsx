@@ -98,23 +98,56 @@ export function TimeField(p: FieldProps) {
   return <FormField {...common(p)} render={({ field, id, aria }) => <TimeInput id={id} {...field} value={str(field.value)} {...aria} />} />
 }
 
+/** مقدار «سایر»: {other: متن} به‌جای کد یکی از گزینه‌ها (هم‌ارز _with_other سرور). */
+type Other = { other: string }
+const OTHER = "__other__"
+const isOther = (v: unknown): v is Other => typeof v === "object" && v !== null && !Array.isArray(v) && "other" in v
+const otherLabel = (field: FieldDef) => str(field.props?.other_label) || "سایر"
+
+/** کادر متن کنار گزینه‌ی «سایر»؛ فقط وقتی آن گزینه انتخاب شده است. */
+function OtherInput({ id, field, value, onChange, onBlur }: { id: string; field: FieldDef; value: string; onChange: (v: string) => void; onBlur: () => void }) {
+  return (
+    <Input id={id} aria-label={`${otherLabel(field)} (${field.label ?? ""})`} maxLength={200} className="h-7 w-48 max-w-full" value={value} onChange={(e) => onChange(e.target.value)} onBlur={onBlur} />
+  )
+}
+
 export function RadioField({ options, ...p }: FieldProps & { options: ChoiceOption[] }) {
+  const allowOther = p.field.props?.allow_other === true
   return (
     <FormField
       {...common(p)}
       group
-      render={({ field, id, aria }) => (
-        <RadioGroup id={id} tabIndex={-1} value={str(field.value)} onValueChange={field.onChange} className={cn("min-h-7", optionColumnsClass(p.field.props?.option_columns))} {...aria}>
-          {options.map((o) => (
-            <div key={o.value} className="flex items-center gap-2">
-              <RadioGroupItem value={o.value} id={`${id}-${o.value}`} onBlur={field.onBlur} />
-              <Label htmlFor={`${id}-${o.value}`} className="font-normal">
-                {o.label}
-              </Label>
-            </div>
-          ))}
-        </RadioGroup>
-      )}
+      render={({ field, id, aria }) => {
+        const other = isOther(field.value) ? field.value.other : undefined
+        return (
+          <RadioGroup
+            id={id}
+            tabIndex={-1}
+            value={other !== undefined ? OTHER : str(field.value)}
+            onValueChange={(v) => field.onChange(v === OTHER ? { other: "" } : v)}
+            className={cn("min-h-7", optionColumnsClass(p.field.props?.option_columns))}
+            {...aria}
+          >
+            {options.map((o) => (
+              <div key={o.value} className="flex items-center gap-2">
+                <RadioGroupItem value={o.value} id={`${id}-${o.value}`} onBlur={field.onBlur} />
+                <Label htmlFor={`${id}-${o.value}`} className="font-normal">
+                  {o.label}
+                </Label>
+              </div>
+            ))}
+            {allowOther && (
+              <div className="flex flex-wrap items-center gap-2">
+                <RadioGroupItem value={OTHER} id={`${id}-${OTHER}`} onBlur={field.onBlur} />
+                <Label htmlFor={`${id}-${OTHER}`} className="font-normal">
+                  {otherLabel(p.field)}
+                </Label>
+                {other !== undefined && <OtherInput id={`${id}-other-text`} field={p.field} value={other} onChange={(v) => field.onChange({ other: v })} onBlur={field.onBlur} />}
+              </div>
+            )}
+          </RadioGroup>
+        )
+      }}
     />
   )
 }
@@ -134,20 +167,27 @@ export function ChoiceField(p: FieldProps) {
   return (
     <FormField
       {...common(p)}
-      render={({ field, id, aria }) => (
-        <Select value={str(field.value)} onValueChange={field.onChange}>
-          <SelectTrigger id={id} className="w-full" onBlur={field.onBlur} {...aria}>
-            <SelectValue placeholder="انتخاب کنید" />
-          </SelectTrigger>
-          <SelectContent>
-            {options.map((o) => (
-              <SelectItem key={o.value} value={o.value}>
-                {o.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-      )}
+      render={({ field, id, aria }) => {
+        const other = isOther(field.value) ? field.value.other : undefined
+        return (
+          <div className="flex flex-col gap-1.5">
+            <Select value={other !== undefined ? OTHER : str(field.value)} onValueChange={(v) => field.onChange(v === OTHER ? { other: "" } : v)}>
+              <SelectTrigger id={id} className="w-full" onBlur={field.onBlur} {...aria}>
+                <SelectValue placeholder="انتخاب کنید" />
+              </SelectTrigger>
+              <SelectContent>
+                {options.map((o) => (
+                  <SelectItem key={o.value} value={o.value}>
+                    {o.label}
+                  </SelectItem>
+                ))}
+                {p.field.props?.allow_other === true && <SelectItem value={OTHER}>{otherLabel(p.field)}</SelectItem>}
+              </SelectContent>
+            </Select>
+            {other !== undefined && <OtherInput id={`${id}-other-text`} field={p.field} value={other} onChange={(v) => field.onChange({ other: v })} onBlur={field.onBlur} />}
+          </div>
+        )
+      }}
     />
   )
 }
@@ -160,9 +200,12 @@ export function MultiChoiceField(p: FieldProps) {
       group
       render={({ field, id, aria: { "aria-required": _required, ...aria } }) => {
         // role=group خصیصه‌ی aria-required نمی‌پذیرد.
-        const selected = Array.isArray(field.value) ? (field.value as string[]) : []
-        // ترتیب انتخاب‌ها همان ترتیب گزینه‌ها می‌ماند.
-        const toggle = (value: string, on: boolean) => field.onChange(options.map((o) => o.value).filter((v) => (v === value ? on : selected.includes(v))))
+        const items = Array.isArray(field.value) ? (field.value as (string | Other)[]) : []
+        const selected = items.filter((v): v is string => typeof v === "string")
+        const other = items.find(isOther)
+        // ترتیب انتخاب‌ها همان ترتیب گزینه‌ها می‌ماند و «سایر» در پایان.
+        const change = (codes: string[], next: Other | undefined) => field.onChange([...options.map((o) => o.value).filter((v) => codes.includes(v)), ...(next ? [next] : [])])
+        const toggle = (value: string, on: boolean) => change(on ? [...selected, value] : selected.filter((v) => v !== value), other)
         return (
           <div id={id} role="group" tabIndex={-1} className={cn("min-h-7 outline-none", optionColumnsClass(p.field.props?.option_columns))} {...aria}>
             {options.map((o) => (
@@ -173,6 +216,15 @@ export function MultiChoiceField(p: FieldProps) {
                 </Label>
               </div>
             ))}
+            {p.field.props?.allow_other === true && (
+              <div className="flex flex-wrap items-center gap-2">
+                <Checkbox id={`${id}-${OTHER}`} checked={other !== undefined} onCheckedChange={(c) => change(selected, c === true ? { other: "" } : undefined)} onBlur={field.onBlur} />
+                <Label htmlFor={`${id}-${OTHER}`} className="font-normal">
+                  {otherLabel(p.field)}
+                </Label>
+                {other && <OtherInput id={`${id}-other-text`} field={p.field} value={other.other} onChange={(v) => change(selected, { other: v })} onBlur={field.onBlur} />}
+              </div>
+            )}
           </div>
         )
       }}

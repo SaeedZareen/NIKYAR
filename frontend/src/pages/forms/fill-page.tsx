@@ -82,12 +82,18 @@ function FillForm({ context, initialData, initialSubmission, initialSavedAt, onC
   const schema = context.schema as JsonSchema
   const draftSchema = context.draft_schema as JsonSchema
   const { user } = useAuth()
-  const userId = user?.id
-  const unitId = user?.assignment?.unit_id
-  const defaults = React.useMemo(
-    () => toFormValues(definition, initialData, userId === undefined ? undefined : { id: userId, unitId }),
-    [definition, initialData, userId, unitId]
+  const me = React.useMemo(
+    () =>
+      user
+        ? {
+            id: user.id,
+            unitId: user.assignment?.unit_id,
+            profile: { full_name: user.full_name, first_name: user.first_name, last_name: user.last_name, username: user.username, mobile: user.mobile, email: user.email },
+          }
+        : undefined,
+    [user]
   )
+  const defaults = React.useMemo(() => toFormValues(definition, initialData, me), [definition, initialData, me])
   const form = useForm<FormValues>({ resolver: formResolver(definition, schema), defaultValues: defaults, mode: "onTouched", shouldFocusError: false })
   const values = useWatch({ control: form.control })
 

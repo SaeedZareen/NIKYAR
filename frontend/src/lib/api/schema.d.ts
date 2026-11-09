@@ -1777,7 +1777,7 @@ export interface components {
         DeliveryStatusEnum: "queued" | "sent" | "failed";
         FieldPropSpec: {
             name: string;
-            /** @description int، number، bool، text، choice، choice_list، options، lookup_list، org_unit، role، extensions، columns */
+            /** @description int، number، bool، text، date، choice، choice_list، options، lookup_list، org_unit، role، extensions، columns، logic */
             kind: string;
             title: string;
             required: boolean;
@@ -1802,6 +1802,12 @@ export interface components {
             supports_default: boolean;
             /** @description می‌تواند ستون جدول باشد */
             column: boolean;
+            /** @description «مقدار یکتا» می‌پذیرد */
+            unique: boolean;
+            /** @description منبع‌های پیش‌پر از حساب کاربر: [{value, label}] */
+            prefill: {
+                [key: string]: string;
+            }[];
             props: components["schemas"]["FieldPropSpec"][];
         };
         FilePolicy: {
