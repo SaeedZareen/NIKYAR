@@ -9,6 +9,8 @@ from rest_framework.exceptions import PermissionDenied
 
 from core.files import service as files
 from core.kernel.api import BusinessError, has_perm
+from core.numbering import service as numbering
+from core.numbering.models import NumberSequence
 
 from . import engine
 from .fieldtypes import REGISTRY, Ctx, submitter_snapshot
@@ -50,6 +52,16 @@ def visible_submissions(user):
 def create_form(form: Form) -> FormVersion:
     """هر فرم تازه با پیش‌نویس نسخه‌ی ۱ و تعریف خالی شروع می‌شود."""
     return FormVersion.objects.create(form=form, number=1)
+
+
+def sequence_code(form: Form) -> str:
+    return f"form-{form.pk}"
+
+
+def sync_numbering(form: Form) -> None:
+    """شمارنده‌ی خود فرم با الگو و شروع دوباره‌ی تنظیمات فرم؛ شماره‌های صادرشده می‌مانند."""
+    if form.number_pattern:
+        NumberSequence.objects.update_or_create(code=sequence_code(form), defaults={"pattern": form.number_pattern, "reset": form.number_reset})
 
 
 @transaction.atomic
@@ -151,6 +163,8 @@ def save_submission(*, user, data, submit: bool, form: Form | None = None, submi
         submission.data = cleaned
         if submit:
             submission.status, submission.submitted_at = Submission.Status.SUBMITTED, timezone.now()
+            if form.number_pattern:
+                submission.number = numbering.allocate(sequence_code(form))
         submission.save()
         for file_id in previous - current:
             transaction.on_commit(lambda file_id=file_id: files.release(file_id))

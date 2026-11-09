@@ -1,0 +1,151 @@
+{
+ "format": "nikyar-form",
+ "format_version": 1,
+ "form": {
+  "code": "evaluation",
+  "title": "فرم ارزیابی",
+  "description": "ارزیابی عملکرد با شاخص‌ها، امتیاز کلی، نقاط قوت و پیشنهاد بهبود؛ به‌صورت مرحله‌ای.",
+  "category": null,
+  "number_pattern": "",
+  "number_reset": "year"
+ },
+ "definition": {
+  "sections": [
+   {
+    "id": "subject",
+    "title": "ارزیابی‌شونده",
+    "columns": 2,
+    "fields": [
+     {
+      "id": "person",
+      "type": "user",
+      "label": "ارزیابی‌شونده",
+      "required": true
+     },
+     {
+      "id": "period",
+      "type": "text",
+      "label": "دوره‌ی ارزیابی",
+      "required": true,
+      "props": {
+       "max_length": 60,
+       "placeholder": "مثلاً نیمه‌ی اول ۱۴۰۵"
+      }
+     },
+     {
+      "id": "evaluator",
+      "type": "submitter",
+      "label": "ارزیاب",
+      "span": 2,
+      "props": {
+       "items": [
+        "name",
+        "position"
+       ]
+      }
+     }
+    ]
+   },
+   {
+    "id": "criteria",
+    "title": "شاخص‌ها",
+    "columns": 1,
+    "fields": [
+     {
+      "id": "scores",
+      "type": "matrix",
+      "label": "شاخص‌های عملکرد",
+      "required": true,
+      "props": {
+       "rows": [
+        {
+         "value": "row_1",
+         "label": "کیفیت کار"
+        },
+        {
+         "value": "row_2",
+         "label": "دقت و نظم"
+        },
+        {
+         "value": "row_3",
+         "label": "همکاری و کار گروهی"
+        },
+        {
+         "value": "row_4",
+         "label": "مسئولیت‌پذیری"
+        },
+        {
+         "value": "row_5",
+         "label": "ابتکار و یادگیری"
+        }
+       ],
+       "columns": [
+        {
+         "value": "1",
+         "label": "ضعیف"
+        },
+        {
+         "value": "2",
+         "label": "متوسط"
+        },
+        {
+         "value": "3",
+         "label": "خوب"
+        },
+        {
+         "value": "4",
+         "label": "خیلی خوب"
+        },
+        {
+         "value": "5",
+         "label": "عالی"
+        }
+       ]
+      }
+     },
+     {
+      "id": "overall",
+      "type": "scale",
+      "label": "ارزیابی کلی",
+      "required": true,
+      "props": {
+       "display": "stars"
+      }
+     }
+    ]
+   },
+   {
+    "id": "summary",
+    "title": "جمع‌بندی",
+    "columns": 1,
+    "fields": [
+     {
+      "id": "strengths",
+      "type": "textarea",
+      "label": "نقاط قوت",
+      "props": {
+       "max_length": 1000,
+       "rows": 3
+      }
+     },
+     {
+      "id": "improvements",
+      "type": "textarea",
+      "label": "پیشنهادهای بهبود",
+      "props": {
+       "max_length": 1000,
+       "rows": 3
+      }
+     },
+     {
+      "id": "signature",
+      "type": "signature",
+      "label": "امضای ارزیاب"
+     }
+    ]
+   }
+  ],
+  "steps": true
+ },
+ "files": {}
+}

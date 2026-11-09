@@ -75,7 +75,7 @@ def iter_fields(definition: dict):
         yield from section.get("fields", [])
 
 
-def _with_items(definition: dict):
+def with_items(definition: dict):
     """همه‌ی فیلدها، از جمله فیلدهای درون گروه‌ها."""
     for f in iter_fields(definition):
         yield f
@@ -83,7 +83,7 @@ def _with_items(definition: dict):
             yield from (c for c in f["props"]["columns"] if isinstance(c, dict))
 
 
-def _props_of_kind(field: dict, kind: str) -> list[str]:
+def props_of_kind(field: dict, kind: str) -> list[str]:
     ftype = REGISTRY.get(field.get("type"))
     return [name for name, p in ftype.props.items() if p.kind == kind] if ftype else []
 
@@ -96,9 +96,9 @@ def normalize_definition(definition):
         return definition
     definition = copy.deepcopy(definition)
     try:
-        for field in _with_items(definition):
+        for field in with_items(definition):
             props = field.get("props")
-            for name in _props_of_kind(field, "html") if isinstance(props, dict) else []:
+            for name in props_of_kind(field, "html") if isinstance(props, dict) else []:
                 if isinstance(props.get(name), str):
                     props[name] = sanitize(props[name])
     except (AttributeError, TypeError):
@@ -109,8 +109,8 @@ def normalize_definition(definition):
 def definition_file_ids(definition: dict) -> set[str]:
     """فایل‌هایی که خود تعریف نگه می‌دارد (تصویر و فایل راهنما)."""
     ids: set[str] = set()
-    for field in _with_items(definition):
-        for name in _props_of_kind(field, "file"):
+    for field in with_items(definition):
+        for name in props_of_kind(field, "file"):
             value = (field.get("props") or {}).get(name)
             if isinstance(value, str):
                 ids.add(value)
@@ -129,8 +129,11 @@ def check_definition(definition) -> None:
     errors: dict[str, str] = {}
     if not isinstance(definition, dict) or not isinstance(definition.get("sections"), list):
         raise BusinessError("تعریف فرم ساختار درستی ندارد.", {"definition": "تعریف فرم باید فهرست بخش‌ها (sections) را داشته باشد."})
-    for key in set(definition) - {"sections", "rules"}:
+    for key in set(definition) - {"sections", "rules", "steps"}:
         errors[key] = f"ویژگی «{key}» در تعریف فرم شناخته‌شده نیست."
+    # نمایش مرحله‌ای: هر بخش یک مرحله با «قبلی/بعدی»
+    if "steps" in definition and not isinstance(definition["steps"], bool):
+        errors["steps"] = "«نمایش مرحله‌ای» باید بله یا خیر باشد."
     section_ids, field_ids = set(), set()
     for si, section in enumerate(definition["sections"]):
         path = f"sections.{si}"

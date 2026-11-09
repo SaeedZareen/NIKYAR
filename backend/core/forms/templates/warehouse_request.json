@@ -1,0 +1,140 @@
+{
+ "format": "nikyar-form",
+ "format_version": 1,
+ "form": {
+  "code": "warehouse-request",
+  "title": "درخواست کالا از انبار",
+  "description": "درخواست تحویل کالا از انبار با فهرست اقلام و کد کالا.",
+  "category": null,
+  "number_pattern": "",
+  "number_reset": "year"
+ },
+ "definition": {
+  "sections": [
+   {
+    "id": "request",
+    "title": "درخواست",
+    "columns": 2,
+    "fields": [
+     {
+      "id": "requester",
+      "type": "submitter",
+      "label": "درخواست‌کننده",
+      "span": 2,
+      "props": {
+       "items": [
+        "name",
+        "unit"
+       ]
+      }
+     },
+     {
+      "id": "request_date",
+      "type": "date",
+      "label": "تاریخ درخواست",
+      "required": true,
+      "props": {
+       "default_now": true
+      }
+     },
+     {
+      "id": "needed_by",
+      "type": "date",
+      "label": "تاریخ نیاز",
+      "props": {
+       "range": "future"
+      }
+     },
+     {
+      "id": "warehouse",
+      "type": "text",
+      "label": "انبار",
+      "props": {
+       "max_length": 80
+      }
+     },
+     {
+      "id": "usage",
+      "type": "text",
+      "label": "محل مصرف",
+      "props": {
+       "max_length": 120
+      }
+     }
+    ]
+   },
+   {
+    "id": "items_section",
+    "title": "اقلام",
+    "columns": 1,
+    "fields": [
+     {
+      "id": "items",
+      "type": "table",
+      "label": "اقلام",
+      "required": true,
+      "props": {
+       "item_label": "ردیف",
+       "min_rows": 1,
+       "columns": [
+        {
+         "id": "item_name",
+         "type": "text",
+         "label": "نام کالا",
+         "required": true
+        },
+        {
+         "id": "item_code",
+         "type": "barcode",
+         "label": "کد کالا"
+        },
+        {
+         "id": "qty",
+         "type": "number",
+         "label": "تعداد",
+         "required": true,
+         "props": {
+          "min": 1
+         }
+        },
+        {
+         "id": "note",
+         "type": "text",
+         "label": "توضیح",
+         "props": {
+          "max_length": 200
+         }
+        }
+       ]
+      }
+     },
+     {
+      "id": "qty_total",
+      "type": "calculated",
+      "label": "جمع تعداد",
+      "props": {
+       "formula": {
+        "sum_of": [
+         {
+          "var": "items"
+         },
+         "qty"
+        ]
+       }
+      }
+     },
+     {
+      "id": "reason",
+      "type": "textarea",
+      "label": "توضیحات",
+      "props": {
+       "max_length": 500,
+       "rows": 2
+      }
+     }
+    ]
+   }
+  ]
+ },
+ "files": {}
+}

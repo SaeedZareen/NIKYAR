@@ -1,7 +1,12 @@
+import json
+
 from django.db import transaction
 from django.db.models import Count, Max, OuterRef, Q
+from django.http import HttpResponse
+from django.utils.http import content_disposition_header
+from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_field
-from rest_framework import mixins, serializers, status, viewsets
+from rest_framework import mixins, parsers, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
@@ -11,8 +16,9 @@ from core.audit.models import AuditLog
 from core.audit.service import AuditedModelViewSet, record
 from core.kernel.api import BusinessError, HasPerm, MultiValueFilter
 from core.lookups.models import LookupItem
+from core.numbering.pattern import validate as validate_pattern
 
-from . import engine, service
+from . import engine, service, transfer
 from .fieldtypes import COLUMN_TYPES, PREFILL, REGISTRY, UNIQUE_TYPES, divisions
 from .models import Form, FormVersion, Submission
 
@@ -41,6 +47,8 @@ class FormSerializer(serializers.ModelSerializer):
             "fill_by_everyone",
             "fill_roles",
             "view_roles",
+            "number_pattern",
+            "number_reset",
             "published_version",
             "draft_version",
             "submission_count",
@@ -55,6 +63,27 @@ class FormSerializer(serializers.ModelSerializer):
         if self.instance is not None and value != self.instance.code:
             raise serializers.ValidationError("شناسه‌ی فرم پس از ساخت تغییر نمی‌کند.")
         return value
+
+    def validate(self, attrs):
+        pattern = attrs.get("number_pattern", getattr(self.instance, "number_pattern", ""))
+        reset = attrs.get("number_reset", getattr(self.instance, "number_reset", "year"))
+        if pattern:
+            try:
+                validate_pattern(pattern, reset)
+            except serializers.ValidationError as exc:
+                raise serializers.ValidationError({"number_pattern": exc.detail["pattern"]}) from exc
+        return attrs
+
+
+class FormImportSerializer(serializers.Serializer):
+    file = serializers.FileField(label="فایل فرم", error_messages={"required": "فایل فرم را انتخاب کنید.", "empty": "فایل خالی است."})
+
+
+class FormTemplateSerializer(serializers.Serializer):
+    key = serializers.CharField()
+    title = serializers.CharField()
+    description = serializers.CharField()
+    field_count = serializers.IntegerField()
 
 
 class AvailableFormSerializer(serializers.ModelSerializer):
@@ -133,6 +162,7 @@ class FormSubmissionSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
             "submitted_at",
+            "number",
         ]
         read_only_fields = fields
 
@@ -273,7 +303,14 @@ class FormViewSet(AuditedModelViewSet):
     def perform_create(self, serializer):
         super().perform_create(serializer)
         service.create_form(serializer.instance)
+        service.sync_numbering(serializer.instance)
         # پاسخ با همان ستون‌های محاسبه‌شده‌ی فهرست (نسخه‌ی پیش‌نویس و…)
+        serializer.instance = self.get_queryset().get(pk=serializer.instance.pk)
+
+    @transaction.atomic
+    def perform_update(self, serializer):
+        super().perform_update(serializer)
+        service.sync_numbering(serializer.instance)
         serializer.instance = self.get_queryset().get(pk=serializer.instance.pk)
 
     def perform_destroy(self, instance):
@@ -324,6 +361,56 @@ class FormViewSet(AuditedModelViewSet):
             version = service.new_draft(form)
             record(request, AuditLog.Action.CREATE, version)
         return Response(FormVersionDetailSerializer(version).data, status=status.HTTP_201_CREATED)
+
+    @extend_schema(
+        parameters=[OpenApiParameter("version", int, description="شماره‌ی نسخه؛ پیش‌فرض آخرین نسخه (پیش‌نویس اگر هست)")],
+        responses={(200, "application/json"): OpenApiTypes.BINARY},
+    )
+    @action(detail=True)
+    def export(self, request, pk=None):
+        """خروجی فرم: فایل JSON با مشخصات، تعریف یک نسخه و فایل‌های خود تعریف، برای «ورود فرم» در نصب دیگر."""
+        form = self.get_object()
+        versions = form.versions.order_by("-number")
+        number = request.query_params.get("version")
+        version = versions.filter(number=number).first() if number and number.isdigit() else versions.first()
+        if version is None:
+            raise BusinessError("این نسخه پیدا نشد.")
+        body = json.dumps(transfer.export_form(form, version), ensure_ascii=False, indent=1)
+        response = HttpResponse(body, content_type="application/json; charset=utf-8")
+        response["Content-Disposition"] = content_disposition_header(True, f"{form.code}-v{version.number}.nikyar-form.json")
+        return response
+
+    @extend_schema(request={"multipart/form-data": FormImportSerializer}, responses={201: FormSerializer})
+    @action(detail=False, methods=["post"], url_path="import", parser_classes=[parsers.MultiPartParser])
+    def import_form(self, request):
+        """ورود فرم از فایل «خروجی فرم»: فرم تازه با پیش‌نویس نسخه‌ی ۱ (دسترسی‌ها را باید دوباره تعیین کرد)."""
+        serializer = FormImportSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        return self._created(transfer.import_form(transfer.read_payload(serializer.validated_data["file"].read()), request.user))
+
+    @extend_schema(responses=FormTemplateSerializer(many=True))
+    @action(detail=False, pagination_class=None)
+    def templates(self, request):
+        """الگوهای آماده برای «فرم جدید از الگو»."""
+        return Response(
+            [
+                {"key": key, "title": t["form"]["title"], "description": t["form"]["description"], "field_count": len(engine.value_fields(t["definition"]))}
+                for key, t in transfer.templates().items()
+            ]
+        )
+
+    @extend_schema(request=None, responses={201: FormSerializer})
+    @action(detail=False, methods=["post"], url_path=r"templates/(?P<key>[a-z_]+)")
+    def from_template(self, request, key=None):
+        """فرم تازه از یک الگوی آماده."""
+        template = transfer.templates().get(key)
+        if template is None:
+            raise BusinessError("این الگو پیدا نشد.")
+        return self._created(transfer.import_form(template, request.user))
+
+    def _created(self, form):
+        record(self.request, AuditLog.Action.CREATE, form)
+        return Response(FormSerializer(self.get_queryset().get(pk=form.pk)).data, status=status.HTTP_201_CREATED)
 
 
 class FormVersionViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.UpdateModelMixin, viewsets.GenericViewSet):

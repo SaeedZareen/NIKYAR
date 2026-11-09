@@ -561,6 +561,23 @@ export interface paths {
         patch: operations["forms_partial_update"];
         trace?: never;
     };
+    "/api/forms/{id}/export/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description خروجی فرم: فایل JSON با مشخصات، تعریف یک نسخه و فایل‌های خود تعریف، برای «ورود فرم» در نصب دیگر. */
+        get: operations["forms_export_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/forms/{id}/fill/": {
         parameters: {
             query?: never;
@@ -623,6 +640,23 @@ export interface paths {
         get: operations["forms_field_types_list"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/forms/import/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description ورود فرم از فایل «خروجی فرم»: فرم تازه با پیش‌نویس نسخه‌ی ۱ (دسترسی‌ها را باید دوباره تعیین کرد). */
+        post: operations["forms_import_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -696,6 +730,40 @@ export interface paths {
          *     پیش‌نویس فقط برای ثبت‌کننده‌اش ویرایش‌شدنی و حذف‌شدنی است.
          */
         patch: operations["forms_submissions_partial_update"];
+        trace?: never;
+    };
+    "/api/forms/templates/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description الگوهای آماده برای «فرم جدید از الگو». */
+        get: operations["forms_templates_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/forms/templates/{key}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description فرم تازه از یک الگوی آماده. */
+        post: operations["forms_templates_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/forms/versions/": {
@@ -1940,6 +2008,10 @@ export interface components {
             fill_roles: number[];
             /** نقش‌های بیننده */
             view_roles: number[];
+            /** الگوی شماره */
+            number_pattern: string;
+            /** شروع دوباره‌ی شماره */
+            number_reset: components["schemas"]["NumberResetEnum"];
             /** @description شماره‌ی آخرین نسخه‌ی منتشرشده؛ null یعنی هنوز منتشر نشده. */
             readonly published_version: number | null;
             /** @description شناسه‌ی نسخه‌ی پیش‌نویس باز؛ null یعنی پیش‌نویسی نیست. */
@@ -1950,6 +2022,13 @@ export interface components {
              * Format: date-time
              */
             readonly created_at: string;
+        };
+        FormImportRequest: {
+            /**
+             * فایل فرم
+             * Format: binary
+             */
+            file: string;
         };
         FormRequest: {
             /**
@@ -1971,6 +2050,10 @@ export interface components {
             fill_roles?: number[];
             /** نقش‌های بیننده */
             view_roles?: number[];
+            /** الگوی شماره */
+            number_pattern?: string;
+            /** شروع دوباره‌ی شماره */
+            number_reset?: components["schemas"]["NumberResetEnum"];
         };
         FormSubmission: {
             readonly id: number;
@@ -2002,6 +2085,8 @@ export interface components {
              * Format: date-time
              */
             readonly submitted_at: string | null;
+            /** شماره */
+            readonly number: string;
         };
         FormSubmissionDetail: {
             readonly id: number;
@@ -2033,6 +2118,8 @@ export interface components {
              * Format: date-time
              */
             readonly submitted_at: string | null;
+            /** شماره */
+            readonly number: string;
             /** @description تعریف و طرح نسخه‌ای که این ثبت با آن پر شده است */
             readonly context: components["schemas"]["FillContext"];
         };
@@ -2054,6 +2141,12 @@ export interface components {
              * @default false
              */
             submit: boolean;
+        };
+        FormTemplate: {
+            key: string;
+            title: string;
+            description: string;
+            field_count: number;
         };
         FormVersion: {
             readonly id: number;
@@ -2511,6 +2604,13 @@ export interface components {
          * @enum {string}
          */
         NotificationChannelEnum: "sms" | "email";
+        /**
+         * @description * `never` - هرگز (ادامه‌دار)
+         *     * `year` - آغاز هر سال شمسی
+         *     * `fiscal` - آغاز هر سال مالی
+         * @enum {string}
+         */
+        NumberResetEnum: "never" | "year" | "fiscal";
         OrgProfileSettings: {
             /**
              * نام کامل سازمان
@@ -2714,6 +2814,10 @@ export interface components {
             fill_roles?: number[];
             /** نقش‌های بیننده */
             view_roles?: number[];
+            /** الگوی شماره */
+            number_pattern?: string;
+            /** شروع دوباره‌ی شماره */
+            number_reset?: components["schemas"]["NumberResetEnum"];
         };
         PatchedFormSubmissionWriteRequest: {
             /** @description فقط هنگام ایجاد */
@@ -4417,6 +4521,30 @@ export interface operations {
             };
         };
     };
+    forms_export_retrieve: {
+        parameters: {
+            query?: {
+                /** @description شماره‌ی نسخه؛ پیش‌فرض آخرین نسخه (پیش‌نویس اگر هست) */
+                version?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": string;
+                };
+            };
+        };
+    };
     forms_fill_retrieve: {
         parameters: {
             query?: never;
@@ -4503,6 +4631,29 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FieldTypeSpec"][];
+                };
+            };
+        };
+    };
+    forms_import_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["FormImportRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Form"];
                 };
             };
         };
@@ -4653,6 +4804,51 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FormSubmission"];
+                };
+            };
+        };
+    };
+    forms_templates_list: {
+        parameters: {
+            query?: {
+                /** @description چند مقدار با ویرگول جدا می‌شود. */
+                category?: string;
+                /** @description چند مقدار با ویرگول جدا می‌شود. */
+                is_active?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormTemplate"][];
+                };
+            };
+        };
+    };
+    forms_templates_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                key: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Form"];
                 };
             };
         };

@@ -26,6 +26,14 @@ class Form(models.Model):
     fill_by_everyone = models.BooleanField("همه‌ی کاربران پر کنند", default=False)
     fill_roles = models.ManyToManyField("accounts.Role", verbose_name="نقش‌های پرکننده", blank=True, related_name="+")
     view_roles = models.ManyToManyField("accounts.Role", verbose_name="نقش‌های بیننده‌ی همه‌ی ثبت‌ها", blank=True, related_name="+")
+    # شماره‌ی ثبت نهایی با شمارنده‌ی خود فرم (core.numbering، کد «form-شناسه»)؛ الگوی خالی یعنی بی‌شماره
+    number_pattern = models.CharField("الگوی شماره", max_length=60, blank=True)
+    number_reset = models.CharField(
+        "شروع دوباره‌ی شماره",
+        max_length=10,
+        default="year",
+        choices=[("never", "هرگز (ادامه‌دار)"), ("year", "آغاز هر سال شمسی"), ("fiscal", "آغاز هر سال مالی")],
+    )
     created_at = models.DateTimeField("زمان ساخت", auto_now_add=True)
 
     class Meta:
@@ -85,6 +93,7 @@ class Submission(models.Model):
     created_at = models.DateTimeField("زمان ایجاد", auto_now_add=True)
     updated_at = models.DateTimeField("آخرین تغییر", auto_now=True)
     submitted_at = models.DateTimeField("زمان ثبت", null=True, blank=True)
+    number = models.CharField("شماره", max_length=80, blank=True, db_index=True)
 
     class Meta:
         ordering = ["-updated_at"]

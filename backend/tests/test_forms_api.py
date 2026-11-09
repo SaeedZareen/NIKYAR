@@ -383,3 +383,57 @@ def test_definition_files_claim_and_release(designer):
     # با حذف فرم (همه‌ی نسخه‌ها) فایل‌ها هم حذف می‌شوند
     assert designer.delete(f"/api/forms/{form['id']}/").status_code == 204
     assert not StoredFile.objects.filter(pk__in=[img, guide]).exists()
+
+
+@pytest.mark.django_db(transaction=True)
+def test_form_numbering(designer, make_user, client_for):
+    form = designer.post("/api/forms/", {"code": "numbered", "title": "شماره‌دار", "fill_by_everyone": True, "number_pattern": "{seq:3}"}, format="json")
+    assert "باید {year} داشته باشد" in form.json()["fields"]["number_pattern"]
+    form = designer.post(
+        "/api/forms/", {"code": "numbered", "title": "شماره‌دار", "fill_by_everyone": True, "number_pattern": "خ-{year}-{seq:3}"}, format="json"
+    ).json()
+    draft = form["draft_version"]
+    designer.patch(
+        f"/api/forms/versions/{draft}/", {"definition": {"sections": [{"id": "s", "fields": [{"id": "t", "type": "text", "label": "عنوان"}]}]}}, format="json"
+    )
+    designer.post(f"/api/forms/versions/{draft}/publish/")
+    c = client_for(make_user("filler"))
+    first = c.post("/api/forms/submissions/", {"form": form["id"], "data": {"t": "الف"}, "submit": True}, format="json").json()
+    draft_sub = c.post("/api/forms/submissions/", {"form": form["id"], "data": {"t": "ب"}, "submit": False}, format="json").json()
+    second = c.post("/api/forms/submissions/", {"form": form["id"], "data": {"t": "ج"}, "submit": True}, format="json").json()
+    assert first["number"].endswith("-001") and first["number"].startswith("خ-14") and second["number"].endswith("-002") and draft_sub["number"] == ""
+    # تغییر الگو شمارنده را از نو شروع نمی‌کند
+    assert designer.patch(f"/api/forms/{form['id']}/", {"number_pattern": "ف/{year}/{seq:4}"}, format="json").status_code == 200
+    third = c.post("/api/forms/submissions/", {"form": form["id"], "data": {"t": "د"}, "submit": True}, format="json").json()
+    assert third["number"].startswith("ف/") and third["number"].endswith("/0003")
+
+
+@pytest.mark.django_db(transaction=True)
+def test_export_import_and_templates(designer):
+    form = designer.post("/api/forms/", {"code": "guide-form", "title": "فرم راهنما", "number_pattern": "{year}-{seq:3}"}, format="json").json()
+    img = upload(designer, "chart.png", PNG)
+    fields = [{"id": "img", "type": "image", "props": {"file": img}}, {"id": "name", "type": "text", "label": "نام"}]
+    designer.patch(f"/api/forms/versions/{form['draft_version']}/", {"definition": {"sections": [{"id": "s", "fields": fields}], "steps": True}}, format="json")
+    r = designer.get(f"/api/forms/{form['id']}/export/")
+    assert r.status_code == 200 and "guide-form-v1.nikyar-form.json" in r["Content-Disposition"]
+    exported = r.content
+    # ورود: فرم تازه با شناسه‌ی یکتا، فایل تازه و همان تعریف
+    r = designer.post("/api/forms/import/", {"file": SimpleUploadedFile("f.json", exported)}, format="multipart")
+    assert r.status_code == 201, r.json()
+    imported = r.json()
+    assert imported["code"] == "guide-form-2" and imported["title"] == "فرم راهنما" and imported["number_pattern"] == "{year}-{seq:3}"
+    definition = designer.get(f"/api/forms/versions/{imported['draft_version']}/").json()["definition"]
+    new_img = definition["sections"][0]["fields"][0]["props"]["file"]
+    assert definition["steps"] is True and new_img != img and StoredFile.objects.get(pk=new_img).claimed
+    assert AuditLog.objects.filter(action=AuditLog.Action.CREATE, object_repr__contains="فرم راهنما").count() >= 2
+    # فایل نادرست
+    bad = designer.post("/api/forms/import/", {"file": SimpleUploadedFile("x.json", b'{"a": 1}')}, format="multipart").json()
+    assert "فایل فرم نیک‌یار نیست" in bad["detail"]
+    broken = exported.replace(b'"type": "text"', b'"type": "rocket"')
+    assert "ایراد دارد" in designer.post("/api/forms/import/", {"file": SimpleUploadedFile("x.json", broken)}, format="multipart").json()["detail"]
+    # الگوها
+    templates = designer.get("/api/forms/templates/").json()
+    assert {t["key"] for t in templates} == {"purchase_request", "warehouse_request", "meeting_minutes", "evaluation"}
+    created = designer.post("/api/forms/templates/purchase_request/").json()
+    assert created["code"] == "purchase-request" and created["title"] == "درخواست خرید"
+    assert designer.post(f"/api/forms/versions/{created['draft_version']}/publish/").status_code == 200
