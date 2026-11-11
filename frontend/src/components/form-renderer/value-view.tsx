@@ -53,7 +53,7 @@ function Calculated({ field, value }: { field: FieldDef; value?: number }) {
 }
 
 /** مقدار خوانای یک فیلد (در گروه تکرارشونده برای هر خانه). */
-export function FieldValue({ field, value, submitted = false }: { field: FieldDef; value: unknown; submitted?: boolean }) {
+function FieldValue({ field, value, submitted = false }: { field: FieldDef; value: unknown; submitted?: boolean }) {
   // امضای «حساب من» و مشخصات ثبت‌کننده را سرور هنگام ثبت می‌گذارد؛ در مرور پیش از ثبت هنوز مقدار ندارند
   if (!submitted && field.type === "signature") return <span className="text-muted-foreground">امضای حساب شما هنگام ثبت افزوده می‌شود.</span>
   if (!submitted && field.type === "submitter") return <Submitter value={value} />

@@ -4,7 +4,7 @@ import jsonLogic, { type RulesLogic } from "json-logic-js"
 import { parseJalali, toJalaliString } from "@/lib/format"
 import type { FieldDef, FormDefinition } from "./definition"
 
-export type Logic = unknown
+type Logic = unknown
 export type RuleState = { hidden: Set<string>; hiddenSections: Set<string>; required: Set<string>; readonly: Set<string>; calculated: Record<string, number> }
 
 /** شمار روز از start تا end، هر دو سر شامل؛ تاریخ نادرست ← null (هم‌ارز _days_between سرور). */
@@ -36,7 +36,7 @@ jsonLogic.add_operation("sum_of", sumOf)
 jsonLogic.add_operation("today", () => toJalaliString(new Date()))
 
 /** اجرای عبارت؛ خطای اجرا ← null. */
-export function evaluate(logic: Logic, data: Record<string, unknown>): unknown {
+function evaluate(logic: Logic, data: Record<string, unknown>): unknown {
   try {
     return jsonLogic.apply(logic as RulesLogic, data)
   } catch {
@@ -44,7 +44,7 @@ export function evaluate(logic: Logic, data: Record<string, unknown>): unknown {
   }
 }
 
-export const truthy = (value: unknown) => jsonLogic.truthy(value)
+const truthy = (value: unknown) => jsonLogic.truthy(value)
 
 /** شناسه‌ی فیلدهایی که عبارت به آن‌ها اشاره می‌کند. */
 export function variables(logic: Logic): Set<string> {

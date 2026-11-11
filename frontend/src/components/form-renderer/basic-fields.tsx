@@ -111,7 +111,7 @@ function OtherInput({ id, field, value, onChange, onBlur }: { id: string; field:
   )
 }
 
-export function RadioField({ options, ...p }: FieldProps & { options: ChoiceOption[] }) {
+function RadioField({ options, ...p }: FieldProps & { options: ChoiceOption[] }) {
   const allowOther = p.field.props?.allow_other === true
   return (
     <FormField

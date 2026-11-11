@@ -77,7 +77,7 @@ export type FieldDef = {
   readonly_if?: unknown
 }
 
-export type LabelPosition = "auto" | "side" | "top"
+type LabelPosition = "auto" | "side" | "top"
 export type SectionDef = { id: string; title?: string; help?: string; columns?: number; labels?: LabelPosition; fields: FieldDef[]; visible_if?: unknown }
 /** قاعده‌ی بین فیلدها: condition باید درست باشد وگرنه message زیر field می‌آید. */
 export type FormRule = { id: string; condition: unknown; message: string; field?: string | null }
@@ -103,7 +103,7 @@ const DISPLAY_TYPES: ReadonlySet<FieldType> = new Set(["heading", "paragraph", "
 
 export const isDisplay = (field: FieldDef) => DISPLAY_TYPES.has(field.type)
 
-export function valueFields(definition: FormDefinition): FieldDef[] {
+function valueFields(definition: FormDefinition): FieldDef[] {
   return definition.sections.flatMap((s) => s.fields).filter((f) => !isDisplay(f))
 }
 
@@ -170,7 +170,7 @@ function nowDefault(field: FieldDef, now: Date): string | undefined {
 export type PrefillSource = "full_name" | "first_name" | "last_name" | "username" | "mobile" | "email"
 
 /** کاربر جاری برای پیش‌فرض‌های «خودم» و «واحد من» و پیش‌پر از حساب. */
-export type CurrentUser = { id: number; unitId?: number; profile?: Partial<Record<PrefillSource, string>> }
+type CurrentUser = { id: number; unitId?: number; profile?: Partial<Record<PrefillSource, string>> }
 
 function selfDefault(field: FieldDef, me?: CurrentUser): unknown {
   const multiple = field.props?.multiple === true
@@ -241,7 +241,7 @@ export function screenKey(definition: FormDefinition, values: FormValues, key: s
 }
 
 /** مقدار خالی (متن خالی، فهرست خالی، شیء خالی) یعنی «پر نشده»؛ هم‌ارز engine.clean سرور. */
-export function clean(value: unknown): unknown {
+function clean(value: unknown): unknown {
   if (value === null || value === undefined) return undefined
   if (typeof value === "string") return value.trim() || undefined
   if (Array.isArray(value)) {
