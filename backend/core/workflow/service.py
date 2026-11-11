@@ -39,6 +39,8 @@ from .models import Event, Process, ProcessVersion, Request, Task
 _serializer = BpmnWorkflowSerializer(BpmnWorkflowSerializer.configure(SPIFF_CONFIG))
 
 
+DESIGN = "workflow.design"
+
 # ─── دسترسی ─────────────────────────────────────────────────────────────
 
 
@@ -66,6 +68,62 @@ def check_version(version: ProcessVersion) -> bpmn.Definition:
     if form_version is None:
         raise BusinessError("فرم اصلی این فرایند هنوز منتشر نشده است.", {"form": "فرم اصلی را در فرم‌ساز منتشر کنید."})
     return bpmn.check(version.bpmn, form_version.definition)
+
+
+def problems(version: ProcessVersion) -> dict[str, str]:
+    """ایرادهای انتشار بی خطا دادن (برای نمایش زنده در فرایندساز)؛ {} یعنی آماده‌ی انتشار."""
+    try:
+        check_version(version)
+    except BusinessError as exc:
+        return exc.fields or {"bpmn": str(exc.detail)}
+    return {}
+
+
+def default_bpmn(process: Process) -> str:
+    """فرایند تازه: یک شروع و یک پایان، با نمودار؛ طراح از همین‌جا مرحله‌ها را می‌افزاید."""
+    pid = f"Process_{process.pk}"
+    return f"""<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:spiffworkflow="http://spiffworkflow.org/bpmn/schema/1.0/core" id="Definitions_{process.pk}" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="{pid}" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_1" name="شروع"><bpmn:outgoing>Flow_1</bpmn:outgoing></bpmn:startEvent>
+    <bpmn:endEvent id="EndEvent_1" name="پایان"><bpmn:incoming>Flow_1</bpmn:incoming></bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="EndEvent_1"/>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="{pid}">
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1"><dc:Bounds x="152" y="102" width="36" height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="EndEvent_1_di" bpmnElement="EndEvent_1"><dc:Bounds x="452" y="102" width="36" height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1"><di:waypoint x="188" y="120"/><di:waypoint x="452" y="120"/></bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>
+"""
+
+
+@transaction.atomic
+def create(process: Process) -> ProcessVersion:
+    """هر فرایند تازه با پیش‌نویس نسخه‌ی ۱ و نمودار آغازین."""
+    return ProcessVersion.objects.create(process=process, number=1, bpmn=default_bpmn(process))
+
+
+@transaction.atomic
+def copy(process: Process, code: str) -> Process:
+    """رونوشت فرایند (تنظیمات و آخرین تعریف) به شکل پیش‌نویس نسخه‌ی ۱ با شناسه‌ی تازه."""
+    source = process.versions.order_by("-number").first()
+    clone = Process.objects.create(
+        code=code,
+        title=f"رونوشت {process.title}"[:150],
+        description=process.description,
+        category=process.category,
+        form=process.form,
+        start_by_everyone=process.start_by_everyone,
+        number_pattern=process.number_pattern,
+        number_reset=process.number_reset,
+    )
+    clone.start_roles.set(process.start_roles.all())
+    clone.admin_roles.set(process.admin_roles.all())
+    ProcessVersion.objects.create(process=clone, number=1, bpmn=source.bpmn if source else default_bpmn(clone))
+    return clone
 
 
 @transaction.atomic
