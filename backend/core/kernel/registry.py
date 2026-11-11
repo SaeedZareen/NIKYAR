@@ -7,10 +7,12 @@
     nikyar_lookups = [LookupSpec(code="gender", name="جنسیت", system=True, items=[...])]
     nikyar_settings = [SettingsSection(code="org-profile", title="مشخصات سازمان", serializer="core.org.sections.OrgProfileSettings")]
     nikyar_numbering = [NumberingSpec(code="leave", title="درخواست مرخصی", default_pattern="{year}/مرخصی/{seq:5}")]
+    nikyar_workflow_actions = [WorkflowAction(code="set_field", title="تنظیم مقدار یک فیلد", check=..., run=...)]
 
 فهرست کامل مجوزها از همین‌جا ساخته می‌شود و نقش‌ها فقط مجوزهای ثبت‌شده را می‌پذیرند.
 """
 
+from collections.abc import Callable
 from dataclasses import dataclass, field
 
 from django.apps import apps
@@ -90,6 +92,20 @@ class ModuleSpec:
 
 
 @dataclass(frozen=True)
+class WorkflowAction:
+    """
+    اقدام خودکار فرایند (کار خودکار در فرایندساز). تنظیمات هر اقدام در ویژگی `action` همان کار است.
+    check(config, form_definition) پیام فارسی ایراد یا None (هنگام انتشار، با تعریف فرم اصلی).
+    run(context, config) هنگام رسیدن درخواست به کار؛ context.request، context.data (داده‌ی قابل تغییر درخواست).
+    """
+
+    code: str
+    title: str
+    check: Callable[[dict, dict], str | None]
+    run: Callable[[object, dict], None]
+
+
+@dataclass(frozen=True)
 class PermissionGroup:
     app_label: str
     title: str
@@ -127,3 +143,7 @@ def notification_kinds() -> list[NotificationKind]:
 
 def module_specs() -> list[ModuleSpec]:
     return [config.nikyar_module for config in apps.get_app_configs() if getattr(config, "nikyar_module", None)]
+
+
+def workflow_actions() -> dict[str, WorkflowAction]:
+    return {a.code: a for config in apps.get_app_configs() for a in getattr(config, "nikyar_workflow_actions", [])}

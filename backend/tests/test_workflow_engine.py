@@ -18,6 +18,10 @@ FIELDS = [
 ]
 
 
+def form_definition(*extra):
+    return {"sections": [{"id": "s", "fields": [*FIELDS, *extra]}]}
+
+
 def prop(name, value):
     return f"<spiffworkflow:property name=\"{name}\" value='{json.dumps(value, ensure_ascii=False)}'/>"
 
@@ -129,7 +133,7 @@ def test_expressions_reject_unsafe(expression):
 def test_script_engine_never_executes_scripts():
     from SpiffWorkflow.bpmn import BpmnWorkflow
 
-    task = BpmnWorkflow(bpmn.spec_parser(purchase(1, 2), "purchase")).get_tasks()[0]
+    task = BpmnWorkflow(bpmn.spec_parser(purchase(1, 2), "purchase")).get_tasks()[0]  # تجزیه بی بررسی گیرنده‌ها
     engine = expressions.SafeScriptEngine()
     with pytest.raises(Exception, match="اسکریپت"):
         engine.execute(task, "import os")
@@ -140,21 +144,21 @@ def test_script_engine_never_executes_scripts():
 # ─── بررسی تعریف ────────────────────────────────────────────────────────
 
 
-def _errors(text, fields=("subject", "amount")):
+def _errors(text, definition=None):
     with pytest.raises(BusinessError) as exc:
-        bpmn.check(text, set(fields))
+        bpmn.check(text, definition or form_definition())
     return exc.value.fields
 
 
-def test_check_accepts_purchase():
-    definition = bpmn.check(purchase(1, 2), {"subject", "amount"})
+def test_check_accepts_purchase(people):
+    definition = bpmn.check(purchase(people["finance"].pk, people["supply"].pk), form_definition())
     assert definition.process_id == "purchase"
     assert definition.outcomes == {"done": "completed", "rejected": "rejected"}
     assert definition.tasks["manager"]["decisions"] == bpmn.DEFAULT_DECISIONS
 
 
-def test_check_reports_each_element():
-    text = purchase(1, 2)
+def test_check_reports_each_element(people):
+    text = purchase(people["finance"].pk, people["supply"].pk)
     assert "f3" in _errors(text.replace('decision == "approve" and amount &gt; 1000', "price &gt; 3"))
     assert "f3" in _errors(text.replace('decision == "approve" and amount &gt; 1000', '__import__("os")'))
     assert "g1" in _errors(text.replace(' default="f4"', ""))
@@ -166,7 +170,8 @@ def test_check_reports_each_element():
     assert "supported" not in str(errors) and "supply" in errors
     no_assignee = text.replace(prop("assignee", {"type": "requester"}), "")
     assert "گیرنده" in _errors(no_assignee)["manager"]
-    assert "bpmn" in _errors(text, fields=("subject", "amount", "decision"))
+    assert "bpmn" in _errors(text, form_definition({"id": "decision", "type": "text", "label": "تصمیم"}))
+    assert "پیدا نشد" in _errors(purchase(999_999, people["supply"].pk))["finance"]
     # اسکریپت پیش/پس از کار (افزونه‌ی SpiffWorkflow) پذیرفته نیست
     script = text.replace("<spiffworkflow:properties>", "<spiffworkflow:preScript>x = 1</spiffworkflow:preScript><spiffworkflow:properties>", 1)
     assert "مجاز نیست" in _errors(script)["manager"]
@@ -175,9 +180,9 @@ def test_check_reports_each_element():
 def test_check_rejects_unsafe_xml():
     bomb = '<?xml version="1.0"?><!DOCTYPE x [<!ENTITY a "aaaa">]><x>&a;</x>'
     with pytest.raises(BusinessError):
-        bpmn.check(bomb, set())
+        bpmn.check(bomb, form_definition())
     with pytest.raises(BusinessError, match="خوانا"):
-        bpmn.check("not xml", set())
+        bpmn.check("not xml", form_definition())
 
 
 # ─── اجرا ───────────────────────────────────────────────────────────────

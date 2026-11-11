@@ -1,0 +1,61 @@
+"""
+اقدام‌های خودکار پایه‌ی گردش کار (اعلام‌شده در WorkflowConfig.nikyar_workflow_actions):
+
+    {"type": "set_field", "field": "<فیلد فرم>", "value": <مقدار ثابت>}
+    {"type": "notify", "to": <قاعده‌ی گیرنده مثل assignee>, "text": "<متن، با {number} و {process}>"}
+
+ماژول‌ها اقدام‌های خودشان را با همین سازوکار اعلام می‌کنند (مثل «ثبت در پرونده» در 5.6).
+"""
+
+from __future__ import annotations
+
+from core.forms import engine as form_engine
+from core.forms.fieldtypes import REGISTRY, Ctx
+from core.kernel.api import BusinessError
+from core.notifications.service import notify
+
+from . import assignment
+
+# فیلدهایی که مقدار ثابت ساده می‌گیرند (بی پیوست، امضا، جدول و مانند آن)
+SETTABLE = {"text", "textarea", "number", "amount", "date", "boolean", "choice", "lookup", "hidden"}
+MAX_TEXT = 300
+
+
+def _types(definition: dict) -> dict[str, str]:
+    return {f["id"]: f["type"] for f in form_engine.value_fields(definition)}
+
+
+def check_set_field(config: dict, definition: dict) -> str | None:
+    field = config.get("field")
+    if _types(definition).get(field) not in SETTABLE:
+        return f"فیلد مقصد باید یکی از فیلدهای ساده‌ی فرم باشد ({'، '.join(REGISTRY[t].title for t in sorted(SETTABLE) if t in REGISTRY)})."
+    if "value" not in config or config["value"] in (None, ""):
+        return "مقدار فیلد تعیین نشده است."
+    try:
+        form_engine.validate_data(definition, {field: config["value"]}, Ctx(partial=True))
+    except BusinessError as exc:
+        return f"مقدار فیلد: {next(iter(exc.fields.values()), str(exc.detail))}"
+    return None
+
+
+def run_set_field(context, config: dict) -> None:
+    # داده‌ی موتور (برای شرط‌های بعدی) و داده‌ی درخواست (برای نمایش و گزارش) هر دو
+    context.data[config["field"]] = config["value"]
+    context.request.data[config["field"]] = config["value"]
+
+
+def check_notify(config: dict, definition: dict) -> str | None:
+    text = config.get("text")
+    if not isinstance(text, str) or not text.strip() or len(text) > MAX_TEXT:
+        return f"متن اعلان خالی است یا بیش از {MAX_TEXT} نویسه دارد."
+    rule = config.get("to")
+    if isinstance(rule, dict) and rule.get("type") == "actor_manager":
+        return None  # مرحله‌ی ارجاع‌شده را بررسی کلی فرایند می‌سنجد
+    users = {k for k, t in _types(definition).items() if t == "user"}
+    return assignment.check(rule, tasks=set(), user_fields=users)
+
+
+def run_notify(context, config: dict) -> None:
+    request = context.request
+    text = config["text"].replace("{number}", request.number or "—").replace("{process}", request.process.title)
+    notify(assignment.resolve(config["to"], request), "workflow.message", text=text)

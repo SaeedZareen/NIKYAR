@@ -20,6 +20,8 @@ class Delegation(models.Model):
     start_date = models.DateField("از تاریخ")
     end_date = models.DateField("تا تاریخ")
     reason = models.CharField("علت", max_length=200, blank=True)
+    # خالی یعنی جانشینی کامل (همه‌ی فرایندها)؛ وگرنه فقط همین فرایندها
+    processes = models.ManyToManyField("workflow.Process", verbose_name="فقط این فرایندها", blank=True, related_name="+")
     created_by = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name="ثبت‌کننده", null=True, on_delete=models.SET_NULL, related_name="+")
     created_at = models.DateTimeField("زمان ثبت", auto_now_add=True)
 

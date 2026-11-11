@@ -127,6 +127,8 @@ class Task(models.Model):
     title = models.CharField("عنوان", max_length=200)
     status = models.CharField("وضعیت", max_length=10, choices=Status.choices, default=Status.OPEN)
     candidates = models.ManyToManyField(settings.AUTH_USER_MODEL, verbose_name="گیرنده‌ها", blank=True, related_name="workflow_tasks")
+    # قاعده‌ی گیرنده به کسی نرسید و کار به مدیران فرایند سپرده شد
+    fallback = models.BooleanField("سپرده به مدیران فرایند", default=False)
     acted_by = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name="انجام‌دهنده", null=True, blank=True, on_delete=models.PROTECT, related_name="+")
     on_behalf_of = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name="به نیابت از", null=True, blank=True, on_delete=models.PROTECT, related_name="+")
     decision = models.CharField("تصمیم", max_length=40, blank=True)

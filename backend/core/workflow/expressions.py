@@ -169,7 +169,14 @@ def _compare(op: ast.cmpop, a, b) -> bool:
 
 
 class SafeScriptEngine(PythonScriptEngine):
-    """موتور اسکریپت SpiffWorkflow بدون eval/exec: فقط عبارت‌های امن، و هیچ اسکریپتی."""
+    """
+    موتور اسکریپت SpiffWorkflow بدون eval/exec: فقط عبارت‌های امن و هیچ اسکریپتی.
+    کار خودکار BPMN (serviceTask) به run_action(task, operation_name) می‌رسد: اقدام‌های رجیستری نیک‌یار.
+    """
+
+    def __init__(self, run_action=None):
+        super().__init__()
+        self.run_action = run_action
 
     def validate(self, expression):
         check(expression)
@@ -183,5 +190,9 @@ class SafeScriptEngine(PythonScriptEngine):
     def execute(self, task, script, external_context=None):
         raise WorkflowTaskException("اجرای اسکریپت در فرایندهای نیک‌یار مجاز نیست.", task=task)
 
-    def call_service(self, task, **kwargs):
-        raise WorkflowTaskException("فراخوانی خدمت بیرونی در فرایندهای نیک‌یار مجاز نیست.", task=task)
+    def call_service(self, task, operation_name=None, **kwargs):
+        if self.run_action is None:
+            raise WorkflowTaskException("اقدام خودکار در این زمینه اجرا نمی‌شود.", task=task)
+        self.run_action(task, operation_name)
+        # نتیجه‌ی SpiffWorkflow (JSON) در داده‌ی کار؛ اقدام‌های نیک‌یار نتیجه‌ی جدا ندارند
+        return "null"

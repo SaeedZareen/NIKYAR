@@ -52,6 +52,12 @@ export function DelegationTable({ id, caption, rows, loading, error, onRetry, sh
       ...(show.delegate ? [col.accessor("delegate_name", { header: "جانشین", meta: { label: "جانشین", primary: !show.principal } })] : []),
       col.accessor("start_date", { header: "از تاریخ", meta: { label: "از تاریخ" }, cell: (c) => <span className="tabular-nums">{formatDate(c.getValue())}</span> }),
       col.accessor("end_date", { header: "تا تاریخ", meta: { label: "تا تاریخ" }, cell: (c) => <span className="tabular-nums">{formatDate(c.getValue())}</span> }),
+      col.accessor((d) => (d.process_names.length ? d.process_names.join("، ") : "همه‌ی فرایندها"), {
+        id: "scope",
+        header: "دامنه",
+        enableSorting: false,
+        meta: { label: "دامنه", wrap: true },
+      }),
       col.accessor("reason", { header: "علت", enableSorting: false, meta: { label: "علت", wrap: true }, cell: (c) => c.getValue() || "—" }),
       col.accessor("status", {
         header: "وضعیت",

@@ -7,7 +7,9 @@ SpiffWorkflow در `Request.state` و کارهای آماده در جدول `Tas
 
 from __future__ import annotations
 
+import json
 from functools import lru_cache
+from types import SimpleNamespace
 
 from django.contrib.auth import get_user_model
 from django.db import transaction
@@ -20,19 +22,21 @@ from SpiffWorkflow.bpmn.specs.mixins.events.end_event import EndEvent
 from SpiffWorkflow.spiff.serializer.config import SPIFF_CONFIG
 from SpiffWorkflow.util.task import TaskState
 
+from core.delegation import service as delegation
 from core.files import service as files
 from core.forms import engine as form_engine
 from core.forms.fieldtypes import Ctx
 from core.kernel.api import BusinessError
+from core.kernel.registry import workflow_actions
+from core.notifications.service import notify
 from core.numbering import service as numbering
 from core.numbering.models import NumberSequence
 
-from . import bpmn
+from . import assignment, bpmn
 from .expressions import SafeScriptEngine
 from .models import Event, Process, ProcessVersion, Request, Task
 
 _serializer = BpmnWorkflowSerializer(BpmnWorkflowSerializer.configure(SPIFF_CONFIG))
-_script_engine = SafeScriptEngine()
 
 
 # ─── دسترسی ─────────────────────────────────────────────────────────────
@@ -61,9 +65,7 @@ def check_version(version: ProcessVersion) -> bpmn.Definition:
     form_version = version.process.form.current_version()
     if form_version is None:
         raise BusinessError("فرم اصلی این فرایند هنوز منتشر نشده است.", {"form": "فرم اصلی را در فرم‌ساز منتشر کنید."})
-    fields = {f["id"] for f in form_engine.value_fields(form_version.definition)}
-    users = get_user_model().objects
-    return bpmn.check(version.bpmn, fields, user_exists=lambda pk: users.filter(pk=pk, is_active=True).exists())
+    return bpmn.check(version.bpmn, form_version.definition)
 
 
 @transaction.atomic
@@ -91,22 +93,35 @@ def new_draft(process: Process) -> ProcessVersion:
 
 # ─── موتور ──────────────────────────────────────────────────────────────
 
+AUTO_COMMENT = "خودکار: گیرنده همان انجام‌دهنده‌ی مرحله‌ی قبل است."
+
 
 def _compiled(version: ProcessVersion):
-    """مشخصات اجرایی و ویژگی‌های یک نسخه‌ی منتشرشده؛ نسخه‌ی منتشرشده تغییرناپذیر است، پس نگه داشته می‌شود."""
-    fields = frozenset(f["id"] for f in form_engine.value_fields(version.form_version.definition))
-    return _compile(version.bpmn, fields)
+    """مشخصات اجرایی و ویژگی‌های یک نسخه‌ی منتشرشده؛ نسخه و نسخه‌ی فرمش تغییرناپذیرند، پس نگه داشته می‌شود."""
+    return _compile(version.bpmn, json.dumps(version.form_version.definition, sort_keys=True))
 
 
 @lru_cache(maxsize=64)
-def _compile(text: str, fields: frozenset[str]):
-    definition = bpmn.check(text, set(fields))
+def _compile(text: str, form_definition: str):
+    definition = bpmn.check(text, json.loads(form_definition))
     return bpmn.spec_parser(text, definition.process_id), definition
+
+
+def _engine(request: Request) -> SafeScriptEngine:
+    """موتور اسکریپت هر درخواست: اقدام‌های خودکار (کار خودکار BPMN) از رجیستری با زمینه‌ی همین درخواست اجرا می‌شوند."""
+    _, definition = _compiled(request.version)
+    actions = workflow_actions()
+
+    def run_action(task, operation_name):
+        config = definition.actions[task.task_spec.bpmn_id]
+        actions[config["type"]].run(SimpleNamespace(request=request, data=task.data), config)
+
+    return SafeScriptEngine(run_action=run_action)
 
 
 def _load(request: Request) -> BpmnWorkflow:
     workflow = _serializer.from_dict(request.state)
-    workflow.script_engine = _script_engine
+    workflow.script_engine = _engine(request)
     return workflow
 
 
@@ -114,11 +129,12 @@ def _save(request: Request, workflow: BpmnWorkflow) -> None:
     request.state = _serializer.to_dict(workflow)
 
 
-def _run(request: Request, workflow: BpmnWorkflow) -> None:
+def _run(workflow: BpmnWorkflow) -> None:
     try:
         workflow.do_engine_steps()
     except WorkflowTaskException as exc:
-        raise BusinessError(f"فرایند در مرحله‌ی «{exc.task_spec.bpmn_name or exc.task_spec.name if exc.task_spec else ''}» متوقف شد: {exc}") from None
+        step = (exc.task_spec.bpmn_name or exc.task_spec.name) if exc.task_spec else ""
+        raise BusinessError(f"فرایند در مرحله‌ی «{step}» متوقف شد: {exc}") from None
 
 
 def start(process: Process, user, data: dict) -> Request:
@@ -135,18 +151,26 @@ def start(process: Process, user, data: dict) -> Request:
             request.number = numbering.allocate(sequence_code(process))
         for file_id in form_engine.file_ids(definition, cleaned):
             files.claim(file_id)
-        workflow = BpmnWorkflow(spec, script_engine=_script_engine)
+        workflow = BpmnWorkflow(spec, script_engine=_engine(request))
         workflow.task_tree.data.update(cleaned)
-        _run(request, workflow)
         Event.objects.create(request=request, kind=Event.Kind.STARTED, actor=user)
-        _sync(request, workflow)
+        _advance(request, workflow)
         _save(request, workflow)
         request.save()
     return request
 
 
-def can_act(user, task: Task) -> bool:
-    return task.status == Task.Status.OPEN and task.candidates.filter(pk=user.pk).exists()
+def acting_for(user, task: Task):
+    """(اجازه دارد، به نیابت از چه کسی): گیرنده‌ی کار، یا جانشین امروز یکی از گیرنده‌ها برای همین فرایند."""
+    if task.status != Task.Status.OPEN:
+        return False, None
+    candidates = list(task.candidates.all())
+    if user in candidates:
+        return True, None
+    for principal in candidates:
+        if user in delegation.delegates_of(principal, process=task.request.process_id):
+            return True, principal
+    return False, None
 
 
 def complete(task: Task, user, decision: str, comment: str = "") -> Request:
@@ -156,40 +180,75 @@ def complete(task: Task, user, decision: str, comment: str = "") -> Request:
         task = Task.objects.select_for_update().get(pk=task.pk)
         if task.status != Task.Status.OPEN:
             raise BusinessError("این کار پیش‌تر انجام شده است.")
-        if not can_act(user, task):
+        allowed, principal = acting_for(user, task)
+        if not allowed:
             raise PermissionDenied()
         _, definition = _compiled(request.version)
-        decisions = {d["value"] for d in definition.tasks[task.element]["decisions"]}
-        if decision not in decisions:
+        chosen = next((d for d in definition.tasks[task.element]["decisions"] if d["value"] == decision), None)
+        if chosen is None:
             raise BusinessError("تصمیم نامعتبر است.", {"decision": "یکی از تصمیم‌های این مرحله را انتخاب کنید."})
+        comment = comment.strip()
+        if chosen.get("comment") == "required" and not comment:
+            raise BusinessError(f"برای «{chosen['label']}» نوشتن یادداشت الزامی است.", {"comment": "دلیل یا توضیح را بنویسید."})
         workflow = _load(request)
-        spiff_task = workflow.get_task_from_id(task.spiff_id)
-        if spiff_task is None or spiff_task.state != TaskState.READY:
-            raise BusinessError("این کار دیگر منتظر نیست؛ صفحه را دوباره بارگذاری کنید.")
-        spiff_task.data[bpmn.DECISION] = decision
-        spiff_task.run()
-        _run(request, workflow)
-        now = timezone.now()
-        task.status, task.acted_by, task.decision, task.comment, task.completed_at = Task.Status.DONE, user, decision, comment.strip(), now
-        task.save()
-        Event.objects.create(request=request, kind=Event.Kind.TASK, task=task, actor=user, decision=decision, comment=task.comment)
-        _sync(request, workflow)
+        _finish(request, workflow, task, user, decision, comment, principal)
+        _advance(request, workflow)
         _save(request, workflow)
         request.save()
     return request
 
 
-def _sync(request: Request, workflow: BpmnWorkflow) -> None:
-    """کارهای آماده‌ی موتور ← جدول کارها؛ کار باز که دیگر آماده نیست لغو می‌شود؛ پایان درخواست."""
+def _finish(request: Request, workflow: BpmnWorkflow, task: Task, user, decision: str, comment: str, principal) -> None:
+    spiff_task = workflow.get_task_from_id(task.spiff_id)
+    if spiff_task is None or spiff_task.state != TaskState.READY:
+        raise BusinessError("این کار دیگر منتظر نیست؛ صفحه را دوباره بارگذاری کنید.")
+    spiff_task.data[bpmn.DECISION] = decision
+    spiff_task.run()
+    task.status, task.acted_by, task.on_behalf_of = Task.Status.DONE, user, principal
+    task.decision, task.comment, task.completed_at = decision, comment, timezone.now()
+    task.save()
+    Event.objects.create(request=request, kind=Event.Kind.TASK, task=task, actor=user, on_behalf_of=principal, decision=decision, comment=comment)
+
+
+def _advance(request: Request, workflow: BpmnWorkflow) -> None:
+    """موتور تا کار کاربری بعدی جلو می‌رود؛ کاری که «خودکار برای همان انجام‌دهنده» دارد همان‌جا انجام می‌شود."""
+    while True:
+        _run(workflow)
+        auto = _sync(request, workflow)
+        if auto is None:
+            return
+        task, actor, decision = auto
+        _finish(request, workflow, task, actor, decision, AUTO_COMMENT, None)
+
+
+def _sync(request: Request, workflow: BpmnWorkflow):
+    """
+    کارهای آماده‌ی موتور ← جدول کارها (با گیرنده‌ها و اعلان)؛ کار باز که دیگر آماده نیست لغو می‌شود؛ پایان درخواست.
+    اگر کار تازه‌ای باید خودکار انجام شود، (کار، انجام‌دهنده، تصمیم) برمی‌گردد.
+    """
     _, definition = _compiled(request.version)
     ready = {t.id: t for t in workflow.get_tasks(state=TaskState.READY, manual=True)}
     known = set(request.tasks.values_list("spiff_id", flat=True))
+    previous = request.tasks.filter(status=Task.Status.DONE).order_by("-completed_at", "-pk").select_related("acted_by").first()
+    auto = None
     for spiff_id, spiff_task in ready.items():
         if spiff_id in known:
             continue
         element = spiff_task.task_spec.bpmn_id
+        settings = definition.tasks[element]
         task = Task.objects.create(request=request, spiff_id=spiff_id, element=element, title=spiff_task.task_spec.bpmn_name or element)
-        task.candidates.set(_assignees(request, definition.tasks[element]["assignee"]))
+        candidates = assignment.resolve(settings["assignee"], request)
+        if not candidates:
+            task.fallback = True
+            task.save(update_fields=["fallback"])
+            candidates = _process_admins(request.process)
+            notify(candidates, "workflow.unassigned", step=task.title, process=request.process.title, number=request.number or "—")
+        else:
+            delegates = {d for c in candidates for d in delegation.delegates_of(c, process=request.process_id)}
+            notify([*candidates, *delegates], "workflow.task", step=task.title, process=request.process.title, number=request.number or "—")
+        task.candidates.set(candidates)
+        if auto is None and settings["skip_same"] and previous and previous.acted_by in candidates:
+            auto = (task, previous.acted_by, settings["decisions"][0]["value"])
     request.tasks.filter(status=Task.Status.OPEN).exclude(spiff_id__in=ready.keys()).update(status=Task.Status.CANCELLED)
     if workflow.completed:
         ends = {t.task_spec.bpmn_id for t in workflow.get_tasks(state=TaskState.COMPLETED) if isinstance(t.task_spec, EndEvent)}
@@ -197,11 +256,11 @@ def _sync(request: Request, workflow: BpmnWorkflow) -> None:
         request.status = Request.Status.REJECTED if rejected else Request.Status.COMPLETED
         request.finished_at = timezone.now()
         Event.objects.create(request=request, kind=Event.Kind.REJECTED if rejected else Event.Kind.COMPLETED)
+    return auto
 
 
-def _assignees(request: Request, rule: dict) -> list:
-    """گیرنده‌های یک کار (قاعده‌های بیشتر در 4.2)."""
+def _process_admins(process: Process) -> list:
+    """گیرنده‌ی جایگزین وقتی قاعده به کسی نرسید: مدیران فرایند، وگرنه مدیران کل سامانه."""
     users = get_user_model().objects.filter(is_active=True)
-    if rule["type"] == "requester":
-        return list(users.filter(pk=request.requester_id))
-    return list(users.filter(pk=rule["user"]))
+    admins = list(users.filter(roles__in=process.admin_roles.all()).distinct())
+    return admins or list(users.filter(is_superuser=True))
