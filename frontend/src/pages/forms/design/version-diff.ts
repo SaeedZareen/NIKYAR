@@ -3,7 +3,7 @@ import { itemsOf, type FieldDef, type FormDefinition, type SectionDef } from "@/
 import { toFaDigits } from "@/lib/format"
 
 export type Change = { kind: "added" | "removed" | "changed"; id: string; label: string; details: string[] }
-export type VersionDiff = { form: string[]; sections: Change[]; fields: Change[] }
+type VersionDiff = { form: string[]; sections: Change[]; fields: Change[] }
 
 /** where: نام جا برای نمایش؛ place: شناسه‌ی بخش یا گروه برای مقایسه (تغییر عنوان بخش جابه‌جایی نیست) */
 type Located = { field: FieldDef; where: string; place: string }

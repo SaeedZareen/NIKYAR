@@ -43,9 +43,9 @@ class TestSettings:
         assert api.get("/api/settings/fiscal-year/").json() == {"start_month": 4}
         assert AuditLog.objects.get(action="update").changes["start_month"] == {"label": "ماه آغاز سال مالی", "old": "فروردین", "new": "تیر"}
 
-    def test_permission_required_but_branding_is_public(self, api, make_user, client_for):
+    def test_permission_required_but_branding_is_public(self, api, make_user, client_for, settings):
         api.put(PROFILE, {"name": "شرکت نمونه", "short_name": "نمونه"}, format="json")
         user = client_for(make_user("clerk"))
         assert user.get(PROFILE).status_code == 403 and user.get("/api/settings/").status_code == 403
         assert client_for(make_user("keeper", permissions=["settings.manage"])).get(PROFILE).status_code == 200
-        assert APIClient().get("/api/org/branding/").json() == {"name": "شرکت نمونه", "short_name": "نمونه", "logo_url": "", "version": "0.3.0"}
+        assert APIClient().get("/api/org/branding/").json() == {"name": "شرکت نمونه", "short_name": "نمونه", "logo_url": "", "version": settings.VERSION}

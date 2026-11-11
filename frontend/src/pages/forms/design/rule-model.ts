@@ -45,7 +45,7 @@ function operandLogic(o: Operand | undefined): unknown {
   return o.value
 }
 
-export function clauseLogic(c: Clause): unknown {
+function clauseLogic(c: Clause): unknown {
   if (c.op === "empty") return { "!": v(c.field) }
   if (c.op === "filled") return { "!!": v(c.field) }
   if (c.op === "has") return { in: [operandLogic(c.right), v(c.field)] }

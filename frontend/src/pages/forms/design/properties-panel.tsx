@@ -615,7 +615,7 @@ function FilePropEditor({ id, title, accept, value, error, onChange }: { id: str
 
 const IMAGE_EXTENSIONS = new Set(["jpg", "jpeg", "png", "webp", "gif"])
 
-export type FormProp = "steps" | "numbered" | "required_mark" | "submit_label" | "intro" | "confirmation"
+type FormProp = "steps" | "numbered" | "required_mark" | "submit_label" | "intro" | "confirmation"
 
 /** ویژگی‌های سطح فرم که با نسخه ذخیره و در پیش‌نمایش دیده می‌شوند. */
 function FormProperties({ definition, errors, onChange }: { definition: FormDefinition; errors: Record<string, string>; onChange: (name: FormProp, value: unknown) => void }) {

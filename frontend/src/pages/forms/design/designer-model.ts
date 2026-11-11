@@ -63,14 +63,14 @@ export function newField(spec: Pick<FieldTypeSpec, "code" | "title" | "label_req
 /** ویژگی‌هایی که فیلد درون گروه نمی‌گیرد (چیدمان بخش، شرط‌ها، فقط‌خواندنی، یکتا، پیش‌پر). */
 const ITEM_EXCLUDED = ["span", "new_row", "readonly", "unique", "prefill", "visible_if", "required_if", "readonly_if"] as const
 
-export function asItem(field: FieldDef): FieldDef {
+function asItem(field: FieldDef): FieldDef {
   const item = { ...field } as Record<string, unknown>
   for (const key of ITEM_EXCLUDED) delete item[key]
   return item as FieldDef
 }
 
 type BlockField = Omit<FieldDef, "id"> & { key: string }
-export type Block = { key: string; title: string; fields: BlockField[] }
+type Block = { key: string; title: string; fields: BlockField[] }
 
 /** بلوک‌های آماده: گروه فیلدهای پرتکرار؛ پس از افزودن مثل فیلدهای عادی قابل تغییرند. */
 export const BLOCKS: Block[] = [
