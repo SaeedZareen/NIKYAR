@@ -1586,6 +1586,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workflow/process-lookup/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description عنوان فرایندهای فعال برای انتخاب (مثلاً جانشینی ویژه‌ی چند فرایند)؛ برای هر کاربر واردشده. */
+        get: operations["workflow_process_lookup_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1851,6 +1868,12 @@ export interface components {
             end_date: string;
             /** علت */
             reason: string;
+            /**
+             * فقط این فرایندها
+             * @description خالی یعنی جانشینی کامل در همه‌ی فرایندها
+             */
+            processes: number[];
+            readonly process_names: string[];
             /** @description active، upcoming یا past */
             readonly status: string;
         };
@@ -1871,6 +1894,11 @@ export interface components {
             end_date: string;
             /** علت */
             reason?: string;
+            /**
+             * فقط این فرایندها
+             * @description خالی یعنی جانشینی کامل در همه‌ی فرایندها
+             */
+            processes?: number[];
         };
         Delivery: {
             readonly id: number;
@@ -3281,6 +3309,10 @@ export interface components {
         };
         PreviewResult: {
             example: string;
+        };
+        ProcessLookup: {
+            id: number;
+            title: string;
         };
         Region: {
             name: string;
@@ -6903,6 +6935,25 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WorkWeekSettings"];
+                };
+            };
+        };
+    };
+    workflow_process_lookup_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProcessLookup"][];
                 };
             };
         };

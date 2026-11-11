@@ -1,12 +1,14 @@
 """
-خواندن و بررسی تعریف فرایند (فایل BPMN 2.0) پیش از ذخیره و انتشار.
+خواندن و بررسی تعریف فرایند (فایل BPMN 2.0) پیش از انتشار.
 
 فقط زیرمجموعه‌ای از BPMN که نیک‌یار پشتیبانی می‌کند پذیرفته است (ELEMENTS)؛ تنظیمات نیک‌یار در
 «ویژگی‌های» SpiffWorkflow روی هر عنصر نوشته می‌شوند (`spiffworkflow:properties`، مقدار JSON):
 
-    userTask:  assignee  {"type": "requester"} | {"type": "user", "user": <شناسه>}
-               decisions [{"value": "approve", "label": "تأیید"}, ...]   (پیش‌فرض: تأیید و رد)
-    endEvent:  outcome   "completed" | "rejected"                         (پیش‌فرض: completed)
+    userTask:    assignee   قاعده‌ی گیرنده (assignment.py)
+                 decisions  [{"value": "approve", "label": "تأیید", "comment": "optional"|"required"}, ...]
+                 skip_same  true: اگر گیرنده همان انجام‌دهنده‌ی مرحله‌ی قبل است، خودکار با نخستین تصمیم انجام شود
+    serviceTask: action     {"type": "<کد اقدام>", ...} از رجیستری اقدام‌ها (actions.py)؛ عملگر SpiffWorkflow: «nikyar»
+    endEvent:    outcome    "completed" | "rejected"
 
 شرط مسیرهای دروازه‌ی انحصاری عبارت امن پایتون است (expressions.py) روی فیلدهای فرم اصلی و `decision`.
 خطاها با کلید شناسه‌ی همان عنصر برمی‌گردند تا فرایندساز روی عنصر نشانشان دهد.
@@ -22,9 +24,11 @@ from lxml import etree
 from SpiffWorkflow.bpmn.parser.ValidationException import ValidationException
 from SpiffWorkflow.spiff.parser.process import SpiffBpmnParser
 
+from core.forms import engine as form_engine
 from core.kernel.api import BusinessError
+from core.kernel.registry import workflow_actions
 
-from . import expressions
+from . import assignment, expressions
 
 BPMN = "http://www.omg.org/spec/BPMN/20100524/MODEL"
 SPIFF = "http://spiffworkflow.org/bpmn/schema/1.0/core"
@@ -36,6 +40,7 @@ ELEMENTS = {
     "startEvent": "رویداد شروع",
     "endEvent": "رویداد پایان",
     "userTask": "کار کاربری",
+    "serviceTask": "اقدام خودکار",
     "exclusiveGateway": "دروازه‌ی انحصاری",
     "parallelGateway": "دروازه‌ی موازی",
     "sequenceFlow": "مسیر",
@@ -44,9 +49,9 @@ ELEMENTS = {
 }
 STRUCTURAL = {"incoming", "outgoing", "conditionExpression", "documentation", "extensionElements", "text"}
 DECISION = "decision"
-DEFAULT_DECISIONS = [{"value": "approve", "label": "تأیید"}, {"value": "reject", "label": "رد"}]
+DEFAULT_DECISIONS = [{"value": "approve", "label": "تأیید"}, {"value": "reject", "label": "رد", "comment": "required"}]
 OUTCOMES = {"completed", "rejected"}
-ASSIGNEE_TYPES = {"requester", "user"}
+OPERATOR = "nikyar"
 
 _parser = etree.XMLParser(resolve_entities=False, no_network=True, remove_comments=True, huge_tree=False)
 
@@ -57,6 +62,7 @@ class Definition:
 
     process_id: str
     tasks: dict[str, dict] = field(default_factory=dict)
+    actions: dict[str, dict] = field(default_factory=dict)
     outcomes: dict[str, str] = field(default_factory=dict)
 
 
@@ -89,11 +95,10 @@ def parse_xml(text: str):
         raise BusinessError("فایل فرایند خوانا نیست؛ فایل BPMN درست انتخاب کنید.", {"bpmn": "فایل BPMN خوانا نیست."}) from None
 
 
-def check(text: str, form_fields: set[str], user_exists=lambda pk: True) -> Definition:
-    """
-    بررسی کامل برای انتشار: ساختار، عنصرهای مجاز، ویژگی‌ها، شرط‌ها و تجزیه‌ی SpiffWorkflow.
-    form_fields: شناسه‌ی فیلدهای فرم اصلی (نام‌های مجاز در شرط‌ها).
-    """
+def check(text: str, form_definition: dict) -> Definition:
+    """بررسی کامل برای انتشار: ساختار، عنصرهای مجاز، ویژگی‌ها، شرط‌ها و تجزیه‌ی SpiffWorkflow."""
+    types = {f["id"]: f["type"] for f in form_engine.value_fields(form_definition)}
+    user_fields = {k for k, t in types.items() if t == "user"}
     root = parse_xml(text)
     processes = root.xpath("./bpmn:process", namespaces=NS)
     if len(processes) != 1:
@@ -103,7 +108,7 @@ def check(text: str, form_fields: set[str], user_exists=lambda pk: True) -> Defi
     definition = Definition(process_id=process.get("id") or "")
     if not re.match(r"^[A-Za-z_][\w.-]*$", definition.process_id):
         errors["bpmn"] = "شناسه‌ی فرایند در فایل نامعتبر است."
-    if DECISION in form_fields:
+    if DECISION in types:
         errors["bpmn"] = f"فرم اصلی فیلدی با شناسه‌ی «{DECISION}» دارد؛ این نام برای تصمیم هر مرحله رزرو است. شناسه‌ی فیلد را در فرم‌ساز عوض کنید."
 
     nodes = {}
@@ -118,12 +123,14 @@ def check(text: str, form_fields: set[str], user_exists=lambda pk: True) -> Defi
         for child in node:
             if isinstance(child.tag, str) and etree.QName(child).namespace == BPMN and _tag(child) not in STRUCTURAL:
                 errors[nid] = f"«{_label(node)}» بخشی دارد که پشتیبانی نمی‌شود ({_tag(child)})."
+        allowed = {"properties", "serviceTaskOperator"} if tag == "serviceTask" else {"properties"}
         for ext in node.xpath("./bpmn:extensionElements/*", namespaces=NS):
-            if _tag(ext) != "properties" or etree.QName(ext).namespace != SPIFF:
+            if _tag(ext) not in allowed or etree.QName(ext).namespace != SPIFF:
                 errors[nid] = f"«{_label(node)}» تنظیم یا اسکریپتی دارد که در نیک‌یار مجاز نیست ({_tag(ext)})."
 
     flows = {nid: n for nid, n in nodes.items() if _tag(n) == "sequenceFlow"}
     elements = {nid: n for nid, n in nodes.items() if _tag(n) not in ("sequenceFlow", "textAnnotation", "association")}
+    user_tasks = {nid for nid, n in elements.items() if _tag(n) == "userTask"}
     outgoing: dict[str, list] = {nid: [] for nid in elements}
     incoming: dict[str, list] = {nid: [] for nid in elements}
     for fid, flow in flows.items():
@@ -140,6 +147,7 @@ def check(text: str, form_fields: set[str], user_exists=lambda pk: True) -> Defi
     if not any(_tag(n) == "endEvent" for n in elements.values()):
         errors["bpmn"] = "فرایند رویداد پایان ندارد."
 
+    actions = workflow_actions()
     for nid, node in elements.items():
         tag, label = _tag(node), _label(node)
         props = _properties(node, errors)
@@ -149,24 +157,30 @@ def check(text: str, form_fields: set[str], user_exists=lambda pk: True) -> Defi
             errors.setdefault(nid, f"از «{label}» هیچ مسیری بیرون نمی‌رود.")
         if tag in ("startEvent", "endEvent") and len(node) and node.xpath("./*[contains(local-name(), 'EventDefinition')]"):
             errors[nid] = f"«{label}» از نوع ویژه است؛ فقط رویداد ساده پشتیبانی می‌شود."
+        if tag in ("userTask", "serviceTask") and not (node.get("name") or "").strip():
+            errors.setdefault(nid, f"هر {ELEMENTS[tag]} باید عنوان داشته باشد.")
         if tag == "userTask":
-            if not (node.get("name") or "").strip():
-                errors.setdefault(nid, "هر کار کاربری باید عنوان داشته باشد.")
-            message = _check_assignee(props.get("assignee"), user_exists)
-            if message:
-                errors.setdefault(nid, f"«{label}»: {message}")
+            message = assignment.check(props.get("assignee"), tasks=user_tasks - {nid}, user_fields=user_fields)
             decisions = props.get("decisions", DEFAULT_DECISIONS)
-            message = _check_decisions(decisions)
+            message = message or _check_decisions(decisions)
+            skip_same = props.get("skip_same", False)
+            if not isinstance(skip_same, bool):
+                message = message or "گزینه‌ی «تأیید خودکار برای همان انجام‌دهنده» نامعتبر است."
             if message:
                 errors.setdefault(nid, f"«{label}»: {message}")
-            definition.tasks[nid] = {"assignee": props.get("assignee"), "decisions": decisions}
+            definition.tasks[nid] = {"assignee": props.get("assignee"), "decisions": decisions, "skip_same": skip_same}
+        if tag == "serviceTask":
+            message = _check_action(node, props.get("action"), actions, form_definition, user_tasks)
+            if message:
+                errors.setdefault(nid, f"«{label}»: {message}")
+            definition.actions[nid] = props.get("action")
         if tag == "endEvent":
             outcome = props.get("outcome", "completed")
             if outcome not in OUTCOMES:
                 errors.setdefault(nid, f"نتیجه‌ی «{label}» نامعتبر است.")
             definition.outcomes[nid] = outcome
         if tag == "exclusiveGateway":
-            _check_gateway(node, outgoing[nid], form_fields, errors)
+            _check_gateway(node, outgoing[nid], set(types), errors)
 
     if starts and not errors:
         _check_reachable(starts[0].get("id"), elements, outgoing, errors)
@@ -180,12 +194,16 @@ def check(text: str, form_fields: set[str], user_exists=lambda pk: True) -> Defi
     return definition
 
 
-def _check_assignee(rule, user_exists) -> str | None:
-    if not isinstance(rule, dict) or rule.get("type") not in ASSIGNEE_TYPES:
-        return "گیرنده‌ی این کار تعیین نشده است."
-    if rule["type"] == "user" and not (isinstance(rule.get("user"), int) and user_exists(rule["user"])):
-        return "کاربر گیرنده‌ی این کار پیدا نشد."
-    return None
+def _check_action(node, config, actions: dict, form_definition: dict, user_tasks: set[str]) -> str | None:
+    operator = node.xpath("./bpmn:extensionElements/spiffworkflow:serviceTaskOperator", namespaces=NS)
+    if len(operator) != 1 or operator[0].get("id") != OPERATOR:
+        return "اقدام خودکار باید از اقدام‌های نیک‌یار انتخاب شود."
+    if not isinstance(config, dict) or config.get("type") not in actions:
+        return "نوع اقدام خودکار تعیین نشده یا ناشناخته است."
+    to = config.get("to")
+    if isinstance(to, dict) and to.get("type") == "actor_manager" and to.get("element") not in user_tasks:
+        return "مرحله‌ای که مدیر انجام‌دهنده‌اش گیرنده است، در این فرایند نیست."
+    return actions[config["type"]].check(config, form_definition)
 
 
 def _check_decisions(decisions) -> str | None:
@@ -195,6 +213,8 @@ def _check_decisions(decisions) -> str | None:
     for d in decisions:
         if not isinstance(d, dict) or not re.match(r"^[a-z][a-z0-9_]{0,39}$", str(d.get("value", ""))) or not str(d.get("label", "")).strip():
             return "هر تصمیم یک کد لاتین و یک عنوان دارد."
+        if d.get("comment", "optional") not in ("optional", "required"):
+            return "تنظیم یادداشت تصمیم نامعتبر است."
         values.append(d["value"])
     if len(values) != len(set(values)):
         return "کد تصمیم‌ها تکراری است."

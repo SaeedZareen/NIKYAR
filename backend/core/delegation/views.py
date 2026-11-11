@@ -13,6 +13,7 @@ from core.audit.service import diff, record, snapshot
 from core.kernel.api import BusinessError, HasPerm, has_perm
 from core.kernel.fields import JalaliDateField
 from core.notifications.service import notify
+from core.workflow.models import Process
 
 from .models import Delegation
 
@@ -31,10 +32,17 @@ class DelegationSerializer(serializers.ModelSerializer):
     principal_name = serializers.CharField(source="principal.title", read_only=True)
     delegate_name = serializers.CharField(source="delegate.title", read_only=True)
     status = serializers.SerializerMethodField(help_text="active، upcoming یا past")
+    processes = serializers.PrimaryKeyRelatedField(
+        queryset=Process.objects.all(), many=True, required=False, label="فقط این فرایندها", help_text="خالی یعنی جانشینی کامل در همه‌ی فرایندها"
+    )
+    process_names = serializers.SerializerMethodField()
 
     class Meta:
         model = Delegation
-        fields = ["id", "principal", "principal_name", "delegate", "delegate_name", "start_date", "end_date", "reason", "status"]
+        fields = ["id", "principal", "principal_name", "delegate", "delegate_name", "start_date", "end_date", "reason", "processes", "process_names", "status"]
+
+    def get_process_names(self, obj) -> list[str]:
+        return [p.title for p in obj.processes.all()]
 
     def get_status(self, obj) -> str:
         today = timezone.localdate()
@@ -59,9 +67,14 @@ class DelegationSerializer(serializers.ModelSerializer):
             errors["delegate"] = "کسی نمی‌تواند جانشین خودش باشد."
         if errors:
             raise serializers.ValidationError(errors)
-        clash = Delegation.objects.filter(principal=principal).overlapping(start, end).select_related("delegate").first()
-        if clash:
-            raise serializers.ValidationError({"start_date": f"در این بازه {clash.delegate.title} جانشین است؛ ابتدا آن جانشینی را لغو کنید."})
+        # یک جانشینی کامل در هر روز، و برای هر فرایند یک جانشینی ویژه؛ کامل و ویژه کنار هم می‌مانند
+        processes = set(attrs.get("processes") or [])
+        overlapping = Delegation.objects.filter(principal=principal).overlapping(start, end).select_related("delegate").prefetch_related("processes")
+        for other in overlapping:
+            shared = processes & set(other.processes.all())
+            if (not processes and not other.processes.exists()) or shared:
+                scope = f"برای «{next(iter(shared)).title}» " if shared else ""
+                raise serializers.ValidationError({"start_date": f"در این بازه {other.delegate.title} {scope}جانشین است؛ ابتدا آن جانشینی را لغو کنید."})
         attrs["principal"] = principal
         return attrs
 
@@ -88,7 +101,7 @@ class DelegationViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, mixins.D
         return super().list(request, *args, **kwargs)
 
     def get_queryset(self):
-        qs = Delegation.objects.select_related("principal", "delegate")
+        qs = Delegation.objects.select_related("principal", "delegate").prefetch_related("processes")
         user = self.request.user
         if self.request.query_params.get("scope") == "all" and has_perm(user, MANAGE):
             return qs

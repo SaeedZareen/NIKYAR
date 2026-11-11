@@ -7,7 +7,7 @@ from django.utils import timezone
 
 from core.audit.models import AuditLog
 from core.delegation.models import Delegation
-from core.delegation.service import actors_for, principals_of
+from core.delegation.service import delegates_of, principals_of
 from core.files.models import StoredFile
 from core.notifications.models import Notification
 
@@ -41,8 +41,8 @@ class TestDelegation:
         today = timezone.localdate()
         Delegation.objects.create(principal=boss, delegate=deputy, start_date=today, end_date=today + timedelta(days=2))
         Delegation.objects.create(principal=boss, delegate=deputy, start_date=today + timedelta(days=10), end_date=today + timedelta(days=12))
-        assert actors_for(boss) == [boss, deputy] and principals_of(deputy) == [boss]
-        assert actors_for(boss, today + timedelta(days=5)) == [boss]
+        assert delegates_of(boss) == [deputy] and principals_of(deputy) == [boss]
+        assert delegates_of(boss, today + timedelta(days=5)) == []
         assert len(client_for(deputy).get(URL).json()) == 2
         assert client_for(make_user("x")).get(URL).json() == []
         assert len(client_for(admin).get(URL + "?scope=all").json()) == 2
@@ -59,7 +59,7 @@ class TestDelegation:
             assert c.delete(f"{URL}{running.id}/").status_code == 204
         assert not Delegation.objects.filter(pk=future.pk).exists()
         running.refresh_from_db()
-        assert running.end_date == today - timedelta(days=1) and actors_for(boss) == [boss]
+        assert running.end_date == today - timedelta(days=1) and delegates_of(boss) == []
         assert Notification.objects.filter(user=deputy, kind="delegation.cancelled").count() == 2
         assert AuditLog.objects.filter(model="delegation.delegation", action__in=["delete", "update"]).count() == 2
 
