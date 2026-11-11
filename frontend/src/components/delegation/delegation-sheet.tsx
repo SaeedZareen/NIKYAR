@@ -1,5 +1,5 @@
 import * as React from "react"
-import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { DELEGATIONS_KEY } from "@/app/delegations"
 import { z } from "zod"
 import { toast } from "sonner"
@@ -10,6 +10,7 @@ import { FormSheet } from "@/components/form/form-sheet"
 import { JalaliDateInput } from "@/components/form/inputs"
 import { applyServerErrors } from "@/components/form/server-errors"
 import { useAppForm } from "@/components/form/use-app-form"
+import { SearchPicker } from "@/components/search-picker"
 import { UserPicker } from "@/components/user-picker"
 import { Input } from "@/components/ui/input"
 import { api, unwrap } from "@/lib/api/client"
@@ -27,15 +28,25 @@ export function DelegationSheet({ choosePrincipal, open, onOpenChange }: { choos
     start_date: schemas.jalaliDate.refine((v) => v !== "", "تکمیل «از تاریخ» الزامی است."),
     end_date: schemas.jalaliDate.refine((v) => v !== "", "تکمیل «تا تاریخ» الزامی است."),
     reason: z.string().trim().max(200, "حداکثر ۲۰۰ نویسه."),
+    processes: z.array(z.string()),
   })
-  const LABELS = { principal: "اصیل", delegate: "جانشین", start_date: "از تاریخ", end_date: "تا تاریخ", reason: "علت" }
+  const LABELS = { principal: "اصیل", delegate: "جانشین", start_date: "از تاریخ", end_date: "تا تاریخ", reason: "علت", processes: "فقط این فرایندها" }
+  const processes = useQuery({ queryKey: ["workflow", "process-lookup"], queryFn: () => unwrap(api.GET("/api/workflow/process-lookup/")), staleTime: 5 * 60_000 })
+  const processOptions = (processes.data ?? []).map((p) => ({ value: String(p.id), label: p.title }))
   const [today] = React.useState(() => toJalaliString(new Date()))
-  const form = useAppForm(schema, { principal: null, delegate: null, start_date: today, end_date: "", reason: "" })
+  const form = useAppForm(schema, { principal: null, delegate: null, start_date: today, end_date: "", reason: "", processes: [] })
   const save = useMutation({
     mutationFn: (v: z.output<typeof schema>) =>
       unwrap(
         api.POST("/api/delegations/", {
-          body: { principal: v.principal?.id, delegate: v.delegate!.id, start_date: v.start_date, end_date: v.end_date, reason: v.reason },
+          body: {
+            principal: v.principal?.id,
+            delegate: v.delegate!.id,
+            start_date: v.start_date,
+            end_date: v.end_date,
+            reason: v.reason,
+            processes: v.processes.map(Number),
+          },
         })
       ),
     onSuccess: (d) => {
@@ -53,7 +64,7 @@ export function DelegationSheet({ choosePrincipal, open, onOpenChange }: { choos
   })
 
   return (
-    <FormSheet open={open} onOpenChange={onOpenChange} title="جانشین جدید" description="در این بازه، همه‌ی کارهای اصیل در همه‌ی فرایندها و فرم‌ها به کارتابل جانشین هم می‌رسد." onSubmit={onSubmit} submitting={save.isPending}>
+    <FormSheet open={open} onOpenChange={onOpenChange} title="جانشین جدید" description="در این بازه، کارهای اصیل به کارتابل جانشین هم می‌رسد: در همه‌ی فرایندها، یا اگر فرایندهایی انتخاب کنید فقط در همان‌ها. برای یک فرایند، جانشین ویژه‌ی همان فرایند بر جانشین کامل مقدم است." onSubmit={onSubmit} submitting={save.isPending}>
       <ErrorSummary errors={form.formState.errors} labels={LABELS} submitCount={form.formState.submitCount} />
       <FormGrid>
         {choosePrincipal && (
@@ -94,6 +105,17 @@ export function DelegationSheet({ choosePrincipal, open, onOpenChange }: { choos
           label={LABELS.reason}
           render={({ field, id, aria }) => <Input id={id} maxLength={200} {...field} {...aria} />}
         />
+        {processOptions.length > 0 && (
+          <FormField
+            control={form.control}
+            name="processes"
+            label={LABELS.processes}
+            description="خالی یعنی جانشینی کامل در همه‌ی فرایندها."
+            render={({ field, id, aria }) => (
+              <SearchPicker id={id} options={processOptions} multiple value={field.value} onChange={field.onChange} onBlur={field.onBlur} placeholder="همه‌ی فرایندها" {...aria} />
+            )}
+          />
+        )}
       </FormGrid>
     </FormSheet>
   )

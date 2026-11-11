@@ -79,6 +79,8 @@ test.describe("حساب من", () => {
     await expect(other.getByText(/خانم زهرا موسوی از .+ جانشین آقای نیما حسابی شد\./)).toBeVisible()
     const rows = isMobile(other) ? mine.getByRole("listitem") : mine.locator("tbody tr")
     await expect(rows.filter({ hasText: "جاری" })).toHaveCount(1)
+    // بی فرایند انتخاب‌شده، جانشینی کامل است
+    await expect(rows.filter({ hasText: "جاری" })).toContainText("همه‌ی فرایندها")
     await expectAccessible(other)
 
     await page.goto("/admin/delegations")
