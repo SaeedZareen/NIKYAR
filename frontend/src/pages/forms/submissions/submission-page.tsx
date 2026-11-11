@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button"
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty"
 import { Skeleton } from "@/components/ui/skeleton"
 import { api, errorMessage, unwrap } from "@/lib/api/client"
-import { formatDateTime } from "@/lib/format"
+import { formatDateTime, toFaDigits } from "@/lib/format"
 import { editUrl, printUrl, submissionInfo, submissionUrl } from "./links"
 import { SubmissionSummary } from "./submission-summary"
 
@@ -43,7 +43,7 @@ export default function SubmissionPage() {
   return (
     <div className="flex flex-col gap-4">
       <PageHeader
-        title={s.form_title}
+        title={s.number ? `${s.form_title} ${toFaDigits(s.number)}` : s.form_title}
         meta={s.editable_until ? `ویرایش تا ${formatDateTime(s.editable_until)}` : undefined}
         breadcrumbs={own ? [{ label: "ثبت‌های من", to: "/forms/mine" }] : [{ label: "ثبت‌های فرم‌ها", to: "/forms/reports" }, { label: s.form_title, to: `/forms/reports/${s.form}` }]}
         actions={

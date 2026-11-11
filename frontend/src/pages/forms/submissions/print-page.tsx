@@ -74,7 +74,7 @@ export default function SubmissionPrintPage() {
           <Printer /> چاپ
         </Button>
       </div>
-      <article className="mx-auto flex max-w-[210mm] flex-col gap-4 rounded-md border bg-background p-[12mm] text-foreground shadow-sm print:max-w-none print:rounded-none print:border-0 print:p-0 print:shadow-none">
+      <article className="mx-auto flex max-w-[210mm] flex-col gap-4 rounded-md border bg-background p-4 text-foreground sm:p-[12mm] shadow-sm print:max-w-none print:rounded-none print:border-0 print:p-0 print:shadow-none">
         <header className="flex items-center gap-4 border-b-2 border-foreground pb-3">
           {logoUrl && <img src={logoUrl} alt={`لوگوی ${orgName}`} className="size-16 shrink-0 object-contain" />}
           <div className="min-w-0 flex-1">

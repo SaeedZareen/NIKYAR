@@ -55,7 +55,7 @@ test.describe("ثبت‌های فرم", () => {
 
     // مشاهده: مشخصات ثبت و مقدارهای خوانا
     await page.goto(`/forms/submissions/${second.id}`)
-    await expect(page.getByRole("heading", { level: 1, name: title })).toBeVisible()
+    await expect(page.getByRole("heading", { level: 1, name: `${title} گز-۰۰۲` })).toBeVisible()
     const info1 = page.getByRole("region", { name: "مشخصات ثبت" })
     await expect(info1).toContainText("گز-۰۰۲")
     const values = page.getByRole("region", { name: "اطلاعات فرم" })
