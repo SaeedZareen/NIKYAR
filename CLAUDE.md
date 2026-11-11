@@ -9,6 +9,7 @@ Modular Persian BPMS/ERP for on-premise installs in Iran (10–500 users). The p
 - Keep docs current without being asked (owner rule): every package updates `ROADMAP.md` (status, implementation decisions, waiting list), `ARCHITECTURE.md`, `README.md` and `docs/CHANGELOG.md` as needed. When the owner approves a package ("تایید"، "start"), record the approval date in `ROADMAP.md` before starting the next one.
 - Owner requests go to the roadmap's waiting list with a target package; answer "is it in this phase?" questions there.
 - A phase ends with its release package (`X.R`): review, full tests, version bump (`VERSION` in `backend/config/settings.py`; the UI reads it from `/api/org/branding/`), changelog, tag. Tag pushes fail from the cloud environment: give the owner the `git tag`/`git push origin <tag>` commands.
+- Commands for the owner run in Windows PowerShell 5 (no `&&`): one command per code block, in order.
 - Rolling-wave planning: detail the next phase's packages in the roadmap and get approval before starting it.
 
 ## Stack

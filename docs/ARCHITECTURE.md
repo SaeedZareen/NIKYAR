@@ -93,7 +93,7 @@
 - فایل‌های خود تعریف (ویژگی `file`: تصویر و فایل راهنما) را `service.save_definition` تصاحب و `service.release_unused` فقط وقتی هیچ نسخه‌ای از هیچ فرمی از آن‌ها استفاده نکند حذف می‌کند.
 - «مقدار یکتا» هنگام ثبت نهایی میان ثبت‌های نهایی همان فرم سنجیده می‌شود؛ شماره‌ی ثبت با شمارنده‌ی `form-شناسه` در `core.numbering` و فقط در نخستین ثبت نهایی صادر می‌شود.
 
-**پذیرش** (`acceptance.py`): بازه‌ی پذیرش با زمان سرور، ظرفیت کل، سقف ثبت هر کاربر در دوره‌ی شمسی (روز، ماه، سال یا در کل)، محدودیت ثبت پیاپی (۱۰ در دقیقه) و مهلت ویرایش. ثبت نهایی پس از قفل ردیف فرم سنجیده می‌شود؛ وضعیت (`availability`) در `available/` و `fill/` می‌آید.
+**پذیرش** (`acceptance.py`): بازه‌ی پذیرش با زمان سرور، ظرفیت کل، سقف ثبت هر کاربر در دوره‌ی شمسی (روز، ماه، سال یا در کل)، محدودیت ثبت پیاپی (`FORMS_SUBMIT_RATE`، پیش‌فرض ۱۰ در دقیقه، با `NIKYAR_SUBMIT_RATE`) و مهلت ویرایش. ثبت نهایی پس از قفل ردیف فرم سنجیده می‌شود؛ وضعیت (`availability`) در `available/` و `fill/` می‌آید.
 
 **پس از ثبت و اعلان‌ها:** کار پس از ثبت (`after_submit`: بازگشت، صفحه‌ی تأیید یا نشانی) در تنظیمات فرم؛ اعلان‌های `forms.submitted` (به ثبت‌کننده) و `forms.new_submission` (به کاربران و نقش‌های تعیین‌شده) پس از ثبت قطعی. در فرم بی‌نام بینندگان نام و شناسه‌ی ثبت‌کننده را نمی‌بینند. کار روزانه‌ی `forms.old_drafts` پیش‌نویس‌های قدیمی را با فایل‌هایشان حذف می‌کند.
 
@@ -104,6 +104,7 @@
 **مرورگر** (`components/form-renderer`):
 
 - `definition.ts` نوع‌های تعریف و تبدیل داده‌ی ذخیره‌شده ↔ حالت ورودی‌ها ↔ داده‌ی ارسالی (`toFormValues`، `toPayload`، `screenKey` برای شماره‌ی خطای موردهای گروه)؛ چیدمان با `spanClass`، `labelLayout`، `optionColumnsClass` و `FormGrid fixed` (ستون‌ها از پهنای تبلت، یکسان در طراح و پر کردن).
+- `org-options.ts` نام واحدها، کاربران و سمت‌ها برای انتخاب و نمایش.
 - `FormRenderer` و `FieldView` (هر بخش یک `Section`، هر فیلد یک `FormField` کیت؛ نشانه‌ی الزامی با `RequiredMarkContext`، شماره‌ی فیلدها، فیلد پنهان دیده نمی‌شود)؛ کنترل‌ها در `basic-fields`، `special-fields`، `system-fields`، `group-fields` (useFieldArray؛ جدول، کارت، فهرست) و `media-fields` (پیوند، متن غنی، صدا، بارکد، موقعیت، تصویر، فایل راهنما).
 - `use-form-steps.ts` و `form-steps.tsx` فرم مرحله‌ای؛ `value-view.tsx` نمایش فقط‌خواندنی مقدارها (`FormSummary`: پنجره‌ی «مرور و تأیید نهایی» پیش از هر ثبت، و با `submitted` مشاهده و چاپ ثبت‌ها با امضا و مشخصات ذخیره‌شده)؛ `value-text.ts` متن یک‌خطی هر مقدار و `useNames` (نام کاربر، واحد، سمت و قلم فهرست) برای ستون‌های جدول ثبت‌ها، جست‌وجو و خروجی اکسل.
 - ویرایشگر متن قالب‌دار (`components/rich-text.tsx`، Tiptap با React.lazy) فقط وقتی فرم آن را دارد بارگذاری می‌شود.
@@ -114,9 +115,9 @@
 
 **API:**
 
-- `/api/forms/`: فرم‌ها و تنظیمات؛ `available/` (فرم‌های قابل پر کردن با وضعیت پذیرش)، `field-types/`، `regions/`، `templates/` و `templates/<key>/`، `import/`، `<id>/fill/`، `<id>/new-draft/`، `<id>/export/?version=`.
+- `/api/forms/`: فرم‌ها و تنظیمات؛ `available/` (فرم‌های قابل پر کردن با وضعیت پذیرش)، `viewable/` (فرم‌هایی که ثبت‌هایشان را می‌بیند، با شمار ثبت‌ها)، `<id>/report/` (ثبت‌های نهایی با تعریف آخرین نسخه‌ی منتشرشده)، `field-types/`، `regions/`، `templates/` و `templates/<key>/`، `import/`، `<id>/fill/`، `<id>/new-draft/`، `<id>/export/?version=`.
 - `/api/forms/versions/`: ویرایش تعریف پیش‌نویس، `publish/`؛ جزئیات نسخه طرح `schema` را هم دارد.
-- `/api/forms/submissions/`: `data` و `submit`؛ `?mine=true`؛ جزئیات هر ثبت `context` نسخه‌ی خودش و `editable_until` را دارد.
+- `/api/forms/submissions/`: `data` و `submit`؛ فیلتر `mine`، `form` و `status`، جست‌وجو (`search`: شماره و عنوان فرم) و مرتب‌سازی (`number`، `updated_at`، `submitted_at`)؛ جزئیات هر ثبت `context` نسخه‌ی خودش و `editable_until` را دارد؛ `created_by` در فرم بی‌نام برای دیگران `null` است.
 
 ### تنظیمات
 
@@ -137,22 +138,22 @@ nikyar_settings = [SettingsSection(code="org-profile", title="مشخصات سا�
 
 | مسیر | محتوا |
 |---|---|
-| `app/` | نشست و نگهبان ورود (`auth.tsx`)، مسیرها با نگهبان مجوز (`router.tsx`)، منو با مجوز هر بخش و گروه‌های «کار من»، «فرم‌ساز»، «سازمان و کاربران»، «پیکربندی»، «نگه‌داری سامانه» و «کیت رابط کاربری» (`navigation.ts`؛ مورد فعال با `activeUrl`: دقیق‌ترین پیوند، تا «/forms/design» «فرم‌ها» را فعال نکند)، QueryClient، و هوک‌های داده‌ی سراسری: `branding`، `work-calendar`، `notifications`، `license`، `delegations`، `lookups`، `forms` (کلیدها، نقش‌ها برای انتخاب، کاتالوگ نوع فیلدها)؛ حالت‌های مسیر (`route-states.tsx`: بارگذاری، `PageError` برای خطای داده‌ی اصلی صفحه، بی‌مجوز) |
-| `lib/` | `format.ts` (ارقام فارسی، مبلغ، حجم فایل، تاریخ شمسی)، `format.ts` همچنین `numberToWords` (مبلغ به حروف) و `formatDuration`؛ `validators.ts` (شناسه‌های ایرانی + طرح‌های zod)، `banks.ts` (نام بانک از شبا و کارت، فقط نمایشی)، `files.ts` (بارگذاری با پیشرفت)، `api/` (کارخواه با نوع‌های خودکار، `unwrap` و `ApiError` با پیام فارسی) |
+| `app/` | نشست و نگهبان ورود (`auth.tsx`)، مسیرها با نگهبان مجوز (`router.tsx`)، منو با مجوز هر بخش و گروه‌های «کار من»، «فرم‌ساز»، «سازمان و کاربران»، «پیکربندی»، «نگه‌داری سامانه» و «کیت رابط کاربری» (`navigation.ts`؛ مورد فعال با `activeUrl`: دقیق‌ترین پیوند، تا «/forms/design» «فرم‌ها» را فعال نکند)، QueryClient، و هوک‌های داده‌ی سراسری: `branding`، `work-calendar`، `notifications`، `license`، `delegations`، `lookups`، `forms` (کلیدها، نقش‌ها برای انتخاب، کاتالوگ نوع فیلدها)؛ حالت‌های مسیر (`route-states.tsx`: بارگذاری، `PageError` برای خطای داده‌ی اصلی صفحه، بی‌مجوز). دسترسی هر مورد منو و مسیر با `isAllowed` (کد مجوز، `superuser`، یا `forms-viewer` از پرچم نشست) |
+| `lib/` | `format.ts` (ارقام فارسی، مبلغ، حجم فایل، تاریخ شمسی، `numberToWords` برای مبلغ به حروف، `formatDuration`)؛ `validators.ts` (شناسه‌های ایرانی + طرح‌های zod)، `banks.ts` (نام بانک از شبا و کارت، فقط نمایشی)، `files.ts` (بارگذاری با پیشرفت، `fileUrl`، `useFileInfo`)، `rich-text.ts` (کلاس و نوع‌های مشترک متن قالب‌دار)، `api/` (کارخواه با نوع‌های خودکار، `unwrap` و `ApiError` با پیام فارسی) |
 | `components/ui/` | اجزای shadcn — فقط با `npx shadcn@latest add <name>`؛ تغییرها حداقلی و توضیح‌دار (ترجمه‌ی متن‌ها، `containerClassName` جدول، پر شدن راست‌به‌چپ نوار پیشرفت) |
 | `components/layout/` | پوسته: نوار بالا (زنگوله‌ی اعلان، منوی کاربر)، منوی کناری، زبانه‌های صفحه‌های باز (با دکمه‌ی جابه‌جایی)، جست‌وجوی سراسری، `PageHeader`، `Section`، `SectionNav`، نوار وضعیت لایسنس، `BrandMark` |
 | `components/data-table/` | جدول داده‌ی کامل روی TanStack Table v9 |
 | `components/form/` | `useAppForm`، `FormField`، `StaticField` (فقط‌خواندنی با همان چیدمان)، `FormGrid` (با `columns` بیشینه‌ی ستون؛ `fixed` برای ستون‌های ثابت فرم‌ساز)، `ErrorSummary` (خطاهای تودرتو هم)، فیلدهای ایرانی و `JalaliDateInput` و `TimeInput` و `MoneyInput` (تومان یا ریال) و `PlateInput` (پلاک خودرو) (`inputs.tsx`)، `FormSheet` (پانل ویرایش، با اقدام فرعی)، `SectionForm` (بخش فرم‌دار صفحه)، `TokenInput` (درج نشانه در جای مکان‌نما)، `applyServerErrors`، `UnsavedChangesGuard` |
-| `components/form-renderer/` | نمایشگر فرم‌ساز (بخش «فرم‌ساز» بالاتر): `definition.ts`، `validate.ts` (ajv و `formResolver`)، `rules.ts`، `form-renderer.tsx`، کنترل‌های هر گروه نوع، `use-form-steps.ts`، `value-view.tsx` |
+| `components/form-renderer/` | نمایشگر فرم‌ساز (بخش «فرم‌ساز» بالاتر): `definition.ts`، `validate.ts` (ajv و `formResolver`)، `rules.ts`، `form-renderer.tsx`، کنترل‌های هر گروه نوع، `use-form-steps.ts`، `value-view.tsx`، `value-text.ts` |
 | `components/files/` | `FileDropzone` (نوع‌های مجاز هر فیلد، «عکس با دوربین» و «ضبط صدا» با ضبط‌کننده‌ی گوشی)، `AttachmentList`، `FilePreviewDialog` (تصویر، PDF و پخش صدا)، `ImageInput` (لوگو و امضا)، `FilePicker` (انتخاب یک فایل برای API خاص، بدون input انگلیسی مرورگر) |
 | `components/delegation/` | جدول و پانل جانشین تازه؛ در «حساب من» و صفحه‌ی «جانشینی‌ها» |
-| `components/` (دیگر) | `info-tip.tsx` (راهنمای ⓘ)، `search-picker.tsx` (انتخاب یکی یا چند از فهرست محلی با جست‌وجو و تورفتگی درختی)، `signature-pad.tsx` (امضای دستی و بارگذاری PNG)، `confirm-dialog.tsx` (با `requireText`)، `jalali-calendar.tsx` (تقویم آوان با تعطیلات و روزهای غیرکاری سازمان)، `user-picker.tsx`، `status-badge.tsx`، `description-list.tsx` |
-| `pages/` | پیشخوان، اعلان‌ها، ورود؛ `forms/` («فرم‌ها»، پر کردن با پیش‌نویس خودکار، ویرایش در مهلت، پنجره‌ی مرور پیش از ثبت `review-dialog.tsx`، صفحه‌ی تأیید `confirmation.tsx`؛ `design/`: طراحی فرم‌ها، بخش «فرم‌ساز» بالاتر)؛ `account/` («حساب من» با زبانه در نشانی `?tab=`)؛ `admin/` (کاربران، نقش‌ها، ساختار سازمانی، فهرست‌های پایه، جانشینی‌ها، تقویم کاری، پشتیبان‌گیری، کارهای سامانه، سوابق، لایسنس، تنظیمات)؛ `ui-kit/` (نمونه‌ی اجزا، فقط مدیر کل) |
+| `components/` (دیگر) | `info-tip.tsx` (راهنمای ⓘ)، `search-picker.tsx` (انتخاب یکی یا چند از فهرست محلی با جست‌وجو و تورفتگی درختی)، `signature-pad.tsx` (امضای دستی و بارگذاری PNG)، `confirm-dialog.tsx` (با `requireText`)، `jalali-calendar.tsx` (تقویم آوان با تعطیلات و روزهای غیرکاری سازمان)، `user-picker.tsx`، `status-badge.tsx`، `description-list.tsx`، `rich-text.tsx` و `rich-text-editor.tsx` (نمایش و ویرایش متن قالب‌دار)، `theme-provider.tsx` (پوسته‌ی روشن/تیره) |
+| `pages/` | پیشخوان، اعلان‌ها، ورود؛ `forms/` («فرم‌ها»، پر کردن با پیش‌نویس خودکار، ویرایش در مهلت، پنجره‌ی مرور پیش از ثبت `review-dialog.tsx`، صفحه‌ی تأیید `confirmation.tsx`؛ `submissions/`: ثبت‌های من، ثبت‌های فرم‌ها، مشاهده و چاپ؛ `design/`: طراحی فرم‌ها؛ هر دو در بخش «فرم‌ساز» بالاتر)؛ `account/` («حساب من» با زبانه در نشانی `?tab=`)؛ `admin/` (کاربران، نقش‌ها، ساختار سازمانی، فهرست‌های پایه، جانشینی‌ها، تقویم کاری، پشتیبان‌گیری، کارهای سامانه، سوابق، لایسنس، تنظیمات)؛ `ui-kit/` (نمونه‌ی اجزا، فقط مدیر کل) |
 
 ### جدول داده
 
 ```tsx
-const view = useTableView("employees", { defaultSort: "name" })       // نشانی صفحه + ترجیحات کاربر
+const view = useTableView("employees", { defaultSort: "name" })       // نشانی صفحه + ترجیحات کاربر؛ defaultHidden: ستون‌های پنهان پیش‌فرض
 const table = useDataTable({ view, columns, data, getRowId })          // سمت مرورگر
 // سمت سرور: useQuery({ queryKey: ["employees", view.query], ... }) و rowCount={data.count}
 <DataTable table={table} view={view} caption="…" rowHref={(r) => `/…/${r.id}`} exportFileName="…" />
@@ -183,8 +184,8 @@ const table = useDataTable({ view, columns, data, getRowId })          // سمت
 
 - **سرور:** pytest روی پایگاه SQLite **فایلی** (مثل نصب واقعی؛ آزمون هم‌زمانی واقعی است)، داده و پشتیبان هر آزمون در پوشه‌ی موقت. کار آزمایشی `tests.flaky` در `conftest.py`. آزمونی که پشتیبان می‌گیرد یا بازیابی می‌کند `django_db(transaction=True)` است.
 - **رابط کاربری:** vitest برای منطق: `lib/`، تبدیل‌ها و قاعده‌های نمایشگر فرم، مدل طراح، سازنده‌ی قاعده و فرمول، مقایسه‌ی نسخه‌ها، پیام صفحه‌ی تأیید و مورد فعال منو.
-- **نمونه‌های مشترک** (`shared/vectors/`): داده‌ی آزمونی که آزمون سرور و مرورگر هر دو می‌خوانند تا رفتار دو طرف یکی بماند : `ir-identifiers.json` (شناسه‌های ایرانی) و `form-rules.json` (قاعده‌ها: پنهان، الزامی، فقط‌خواندنی، محاسبه و خطاها)، `form-validation.json` (تعریف، طرح‌ها و خطاهای مورد انتظار؛ ساخته از موتور سرور با `python -m tests.form_vectors`؛ آزمون سرور تازه بودنش را و آزمون مرورگر یکسانی خطاهای ajv را می‌سنجد). قاعده‌های فرم‌ساز در 3.5.
-- **مرورگر (Playwright):** سه اندازه (لپ‌تاپ ۱۰۹۳×۶۰۰ با بزرگ‌نمایی ۱٫۲۵، مانیتور ۱۹۲۰، موبایل) و axe در هر صفحه‌ی مهم.
+- **نمونه‌های مشترک** (`shared/vectors/`): داده‌ی آزمونی که آزمون سرور و مرورگر هر دو می‌خوانند تا رفتار دو طرف یکی بماند: `ir-identifiers.json` (شناسه‌های ایرانی) و `form-rules.json` (قاعده‌ها: پنهان، الزامی، فقط‌خواندنی، محاسبه و خطاها)، `form-validation.json` (تعریف، طرح‌ها و خطاهای مورد انتظار؛ ساخته از موتور سرور با `python -m tests.form_vectors`؛ آزمون سرور تازه بودنش را و آزمون مرورگر یکسانی خطاهای ajv را می‌سنجد).
+- **مرورگر (Playwright):** سه اندازه (لپ‌تاپ ۱۰۹۳×۶۰۰ با بزرگ‌نمایی ۱٫۲۵، مانیتور ۱۹۲۰، موبایل) و axe در هر صفحه‌ی مهم (پوسته‌ی تیره در آزمون پوسته).
   - سرور جدا روی درگاه ۸۱۰۰ با پایگاه تازه (`e2e/start-backend.mjs`) همراه اجراکننده‌ی کارها (هر ثانیه)؛ پیامک و ایمیل در فایل نوشته می‌شوند (`NIKYAR_FAKE_DELIVERY`).
   - سه اندازه هم‌زمان روی یک سرور اجرا می‌شوند: تغییر داده‌ی سراسری (تنظیمات، لایسنس، الگوی شماره) فقط در پروژه‌ی `desktop`؛ داده‌ی هر آزمون یکتا (کاربر تازه، سال جدا برای هر اندازه).
   - آزمون بازیابی پشتیبان در پروژه‌ی جدای `restore` پس از همه‌ی آزمون‌ها و به‌تنهایی.
