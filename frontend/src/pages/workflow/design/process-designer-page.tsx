@@ -1,0 +1,243 @@
+import * as React from "react"
+import { useParams } from "react-router"
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { Maximize, PencilLine, Redo2, Send, Settings2, Undo2, ZoomIn, ZoomOut } from "lucide-react"
+import { toast } from "sonner"
+import { DESIGN_PROCESSES_KEY } from "@/app/forms"
+import { PageHeader } from "@/components/layout/page-header"
+import { Section } from "@/components/layout/section"
+import { useTheme } from "@/components/theme-provider"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Spinner } from "@/components/ui/spinner"
+import { useIsMobile } from "@/hooks/use-mobile"
+import { api, errorMessage, unwrap, type Schemas } from "@/lib/api/client"
+import { formatDateTime, formatNumber, toFaDigits } from "@/lib/format"
+import { ProcessCanvas, type CanvasHandle } from "./process-canvas"
+import { ProcessSheet } from "./process-sheet"
+
+type Version = Schemas["ProcessVersionDetail"]
+type Save = { kind: "saved" | "saving" | "error"; at?: Date; message?: string }
+const AUTOSAVE_MS = 800
+const GENERAL: Record<string, string> = { bpmn: "کل فرایند", form: "فرم اصلی" }
+
+/** فرایندساز: بوم bpmn-js، ذخیره‌ی خودکار پیش‌نویس، ایرادهای انتشار روی عنصرها، انتشار و پیش‌نویس تازه. */
+export default function ProcessDesignerPage() {
+  const id = useParams().processId ?? ""
+  const qc = useQueryClient()
+  const process = useQuery({ queryKey: [...DESIGN_PROCESSES_KEY, "process", id], queryFn: () => unwrap(api.GET("/api/workflow/processes/{id}/", { params: { path: { id } } })) })
+  const versionId = process.data ? (process.data.draft_version ?? null) : undefined
+  const versions = useQuery({
+    queryKey: [...DESIGN_PROCESSES_KEY, "versions", id],
+    queryFn: () => unwrap(api.GET("/api/workflow/versions/", { params: { query: { process: id } } })),
+    enabled: versionId === null,
+  })
+  const current = versionId ?? versions.data?.[0]?.id
+  const version = useQuery({
+    queryKey: [...DESIGN_PROCESSES_KEY, "version", current],
+    queryFn: () => unwrap(api.GET("/api/workflow/versions/{id}/", { params: { path: { id: current! } } })),
+    enabled: current !== undefined,
+  })
+  if (!process.data || !version.data) {
+    return (
+      <>
+        <PageHeader title="فرایندساز" breadcrumbs={[{ label: "طراحی فرایندها", to: "/workflow/design" }]} />
+        {process.error || version.error ? <p className="text-xs text-destructive">{errorMessage(process.error ?? version.error)}</p> : <Skeleton className="h-96 w-full" />}
+      </>
+    )
+  }
+  return (
+    <Designer
+      key={version.data.id}
+      process={process.data}
+      version={version.data}
+      onReload={() => {
+        qc.invalidateQueries({ queryKey: DESIGN_PROCESSES_KEY })
+      }}
+    />
+  )
+}
+
+function Designer({ process, version, onReload }: { process: Schemas["Process"]; version: Version; onReload: () => void }) {
+  const mobile = useIsMobile()
+  const { resolvedTheme } = useTheme()
+  const readOnly = version.status !== "draft" || mobile
+  const canvas = React.useRef<CanvasHandle>(null)
+  // متن آخرین ذخیره؛ بوم فقط هنگام ساخت (نسخه یا پوسته‌ی تازه) آن را می‌خواند
+  const [snapshot, setSnapshot] = React.useState(version.bpmn)
+  const [problems, setProblems] = React.useState<Record<string, string>>(version.problems)
+  const [labels, setLabels] = React.useState<Record<string, string | null>>({})
+  const describe = React.useCallback((found: Record<string, string>) => {
+    const handle = canvas.current
+    if (handle) setLabels(Object.fromEntries(Object.keys(found).map((key) => [key, handle.label(key)])))
+  }, [])
+  const [save, setSave] = React.useState<Save>({ kind: "saved" })
+  const [dirty, setDirty] = React.useState(false)
+  const [history, setHistory] = React.useState({ undo: false, redo: false })
+  const [editing, setEditing] = React.useState(false)
+  const timer = React.useRef<number | undefined>(undefined)
+  // ذخیره‌ها پشت سر هم اجرا می‌شوند تا پاسخ قدیمی‌تر روی تازه‌تر ننشیند
+  const queue = React.useRef(Promise.resolve())
+
+  const persist = React.useCallback(() => {
+    queue.current = queue.current.then(async () => {
+      const handle = canvas.current
+      if (!handle) return
+      setSave({ kind: "saving" })
+      setDirty(false)
+      try {
+        const xml = await handle.save()
+        const saved = await unwrap(api.PATCH("/api/workflow/versions/{id}/", { params: { path: { id: version.id } }, body: { bpmn: xml } }))
+        setSnapshot(xml)
+        setProblems(saved.problems)
+        describe(saved.problems)
+        setSave({ kind: "saved", at: new Date() })
+      } catch (e) {
+        setSave({ kind: "error", message: errorMessage(e) })
+      }
+    })
+  }, [version.id, describe])
+
+  const onChange = React.useCallback(() => {
+    setDirty(true)
+    window.clearTimeout(timer.current)
+    timer.current = window.setTimeout(persist, AUTOSAVE_MS)
+  }, [persist])
+  React.useEffect(() => () => window.clearTimeout(timer.current), [])
+
+  const publish = useMutation({
+    mutationFn: () => unwrap(api.POST("/api/workflow/versions/{id}/publish/", { params: { path: { id: version.id } } })),
+    onSuccess: () => {
+      toast.success(`نسخه‌ی ${toFaDigits(version.number)} منتشر شد؛ درخواست‌های تازه با همین نسخه شروع می‌شوند.`)
+      onReload()
+    },
+    onError: (e) => toast.error(errorMessage(e)),
+  })
+  const newDraft = useMutation({
+    mutationFn: () => unwrap(api.POST("/api/workflow/processes/{id}/new-draft/", { params: { path: { id: String(process.id) } } })),
+    onSuccess: () => onReload(),
+    onError: (e) => toast.error(errorMessage(e)),
+  })
+
+  const problemList = Object.entries(problems)
+  const status =
+    version.status !== "draft"
+      ? `نسخه‌ی ${toFaDigits(version.number)} منتشرشده · فقط خواندنی`
+      : dirty
+        ? "تغییرها چند لحظه‌ی دیگر ذخیره می‌شوند…"
+        : {
+            saved: `پیش‌نویس نسخه‌ی ${toFaDigits(version.number)}${save.at ? ` · ذخیره شد ${formatDateTime(save.at)}` : ""}`,
+            saving: "در حال ذخیره‌ی پیش‌نویس…",
+            error: `ذخیره نشد: ${save.message}`,
+          }[save.kind]
+
+  return (
+    <div className="flex flex-col gap-3">
+      <PageHeader
+        title={process.title}
+        breadcrumbs={[{ label: "طراحی فرایندها", to: "/workflow/design" }]}
+        meta={<span aria-live="polite">{status}</span>}
+        actions={
+          <>
+            {!readOnly && (
+              <>
+                <Button variant="ghost" size="icon" aria-label="واگرد (Ctrl+Z)" disabled={!history.undo} onClick={() => canvas.current?.undo()}>
+                  <Undo2 />
+                </Button>
+                <Button variant="ghost" size="icon" aria-label="ازنو (Ctrl+Y)" disabled={!history.redo} onClick={() => canvas.current?.redo()}>
+                  <Redo2 />
+                </Button>
+              </>
+            )}
+            <Button variant="outline" onClick={() => setEditing(true)}>
+              <Settings2 /> مشخصات
+            </Button>
+            {version.status !== "draft" ? (
+              !mobile && (
+                <Button disabled={newDraft.isPending} onClick={() => newDraft.mutate()}>
+                  {newDraft.isPending ? <Spinner /> : <PencilLine />} ویرایش فرایند
+                </Button>
+              )
+            ) : (
+              <Button disabled={publish.isPending || dirty || save.kind !== "saved" || problemList.length > 0} onClick={() => publish.mutate()}>
+                {publish.isPending ? <Spinner /> : <Send />} انتشار
+              </Button>
+            )}
+          </>
+        }
+      />
+      {mobile && (
+        <Alert>
+          <AlertDescription>روی موبایل فقط نمودار فرایند دیده می‌شود؛ برای طراحی از رایانه یا لپ‌تاپ استفاده کنید.</AlertDescription>
+        </Alert>
+      )}
+      {!mobile && version.status !== "draft" && (
+        <Alert>
+          <AlertDescription>این نسخه منتشر شده و درخواست‌ها با همین مسیر جلو می‌روند. برای تغییر، «ویرایش فرایند» را بزنید تا پیش‌نویس تازه‌ای ساخته شود؛ درخواست‌های در جریان با نسخه‌ی خودشان تمام می‌شوند.</AlertDescription>
+        </Alert>
+      )}
+      <div className="grid items-start gap-3 xl:grid-cols-[minmax(0,1fr)_20rem]">
+        <Section
+          title="نمودار فرایند"
+          description="از نوار ابزار کنار بوم عنصر بکشید یا روی یک عنصر بزنید و از منوی کنارش مرحله‌ی بعد را بیفزایید؛ با دوبار زدن، عنوان را بنویسید. همه‌چیز خودکار ذخیره می‌شود."
+          actions={
+            <div className="flex gap-1">
+              <Button variant="ghost" size="icon" aria-label="بزرگ‌نمایی" onClick={() => canvas.current?.zoom(0.2)}>
+                <ZoomIn />
+              </Button>
+              <Button variant="ghost" size="icon" aria-label="کوچک‌نمایی" onClick={() => canvas.current?.zoom(-0.2)}>
+                <ZoomOut />
+              </Button>
+              <Button variant="ghost" size="icon" aria-label="نمایش کل نمودار" onClick={() => canvas.current?.fit()}>
+                <Maximize />
+              </Button>
+            </div>
+          }
+          contentClassName="p-0"
+        >
+          <ProcessCanvas
+            key={`${readOnly}-${resolvedTheme}`}
+            ref={canvas}
+            xml={snapshot}
+            readOnly={readOnly}
+            problems={problems}
+            onChange={onChange}
+            onHistory={(undo, redo) => setHistory({ undo, redo })}
+            onReady={() => describe(problems)}
+            className="h-[max(26rem,calc(100svh-17rem))]"
+          />
+        </Section>
+        {version.status === "draft" && (
+          <Section title="ایرادهای انتشار" meta={problemList.length ? `${formatNumber(problemList.length)} ایراد` : "آماده‌ی انتشار"}>
+            {problemList.length === 0 ? (
+              <p className="text-xs text-muted-foreground">ایرادی نیست؛ فرایند آماده‌ی انتشار است.</p>
+            ) : (
+              <ul className="flex flex-col gap-2">
+                {problemList.map(([key, message]) => {
+                  const label = GENERAL[key] ?? labels[key] ?? "عنصر"
+                  return (
+                    <li key={key}>
+                      {key in GENERAL ? (
+                        <p className="text-xs">
+                          <span className="font-medium">{label}: </span>
+                          {message}
+                        </p>
+                      ) : (
+                        <button type="button" className="w-full rounded-md border px-2 py-1.5 text-start text-xs hover:bg-muted/50" onClick={() => canvas.current?.focus(key)}>
+                          <span className="font-medium">{label}</span>
+                          <span className="block text-muted-foreground">{message}</span>
+                        </button>
+                      )}
+                    </li>
+                  )
+                })}
+              </ul>
+            )}
+          </Section>
+        )}
+      </div>
+      {editing && <ProcessSheet process={process} open onOpenChange={setEditing} />}
+    </div>
+  )
+}

@@ -1,0 +1,35 @@
+/* بوم فرایندساز (bpmn-js) با توکن‌های پوسته‌ی نیک‌یار؛ پوسته‌ی روشن و تیره. */
+.nk-bpmn {
+  --canvas-fill-color: var(--background);
+  --palette-background-color: var(--card);
+  --palette-border-color: var(--border);
+  --palette-entry-color: var(--foreground);
+  --palette-entry-hover-color: var(--primary);
+  --palette-entry-selected-color: var(--primary);
+  --palette-separator-color: var(--border);
+  --context-pad-entry-background-color: var(--card);
+  --context-pad-entry-hover-background-color: var(--accent);
+  --element-selected-outline-stroke-color: var(--primary);
+  --element-selected-outline-secondary-stroke-color: var(--ring);
+  --bio-canvas-accent: var(--primary);
+  --bio-selected-surface: var(--accent);
+  --hover-tooltip-font-family: var(--font-sans);
+  --popup-font-family: var(--font-sans);
+  background: var(--background);
+}
+
+.nk-bpmn .djs-context-pad .entry {
+  color: var(--foreground);
+}
+
+/* عنصر دارای ایراد انتشار: کادر قرمز */
+.nk-bpmn .djs-element.nk-error .djs-visual > :first-child {
+  stroke: var(--destructive) !important;
+  stroke-width: 2.5px !important;
+}
+
+/* مرحله‌ی دیدنی در پیگیری و برجسته کردن پس از انتخاب ایراد */
+.nk-bpmn .djs-element.nk-focus .djs-visual > :first-child {
+  stroke: var(--primary) !important;
+  stroke-width: 3px !important;
+}

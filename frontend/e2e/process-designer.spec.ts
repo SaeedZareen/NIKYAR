@@ -1,0 +1,90 @@
+import { expect, test, type Page } from "@playwright/test"
+import { collectErrors, expectAccessible, isMobile } from "./helpers"
+
+async function call(page: Page, method: string, url: string, body?: unknown) {
+  return page.evaluate(
+    async ({ method, url, body }) => {
+      const token = decodeURIComponent(document.cookie.match(/csrftoken=([^;]+)/)?.[1] ?? "")
+      const r = await fetch(url, { method, headers: { "Content-Type": "application/json", "X-CSRFToken": token }, body: body ? JSON.stringify(body) : undefined })
+      return r.json()
+    },
+    { method, url, body }
+  )
+}
+
+/** فرم منتشرشده‌ی یکتا برای فرم اصلی فرایند. */
+async function publishedForm(page: Page, title: string) {
+  await page.goto("/forms")
+  const code = `wf-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 6)}`
+  const form = await call(page, "POST", "/api/forms/", { code, title, fill_by_everyone: true })
+  const definition = { sections: [{ id: "s", fields: [{ id: "subject", type: "text", label: "موضوع", required: true }] }] }
+  await call(page, "PATCH", `/api/forms/versions/${form.draft_version}/`, { definition })
+  await call(page, "POST", `/api/forms/versions/${form.draft_version}/publish/`)
+  return form as { id: number }
+}
+
+const unique = (prefix: string) => `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`
+
+test.describe("فرایندساز", () => {
+  test("فرایند تازه، افزودن مرحله روی بوم، ایراد زنده، واگرد و انتشار", async ({ page }, info) => {
+    test.skip(isMobile(page), "طراحی روی رایانه؛ موبایل در آزمون بعد")
+    const errors = collectErrors(page)
+    const formTitle = `فرم فرایند ${info.project.name} ${Date.now()}`
+    await publishedForm(page, formTitle)
+    const title = `فرایند آزمون ${info.project.name} ${Date.now()}`
+
+    await page.goto("/workflow/design")
+    await expect(page.getByRole("heading", { level: 1, name: "طراحی فرایندها" })).toBeVisible()
+    await page.getByRole("button", { name: "فرایند جدید" }).click()
+    const sheet = page.getByRole("dialog", { name: "فرایند جدید" })
+    await sheet.getByLabel("عنوان", { exact: true }).fill(title)
+    await sheet.getByLabel("شناسه", { exact: true }).fill(unique("p"))
+    await sheet.getByRole("combobox", { name: "فرم اصلی" }).click()
+    await page.getByRole("option", { name: formTitle }).click()
+    await sheet.getByRole("button", { name: "ذخیره" }).click()
+
+    await expect(page.getByRole("heading", { level: 1, name: title })).toBeVisible()
+    const canvas = page.getByRole("region", { name: "بوم فرایند" })
+    await expect(canvas.locator('[data-element-id="StartEvent_1"]')).toBeVisible()
+    const problems = page.getByRole("region", { name: "ایرادهای انتشار" })
+    await expect(problems).toContainText("ایرادی نیست")
+    await expectAccessible(page)
+
+    // افزودن کار کاربری از منوی کنار رویداد شروع (برچسب‌ها فارسی‌اند)
+    await canvas.locator('[data-element-id="StartEvent_1"]').click()
+    await canvas.locator('.djs-context-pad [title="افزودن کار کاربری"]').click()
+    await expect(canvas.locator('[data-element-id^="Activity_"]')).toHaveCount(1)
+    await expect(problems).toContainText("کار کاربری بی‌عنوان")
+    await expect(page.getByText(/ذخیره شد/)).toBeVisible()
+    await expect(page.getByRole("button", { name: "انتشار" })).toBeDisabled()
+    // فقط عنصرهای پشتیبانی‌شده در نوار ابزار
+    const palette = canvas.locator(".djs-palette")
+    await expect(palette.getByRole("button", { name: "کار کاربری (مرحله‌ای که کسی انجام می‌دهد)" })).toBeVisible()
+    await expect(palette.getByRole("button", { name: "دروازه‌ی موازی (همه‌ی مسیرها)" })).toBeVisible()
+    await expect(canvas.locator(".djs-palette .bpmn-icon-subprocess-expanded")).toHaveCount(0)
+
+    // زدن ایراد، عنصر را برمی‌گزیند؛ واگرد آن را برمی‌دارد و ذخیره می‌شود
+    await problems.getByRole("button").first().click()
+    await page.getByRole("button", { name: "واگرد (Ctrl+Z)" }).click()
+    await expect(canvas.locator('[data-element-id^="Activity_"]')).toHaveCount(0)
+    await expect(problems).toContainText("ایرادی نیست")
+
+    await page.getByRole("button", { name: "انتشار" }).click()
+    await expect(page.getByText("نسخه‌ی ۱ منتشر شد", { exact: false })).toBeVisible()
+    await expect(page.getByRole("button", { name: "ویرایش فرایند" })).toBeVisible()
+    await expect(page.getByRole("region", { name: "نمودار فقط‌خواندنی" })).toBeVisible()
+    await expectAccessible(page)
+    expect(errors).toEqual([])
+  })
+
+  test("روی موبایل فقط نمودار دیده می‌شود", async ({ page }, info) => {
+    test.skip(!isMobile(page))
+    const form = await publishedForm(page, `فرم موبایل ${info.project.name} ${Date.now()}`)
+    const process = await call(page, "POST", "/api/workflow/processes/", { code: unique("m"), title: "فرایند موبایل", form: form.id })
+    await page.goto(`/workflow/design/${process.id}`)
+    await expect(page.getByText("روی موبایل فقط نمودار فرایند دیده می‌شود", { exact: false })).toBeVisible()
+    await expect(page.getByRole("region", { name: "نمودار فقط‌خواندنی" }).locator('[data-element-id="StartEvent_1"]')).toBeVisible()
+    await expect(page.getByRole("button", { name: "انتشار" })).toBeVisible()
+    await expectAccessible(page)
+  })
+})

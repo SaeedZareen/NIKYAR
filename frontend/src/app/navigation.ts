@@ -1,7 +1,7 @@
 // ساختار منوی اصلی. هر مورد مجوز لازم را اعلام می‌کند و فقط به کاربر دارای مجوز نمایش داده می‌شود.
 // ماژول‌ها در فازهای بعد گروه خودشان را اضافه می‌کنند.
 import type { LucideIcon } from "lucide-react"
-import { Bell, Building2, ClipboardList, FileCheck, FileSpreadsheet, PencilRuler, KeyRound, UserRound, UserRoundCog, CalendarDays, Component, DatabaseBackup, ListChecks, FormInput, History, LayoutDashboard, ListTree, Settings, ShieldCheck, Table2, Users } from "lucide-react"
+import { Bell, Building2, ClipboardList, FileCheck, FileSpreadsheet, PencilRuler, KeyRound, UserRound, UserRoundCog, CalendarDays, Component, DatabaseBackup, ListChecks, FormInput, History, LayoutDashboard, ListTree, Settings, ShieldCheck, Table2, Users, Workflow } from "lucide-react"
 
 /**
  * مجوز مورد نیاز: کد مجوز، "superuser" (فقط مدیر کل؛ راهنمای توسعه)، یا "forms-viewer"
@@ -34,8 +34,11 @@ const navigation: NavGroup[] = [
     ],
   },
   {
-    title: "فرم‌ساز",
-    items: [{ title: "طراحی فرم‌ها", url: "/forms/design", icon: PencilRuler, access: "forms.design", keywords: "فرم‌ساز طراح فرم ساخت فرم انتشار الگو" }],
+    title: "فرم‌ساز و فرایندساز",
+    items: [
+      { title: "طراحی فرم‌ها", url: "/forms/design", icon: PencilRuler, access: "forms.design", keywords: "فرم‌ساز طراح فرم ساخت فرم انتشار الگو" },
+      { title: "طراحی فرایندها", url: "/workflow/design", icon: Workflow, access: "workflow.design", keywords: "فرایندساز گردش کار مرحله تأیید BPMN" },
+    ],
   },
   {
     title: "سازمان و کاربران",
