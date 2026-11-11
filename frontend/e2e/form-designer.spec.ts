@@ -66,7 +66,8 @@ test.describe("طراح فرم", () => {
 
     await page.goto("/forms")
     await page.getByRole("link", { name: title }).click()
-    await expect(page.getByLabel("موضوع درخواست", { exact: true })).toBeVisible()
+    // صفحه‌ی پر کردن پس از انتشار، زیر بار سه پروژه‌ی هم‌زمان گاهی بیش از ۵ ثانیه طول می‌کشد
+    await expect(page.getByLabel("موضوع درخواست", { exact: true })).toBeVisible({ timeout: 15_000 })
     await expect(page.getByRole("radio", { name: "فوری" })).toBeVisible()
     // تنها خطای کنسول، پاسخ ۴۰۰ ذخیره‌ی عمدی تعریف نادرست است.
     expect(errors.filter((e) => !e.includes("status of 400"))).toEqual([])
