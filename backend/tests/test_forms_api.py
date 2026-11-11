@@ -531,3 +531,27 @@ def test_old_drafts_removed(designer, make_user, client_for):
     Submission.objects.filter(pk=old["id"]).update(updated_at=timezone.now() - timedelta(days=8))
     assert remove_old_drafts() == 1
     assert not Submission.objects.filter(pk=old["id"]).exists() and Submission.objects.filter(pk=fresh["id"]).exists()
+
+
+@pytest.mark.django_db(transaction=True)
+def test_report_and_viewable_forms(designer, make_user, client_for):
+    viewer_role = Role.objects.create(name="بیننده‌ی گزارش", permissions=[])
+    viewer = make_user("report_viewer")
+    viewer.roles.add(viewer_role)
+    form = _simple_form(designer, "reported")
+    designer.patch(f"/api/forms/{form['id']}/", {"view_roles": [viewer_role.pk]}, format="json")
+    filler = client_for(make_user("report_filler", first_name="سارا", last_name="محمدی"))
+    _submit(filler, form)
+    _submit(filler, form, submit=False)  # پیش‌نویس در گزارش نمی‌آید
+
+    v = client_for(viewer)
+    assert v.get("/api/auth/session/").json()["forms_viewer"] is True
+    assert filler.get("/api/auth/session/").json()["forms_viewer"] is False
+    listed = {f["code"]: f for f in v.get("/api/forms/viewable/").json()}
+    assert set(listed) == {"reported"} and listed["reported"]["submission_count"] == 1
+    report = v.get(f"/api/forms/{form['id']}/report/").json()
+    assert report["title"] == "reported" and report["truncated"] is False
+    assert [s["created_by_name"] for s in report["submissions"]] == ["سارا محمدی"]
+    assert report["definition"]["sections"][0]["fields"][0]["id"] == "t"
+    # دیگران گزارش را نمی‌بینند
+    assert filler.get(f"/api/forms/{form['id']}/report/").status_code == 403
