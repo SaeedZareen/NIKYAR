@@ -64,6 +64,7 @@ INSTALLED_APPS = [
     "core.delegation",
     "core.licensing",
     "core.forms",
+    "core.workflow",
 ]
 
 AUTH_USER_MODEL = "accounts.User"
