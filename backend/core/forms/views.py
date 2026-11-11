@@ -7,7 +7,7 @@ from django.http import HttpResponse
 from django.utils.http import content_disposition_header
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_field
-from rest_framework import mixins, parsers, serializers, status, viewsets
+from rest_framework import filters, mixins, parsers, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
@@ -16,6 +16,7 @@ from core.accounts.models import Role, User
 from core.audit.models import AuditLog
 from core.audit.service import AuditedModelViewSet, record
 from core.kernel.api import BusinessError, HasPerm, MultiValueFilter
+from core.kernel.collation import PersianOrderingFilter
 from core.lookups.models import LookupItem
 from core.numbering.pattern import validate as validate_pattern
 
@@ -212,6 +213,7 @@ class FormSubmissionSerializer(serializers.ModelSerializer):
     form_title = serializers.CharField(source="form.title", read_only=True)
     version_number = serializers.IntegerField(source="version.number", read_only=True)
     status_label = serializers.CharField(source="get_status_display", read_only=True)
+    created_by = serializers.PrimaryKeyRelatedField(read_only=True, allow_null=True, help_text="در فرم بی‌نام برای دیگران null")
     created_by_name = serializers.SerializerMethodField(help_text="در فرم بی‌نام فقط برای خود ثبت‌کننده")
     editable_until = serializers.SerializerMethodField(help_text="ثبت‌کننده تا این زمان می‌تواند ثبت نهایی را ویرایش کند؛ null یعنی ویرایش‌پذیر نیست")
     data = JsonObjectField(read_only=True)
@@ -447,7 +449,9 @@ class FormViewSet(AuditedModelViewSet):
         forms = (
             service.viewable_forms(request.user)
             .select_related("category")
-            .annotate(submission_count=Count("submissions", filter=submitted, distinct=True), last_submitted_at=Max("submissions__submitted_at", filter=submitted))
+            .annotate(
+                submission_count=Count("submissions", filter=submitted, distinct=True), last_submitted_at=Max("submissions__submitted_at", filter=submitted)
+            )
             .order_by("category__order", "title")
         )
         return Response(ViewableFormSerializer(forms, many=True).data)
@@ -597,8 +601,11 @@ class FormSubmissionViewSet(viewsets.ModelViewSet):
     queryset = Submission.objects.all()  # برای طرح API؛ فهرست واقعی از get_queryset
     permission_classes = [HasPerm]
     perms = {"*": None}
-    filter_backends = [MultiValueFilter]
+    filter_backends = [filters.SearchFilter, PersianOrderingFilter, MultiValueFilter]
     filter_fields = {"form": "form_id", "status": "status"}
+    search_fields = ["number", "form__title"]
+    ordering_fields = ["number", "updated_at", "submitted_at"]
+    ordering = ["-updated_at"]
     http_method_names = ["get", "post", "patch", "delete", "head", "options"]
 
     def get_queryset(self):

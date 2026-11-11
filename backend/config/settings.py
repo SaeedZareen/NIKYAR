@@ -7,6 +7,7 @@ NIKYAR_ALLOWED_HOSTS     نام‌ها/نشانی‌های مجاز، جداشد
 NIKYAR_DB_ENGINE         sqlite (پیش‌فرض) یا postgres
 NIKYAR_DB_NAME/USER/PASSWORD/HOST/PORT   برای PostgreSQL
 NIKYAR_LOGIN_RATE        سقف تلاش ورود از هر IP (پیش‌فرض 10/min)
+NIKYAR_SUBMIT_RATE       سقف ثبت نهایی فرم از هر کاربر در یک دقیقه (پیش‌فرض 10)
 """
 
 import os
@@ -155,6 +156,10 @@ REST_FRAMEWORK = {
     "SEARCH_PARAM": "search",
     "ORDERING_PARAM": "ordering",
 }
+
+# ثبت نهایی پیاپی فرم از یک کاربر (جلوی ثبت انبوه و خودکار؛ forms.acceptance)
+FORMS_SUBMIT_RATE = int(os.environ.get("NIKYAR_SUBMIT_RATE", "10"))
+
 
 SESSION_COOKIE_AGE = 60 * 60 * 10  # یک روز کاری
 SESSION_COOKIE_HTTPONLY = True

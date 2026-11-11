@@ -10,6 +10,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta
 
 import jdatetime
+from django.conf import settings
 from django.utils import timezone
 
 from core.kernel.api import BusinessError
@@ -17,8 +18,6 @@ from core.kernel.validators import fa_digits
 
 from .models import Form, Submission
 
-# ثبت نهایی پیاپی بیش از این در یک دقیقه، از یک کاربر (جلوی ثبت انبوه و خودکار)
-RATE_LIMIT = 10
 PERIOD_TEXT = {"day": "امروز", "month": "این ماه", "year": "امسال"}
 
 
@@ -92,7 +91,8 @@ def check_submit(form: Form, user, now: datetime | None = None) -> None:
     if state.code != "open":
         raise BusinessError(state.message)
     recent = Submission.objects.filter(created_by=user, status=Submission.Status.SUBMITTED, submitted_at__gte=now - timedelta(minutes=1)).count()
-    if recent >= RATE_LIMIT:
+    # ثبت نهایی پیاپی بیش از این در یک دقیقه، از یک کاربر (جلوی ثبت انبوه و خودکار)
+    if recent >= settings.FORMS_SUBMIT_RATE:
         raise BusinessError("ثبت‌های پیاپی بیش از اندازه است؛ یک دقیقه‌ی دیگر دوباره تلاش کنید.")
 
 

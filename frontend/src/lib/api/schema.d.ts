@@ -2245,8 +2245,8 @@ export interface components {
             readonly data: {
                 [key: string]: unknown;
             };
-            /** ثبت‌کننده */
-            readonly created_by: number;
+            /** @description در فرم بی‌نام برای دیگران null */
+            readonly created_by: number | null;
             /** @description در فرم بی‌نام فقط برای خود ثبت‌کننده */
             readonly created_by_name: string;
             /**
@@ -2284,8 +2284,8 @@ export interface components {
             readonly data: {
                 [key: string]: unknown;
             };
-            /** ثبت‌کننده */
-            readonly created_by: number;
+            /** @description در فرم بی‌نام برای دیگران null */
+            readonly created_by: number | null;
             /** @description در فرم بی‌نام فقط برای خود ثبت‌کننده */
             readonly created_by_name: string;
             /**
@@ -4978,10 +4978,14 @@ export interface operations {
                 form?: string;
                 /** @description فقط ثبت‌های خودم */
                 mine?: boolean;
+                /** @description کدام فیلد باید هنگام مرتب‌سازی نتایج استفاده شود. */
+                ordering?: string;
                 /** @description یک شماره صفحه‌ در مجموعه نتایج صفحه‌بندی شده. */
                 page?: number;
                 /** @description تعداد نتایج برای نمایش در هر صفحه. */
                 page_size?: number;
+                /** @description یک عبارت جستجو. */
+                search?: string;
                 /** @description چند مقدار با ویرگول جدا می‌شود. */
                 status?: string;
             };

@@ -21,7 +21,7 @@ export function AppSidebar() {
   const { pathname } = useLocation()
   const { isMobile, setOpenMobile } = useSidebar()
   const { user, can } = useAuth()
-  const groups = visibleNavigation(can, !!user?.is_superuser)
+  const groups = visibleNavigation(user, can)
   const active = activeUrl(pathname)
 
   return (

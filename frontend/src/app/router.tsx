@@ -10,6 +10,11 @@ const HomePage = lazy(() => import("@/pages/home-page"))
 const NotificationsPage = lazy(() => import("@/pages/notifications-page"))
 const FormsPage = lazy(() => import("@/pages/forms/forms-page"))
 const FormFillPage = lazy(() => import("@/pages/forms/fill-page"))
+const MySubmissionsPage = lazy(() => import("@/pages/forms/submissions/my-submissions-page"))
+const FormReportsPage = lazy(() => import("@/pages/forms/submissions/reports-page"))
+const FormReportPage = lazy(() => import("@/pages/forms/submissions/report-page"))
+const SubmissionPage = lazy(() => import("@/pages/forms/submissions/submission-page"))
+const SubmissionPrintPage = lazy(() => import("@/pages/forms/submissions/print-page"))
 const FormsDesignPage = lazy(() => import("@/pages/forms/design/forms-design-page"))
 const DesignerPage = lazy(() => import("@/pages/forms/design/designer-page"))
 const FormPreviewPage = lazy(() => import("@/pages/forms/design/preview-page"))
@@ -45,6 +50,8 @@ export const router = createBrowserRouter([
     children: [
       // پیش‌نمایش فرم درون قاب طراح، بی پوسته‌ی برنامه (پهنای قاب همان پهنای دستگاه است)
       { path: "forms/preview/:versionId", element: page(<FormPreviewPage />, "forms.design") },
+      // برگه‌ی چاپ ثبت، بی پوسته‌ی برنامه
+      { path: "print/submissions/:id", element: page(<SubmissionPrintPage />) },
       {
         element: <AppShell />,
         children: [
@@ -52,6 +59,10 @@ export const router = createBrowserRouter([
           { path: "notifications", element: page(<NotificationsPage />) },
           { path: "forms", element: page(<FormsPage />) },
           { path: "forms/:formId/fill", element: page(<FormFillPage />) },
+          { path: "forms/mine", element: page(<MySubmissionsPage />) },
+          { path: "forms/reports", element: page(<FormReportsPage />, "forms-viewer") },
+          { path: "forms/reports/:formId", element: page(<FormReportPage />, "forms-viewer") },
+          { path: "forms/submissions/:id", element: page(<SubmissionPage />) },
           { path: "forms/design", element: page(<FormsDesignPage />, "forms.design") },
           { path: "forms/design/:formId", element: page(<DesignerPage />, "forms.design") },
           { path: "account", element: page(<AccountPage />) },

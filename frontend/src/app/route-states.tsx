@@ -3,7 +3,7 @@ import type * as React from "react"
 import { useRouteError } from "react-router"
 import { ShieldOff } from "lucide-react"
 import { useAuth } from "@/app/auth"
-import type { Access } from "@/app/navigation"
+import { isAllowed, type Access } from "@/app/navigation"
 import { Empty, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty"
 import { PageHeader } from "@/components/layout/page-header"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -61,7 +61,7 @@ export function RouteError() {
 /** نگهبان مجوز هر صفحه: بدون مجوز، پیام روشن به‌جای صفحه‌ی خالی یا خطای سرور. */
 export function RequireAccess({ access, children }: { access: Access; children: React.ReactNode }) {
   const { user, can } = useAuth()
-  const allowed = access === undefined || (access === "superuser" ? !!user?.is_superuser : can(access))
+  const allowed = isAllowed(access, user, can)
   if (allowed) return children
   return (
     <>

@@ -1,10 +1,22 @@
 // ساختار منوی اصلی. هر مورد مجوز لازم را اعلام می‌کند و فقط به کاربر دارای مجوز نمایش داده می‌شود.
 // ماژول‌ها در فازهای بعد گروه خودشان را اضافه می‌کنند.
 import type { LucideIcon } from "lucide-react"
-import { Bell, Building2, ClipboardList, PencilRuler, KeyRound, UserRound, UserRoundCog, CalendarDays, Component, DatabaseBackup, ListChecks, FormInput, History, LayoutDashboard, ListTree, Settings, ShieldCheck, Table2, Users } from "lucide-react"
+import { Bell, Building2, ClipboardList, FileCheck, FileSpreadsheet, PencilRuler, KeyRound, UserRound, UserRoundCog, CalendarDays, Component, DatabaseBackup, ListChecks, FormInput, History, LayoutDashboard, ListTree, Settings, ShieldCheck, Table2, Users } from "lucide-react"
 
-/** مجوز مورد نیاز؛ "superuser" یعنی فقط مدیر کل (برای بخش‌های راهنمای توسعه). */
-export type Access = string | "superuser" | undefined
+/**
+ * مجوز مورد نیاز: کد مجوز، "superuser" (فقط مدیر کل؛ راهنمای توسعه)، یا "forms-viewer"
+ * (کسی که ثبت‌های دست‌کم یک فرم را می‌بیند: طراح یا نقش بیننده؛ از نشست).
+ */
+export type Access = string | "superuser" | "forms-viewer" | undefined
+
+type Viewer = { is_superuser: boolean; forms_viewer: boolean } | null
+
+export function isAllowed(access: Access, user: Viewer, can: (permission: string) => boolean): boolean {
+  if (access === undefined) return true
+  if (access === "superuser") return !!user?.is_superuser
+  if (access === "forms-viewer") return !!user?.forms_viewer
+  return can(access)
+}
 
 type NavItem = { title: string; url: string; icon: LucideIcon; access?: Access; keywords?: string }
 type NavGroup = { title: string; items: NavItem[]; collapsed?: boolean }
@@ -15,6 +27,8 @@ const navigation: NavGroup[] = [
     items: [
       { title: "پیشخوان", url: "/", icon: LayoutDashboard, keywords: "خانه داشبورد" },
       { title: "فرم‌ها", url: "/forms", icon: ClipboardList, keywords: "فرم درخواست پر کردن پیش‌نویس" },
+      { title: "ثبت‌های من", url: "/forms/mine", icon: FileCheck, keywords: "ثبت فرم پیش‌نویس رسید پیگیری" },
+      { title: "ثبت‌های فرم‌ها", url: "/forms/reports", icon: FileSpreadsheet, access: "forms-viewer", keywords: "گزارش ثبت فرم خروجی اکسل چاپ" },
       { title: "اعلان‌ها", url: "/notifications", icon: Bell, keywords: "اعلان پیام زنگوله" },
       { title: "حساب من", url: "/account", icon: UserRound, keywords: "گذرواژه امضا جانشین پروفایل" },
     ],
@@ -70,7 +84,6 @@ export function activeUrl(pathname: string): string | undefined {
 }
 
 /** منوی قابل دسترس برای کاربر فعلی (گروه‌های خالی حذف می‌شوند). */
-export function visibleNavigation(can: (permission: string) => boolean, isSuperuser: boolean): NavGroup[] {
-  const allowed = (access: Access) => access === undefined || (access === "superuser" ? isSuperuser : can(access))
-  return navigation.map((g) => ({ ...g, items: g.items.filter((i) => allowed(i.access)) })).filter((g) => g.items.length > 0)
+export function visibleNavigation(user: Viewer, can: (permission: string) => boolean): NavGroup[] {
+  return navigation.map((g) => ({ ...g, items: g.items.filter((i) => isAllowed(i.access, user, can)) })).filter((g) => g.items.length > 0)
 }

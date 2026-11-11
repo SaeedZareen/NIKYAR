@@ -1,7 +1,7 @@
 import * as React from "react"
 import { Link, useNavigate } from "react-router"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Copy, FileDown, FileUp, LayoutTemplate, PencilRuler, Plus, Settings2, Trash2 } from "lucide-react"
+import { Copy, FileDown, FileSpreadsheet, FileUp, LayoutTemplate, PencilRuler, Plus, Settings2, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { DESIGN_FORMS_KEY } from "@/app/forms"
 import { ConfirmDialog } from "@/components/confirm-dialog"
@@ -84,6 +84,11 @@ export default function FormsDesignPage() {
           <DropdownMenuItem asChild>
             <Link to={`/forms/design/${f.id}`}>
               <PencilRuler /> طراحی
+            </Link>
+          </DropdownMenuItem>
+          <DropdownMenuItem asChild>
+            <Link to={`/forms/reports/${f.id}`}>
+              <FileSpreadsheet /> ثبت‌ها
             </Link>
           </DropdownMenuItem>
           <DropdownMenuItem onSelect={() => setEditing({ form: f })}>

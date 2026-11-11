@@ -555,3 +555,20 @@ def test_report_and_viewable_forms(designer, make_user, client_for):
     assert report["definition"]["sections"][0]["fields"][0]["id"] == "t"
     # دیگران گزارش را نمی‌بینند
     assert filler.get(f"/api/forms/{form['id']}/report/").status_code == 403
+    # «ثبت‌های من»: جست‌وجو در عنوان فرم و شماره، مرتب‌سازی سمت سرور
+    mine = filler.get("/api/forms/submissions/", {"mine": "true", "search": "reported", "ordering": "-updated_at"}).json()
+    assert mine["count"] == 2 and mine["results"][0]["status"] == "draft"
+    assert filler.get("/api/forms/submissions/", {"mine": "true", "search": "ناموجود"}).json()["count"] == 0
+
+
+@pytest.mark.django_db(transaction=True)
+def test_submit_rate_limit(designer, make_user, client_for, settings):
+    settings.FORMS_SUBMIT_RATE = 2
+    form = _simple_form(designer, "rated")
+    c = client_for(make_user("rate_user"))
+    assert _submit(c, form).status_code == 201
+    assert _submit(c, form).status_code == 201
+    r = _submit(c, form)
+    assert r.status_code == 400 and "ثبت‌های پیاپی" in r.json()["detail"]
+    # پیش‌نویس محدود نمی‌شود
+    assert _submit(c, form, submit=False).status_code == 201

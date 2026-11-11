@@ -8,15 +8,20 @@ import { cn } from "@/lib/utils"
 import { isDisplay, itemsOf, type ChoiceOption, type FieldDef, type FormDefinition } from "./definition"
 import { useUnitOptions, usePositionNames, useUserNames } from "./org-options"
 import type { RuleState } from "./rules"
+import { choiceText, fieldText, isEmptyValue, type Names } from "./value-text"
 
-// نمایش فقط‌خواندنی مقدارهای فرم (مرور پیش از ثبت؛ در 3.8 مشاهده و چاپ ثبت‌ها): برچسب و مقدار خوانای هر فیلد دیدنی.
+// نمایش فقط‌خواندنی مقدارهای فرم (مرور پیش از ثبت، مشاهده و چاپ ثبت‌ها): برچسب و مقدار خوانای هر فیلد دیدنی.
 
 const EMPTY = <span className="text-muted-foreground">—</span>
+const NO_NAMES: Names = { users: new Map(), units: new Map(), positions: new Map(), lookups: new Map() }
 const fa = (v: unknown) => toFaDigits(String(v))
 const optionsOf = (field: FieldDef, key = "options") => (field.props?.[key] ?? []) as ChoiceOption[]
 
-/** خلاصه‌ی فرم به تفکیک بخش؛ فیلدهای پنهان (با قاعده یا «فیلد پنهان») نمی‌آیند. */
-export function FormSummary({ definition, data, rules, title }: { definition: FormDefinition; data: Record<string, unknown>; rules?: RuleState; title: string }) {
+/**
+ * خلاصه‌ی فرم به تفکیک بخش؛ فیلدهای پنهان (با قاعده یا «فیلد پنهان») نمی‌آیند.
+ * submitted: ثبت نهایی (مشاهده و چاپ)؛ امضا و مشخصات ثبت‌کننده همان است که سرور ذخیره کرده.
+ */
+export function FormSummary({ definition, data, rules, title, submitted = false }: { definition: FormDefinition; data: Record<string, unknown>; rules?: RuleState; title: string; submitted?: boolean }) {
   const sections = definition.sections.filter((s) => !rules?.hiddenSections.has(s.id))
   return (
     <div className="flex flex-col gap-4">
@@ -30,7 +35,7 @@ export function FormSummary({ definition, data, rules, title }: { definition: Fo
               {fields.map((f) => (
                 <React.Fragment key={f.id}>
                   <dt className="text-xs text-muted-foreground">{f.label}</dt>
-                  <dd className="min-w-0 text-xs break-words">{f.type === "calculated" ? <Calculated field={f} value={rules?.calculated[f.id]} /> : <FieldValue field={f} value={data[f.id]} />}</dd>
+                  <dd className="min-w-0 text-xs break-words">{f.type === "calculated" ? <Calculated field={f} value={rules?.calculated[f.id]} /> : <FieldValue field={f} value={data[f.id]} submitted={submitted} />}</dd>
                 </React.Fragment>
               ))}
             </dl>
@@ -48,11 +53,11 @@ function Calculated({ field, value }: { field: FieldDef; value?: number }) {
 }
 
 /** مقدار خوانای یک فیلد (در گروه تکرارشونده برای هر خانه). */
-export function FieldValue({ field, value }: { field: FieldDef; value: unknown }) {
-  // امضای «حساب من» و مشخصات ثبت‌کننده را سرور هنگام ثبت می‌گذارد
-  if (field.type === "signature") return <span className="text-muted-foreground">امضای حساب شما هنگام ثبت افزوده می‌شود.</span>
-  if (field.type === "submitter") return <Submitter value={value} />
-  if (value === undefined || value === null || value === "" || (Array.isArray(value) && value.length === 0)) return EMPTY
+export function FieldValue({ field, value, submitted = false }: { field: FieldDef; value: unknown; submitted?: boolean }) {
+  // امضای «حساب من» و مشخصات ثبت‌کننده را سرور هنگام ثبت می‌گذارد؛ در مرور پیش از ثبت هنوز مقدار ندارند
+  if (!submitted && field.type === "signature") return <span className="text-muted-foreground">امضای حساب شما هنگام ثبت افزوده می‌شود.</span>
+  if (!submitted && field.type === "submitter") return <Submitter value={value} />
+  if (isEmptyValue(value)) return EMPTY
   switch (field.type) {
     case "textarea":
       return <span className="whitespace-pre-line">{String(value)}</span>
@@ -93,9 +98,9 @@ export function FieldValue({ field, value }: { field: FieldDef; value: unknown }
     case "consent":
       return <>پذیرفته شد</>
     case "choice":
-      return <>{choiceText(optionsOf(field), value, field)}</>
+      return <>{choiceText(field, value)}</>
     case "multi_choice":
-      return <>{(value as unknown[]).map((v) => choiceText(optionsOf(field), v, field)).join("، ")}</>
+      return <>{(value as unknown[]).map((v) => choiceText(field, v)).join("، ")}</>
     case "scale":
       return <>{`${fa(value)} از ${fa(field.props?.max ?? 5)}`}</>
     case "matrix": {
@@ -136,6 +141,9 @@ export function FieldValue({ field, value }: { field: FieldDef; value: unknown }
     case "attachment":
     case "voice":
       return <FilesValue ids={value as string[]} />
+    case "submitter":
+      return <>{fieldText(field, value, NO_NAMES)}</>
+    case "signature":
     case "signature_pad":
       return <img src={`${fileUrl(String(value))}?inline=1`} alt={`امضای «${field.label}»`} className="h-16 rounded border bg-white" />
     case "table":
@@ -143,11 +151,6 @@ export function FieldValue({ field, value }: { field: FieldDef; value: unknown }
     default:
       return <>{String(value)}</>
   }
-}
-
-function choiceText(options: ChoiceOption[], value: unknown, field: FieldDef) {
-  if (value && typeof value === "object" && "other" in value) return `${String(field.props?.other_label || "سایر")}: ${(value as { other: string }).other}`
-  return options.find((o) => o.value === value)?.label ?? String(value)
 }
 
 const list = (value: unknown) => (Array.isArray(value) ? value : [value])
