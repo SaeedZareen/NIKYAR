@@ -26,11 +26,11 @@ export const PAGE_SIZES = [10, 25, 50, 100] as const
 const DEFAULT_PAGE_SIZE = 25
 const EMPTY_PREFS: Prefs = { columnVisibility: {}, columnSizing: {}, columnPinning: { start: [], end: [] }, density: "compact" }
 
-function readPrefs(key: string): Prefs {
+function readPrefs(key: string, defaults: Prefs): Prefs {
   try {
-    return { ...EMPTY_PREFS, ...JSON.parse(localStorage.getItem(key) ?? "{}") }
+    return { ...defaults, ...JSON.parse(localStorage.getItem(key) ?? "{}") }
   } catch {
-    return EMPTY_PREFS
+    return defaults
   }
 }
 
@@ -53,13 +53,20 @@ type Options = {
   urlKey?: string
   /** مرتب‌سازی پیش‌فرض، مثل «-hire_date». */
   defaultSort?: string
+  /** ستون‌هایی که تا کاربر خودش نمایانشان نکند پنهان‌اند (جدول‌های پرستون، مثل ثبت‌های فرم). */
+  defaultHidden?: string[]
 }
 
 /** فیلتر ستون‌ها همیشه فهرستی از مقدارهاست (چندانتخابی)؛ در نشانی: f.status=active,leave */
-export function useTableView(id: string, { urlKey = "", defaultSort = "" }: Options = {}) {
+export function useTableView(id: string, { urlKey = "", defaultSort = "", defaultHidden }: Options = {}) {
   const [params, setParams] = useSearchParams()
   const storageKey = `nikyar:table:${id}`
-  const [prefs, setPrefs] = React.useState<Prefs>(() => readPrefs(storageKey))
+  const hiddenKey = defaultHidden?.join() ?? ""
+  const defaults = React.useMemo<Prefs>(
+    () => (hiddenKey ? { ...EMPTY_PREFS, columnVisibility: Object.fromEntries(hiddenKey.split(",").map((c) => [c, false])) } : EMPTY_PREFS),
+    [hiddenKey]
+  )
+  const [prefs, setPrefs] = React.useState<Prefs>(() => readPrefs(storageKey, defaults))
 
   React.useEffect(() => {
     try {
@@ -171,7 +178,7 @@ export function useTableView(id: string, { urlKey = "", defaultSort = "" }: Opti
     density: prefs.density,
     setDensity: (density: Density) => setPrefs((o) => ({ ...o, density })),
     /** ستون‌ها، عرض‌ها، سنجاق‌ها و تراکم به حالت پیش‌فرض برمی‌گردند. */
-    resetPrefs: () => setPrefs(EMPTY_PREFS),
+    resetPrefs: () => setPrefs(defaults),
     /** جست‌وجو و همه‌ی فیلترها پاک می‌شوند. */
     resetFilters,
     isFiltered: url.globalFilter !== "" || url.columnFilters.length > 0,

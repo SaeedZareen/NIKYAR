@@ -612,6 +612,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/forms/{id}/report/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description ثبت‌های نهایی فرم (تازه‌ترین نخست) با تعریف آخرین نسخه‌ی منتشرشده، برای جدول ثبت‌ها. */
+        get: operations["forms_report_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/forms/available/": {
         parameters: {
             query?: never;
@@ -821,6 +838,23 @@ export interface paths {
         put?: never;
         /** @description انتشار پیش‌نویس؛ از این پس فرم با همین نسخه پر می‌شود. */
         post: operations["forms_versions_publish_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/forms/viewable/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description فرم‌هایی که کاربر ثبت‌های نهایی‌شان را می‌بیند، با شمار ثبت‌ها. */
+        get: operations["forms_viewable_list"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -2115,6 +2149,19 @@ export interface components {
              */
             file: string;
         };
+        /** @description ثبت‌های نهایی یک فرم با تعریف آخرین نسخه‌ی منتشرشده (ستون‌های جدول). */
+        FormReport: {
+            form: number;
+            title: string;
+            anonymous: boolean;
+            /** @description تعریف آخرین نسخه‌ی منتشرشده؛ ثبت‌های نسخه‌های قبلی با همین ستون‌ها نمایش داده می‌شوند */
+            definition: {
+                [key: string]: unknown;
+            };
+            submissions: components["schemas"]["FormSubmission"][];
+            /** @description بیش از 5000 ثبت؛ فقط تازه‌ترین‌ها آمده‌اند */
+            truncated: boolean;
+        };
         FormRequest: {
             /**
              * شناسه
@@ -2198,8 +2245,8 @@ export interface components {
             readonly data: {
                 [key: string]: unknown;
             };
-            /** ثبت‌کننده */
-            readonly created_by: number;
+            /** @description در فرم بی‌نام برای دیگران null */
+            readonly created_by: number | null;
             /** @description در فرم بی‌نام فقط برای خود ثبت‌کننده */
             readonly created_by_name: string;
             /**
@@ -2237,8 +2284,8 @@ export interface components {
             readonly data: {
                 [key: string]: unknown;
             };
-            /** ثبت‌کننده */
-            readonly created_by: number;
+            /** @description در فرم بی‌نام برای دیگران null */
+            readonly created_by: number | null;
             /** @description در فرم بی‌نام فقط برای خود ثبت‌کننده */
             readonly created_by_name: string;
             /**
@@ -2609,6 +2656,8 @@ export interface components {
             readonly positions: string[];
             /** @description سمت اصلی جاری؛ null یعنی بدون سمت. */
             readonly assignment: components["schemas"]["MeAssignment"] | null;
+            /** @description ثبت‌های فرمی را می‌بیند (طراح یا نقش بیننده)؛ برای منوی «ثبت‌های فرم‌ها». */
+            readonly forms_viewer: boolean;
         };
         MeAssignment: {
             unit_id: number;
@@ -3465,6 +3514,26 @@ export interface components {
             roles?: number[];
             /** گذرواژه */
             password: string;
+        };
+        ViewableForm: {
+            readonly id: number;
+            /**
+             * شناسه
+             * @description شناسه‌ی لاتین و پایدار فرم (مثلاً purchase-request)؛ پس از ساخت تغییر نمی‌کند.
+             */
+            code: string;
+            /** عنوان */
+            title: string;
+            /** @default  */
+            readonly category_title: string;
+            /** فعال */
+            is_active: boolean;
+            /** بی‌نام */
+            anonymous: boolean;
+            /** @description شمار ثبت‌های نهایی */
+            readonly submission_count: number;
+            /** Format: date-time */
+            readonly last_submitted_at: string | null;
         };
         WorkWeekSettings: {
             /**
@@ -4786,6 +4855,27 @@ export interface operations {
             };
         };
     };
+    forms_report_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormReport"];
+                };
+            };
+        };
+    };
     forms_available_list: {
         parameters: {
             query?: {
@@ -4888,10 +4978,14 @@ export interface operations {
                 form?: string;
                 /** @description فقط ثبت‌های خودم */
                 mine?: boolean;
+                /** @description کدام فیلد باید هنگام مرتب‌سازی نتایج استفاده شود. */
+                ordering?: string;
                 /** @description یک شماره صفحه‌ در مجموعه نتایج صفحه‌بندی شده. */
                 page?: number;
                 /** @description تعداد نتایج برای نمایش در هر صفحه. */
                 page_size?: number;
+                /** @description یک عبارت جستجو. */
+                search?: string;
                 /** @description چند مقدار با ویرگول جدا می‌شود. */
                 status?: string;
             };
@@ -5144,6 +5238,30 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FormVersionDetail"];
+                };
+            };
+        };
+    };
+    forms_viewable_list: {
+        parameters: {
+            query?: {
+                /** @description چند مقدار با ویرگول جدا می‌شود. */
+                category?: string;
+                /** @description چند مقدار با ویرگول جدا می‌شود. */
+                is_active?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ViewableForm"][];
                 };
             };
         };

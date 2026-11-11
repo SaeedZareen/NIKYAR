@@ -7,7 +7,7 @@ from django.http import HttpResponse
 from django.utils.http import content_disposition_header
 from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_field
-from rest_framework import mixins, parsers, serializers, status, viewsets
+from rest_framework import filters, mixins, parsers, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.response import Response
@@ -16,6 +16,7 @@ from core.accounts.models import Role, User
 from core.audit.models import AuditLog
 from core.audit.service import AuditedModelViewSet, record
 from core.kernel.api import BusinessError, HasPerm, MultiValueFilter
+from core.kernel.collation import PersianOrderingFilter
 from core.lookups.models import LookupItem
 from core.numbering.pattern import validate as validate_pattern
 
@@ -24,6 +25,8 @@ from .fieldtypes import COLUMN_TYPES, PREFILL, REGISTRY, UNIQUE_TYPES, divisions
 from .models import Form, FormVersion, Submission
 
 CATEGORY_LIST = "form-category"
+# بیشترین ثبت‌هایی که فهرست ثبت‌های یک فرم یک‌جا به مرورگر می‌دهد (جست‌وجو، فیلتر و خروجی در مرورگر)
+REPORT_LIMIT = 5000
 
 
 class FormSerializer(serializers.ModelSerializer):
@@ -124,6 +127,16 @@ def availability_of(form: Form, user) -> dict:
     return asdict(acceptance.availability(form, user))
 
 
+class ViewableFormSerializer(serializers.ModelSerializer):
+    category_title = serializers.CharField(source="category.title", read_only=True, default="")
+    submission_count = serializers.IntegerField(read_only=True, help_text="شمار ثبت‌های نهایی")
+    last_submitted_at = serializers.DateTimeField(read_only=True, allow_null=True)
+
+    class Meta:
+        model = Form
+        fields = ["id", "code", "title", "category_title", "is_active", "anonymous", "submission_count", "last_submitted_at"]
+
+
 class AvailableFormSerializer(serializers.ModelSerializer):
     category_title = serializers.CharField(source="category.title", read_only=True, default="")
     availability = serializers.SerializerMethodField()
@@ -200,6 +213,7 @@ class FormSubmissionSerializer(serializers.ModelSerializer):
     form_title = serializers.CharField(source="form.title", read_only=True)
     version_number = serializers.IntegerField(source="version.number", read_only=True)
     status_label = serializers.CharField(source="get_status_display", read_only=True)
+    created_by = serializers.PrimaryKeyRelatedField(read_only=True, allow_null=True, help_text="در فرم بی‌نام برای دیگران null")
     created_by_name = serializers.SerializerMethodField(help_text="در فرم بی‌نام فقط برای خود ثبت‌کننده")
     editable_until = serializers.SerializerMethodField(help_text="ثبت‌کننده تا این زمان می‌تواند ثبت نهایی را ویرایش کند؛ null یعنی ویرایش‌پذیر نیست")
     data = JsonObjectField(read_only=True)
@@ -346,6 +360,17 @@ def fill_context(version: FormVersion, user) -> dict:
     }
 
 
+class FormReportSerializer(serializers.Serializer):
+    """ثبت‌های نهایی یک فرم با تعریف آخرین نسخه‌ی منتشرشده (ستون‌های جدول)."""
+
+    form = serializers.IntegerField()
+    title = serializers.CharField()
+    anonymous = serializers.BooleanField()
+    definition = JsonObjectField(help_text="تعریف آخرین نسخه‌ی منتشرشده؛ ثبت‌های نسخه‌های قبلی با همین ستون‌ها نمایش داده می‌شوند")
+    submissions = FormSubmissionSerializer(many=True)
+    truncated = serializers.BooleanField(help_text=f"بیش از {REPORT_LIMIT} ثبت؛ فقط تازه‌ترین‌ها آمده‌اند")
+
+
 class FormSubmissionDetailSerializer(FormSubmissionSerializer):
     context = serializers.SerializerMethodField(help_text="تعریف و طرح نسخه‌ای که این ثبت با آن پر شده است")
 
@@ -369,7 +394,7 @@ class FormViewSet(AuditedModelViewSet):
 
     serializer_class = FormSerializer
     permission_classes = [HasPerm]
-    perms = {"*": service.DESIGN, "available": None, "fill": None, "regions": None}
+    perms = {"*": service.DESIGN, "available": None, "fill": None, "regions": None, "viewable": None, "report": None}
     filter_backends = [MultiValueFilter]
     filter_fields = {"is_active": "is_active", "category": "category_id"}
     lookup_value_regex = r"\d+"
@@ -415,6 +440,45 @@ class FormViewSet(AuditedModelViewSet):
         """فرم‌هایی که کاربر جاری می‌تواند پر کند."""
         forms = service.fillable_forms(request.user).select_related("category").order_by("category__order", "title")
         return Response(AvailableFormSerializer(forms, many=True, context={"request": request}).data)
+
+    @extend_schema(responses=ViewableFormSerializer(many=True))
+    @action(detail=False, pagination_class=None)
+    def viewable(self, request):
+        """فرم‌هایی که کاربر ثبت‌های نهایی‌شان را می‌بیند، با شمار ثبت‌ها."""
+        submitted = Q(submissions__status=Submission.Status.SUBMITTED)
+        forms = (
+            service.viewable_forms(request.user)
+            .select_related("category")
+            .annotate(
+                submission_count=Count("submissions", filter=submitted, distinct=True), last_submitted_at=Max("submissions__submitted_at", filter=submitted)
+            )
+            .order_by("category__order", "title")
+        )
+        return Response(ViewableFormSerializer(forms, many=True).data)
+
+    @extend_schema(responses=FormReportSerializer)
+    @action(detail=True)
+    def report(self, request, pk=None):
+        """ثبت‌های نهایی فرم (تازه‌ترین نخست) با تعریف آخرین نسخه‌ی منتشرشده، برای جدول ثبت‌ها."""
+        form = Form.objects.filter(pk=pk).first()
+        if form is None or not service.can_view(request.user, form):
+            raise PermissionDenied()
+        version = form.current_version() or form.versions.order_by("-number").first()
+        rows = list(
+            Submission.objects.filter(form=form, status=Submission.Status.SUBMITTED)
+            .select_related("form", "version", "created_by")
+            .order_by("-submitted_at")[: REPORT_LIMIT + 1]
+        )
+        return Response(
+            {
+                "form": form.pk,
+                "title": form.title,
+                "anonymous": form.anonymous,
+                "definition": version.definition if version else {"sections": []},
+                "submissions": FormSubmissionSerializer(rows[:REPORT_LIMIT], many=True, context={"request": request}).data,
+                "truncated": len(rows) > REPORT_LIMIT,
+            }
+        )
 
     @extend_schema(responses=FieldTypeSpecSerializer(many=True))
     @action(detail=False, url_path="field-types", pagination_class=None)
@@ -537,8 +601,11 @@ class FormSubmissionViewSet(viewsets.ModelViewSet):
     queryset = Submission.objects.all()  # برای طرح API؛ فهرست واقعی از get_queryset
     permission_classes = [HasPerm]
     perms = {"*": None}
-    filter_backends = [MultiValueFilter]
+    filter_backends = [filters.SearchFilter, PersianOrderingFilter, MultiValueFilter]
     filter_fields = {"form": "form_id", "status": "status"}
+    search_fields = ["number", "form__title"]
+    ordering_fields = ["number", "updated_at", "submitted_at"]
+    ordering = ["-updated_at"]
     http_method_names = ["get", "post", "patch", "delete", "head", "options"]
 
     def get_queryset(self):

@@ -40,6 +40,17 @@ def fillable_forms(user):
     return forms.distinct()
 
 
+def can_view(user, form: Form) -> bool:
+    """دیدن همه‌ی ثبت‌های نهایی یک فرم: طراحان، یا نقش‌های بیننده‌ی همان فرم."""
+    return can_design(user) or form.view_roles.filter(users=user).exists()
+
+
+def viewable_forms(user):
+    """فرم‌هایی که کاربر ثبت‌های نهایی‌شان را می‌بیند (برای «ثبت‌های فرم‌ها»)."""
+    forms = Form.objects.all() if can_design(user) else Form.objects.filter(view_roles__users=user).distinct()
+    return forms
+
+
 def visible_submissions(user):
     """ثبت‌های خود کاربر (با پیش‌نویس‌ها) و ثبت‌های نهایی فرم‌هایی که اجازه‌ی دیدنشان را دارد. پیش‌نویس دیگران دیده نمی‌شود."""
     submissions = Submission.objects.select_related("form", "version", "created_by")

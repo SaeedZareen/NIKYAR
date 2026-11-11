@@ -10,7 +10,7 @@ import { formatDate } from "@/lib/format"
 export default function HomePage() {
   const { user, can } = useAuth()
   if (!user) return null
-  const sections = visibleNavigation(can, user.is_superuser).flatMap((g) => g.items.filter((i) => i.url !== "/"))
+  const sections = visibleNavigation(user, can).flatMap((g) => g.items.filter((i) => i.url !== "/"))
 
   return (
     <>

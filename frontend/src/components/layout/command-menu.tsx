@@ -34,7 +34,7 @@ export function CommandMenu({ open, onOpenChange }: { open: boolean; onOpenChang
       <CommandInput placeholder="نام بخش یا فرمان…" />
       <CommandList>
         <CommandEmpty>موردی پیدا نشد.</CommandEmpty>
-        {visibleNavigation(can, !!user?.is_superuser).map((group) => (
+        {visibleNavigation(user, can).map((group) => (
           <CommandGroup key={group.title} heading={group.title}>
             {group.items.map((item) => (
               <CommandItem key={item.url} value={`${item.title} ${item.keywords ?? ""}`} onSelect={() => run(() => navigate(item.url))}>
