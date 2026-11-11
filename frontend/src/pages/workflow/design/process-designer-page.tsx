@@ -180,7 +180,7 @@ function Designer({ process, version, onReload }: { process: Schemas["Process"];
       <div className="grid items-start gap-3 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <Section
           title="نمودار فرایند"
-          description="از نوار ابزار کنار بوم عنصر بکشید یا روی یک عنصر بزنید و از منوی کنارش مرحله‌ی بعد را بیفزایید؛ با دوبار زدن، عنوان را بنویسید. همه‌چیز خودکار ذخیره می‌شود."
+          description="از نوار ابزار کنار بوم عنصر بکشید (روی یک مسیر رها کنید تا میان دو مرحله قرار گیرد)، یا روی یک عنصر بزنید و از منوی کنارش مرحله‌ی بعد را بیفزایید؛ با دوبار زدن، عنوان را بنویسید. همه‌چیز خودکار ذخیره می‌شود."
           actions={
             <div className="flex gap-1">
               <Button variant="ghost" size="icon" aria-label="بزرگ‌نمایی" onClick={() => canvas.current?.zoom(0.2)}>
