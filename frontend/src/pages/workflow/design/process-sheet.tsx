@@ -1,0 +1,123 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { useNavigate } from "react-router"
+import { toast } from "sonner"
+import { z } from "zod"
+import { useLookupItems } from "@/app/lookups"
+import { DESIGN_PROCESSES_KEY } from "@/app/forms"
+import { ErrorSummary } from "@/components/form/error-summary"
+import { FormField } from "@/components/form/form-field"
+import { FormGrid } from "@/components/form/form-grid"
+import { FormSheet } from "@/components/form/form-sheet"
+import { applyServerErrors } from "@/components/form/server-errors"
+import { useAppForm } from "@/components/form/use-app-form"
+import { SearchPicker } from "@/components/search-picker"
+import { Input } from "@/components/ui/input"
+import { Switch } from "@/components/ui/switch"
+import { api, unwrap, type Schemas } from "@/lib/api/client"
+
+type Process = Schemas["Process"]
+
+const schema = z.object({
+  title: z.string().trim().min(1, "تکمیل «عنوان» الزامی است.").max(150, "حداکثر ۱۵۰ نویسه."),
+  code: z
+    .string()
+    .trim()
+    .regex(/^[a-z][a-z0-9-]{1,39}$/, "شناسه با حرف کوچک لاتین شروع می‌شود و فقط حرف کوچک لاتین، رقم و - دارد."),
+  form: z.string().min(1, "فرم اصلی را انتخاب کنید."),
+  category: z.string(),
+  description: z.string().trim().max(500, "حداکثر ۵۰۰ نویسه."),
+  is_active: z.boolean(),
+})
+type Values = z.output<typeof schema>
+const LABELS = { title: "عنوان", code: "شناسه", form: "فرم اصلی", category: "دسته", description: "توضیح", is_active: "فعال" }
+
+/** فرایند تازه یا ویرایش مشخصات آن (گیرنده‌ها، شروع‌کنندگان و شماره‌گذاری در فرایندساز). */
+export function ProcessSheet({ process, open, onOpenChange }: { process: Process | null; open: boolean; onOpenChange: (open: boolean) => void }) {
+  const qc = useQueryClient()
+  const navigate = useNavigate()
+  const forms = useQuery({ queryKey: ["workflow", "form-options"], queryFn: () => unwrap(api.GET("/api/workflow/processes/form-options/")) })
+  const categories = useLookupItems("process-category").data ?? []
+  const form = useAppForm(schema, {
+    title: process?.title ?? "",
+    code: process?.code ?? "",
+    form: process ? String(process.form) : "",
+    category: process?.category ? String(process.category) : "",
+    description: process?.description ?? "",
+    is_active: process?.is_active ?? true,
+  })
+  const save = useMutation({
+    mutationFn: (v: Values) => {
+      const body = { title: v.title, code: v.code, form: Number(v.form), category: v.category ? Number(v.category) : null, description: v.description, is_active: v.is_active }
+      return process
+        ? unwrap(api.PATCH("/api/workflow/processes/{id}/", { params: { path: { id: String(process.id) } }, body }))
+        : unwrap(api.POST("/api/workflow/processes/", { body }))
+    },
+    onSuccess: (saved) => {
+      qc.invalidateQueries({ queryKey: DESIGN_PROCESSES_KEY })
+      onOpenChange(false)
+      if (process) toast.success("مشخصات فرایند ذخیره شد.")
+      else {
+        toast.success(`فرایند «${saved.title}» ساخته شد.`)
+        navigate(`/workflow/design/${saved.id}`)
+      }
+    },
+  })
+  const onSubmit = form.handleSubmit(async (v) => {
+    try {
+      await save.mutateAsync(v)
+    } catch (e) {
+      applyServerErrors(form, e)
+    }
+  })
+  const formOptions = (forms.data ?? []).map((f) => ({ value: String(f.id), label: f.title }))
+
+  return (
+    <FormSheet
+      open={open}
+      onOpenChange={onOpenChange}
+      title={process ? "مشخصات فرایند" : "فرایند جدید"}
+      description="داده‌ی هر درخواست با «فرم اصلی» پر و سنجیده می‌شود؛ مرحله‌ها، گیرنده‌ها و مسیرها را در فرایندساز می‌کشید."
+      onSubmit={onSubmit}
+      submitting={save.isPending}
+    >
+      <ErrorSummary errors={form.formState.errors} labels={LABELS} submitCount={form.formState.submitCount} />
+      <FormGrid>
+        <FormField control={form.control} name="title" label={LABELS.title} required render={({ field, id, aria }) => <Input id={id} maxLength={150} {...field} {...aria} />} />
+        <FormField
+          control={form.control}
+          name="code"
+          label={LABELS.code}
+          required
+          description="شناسه‌ی لاتین و پایدار فرایند (مثلاً purchase)؛ پس از ساخت تغییر نمی‌کند."
+          render={({ field, id, aria }) => <Input id={id} dir="ltr" maxLength={40} disabled={!!process} {...field} {...aria} />}
+        />
+        <FormField
+          control={form.control}
+          name="form"
+          label={LABELS.form}
+          required
+          description="فرمی از فرم‌ساز که درخواست‌دهنده پر می‌کند؛ فقط فرم‌های منتشرشده."
+          render={({ field, id, aria }) => (
+            <SearchPicker id={id} options={formOptions} value={field.value} onChange={(v) => field.onChange(v as string)} onBlur={field.onBlur} placeholder="انتخاب فرم" emptyText="فرم منتشرشده‌ای نیست؛ ابتدا در فرم‌ساز بسازید." {...aria} />
+          )}
+        />
+        <FormField
+          control={form.control}
+          name="category"
+          label={LABELS.category}
+          render={({ field, id, aria }) => (
+            <SearchPicker id={id} options={categories.map((c) => ({ value: String(c.id), label: c.title }))} value={field.value} onChange={(v) => field.onChange(v as string)} onBlur={field.onBlur} placeholder="بی‌دسته" {...aria} />
+          )}
+        />
+        <FormField control={form.control} name="description" label={LABELS.description} render={({ field, id, aria }) => <Input id={id} maxLength={500} {...field} {...aria} />} />
+        <FormField
+          control={form.control}
+          name="is_active"
+          label={LABELS.is_active}
+          description="فرایند غیرفعال درخواست تازه نمی‌پذیرد؛ درخواست‌های در جریان تا پایان می‌روند."
+          render={({ field, id, aria }) => <Switch id={id} checked={field.value} onCheckedChange={field.onChange} {...aria} />}
+        />
+      </FormGrid>
+    </FormSheet>
+  )
+}

@@ -17,3 +17,6 @@ export function useRoleOptions() {
 export function useFieldTypes() {
   return useQuery({ queryKey: ["forms", "field-types"], queryFn: () => unwrap(api.GET("/api/forms/field-types/")), staleTime: Infinity })
 }
+
+/** کلید فهرست فرایندهای طراح. */
+export const DESIGN_PROCESSES_KEY = ["workflow", "design"] as const

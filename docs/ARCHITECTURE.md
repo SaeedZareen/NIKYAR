@@ -144,7 +144,17 @@
   - SpiffWorkflow برای serviceTask `call_service` موتور اسکریپت را صدا می‌زند و `SafeScriptEngine` آن را به `WorkflowAction` رجیستری (`nikyar_workflow_actions`) با زمینه‌ی درخواست می‌دهد.
   - `check(config, form_definition)` هنگام انتشار، `run(context, config)` هنگام اجرا.
 - **وضعیت:** سریال‌ساز SpiffWorkflow در `Request.state`. مشخصات اجرایی هر نسخه با `lru_cache` روی متن BPMN نگه داشته می‌شود.
-- **API:** امروز فقط `GET /api/workflow/process-lookup/`. بقیه از 4.3a (فرایندساز) و 4.4/4.5 (درخواست و کارتابل) اضافه می‌شوند.
+- **API:**
+  - `/api/workflow/processes/` (`workflow.design`): فرایندها، `form-options/`، `<id>/new-draft/`، `<id>/copy/`.
+  - `/api/workflow/versions/`: پیش‌نویس BPMN با `problems` زنده، `publish/`.
+  - `GET /api/workflow/process-lookup/`: عنوان فرایندها برای هر کاربر.
+  - درخواست و کارتابل از 4.4 و 4.5.
+- **فرایندساز** (`pages/workflow/design`):
+  - `process-design-page.tsx` (فهرست) و `process-sheet.tsx` (مشخصات).
+  - `process-designer-page.tsx` (ذخیره‌ی خودکار، انتشار، فهرست ایرادها).
+  - `process-canvas.tsx`: bpmn-js، Modeler یا NavigatedViewer، و نشانه‌ی ایراد روی عنصر.
+  - `bpmn-modules.ts`: ترجمه‌ی فارسی، نوار ابزار و منوی کنار عنصر محدود به عنصرهای پشتیبانی‌شده، رنگ از توکن‌ها.
+  - `bpmn-theme.css`: نگاشت `--bio-*` به توکن‌های پوسته.
 
 ### تنظیمات
 
@@ -165,7 +175,7 @@ nikyar_settings = [SettingsSection(code="org-profile", title="مشخصات سا�
 
 | مسیر | محتوا |
 |---|---|
-| `app/` | نشست و نگهبان ورود (`auth.tsx`)، مسیرها با نگهبان مجوز (`router.tsx`)، منو با مجوز هر بخش و گروه‌های «کار من»، «فرم‌ساز»، «سازمان و کاربران»، «پیکربندی»، «نگه‌داری سامانه» و «کیت رابط کاربری» (`navigation.ts`؛ مورد فعال با `activeUrl`: دقیق‌ترین پیوند، تا «/forms/design» «فرم‌ها» را فعال نکند)، QueryClient، و هوک‌های داده‌ی سراسری: `branding`، `work-calendar`، `notifications`، `license`، `delegations`، `lookups`، `forms` (کلیدها، نقش‌ها برای انتخاب، کاتالوگ نوع فیلدها)؛ حالت‌های مسیر (`route-states.tsx`: بارگذاری، `PageError` برای خطای داده‌ی اصلی صفحه، بی‌مجوز). دسترسی هر مورد منو و مسیر با `isAllowed` (کد مجوز، `superuser`، یا `forms-viewer` از پرچم نشست) |
+| `app/` | نشست و نگهبان ورود (`auth.tsx`)، مسیرها با نگهبان مجوز (`router.tsx`)، منو با مجوز هر بخش و گروه‌های «کار من»، «فرم‌ساز و فرایندساز»، «سازمان و کاربران»، «پیکربندی»، «نگه‌داری سامانه» و «کیت رابط کاربری» (`navigation.ts`؛ مورد فعال با `activeUrl`: دقیق‌ترین پیوند، تا «/forms/design» «فرم‌ها» را فعال نکند)، QueryClient، و هوک‌های داده‌ی سراسری: `branding`، `work-calendar`، `notifications`، `license`، `delegations`، `lookups`، `forms` (کلیدها، نقش‌ها برای انتخاب، کاتالوگ نوع فیلدها)؛ حالت‌های مسیر (`route-states.tsx`: بارگذاری، `PageError` برای خطای داده‌ی اصلی صفحه، بی‌مجوز). دسترسی هر مورد منو و مسیر با `isAllowed` (کد مجوز، `superuser`، یا `forms-viewer` از پرچم نشست) |
 | `lib/` | `format.ts` (ارقام فارسی، مبلغ، حجم فایل، تاریخ شمسی، `numberToWords` برای مبلغ به حروف، `formatDuration`)؛ `validators.ts` (شناسه‌های ایرانی + طرح‌های zod)، `banks.ts` (نام بانک از شبا و کارت، فقط نمایشی)، `files.ts` (بارگذاری با پیشرفت، `fileUrl`، `useFileInfo`)، `rich-text.ts` (کلاس و نوع‌های مشترک متن قالب‌دار)، `api/` (کارخواه با نوع‌های خودکار، `unwrap` و `ApiError` با پیام فارسی) |
 | `components/ui/` | اجزای shadcn — فقط با `npx shadcn@latest add <name>`؛ تغییرها حداقلی و توضیح‌دار (ترجمه‌ی متن‌ها، `containerClassName` جدول، پر شدن راست‌به‌چپ نوار پیشرفت) |
 | `components/layout/` | پوسته: نوار بالا (زنگوله‌ی اعلان، منوی کاربر)، منوی کناری، زبانه‌های صفحه‌های باز (با دکمه‌ی جابه‌جایی)، جست‌وجوی سراسری، `PageHeader`، `Section`، `SectionNav`، نوار وضعیت لایسنس، `BrandMark` |
@@ -175,7 +185,7 @@ nikyar_settings = [SettingsSection(code="org-profile", title="مشخصات سا�
 | `components/files/` | `FileDropzone` (نوع‌های مجاز هر فیلد، «عکس با دوربین» و «ضبط صدا» با ضبط‌کننده‌ی گوشی)، `AttachmentList`، `FilePreviewDialog` (تصویر، PDF و پخش صدا)، `ImageInput` (لوگو و امضا)، `FilePicker` (انتخاب یک فایل برای API خاص، بدون input انگلیسی مرورگر) |
 | `components/delegation/` | جدول و پانل جانشین تازه؛ در «حساب من» و صفحه‌ی «جانشینی‌ها» |
 | `components/` (دیگر) | `info-tip.tsx` (راهنمای ⓘ)، `search-picker.tsx` (انتخاب یکی یا چند از فهرست محلی با جست‌وجو و تورفتگی درختی)، `signature-pad.tsx` (امضای دستی و بارگذاری PNG)، `confirm-dialog.tsx` (با `requireText`)، `jalali-calendar.tsx` (تقویم آوان با تعطیلات و روزهای غیرکاری سازمان)، `user-picker.tsx`، `status-badge.tsx`، `description-list.tsx`، `rich-text.tsx` و `rich-text-editor.tsx` (نمایش و ویرایش متن قالب‌دار)، `theme-provider.tsx` (پوسته‌ی روشن/تیره) |
-| `pages/` | پیشخوان، اعلان‌ها، ورود؛ `forms/` («فرم‌ها»، پر کردن با پیش‌نویس خودکار، ویرایش در مهلت، پنجره‌ی مرور پیش از ثبت `review-dialog.tsx`، صفحه‌ی تأیید `confirmation.tsx`؛ `submissions/`: ثبت‌های من، ثبت‌های فرم‌ها، مشاهده و چاپ؛ `design/`: طراحی فرم‌ها؛ هر دو در بخش «فرم‌ساز» بالاتر)؛ `account/` («حساب من» با زبانه در نشانی `?tab=`)؛ `admin/` (کاربران، نقش‌ها، ساختار سازمانی، فهرست‌های پایه، جانشینی‌ها، تقویم کاری، پشتیبان‌گیری، کارهای سامانه، سوابق، لایسنس، تنظیمات)؛ `ui-kit/` (نمونه‌ی اجزا، فقط مدیر کل) |
+| `pages/` | پیشخوان، اعلان‌ها، ورود؛ `forms/` («فرم‌ها»، پر کردن با پیش‌نویس خودکار، ویرایش در مهلت، پنجره‌ی مرور پیش از ثبت `review-dialog.tsx`، صفحه‌ی تأیید `confirmation.tsx`؛ `submissions/`: ثبت‌های من، ثبت‌های فرم‌ها، مشاهده و چاپ؛ `design/`: طراحی فرم‌ها؛ هر دو در بخش «فرم‌ساز» بالاتر)؛ `workflow/design/` (فرایندساز؛ بخش «گردش کار» بالاتر)؛ `account/` («حساب من» با زبانه در نشانی `?tab=`)؛ `admin/` (کاربران، نقش‌ها، ساختار سازمانی، فهرست‌های پایه، جانشینی‌ها، تقویم کاری، پشتیبان‌گیری، کارهای سامانه، سوابق، لایسنس، تنظیمات)؛ `ui-kit/` (نمونه‌ی اجزا، فقط مدیر کل) |
 
 ### جدول داده
 

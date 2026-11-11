@@ -25,6 +25,7 @@ class WorkflowConfig(AppConfig):
     name = "core.workflow"
     label = "workflow"
     verbose_name = "گردش کار"
+    nikyar_permissions = {"workflow.design": "طراحی فرایندها"}
     nikyar_lookups = [
         LookupSpec(
             code="process-category",

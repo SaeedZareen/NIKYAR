@@ -1603,6 +1603,156 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workflow/processes/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description فرایندها برای طراحان (فرایندساز). */
+        get: operations["workflow_processes_list"];
+        put?: never;
+        /** @description فرایندها برای طراحان (فرایندساز). */
+        post: operations["workflow_processes_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workflow/processes/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description فرایندها برای طراحان (فرایندساز). */
+        get: operations["workflow_processes_retrieve"];
+        /** @description فرایندها برای طراحان (فرایندساز). */
+        put: operations["workflow_processes_update"];
+        post?: never;
+        /** @description فرایندها برای طراحان (فرایندساز). */
+        delete: operations["workflow_processes_destroy"];
+        options?: never;
+        head?: never;
+        /** @description فرایندها برای طراحان (فرایندساز). */
+        patch: operations["workflow_processes_partial_update"];
+        trace?: never;
+    };
+    "/api/workflow/processes/{id}/copy/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description فرایندها برای طراحان (فرایندساز). */
+        post: operations["workflow_processes_copy_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workflow/processes/{id}/new-draft/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description پیش‌نویس تازه از آخرین نسخه (یا همان پیش‌نویس موجود). */
+        post: operations["workflow_processes_new_draft_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workflow/processes/form-options/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description فرم‌های منتشرشده برای انتخاب «فرم اصلی». */
+        get: operations["workflow_processes_form_options_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workflow/versions/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description نسخه‌های فرایند. ویرایش فقط روی پیش‌نویس (فایل BPMN)؛ ذخیره‌های پیاپی فرایندساز در سوابق ثبت نمی‌شوند،
+         *     انتشار ثبت می‌شود. هر پاسخ جزئیات، ایرادهای انتشار (problems) را دارد.
+         */
+        get: operations["workflow_versions_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workflow/versions/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description نسخه‌های فرایند. ویرایش فقط روی پیش‌نویس (فایل BPMN)؛ ذخیره‌های پیاپی فرایندساز در سوابق ثبت نمی‌شوند،
+         *     انتشار ثبت می‌شود. هر پاسخ جزئیات، ایرادهای انتشار (problems) را دارد.
+         */
+        get: operations["workflow_versions_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * @description نسخه‌های فرایند. ویرایش فقط روی پیش‌نویس (فایل BPMN)؛ ذخیره‌های پیاپی فرایندساز در سوابق ثبت نمی‌شوند،
+         *     انتشار ثبت می‌شود. هر پاسخ جزئیات، ایرادهای انتشار (problems) را دارد.
+         */
+        patch: operations["workflow_versions_partial_update"];
+        trace?: never;
+    };
+    "/api/workflow/versions/{id}/publish/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description انتشار پیش‌نویس؛ از این پس درخواست‌های تازه با همین نسخه شروع می‌شوند. */
+        post: operations["workflow_versions_publish_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -2176,6 +2326,10 @@ export interface components {
              * Format: binary
              */
             file: string;
+        };
+        FormOption: {
+            id: number;
+            title: string;
         };
         /** @description ثبت‌های نهایی یک فرم با تعریف آخرین نسخه‌ی منتشرشده (ستون‌های جدول). */
         FormReport: {
@@ -3175,6 +3329,27 @@ export interface components {
             /** کانال‌ها */
             channels?: components["schemas"]["NotificationChannelEnum"][];
         };
+        PatchedProcessRequest: {
+            /**
+             * شناسه
+             * @description شناسه‌ی لاتین و پایدار فرایند (مثلاً purchase)؛ پس از ساخت تغییر نمی‌کند.
+             */
+            code?: string;
+            /** عنوان */
+            title?: string;
+            /** توضیح */
+            description?: string;
+            /** دسته */
+            category?: number | null;
+            /** فرم اصلی */
+            form?: number;
+            /** فعال */
+            is_active?: boolean;
+        };
+        PatchedProcessVersionDetailRequest: {
+            /** تعریف BPMN */
+            bpmn?: string;
+        };
         /** @description آنچه هر کاربر خودش در «حساب من» تغییر می‌دهد؛ نام و نقش را راهبر سامانه تعیین می‌کند. */
         PatchedProfileRequest: {
             /** آدرس ایمیل */
@@ -3310,9 +3485,110 @@ export interface components {
         PreviewResult: {
             example: string;
         };
+        Process: {
+            readonly id: number;
+            /**
+             * شناسه
+             * @description شناسه‌ی لاتین و پایدار فرایند (مثلاً purchase)؛ پس از ساخت تغییر نمی‌کند.
+             */
+            code: string;
+            /** عنوان */
+            title: string;
+            /** توضیح */
+            description: string;
+            /** دسته */
+            category: number | null;
+            /** @default  */
+            readonly category_title: string;
+            /** فرم اصلی */
+            form: number;
+            readonly form_title: string;
+            /** فعال */
+            is_active: boolean;
+            /** @description شماره‌ی آخرین نسخه‌ی منتشرشده؛ null یعنی هنوز منتشر نشده. */
+            readonly published_version: number | null;
+            /** @description شناسه‌ی نسخه‌ی پیش‌نویس باز؛ null یعنی پیش‌نویسی نیست. */
+            readonly draft_version: number | null;
+            readonly request_count: number;
+        };
+        ProcessCopyRequest: {
+            /** شناسه */
+            code: string;
+        };
         ProcessLookup: {
             id: number;
             title: string;
+        };
+        ProcessRequest: {
+            /**
+             * شناسه
+             * @description شناسه‌ی لاتین و پایدار فرایند (مثلاً purchase)؛ پس از ساخت تغییر نمی‌کند.
+             */
+            code: string;
+            /** عنوان */
+            title: string;
+            /** توضیح */
+            description?: string;
+            /** دسته */
+            category?: number | null;
+            /** فرم اصلی */
+            form: number;
+            /** فعال */
+            is_active?: boolean;
+        };
+        ProcessVersion: {
+            readonly id: number;
+            /** فرایند */
+            readonly process: number;
+            /** نسخه */
+            readonly number: number;
+            /**
+             * وضعیت
+             * @default draft
+             */
+            readonly status: components["schemas"]["FormVersionStatusEnum"];
+            /**
+             * زمان ساخت
+             * Format: date-time
+             */
+            readonly created_at: string;
+            /**
+             * زمان انتشار
+             * Format: date-time
+             */
+            readonly published_at: string | null;
+            /** @default  */
+            readonly published_by_name: string;
+        };
+        ProcessVersionDetail: {
+            readonly id: number;
+            /** فرایند */
+            readonly process: number;
+            /** نسخه */
+            readonly number: number;
+            /**
+             * وضعیت
+             * @default draft
+             */
+            readonly status: components["schemas"]["FormVersionStatusEnum"];
+            /**
+             * زمان ساخت
+             * Format: date-time
+             */
+            readonly created_at: string;
+            /**
+             * زمان انتشار
+             * Format: date-time
+             */
+            readonly published_at: string | null;
+            /** @default  */
+            readonly published_by_name: string;
+            /** تعریف BPMN */
+            bpmn: string;
+            /** @description ایرادهای انتشار به ازای شناسه‌ی عنصر BPMN (یا «bpmn»/«form» برای کل فرایند)؛ خالی یعنی آماده‌ی انتشار. */
+            readonly problems: {
+                [key: string]: string;
+            };
         };
         Region: {
             name: string;
@@ -6954,6 +7230,318 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProcessLookup"][];
+                };
+            };
+        };
+    };
+    workflow_processes_list: {
+        parameters: {
+            query?: {
+                /** @description چند مقدار با ویرگول جدا می‌شود. */
+                category?: string;
+                /** @description چند مقدار با ویرگول جدا می‌شود. */
+                is_active?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Process"][];
+                };
+            };
+        };
+    };
+    workflow_processes_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProcessRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["ProcessRequest"];
+                "multipart/form-data": components["schemas"]["ProcessRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Process"];
+                };
+            };
+        };
+    };
+    workflow_processes_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Process"];
+                };
+            };
+        };
+    };
+    workflow_processes_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProcessRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["ProcessRequest"];
+                "multipart/form-data": components["schemas"]["ProcessRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Process"];
+                };
+            };
+        };
+    };
+    workflow_processes_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    workflow_processes_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedProcessRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedProcessRequest"];
+                "multipart/form-data": components["schemas"]["PatchedProcessRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Process"];
+                };
+            };
+        };
+    };
+    workflow_processes_copy_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ProcessCopyRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["ProcessCopyRequest"];
+                "multipart/form-data": components["schemas"]["ProcessCopyRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Process"];
+                };
+            };
+        };
+    };
+    workflow_processes_new_draft_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProcessVersionDetail"];
+                };
+            };
+        };
+    };
+    workflow_processes_form_options_list: {
+        parameters: {
+            query?: {
+                /** @description چند مقدار با ویرگول جدا می‌شود. */
+                category?: string;
+                /** @description چند مقدار با ویرگول جدا می‌شود. */
+                is_active?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["FormOption"][];
+                };
+            };
+        };
+    };
+    workflow_versions_list: {
+        parameters: {
+            query?: {
+                /** @description چند مقدار با ویرگول جدا می‌شود. */
+                process?: string;
+                /** @description چند مقدار با ویرگول جدا می‌شود. */
+                status?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProcessVersion"][];
+                };
+            };
+        };
+    };
+    workflow_versions_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description یک مقداد عدد یکتا که این نسخه‌ی فرایند را شناسایی میکند. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProcessVersionDetail"];
+                };
+            };
+        };
+    };
+    workflow_versions_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description یک مقداد عدد یکتا که این نسخه‌ی فرایند را شناسایی میکند. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedProcessVersionDetailRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedProcessVersionDetailRequest"];
+                "multipart/form-data": components["schemas"]["PatchedProcessVersionDetailRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProcessVersionDetail"];
+                };
+            };
+        };
+    };
+    workflow_versions_publish_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description یک مقداد عدد یکتا که این نسخه‌ی فرایند را شناسایی میکند. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProcessVersionDetail"];
                 };
             };
         };

@@ -1,0 +1,33 @@
+/* بوم فرایندساز (bpmn-js) با توکن‌های پوسته‌ی نیک‌یار، در پوسته‌ی روشن و تیره.
+   diagram-js رنگ‌هایش را از توکن‌های معنایی @bpmn-io/theme (--bio-*) روی .bio-theme-parent می‌خواند. */
+.nk-bpmn .bio-theme-parent {
+  --bio-surface: var(--card);
+  --bio-surface-overlay: var(--popover);
+  --bio-surface-subtle: var(--card);
+  --bio-surface-medium: var(--muted);
+  --bio-text: var(--foreground);
+  --bio-text-subtle: var(--muted-foreground);
+  --bio-text-subtlest: var(--muted-foreground);
+  --bio-border: var(--border);
+  --bio-primary: var(--primary);
+  --bio-primary-surface: var(--accent);
+  --bio-danger: var(--destructive);
+  --bio-selected-surface: var(--accent);
+  --bio-selected-text: var(--accent-foreground);
+  --bio-focus: var(--ring);
+  --bio-canvas-accent: var(--primary);
+  --bio-canvas-accent-subtle: var(--ring);
+  --canvas-fill-color: var(--background);
+  --hover-tooltip-font-family: var(--font-sans);
+  --popup-font-family: var(--font-sans);
+}
+
+.nk-bpmn {
+  background: var(--background);
+}
+
+/* عنصر دارای ایراد انتشار: کادر قرمز */
+.nk-bpmn .djs-element.nk-error .djs-visual > :first-child {
+  stroke: var(--destructive) !important;
+  stroke-width: 2.5px !important;
+}
