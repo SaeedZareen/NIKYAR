@@ -67,13 +67,14 @@ def preview(code: str, template: str | None = None) -> str:
     return render(template if template is not None else template_of(code), {name: sample for name, (_, sample) in spec.placeholders.items()})
 
 
-def notify(users: Iterable, code: str, *, url: str = "", **data) -> None:
+def notify(users: Iterable, code: str, *, url: str = "", body: str | None = None, **data) -> None:
+    """body: متن آماده به‌جای قالب این نوع (مثلاً متن دلخواه یک مرحله‌ی فرایند)؛ کانال‌ها همان کانال‌های این نوع است."""
     if kind(code) is None:
         raise KeyError(f"Unknown notification kind: {code}")
     recipients = {u.pk: u for u in users if u is not None and u.is_active}
 
     def create():
-        text = render(template_of(code), data)[:500]
+        text = (body if body is not None else render(template_of(code), data))[:500]
         Notification.objects.bulk_create(Notification(user_id=pk, kind=code, text=text, url=url) for pk in recipients)
         default = org_channels(code)
         for user in recipients.values():

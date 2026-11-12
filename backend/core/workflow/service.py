@@ -36,7 +36,7 @@ from core.numbering import service as numbering
 from core.numbering.models import NumberSequence
 from core.org import service as org_service
 
-from . import access, assignment, bpmn
+from . import access, assignment, bpmn, deadlines
 from .expressions import SafeScriptEngine
 from .models import Event, Process, ProcessVersion, Request, Task, TaskVote
 
@@ -434,6 +434,23 @@ def _vote(request: Request, task: Task, user, principal, chosen: dict, definitio
     return chosen["value"] != first or not task.candidates.exclude(pk__in=task.votes.values("candidate_id")).exists()
 
 
+def auto_complete(task: Task, decision: str, comment: str) -> None:
+    """انجام کار بی انجام‌دهنده (مثلاً تصمیم خودکار پس از پایان مهلت)؛ موتور جلو می‌رود."""
+    with transaction.atomic():
+        request = Request.objects.select_for_update().get(pk=task.request_id)
+        task = Task.objects.select_for_update().get(pk=task.pk)
+        if task.status != Task.Status.OPEN or request.status != Request.Status.RUNNING:
+            return
+        workflow = _load(request)
+        spiff_task = workflow.get_task_from_id(task.spiff_id)
+        if spiff_task is not None:
+            spiff_task.data.update(request.data)
+        _finish(request, workflow, task, None, decision, comment, None)
+        _advance(request, workflow)
+        _save(request, workflow)
+        request.save()
+
+
 def _apply_step_data(request: Request, task: Task, data: dict, user) -> None:
     """داده‌ی ویرایش‌شده‌ی مرحله با تعریف همان مرحله سنجیده و با داده‌ی درخواست یکی می‌شود."""
     form_definition = access.step_definition(request.version.form_version.definition, step_access(task))
@@ -491,9 +508,12 @@ def _sync(request: Request, workflow: BpmnWorkflow):
             continue
         element = spiff_task.task_spec.bpmn_id
         settings = definition.tasks[element]
-        task = Task.objects.create(
+        task = Task(
             request=request, spiff_id=spiff_id, element=element, title=spiff_task.task_spec.bpmn_name or element, completion=settings.get("completion", "any")
         )
+        task.created_at = timezone.now()
+        deadlines.schedule(task, settings.get("deadline"))
+        task.save()
         candidates = assignment.resolve(settings["assignee"], request)
         if not candidates:
             task.fallback = True
@@ -502,10 +522,13 @@ def _sync(request: Request, workflow: BpmnWorkflow):
             notify(candidates, "workflow.unassigned", url=f"/tasks/{task.pk}", step=task.title, process=request.process.title, number=request.number or "—")
         else:
             delegates = {d for c in candidates for d in delegation.delegates_of(c, process=request.process_id)}
+            # متن دلخواه مرحله (با جای‌گذار فیلدها) به‌جای متن پیش‌فرض «کار تازه»؛ کانال‌ها همان کانال‌های «کار تازه»
+            body = deadlines.render_message(settings["message"], request, task.title) if settings.get("message") else None
             notify(
                 [*candidates, *delegates],
                 "workflow.task",
                 url=f"/tasks/{task.pk}",
+                body=body,
                 step=task.title,
                 process=request.process.title,
                 number=request.number or "—",

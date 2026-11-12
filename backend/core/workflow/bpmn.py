@@ -9,6 +9,8 @@
                  completion "any" (پیش‌فرض: یکی از گیرنده‌ها کافی است) | "all" (همه نظر می‌دهند؛ یک تصمیم غیر از نخستین کافی است)
                  skip_same  true: اگر گیرنده همان انجام‌دهنده‌ی مرحله‌ی قبل است، خودکار با نخستین تصمیم انجام شود
                  fields     {"<فیلد فرم>": "hidden"|"readonly"|"edit"|"required"}؛ فیلد نیامده: فقط‌خواندنی
+                 deadline   مهلت، یادآوری و کار پس از پایان مهلت (deadlines.py)
+                 message    متن دلخواه اعلان «کار تازه» با جای‌گذار فیلدهای فرم (deadlines.py)
     sequenceFlow: condition  مدل سازنده‌ی دیداری (JsonLogic) برای ویرایش دوباره؛ شرط اجرایی همان conditionExpression است
     serviceTask: action     {"type": "<کد اقدام>", ...} از رجیستری اقدام‌ها (actions.py)؛ عملگر SpiffWorkflow: «nikyar»
     endEvent:    outcome    "completed" | "rejected"
@@ -31,7 +33,7 @@ from core.forms import engine as form_engine
 from core.kernel.api import BusinessError
 from core.kernel.registry import workflow_actions
 
-from . import assignment, expressions
+from . import assignment, deadlines, expressions
 
 BPMN = "http://www.omg.org/spec/BPMN/20100524/MODEL"
 SPIFF = "http://spiffworkflow.org/bpmn/schema/1.0/core"
@@ -175,6 +177,10 @@ def check(text: str, form_definition: dict) -> Definition:
                 message = message or "سیاست گیرنده نامعتبر است."
             access = props.get("fields", {})
             message = message or _check_access(access, types)
+            deadline = props.get("deadline")
+            if isinstance(decisions, list):
+                message = message or deadlines.check(deadline, decisions=decisions, tasks=user_tasks - {nid}, user_fields=user_fields)
+            message = message or deadlines.check_message(props.get("message"), set(types))
             if message:
                 errors.setdefault(nid, f"«{label}»: {message}")
             definition.tasks[nid] = {
@@ -183,6 +189,8 @@ def check(text: str, form_definition: dict) -> Definition:
                 "skip_same": skip_same,
                 "fields": access,
                 "completion": completion,
+                "deadline": deadline,
+                "message": props.get("message"),
             }
         if tag == "serviceTask":
             message = _check_action(node, props.get("action"), actions, form_definition, user_tasks)

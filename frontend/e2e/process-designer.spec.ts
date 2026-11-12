@@ -117,6 +117,16 @@ test.describe("پانل ویژگی‌های فرایند", () => {
       await expect(panel.getByRole("alert")).toContainText("گیرنده")
       await panel.getByLabel("گیرنده", { exact: true }).click()
       await page.getByRole("option", { name: "خود درخواست‌دهنده" }).click()
+      if (id === "Task_finance") {
+        // مهلت دو روز کاری؛ پس از آن تصمیم خودکار (تا تصمیم انتخاب نشده، ایراد انتشار است)
+        await panel.getByLabel("مهلت انجام", { exact: true }).click()
+        await panel.getByLabel("پس از پایان مهلت", { exact: true }).click()
+        await page.getByRole("option", { name: "تصمیم خودکار" }).click()
+        await expect(panel.getByRole("alert")).toContainText("تصمیم خودکار پس از پایان مهلت")
+        await panel.getByLabel("تصمیم خودکار", { exact: true }).click()
+        await page.getByRole("option", { name: "تأیید" }).click()
+        await expect(panel.getByRole("alert")).toHaveCount(0)
+      }
       await close()
     }
     await expect(problems).toContainText("ایرادی نیست")

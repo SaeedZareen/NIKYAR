@@ -16,6 +16,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { UserPicker } from "@/components/user-picker"
 import { ConditionEditor } from "@/pages/forms/design/rule-editors"
 import { decisionsBefore, DEFAULT_DECISIONS, infoOf, setCondition, setDefault, setName, setProps, userTasks } from "./bpmn-props"
+import { onlyDigits } from "@/lib/format"
 import { conditionPython } from "./condition-python"
 
 type Any = any // eslint-disable-line @typescript-eslint/no-explicit-any
@@ -96,6 +97,21 @@ export function ElementProperties({ modeler, id, definition, actions, problem }:
             <Switch id={`${info.id}-skip`} checked={info.props.skip_same === true} onCheckedChange={(on) => write({ skip_same: on || undefined })} />
             <FieldLabel htmlFor={`${info.id}-skip`}>اگر گیرنده همان انجام‌دهنده‌ی مرحله‌ی قبل است، خودکار تأیید شود</FieldLabel>
           </Field>
+          <DeadlineEditor
+            id={`${info.id}-deadline`}
+            value={info.props.deadline as Deadline | undefined}
+            decisions={(info.props.decisions as Decision[] | undefined) ?? [...DEFAULT_DECISIONS]}
+            onChange={(deadline) => write({ deadline })}
+            fields={fields}
+            tasks={userTasks(modeler).filter((t) => t.id !== info.id)}
+          />
+          <Row
+            id={`${info.id}-message`}
+            label="متن اعلان این مرحله"
+            help="خالی: متن پیش‌فرض «کار تازه در کارتابل». جای‌گذارها: {step} عنوان مرحله، {process} نام فرایند، {number} شماره، {requester} درخواست‌دهنده و {شناسه‌ی فیلد} (مثلاً {amount}) مقدار آن فیلد. کانال‌ها (پیامک، ایمیل) همان کانال‌های «کار تازه» است."
+          >
+            <CommitInput id={`${info.id}-message`} multiline value={String(info.props.message ?? "")} onCommit={(v) => write({ message: v.trim() || undefined })} />
+          </Row>
           <AccessEditor id={`${info.id}-access`} fields={fields} value={(info.props.fields as Record<string, string> | undefined) ?? {}} onChange={(access) => write({ fields: Object.keys(access).length ? access : undefined })} />
         </>
       )}
@@ -202,6 +218,79 @@ function AssigneeEditor({ id, value, onChange, fields, tasks }: { id: string; va
   )
 }
 
+type Deadline = { value: number; unit: "days" | "hours"; remind?: number; escalate?: string; decision?: string; assignee?: Rule }
+
+const ESCALATIONS = { none: "فقط اعلان به گیرنده‌ها", manager: "اعلان به مدیر گیرنده‌ها هم", reassign: "ارجاع به گیرنده‌ی دیگر", decide: "تصمیم خودکار" }
+
+/** مهلت مرحله به روز یا ساعت کاری (تقویم کاری سازمان)، یادآوری پیش از مهلت و کار پس از پایان مهلت. */
+function DeadlineEditor({
+  id,
+  value,
+  decisions,
+  onChange,
+  fields,
+  tasks,
+}: {
+  id: string
+  value?: Deadline
+  decisions: Decision[]
+  onChange: (d: Deadline | undefined) => void
+  fields: FieldDef[]
+  tasks: { id: string; name: string }[]
+}) {
+  const number = (v: string) => (v === "" ? undefined : Number(onlyDigits(v)) || undefined)
+  const escalate = value?.escalate ?? "none"
+  return (
+    <div className="flex flex-col gap-2 rounded-md border p-2">
+      <Field orientation="horizontal">
+        <Switch id={`${id}-on`} checked={!!value} onCheckedChange={(on) => onChange(on ? { value: 2, unit: "days" } : undefined)} />
+        <FieldLabel htmlFor={`${id}-on`}>مهلت انجام</FieldLabel>
+        <InfoTip label="راهنمای مهلت انجام">مهلت از زمان رسیدن کار با روزها و ساعت‌های کاری «تقویم کاری» شمرده می‌شود (تعطیلات حساب نمی‌شود). کارهای دیرکرده در کارتابل نشانه می‌گیرند.</InfoTip>
+      </Field>
+      {value && (
+        <>
+          <div className="grid grid-cols-2 gap-2">
+            <Row id={`${id}-value`} label="مقدار">
+              <Input id={`${id}-value`} inputMode="numeric" dir="ltr" className="text-start tabular-nums" value={String(value.value ?? "")} onChange={(e) => onChange({ ...value, value: number(e.target.value) ?? 1 })} />
+            </Row>
+            <Row id={`${id}-unit`} label="واحد">
+              <Pick id={`${id}-unit`} value={value.unit} onChange={(unit) => onChange({ ...value, unit: unit as Deadline["unit"] })} options={{ days: "روز کاری", hours: "ساعت کاری" }} />
+            </Row>
+          </div>
+          <Row id={`${id}-remind`} label="یادآوری (ساعت پیش از پایان مهلت)" help="خالی یعنی بی یادآوری.">
+            <Input
+              id={`${id}-remind`}
+              inputMode="numeric"
+              dir="ltr"
+              className="text-start tabular-nums"
+              value={value.remind ? String(value.remind) : ""}
+              onChange={(e) => onChange({ ...value, remind: number(e.target.value) })}
+            />
+          </Row>
+          <Row id={`${id}-escalate`} label="پس از پایان مهلت" help="همیشه به گیرنده‌ها اعلان می‌شود و در تاریخچه می‌آید؛ به‌علاوه‌ی کاری که این‌جا انتخاب می‌شود.">
+            <Pick
+              id={`${id}-escalate`}
+              value={escalate}
+              onChange={(v) => onChange({ value: value.value, unit: value.unit, remind: value.remind, escalate: v === "none" ? undefined : v })}
+              options={ESCALATIONS}
+            />
+          </Row>
+          {escalate === "reassign" && (
+            <Row id={`${id}-assignee`} label="گیرنده‌ی تازه">
+              <AssigneeEditor id={`${id}-assignee`} value={value.assignee} onChange={(assignee) => onChange({ ...value, assignee })} fields={fields} tasks={tasks} />
+            </Row>
+          )}
+          {escalate === "decide" && (
+            <Row id={`${id}-decision`} label="تصمیم خودکار">
+              <Pick id={`${id}-decision`} value={value.decision ?? ""} onChange={(decision) => onChange({ ...value, decision })} options={Object.fromEntries(decisions.map((d) => [d.value, d.label]))} />
+            </Row>
+          )}
+        </>
+      )}
+    </div>
+  )
+}
+
 function DecisionsEditor({ id, value, onChange }: { id: string; value: Decision[]; onChange: (d: Decision[]) => void }) {
   const update = (i: number, patch: Partial<Decision>) => onChange(value.map((d, j) => (j === i ? { ...d, ...patch } : d)))
   return (
@@ -291,7 +380,7 @@ function ActionEditor({ id, actions, fields, tasks, value, onChange }: { id: str
           <Row id={`${id}-to`} label="گیرنده‌ی اعلان">
             <AssigneeEditor id={`${id}-to`} value={value?.to as Rule | undefined} onChange={(to) => onChange({ ...value, type: kind, to })} fields={fields} tasks={tasks} />
           </Row>
-          <Row id={`${id}-text`} label="متن اعلان" help="{number} شماره‌ی درخواست و {process} نام فرایند را جای‌گذاری می‌کند. با پیامک یا ایمیل هم بنا به انتخاب هر کاربر می‌رسد.">
+          <Row id={`${id}-text`} label="متن اعلان" help="{number} شماره‌ی درخواست، {process} نام فرایند و {شناسه‌ی فیلد} (مثلاً {amount}) مقدار آن فیلد فرم را جای‌گذاری می‌کند. با پیامک یا ایمیل هم بنا به انتخاب هر کاربر می‌رسد.">
             <CommitInput id={`${id}-text`} multiline value={String(value?.text ?? "")} onCommit={(text) => onChange({ ...value, type: kind, text })} />
           </Row>
         </>

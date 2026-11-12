@@ -3018,6 +3018,13 @@ export interface components {
              * Format: date-time
              */
             readonly completed_at: string | null;
+            /**
+             * مهلت
+             * Format: date-time
+             */
+            readonly due_at: string | null;
+            /** @description کار باز که مهلتش گذشته است. */
+            readonly overdue: boolean;
         };
         Issued: {
             number: string;
@@ -4375,6 +4382,13 @@ export interface components {
              * Format: date-time
              */
             readonly completed_at: string | null;
+            /**
+             * مهلت
+             * Format: date-time
+             */
+            readonly due_at: string | null;
+            /** @description کار باز که مهلتش گذشته است. */
+            readonly overdue: boolean;
             readonly detail: components["schemas"]["TaskContext"];
         };
         TaskEvent: {

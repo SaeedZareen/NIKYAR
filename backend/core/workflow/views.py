@@ -2,6 +2,7 @@ import re
 
 from django.db import transaction
 from django.db.models import Count, Max, OuterRef, Q
+from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_field, inline_serializer
 from rest_framework import generics, mixins, serializers, status, viewsets
 from rest_framework.decorators import action
@@ -425,6 +426,7 @@ class InboxTaskSerializer(serializers.ModelSerializer):
     claimed_by_name = serializers.SerializerMethodField()
     on_behalf_of_name = serializers.SerializerMethodField()
     decision_label = serializers.SerializerMethodField()
+    overdue = serializers.SerializerMethodField()
     status_label = serializers.CharField(source="get_status_display", read_only=True)
 
     class Meta:
@@ -446,8 +448,14 @@ class InboxTaskSerializer(serializers.ModelSerializer):
             "comment",
             "created_at",
             "completed_at",
+            "due_at",
+            "overdue",
         ]
         read_only_fields = fields
+
+    def get_overdue(self, obj) -> bool:
+        """کار باز که مهلتش گذشته است."""
+        return obj.status == Task.Status.OPEN and obj.due_at is not None and obj.due_at <= timezone.now()
 
     def get_group(self, obj) -> bool:
         count = getattr(obj, "candidate_count", None)

@@ -137,6 +137,14 @@ function TaskView({ task }: { task: Task }) {
           <StaticField label="رسیدن این کار">
             <span className="tabular-nums">{formatDateTime(task.created_at)}</span>
           </StaticField>
+          {task.due_at && (
+            <StaticField label="مهلت">
+              <span className="inline-flex flex-wrap items-center gap-1.5">
+                <span className="tabular-nums">{formatDateTime(task.due_at)}</span>
+                {task.overdue && <StatusBadge tone="destructive">دیرکرد</StatusBadge>}
+              </span>
+            </StaticField>
+          )}
           {detail.group && <StaticField label="گیرنده‌ها">{detail.candidates.join("، ")}</StaticField>}
         </FormGrid>
       </Section>

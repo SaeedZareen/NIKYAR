@@ -44,8 +44,10 @@ class TestJobs:
     def test_tick_queues_scheduled_tasks_once(self):
         at = local(4, 30)
         names = {j.name for j in jobs.tick(at)}
-        assert {"files.cleanup", "jobs.cleanup", "backup.daily"} <= names
-        assert jobs.tick(at + timedelta(minutes=5)) == []
+        assert {"files.cleanup", "jobs.cleanup", "backup.daily", "workflow.deadlines"} <= names
+        # روزانه‌ها فردا؛ «هر ۵ دقیقه» پنج دقیقه بعد دوباره
+        assert jobs.tick(at + timedelta(minutes=4)) == []
+        assert [j.name for j in jobs.tick(at + timedelta(minutes=5))] == ["workflow.deadlines"]
 
     def test_recover_interrupted_and_api(self, api, make_user, client_for):
         Job.objects.create(name="tests.flaky", status="running", run_after=timezone.now())
