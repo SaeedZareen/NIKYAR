@@ -175,5 +175,5 @@ def test_discussion(council, client_for, django_capture_on_commit_callbacks):
     # اعلان به شرکت‌کنندگان دیگر، با پیوند کار هر گیرنده
     note = Notification.objects.get(user=council["m2"], kind="workflow.comment", text__contains="پیش‌فاکتور دوم")
     assert note.url == f"/tasks/{request.tasks.get().pk}" and note.text.startswith("کاربر m1 در گفت‌وگوی درخواست «کمیسیون معاملات»")
-    assert Notification.objects.filter(user=council["clerk"], kind="workflow.comment").count() == 1
+    assert Notification.objects.get(user=council["clerk"], kind="workflow.comment").url == f"/requests/{request.pk}"  # درخواست‌دهنده: صفحه‌ی درخواست
     assert not Notification.objects.filter(user=council["outsider"], kind="workflow.comment").exists()

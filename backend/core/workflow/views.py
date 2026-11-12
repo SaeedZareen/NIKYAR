@@ -446,7 +446,7 @@ class CancelRequestSerializer(serializers.Serializer):
 class RequestViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.DestroyModelMixin, viewsets.GenericViewSet):
     """
     درخواست‌هایی که کاربر ثبت کرده یا به نامش ثبت شده. پیش‌نویس فقط برای پرکننده‌اش دیده، ویرایش و حذف می‌شود.
-    کارتابل و پیگیری درخواست‌های دیگران با 4.5 و 4.7.
+    پیگیری (`track/`، `cancel/`) برای همه‌ی شرکت‌کنندگان درخواست است (tracking.py)؛ کارتابل در TaskViewSet.
     """
 
     queryset = Request.objects.all()

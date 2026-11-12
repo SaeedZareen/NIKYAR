@@ -24,13 +24,13 @@
 | `files/` | بارگذاری با بررسی محتوای واقعی (`types.py`، شامل تصویر، PDF، اسناد اداری و صدا: mp3، m4a، ogg، wav، webm؛ نام اصلی با نیم‌فاصله از فیلد `name` بازگردانده می‌شود)، مشخصات چند فایل با شناسه (`info/?ids=`)، رونوشت مستقل (`duplicate`)، دریافت فقط از `/api/files/<id>/download/` (عمومی فقط برای لوگو)، تصاحب/آزادسازی توسط رکورد صاحب (`FileRefField`)، پاک‌سازی روزانه‌ی فایل‌های بی‌استفاده (کار `files.cleanup`)، بخش تنظیمات «فایل‌ها و پیوست‌ها» |
 | `workcalendar/` | بخش تنظیمات «روزها و ساعت کاری»، تعطیلات رسمی و خاص سازمان، داده‌ی تعطیلات رسمی همراه برنامه (`data/official_holidays.json` از بسته‌ی آوان، بارگذاری هر سال یک‌بار پس از migrate)، ورود از CSV، خدمت `WorkCalendar` (`is_working_day`، `add_working_hours`، `add_working_days`) برای مهلت‌ها |
 | `numbering/` | نوع‌های سند شماره‌دار، الگو با `{year}` `{yy}` `{fyear}` `{month}` `{seq:5}`، شروع دوباره (سال شمسی، سال مالی، هرگز)، صدور با `allocate("<code>")` در تراکنش و به‌روزرسانی اتمی، شماره‌ی بعدی فقط رو به جلو |
-| `jobs/` | صف کار روی پایگاه داده (`Job`) با تلاش دوباره، زمان‌بند روزانه (`Daily`)، `@task` در `tasks.py` هر برنامه، `enqueue()`؛ اجراکننده درون `serve.py` یا `manage.py run_worker`؛ کار نیمه‌کاره پس از راه‌اندازی دوباره به صف برمی‌گردد؛ کار ناموفق نهایی به دارندگان `jobs.manage` اعلان می‌دهد |
+| `jobs/` | صف کار روی پایگاه داده (`Job`) با تلاش دوباره، زمان‌بند روزانه (`Daily`) و دوره‌ای (`Every(دقیقه)`)، `@task` در `tasks.py` هر برنامه، `enqueue()`؛ اجراکننده درون `serve.py` یا `manage.py run_worker`؛ کار نیمه‌کاره پس از راه‌اندازی دوباره به صف برمی‌گردد؛ کار ناموفق نهایی به دارندگان `jobs.manage` اعلان می‌دهد |
 | `backup/` | پشتیبان کامل ZIP (manifest، کپی سازگار SQLite، فایل‌ها)، پشتیبان روزانه و حذف روزانه‌های قدیمی، بازیابی از فهرست یا فایل با بررسی نسخه، پشتیبان خودکار «پیش از بازیابی» و migrate پس از بازیابی |
-| `notifications/` | نوع‌های اعلان، `notify(users, code, url=..., **data)` پس از ثبت قطعی تراکنش، متن ذخیره‌شده هنگام ساخت، متن سفارشی سازمان (بخش «متن اعلان‌ها»)، API اعلان‌های کاربر؛ کانال‌های بیرونی هر نوع: اعلام در کد ← پیش‌فرض سازمان ← انتخاب هر کاربر (`NotificationPreference`) |
+| `notifications/` | نوع‌های اعلان، `notify(users, code, url=..., body=..., email_extra=..., **data)` پس از ثبت قطعی تراکنش (`body` متن آماده به‌جای قالب، `email_extra(user)` متن افزوده‌ی فقط ایمیل)، متن ذخیره‌شده هنگام ساخت، متن سفارشی سازمان (بخش «متن اعلان‌ها»)، API اعلان‌های کاربر؛ کانال‌های بیرونی هر نوع: اعلام در کد ← پیش‌فرض سازمان ← انتخاب هر کاربر (`NotificationPreference`) |
 | `messaging/` | بخش تنظیمات «پیامک و ایمیل» (کلید و گذرواژه با `SecretField` رمزشده، هرگز برگردانده نمی‌شوند)، درگاه‌های پیامک افزونه‌ای (`providers.SMS_PROVIDERS`: کاوه‌نگار)، SMTP، ارسال از صف (`queue()`، کار `messaging.send`)، سابقه‌ی ارسال‌ها (`Delivery`)، ارسال آزمایشی بی‌درنگ |
-| `delegation/` | جانشینی برای همه‌ی کارهای اصیل در بازه‌ی [از، تا] (هر دو سر شامل)، بدون هم‌پوشانی برای یک اصیل؛ هر کاربر برای خودش و دارنده‌ی `delegation.manage` برای همه؛ لغو: آینده حذف، جاری از امروز پایان؛ `actors_for(user)` و `principals_of(user)` برای گردش کار |
+| `delegation/` | جانشینی برای همه‌ی کارهای اصیل در بازه‌ی [از، تا] (هر دو سر شامل)، بدون هم‌پوشانی برای یک اصیل؛ هر کاربر برای خودش و دارنده‌ی `delegation.manage` برای همه؛ لغو: آینده حذف، جاری از امروز پایان؛ `delegates_of(user, process=…)` (جانشینی ویژه‌ی فرایند بر کامل مقدم) و `principals_of(user)` برای گردش کار |
 | `licensing/` | فایل لایسنس امضاشده با Ed25519 (`signing.py`؛ کلید عمومی مالک در `owner_public_key.pem`)، شناسه‌ی نصب، دوره‌ی آزمایشی ۳۰ روزه (۵۰ کاربر)، سقف کاربر فعال (`check_user_capacity`)، فرمان مالک `license keygen/issue/show` (`license-tool.bat`؛ راهنما: `docs/LICENSE-GUIDE.md`) |
-| `workflow/` | گردش کار (فاز ۴) روی SpiffWorkflow: فرایند (فرم اصلی، شروع‌کنندگان، مدیران، شماره‌گذاری)، نسخه (فایل BPMN؛ پیش‌نویس و منتشرشده با نسخه‌ی ثابت فرم)، درخواست (داده، وضعیت موتور، وضعیت)، کار (گیرنده‌ها، تصمیم، یادداشت)، تاریخچه؛ `bpmn.py` (بررسی و تجزیه، ویژگی‌های `spiffworkflow:properties`)، `expressions.py` (عبارت‌های امن شرط و `SafeScriptEngine` بی eval)، `assignment.py` (قاعده‌های گیرنده از ساختار سازمانی، `direct_manager`)، `actions.py` (اقدام‌های خودکار پایه)، `service.py` (انتشار، شروع، انجام کار با جانشینی، همگام‌سازی کارها، تأیید خودکار) — بخش «گردش کار» پایین‌تر |
+| `workflow/` | گردش کار (فاز ۴) روی SpiffWorkflow: فرایند (فرم اصلی، شروع‌کنندگان، مدیران، ثبت به نام دیگری، شماره‌گذاری)، نسخه (فایل BPMN؛ پیش‌نویس و منتشرشده با نسخه‌ی ثابت فرم)، درخواست (پیش‌نویس، داده، وضعیت موتور، پایان انتظار)، کار (گیرنده‌ها، برداشتن، سیاست گیرنده، مهلت، تصمیم)، نظر گیرنده (`TaskVote`)، گفت‌وگو (`RequestComment`)، پیوند ایمیل (`QuickAction`)، تاریخچه (`Event`)؛ ماژول‌ها: `bpmn.py` (بررسی و تجزیه)، `expressions.py` (`SafeScriptEngine` بی eval)، `assignment.py` (گیرنده‌ها)، `access.py` (دسترسی فیلدها در مرحله)، `service.py` (انتشار، ثبت و شروع، انجام کار، همگام‌سازی، زمان‌بندی)، `inbox.py` (کارتابل)، `deadlines.py` (مهلت و متن مرحله)، `discussion.py`، `quick.py`، `tracking.py` (پیگیری و لغو)، `actions.py` (اقدام‌های خودکار)، `placeholders.py`، `records.py` (منبع ارجاع) — بخش «گردش کار» پایین‌تر |
 | `forms/` | فرم‌ساز (فاز ۳): فرم (شناسه‌ی لاتین پایدار، دسته از فهرست `form-category`، نقش‌های پرکننده و بیننده، شماره‌گذاری، پذیرش و محدودیت‌ها، کار پس از ثبت، اعلان‌ها، بی‌نام)، نسخه (پیش‌نویس ویرایش‌شدنی، منتشرشده تغییرناپذیر، یک پیش‌نویس در هر فرم)، ثبت (پیش‌نویس خصوصی ثبت‌کننده، ثبت نهایی بسته به نسخه‌ی خودش و ویرایش‌پذیر فقط در مهلت فرم)؛ کاتالوگ نوع فیلدها (`fieldtypes.py`)، موتور (`engine.py`)، قاعده‌ها (`rules.py`)، پاک‌سازی HTML (`html.py`)، پذیرش (`acceptance.py`)، ورود/خروج و الگوها (`transfer.py`، `templates/`)، دسترسی و فایل‌ها (`service.py`) — بخش «فرم‌ساز» پایین‌تر |
 
 ### اعلام‌ها روی AppConfig
@@ -125,56 +125,38 @@
 
 ### گردش کار
 
-- **تعریف:** فایل BPMN 2.0 در `ProcessVersion.bpmn`. عنصرهای پشتیبانی‌شده:
-  - رویداد شروع و پایان ساده؛
-  - کار کاربری؛
-  - دروازه‌ی انحصاری و موازی؛
-  - مسیر؛
-  - یادداشت.
+**تعریف** (فایل BPMN 2.0 در `ProcessVersion.bpmn`؛ نسخه‌ی منتشرشده تغییرناپذیر و با نسخه‌ی ثابت فرم اصلی):
 
-  تنظیمات نیک‌یار در `spiffworkflow:properties` (JSON) قرار می‌گیرند: `assignee`، `decisions` (با `comment`)، `skip_same`، `fields` (دسترسی فیلدها در مرحله)، `action` (کار خودکار با عملگر `nikyar`)، `outcome`، و روی مسیر `condition` (مدل سازنده؛ شرط اجرایی `conditionExpression` است). `bpmn.check` همه را پیش از انتشار می‌سنجد و خطاها را با شناسه‌ی عنصر برمی‌گرداند.
-- **شرط‌ها:** عبارت پایتونی امن روی داده‌ی درخواست و `decision` (تصمیم آخرین مرحله). `expressions.check` با فهرست سفید گره‌های `ast`، و تفسیر بی eval در `SafeScriptEngine`، که موتور اسکریپت SpiffWorkflow را جایگزین می‌کند. اسکریپت و خدمت بیرونی همیشه رد می‌شوند.
-- **اجرا:**
-  - `service.save_request` پیش‌نویس (`status=draft`، طرح بی‌الزامی) را ذخیره می‌کند و با `submit` به `_submit` می‌رسد: سنجش کامل، شماره (`process-شناسه` در `core.numbering`)، فیلدهای سرور با `forms.service.server_values` (امضا فقط وقتی به نام خود ثبت می‌شود)، مقدارهای فیلد پنهان «از فرایند» (`PROCESS_VALUES`)، و جلو بردن موتور تا نخستین کارها. `created_by` پرکننده و `requester` درخواست‌دهنده است؛ `can_start_for_others` (نقش‌های `on_behalf_roles` یا مدیر کل) ثبت به نام دیگری را می‌پذیرد. `service.start` همان ارسال یک‌باره است.
-  - `access.py`: دسترسی فیلدها در هر مرحله (`step_definition`، `visible_data`)؛ `complete` فقط فیلدهای `edit`/`required` همان مرحله را از مرورگر می‌گیرد.
-  - `service.complete` با قفل درخواست و کار، تصمیم را در داده می‌نویسد و جلو می‌برد.
-  - `_sync` کارهای آماده را با جدول `Task` همگام و پایان یا رد را ثبت می‌کند.
-- **گیرنده‌ها و جانشینی:**
-  - مهلت (`deadlines.py`): `Task.due_at` و `remind_at` با `WorkCalendar` هنگام رسیدن کار؛ کار دوره‌ای `workflow.deadlines` (هر ۵ دقیقه، `core.jobs.registry.Every`) یادآوری و پس از پایان مهلت اعلان، اعلان به مدیر، ارجاع یا تصمیم خودکار (`service.auto_complete`) را یک‌بار انجام می‌دهد. متن دلخواه اعلان مرحله (`message`) با `placeholders.field_texts` و `notify(..., body=...)`.
-  - مرحله‌ی زمان‌بندی: رویداد میانی زمان‌دار با `timeDate` ثابت `wait_until` (`bpmn.WAIT_EXPRESSION`)؛ `SafeScriptEngine(timer=...)` زمان را از ویژگی `wait` و تقویم کاری می‌سازد، `service._save` نزدیک‌ترین `Request.wake_at` را نگه می‌دارد و `service.fire_timers` (در کار دوره‌ای) درخواست را جلو می‌برد.
-  - تأیید با یک کلیک از ایمیل (`quick.py`، `QuickAction`): پیوندها با `notify(..., email_extra=...)` فقط در ایمیل؛ API عمومی `GET/POST /api/workflow/quick/<نشانه>/` و صفحه‌ی `/quick/:token` بی ورود.
-  - سیاست گیرنده (`Task.completion`): «یکی کافی است» یا «همه‌ی گیرنده‌ها» با نظر هر گیرنده در `TaskVote`؛ تصمیمی غیر از نخستین کار را تمام می‌کند (`service._vote`).
-  - `assignment.resolve` هنگام رسیدن کار، گیرنده‌ها را می‌سازد. اگر خالی بماند، مدیران فرایند (یا مدیران کل) با `Task.fallback`.
-  - `acting_for` گیرنده یا جانشین امروزِ یکی از گیرنده‌ها را برای همان فرایند می‌پذیرد و «به نیابت از» را برمی‌گرداند.
-  - `core.delegation.service.delegates_of(user, process=...)`: جانشینی ویژه‌ی فرایند بر جانشینی کامل مقدم است.
-- **اقدام خودکار:**
-  - SpiffWorkflow برای serviceTask `call_service` موتور اسکریپت را صدا می‌زند و `SafeScriptEngine` آن را به `WorkflowAction` رجیستری (`nikyar_workflow_actions`) با زمینه‌ی درخواست می‌دهد.
-  - `check(config, form_definition)` هنگام انتشار، `run(context, config)` هنگام اجرا.
-- **وضعیت:** سریال‌ساز SpiffWorkflow در `Request.state`. مشخصات اجرایی هر نسخه با `lru_cache` روی متن BPMN نگه داشته می‌شود.
-- **API:**
-  - `/api/workflow/processes/` (`workflow.design`): فرایندها با شروع‌کنندگان، مدیران و شماره‌گذاری؛ `form-options/`، `action-types/`، `from-template/`، `<id>/form-definition/`، `<id>/new-draft/`، `<id>/copy/`.
-  - `/api/workflow/versions/`: پیش‌نویس BPMN با `problems` زنده، `publish/`.
-  - `GET /api/workflow/process-lookup/`: عنوان فرایندها برای هر کاربر.
-  - `/api/workflow/start/`: فرایندهای قابل شروع کاربر و `<id>/` زمینه‌ی پر کردن (`StartContext`، با `on_behalf`).
-  - `/api/workflow/requests/`: درخواست‌های کاربر (ثبت‌کرده یا به نامش)؛ ایجاد و ویرایش پیش‌نویس، `submit`، `requester`، حذف پیش‌نویس.
-  - `/api/workflow/tasks/?box=mine|group|delegated|done` (کارتابل، `inbox.box`)، `counts/`، `<id>/` (کار با `detail`: درخواست، تعریف و طرح فرم با دسترسی مرحله، داده‌ی دیدنی، تصمیم‌ها، تاریخچه، برداشتن)، `<id>/complete/`، `<id>/claim/`، `<id>/release/`.
-  - `GET /api/workflow/processes/target-forms/`: فرم‌های منتشرشده با فیلدها برای اقدام «ثبت در فرم دیگر» (`save_submission` در `actions.py`، با `forms.service.system_submission`).
-  - `/api/workflow/requests/<id>/track/` (پیگیری، `tracking.py`: نمودار با انجام‌شده و جاری، کارهای منتظر، تاریخچه، تأییدها با امضا) و `<id>/cancel/` (لغو تا پیش از نخستین تصمیم).
-  - `/api/workflow/comments/?request=…` (گفت‌وگوی درخواست، `discussion.py`): فهرست و افزودن پیام برای شرکت‌کنندگان.
-- **فرایندساز** (`pages/workflow/design`):
-  - `process-design-page.tsx` (فهرست) و `process-sheet.tsx` (مشخصات).
-  - `process-designer-page.tsx` (ذخیره‌ی خودکار، انتشار، فهرست ایرادها).
-  - `process-canvas.tsx`: bpmn-js، Modeler یا NavigatedViewer، و نشانه‌ی ایراد روی عنصر.
-  - `bpmn-modules.ts`: ترجمه‌ی فارسی، نوار ابزار و منوی کنار عنصر محدود به عنصرهای پشتیبانی‌شده، رنگ از توکن‌ها.
-  - `bpmn-theme.css`: نگاشت `--bio-*` به توکن‌های پوسته.
-  - `spiffworkflow-moddle.ts`: تعریف moddle عنصرهای افزوده‌ی SpiffWorkflow.
-  - `bpmn-props.ts`: خواندن و نوشتن ویژگی‌ها، شرط و مسیر پیش‌فرض با فرمان‌های bpmn-js.
-  - `condition-python.ts`: شرط سازنده ← عبارت پایتون.
-  - `process-properties.tsx`: پانل ویژگی‌ها.
-  - `process-versions-sheet.tsx`: نسخه‌ها، خروجی و ورود BPMN، نمایش کنار هم.
-- **درخواست‌های من** (`pages/workflow/requests`): `my-requests-page.tsx`، `request-page.tsx` (نمودار با `ProcessCanvas` و `highlights`، گفت‌وگو و تاریخچه‌ی مشترک با صفحه‌ی کار)، `request-print-page.tsx` (چاپ A4).
-- **کارتابل** (`pages/workflow/tasks`): `inbox-page.tsx` (زبانه‌ها در `?box=`، جدول کیت) و `task-page.tsx` (خلاصه‌ی درخواست، فرم مرحله با `FormRenderer`، تصمیم با یادداشت و پنجره‌ی تأیید، برداشتن و رها کردن، نظر گیرنده‌ها، گفت‌وگو با `discussion.tsx`، تاریخچه). شمار کارها با `useTaskCounts` (`app/workflow.ts`) در منو (`badge` مورد منو)، زبانه‌ها و پیشخوان.
-- **درخواست جدید** (`pages/workflow/requests`): `new-request-page.tsx` (فرایندها به تفکیک دسته و پیش‌نویس‌ها) و `request-fill-page.tsx` (پرکننده‌ی مشترک `pages/forms/fill-form.tsx` با مقصد درخواست و انتخاب «به نام»). کلیدهای داده در `app/workflow.ts`.
+- عنصرهای پشتیبانی‌شده (`bpmn.ELEMENTS`): رویداد شروع و پایان ساده، کار کاربری، کار خودکار (serviceTask با عملگر `nikyar`)، دروازه‌ی انحصاری و موازی، مرحله‌ی زمان‌بندی (رویداد میانی زمان‌دار با `timeDate` ثابت `wait_until`)، مسیر و یادداشت. اسکریپت و خدمت بیرونی همیشه رد می‌شوند.
+- تنظیمات نیک‌یار در `spiffworkflow:properties` (JSON): کار کاربری `assignee`، `decisions` (با `comment`)، `completion`، `skip_same`، `fields` (دسترسی فیلدها)، `deadline`، `message`؛ کار خودکار `action`؛ مرحله‌ی زمان‌بندی `wait`؛ پایان `outcome`؛ مسیر `condition` (مدل سازنده؛ شرط اجرایی `conditionExpression`). `bpmn.check` همه را پیش از انتشار می‌سنجد و خطا را با شناسه‌ی عنصر برمی‌گرداند (`problems` زنده‌ی فرایندساز).
+- **شرط‌ها:** عبارت پایتونی امن روی داده‌ی درخواست و `decision` (تصمیم آخرین مرحله)؛ `expressions.check` با فهرست سفید گره‌های `ast` و تفسیر بی eval در `SafeScriptEngine` (جایگزین موتور اسکریپت SpiffWorkflow).
+
+**اجرا** (`service.py`؛ هر گام درون تراکنش و پس از قفل ردیف درخواست، وضعیت کامل موتور با سریال‌ساز SpiffWorkflow در `Request.state`؛ مشخصات اجرایی هر نسخه با `lru_cache`):
+
+- **ثبت:** `save_request` پیش‌نویس (`status=draft`، طرح بی‌الزامی) را ذخیره می‌کند و با `submit` به `_submit` می‌رسد: سنجش کامل، شماره (`process-شناسه` در `core.numbering`)، فیلدهای سرور با `forms.service.server_values` (امضا فقط وقتی به نام خود ثبت می‌شود)، فیلد پنهان «از فرایند» (`PROCESS_VALUES`) و جلو بردن موتور. `created_by` پرکننده و `requester` درخواست‌دهنده است؛ `can_start_for_others` (نقش‌های `on_behalf_roles` یا مدیر کل).
+- **انجام کار:** `complete` با قفل درخواست و کار؛ فقط فیلدهای `edit`/`required` همان مرحله از مرورگر پذیرفته می‌شوند (`access.py`: `step_definition`، `view_definition`، `visible_data`)؛ تصمیم در `decision`. `_sync` کارهای آماده را با جدول `Task` همگام، گیرنده‌ها را می‌سازد، مهلت را حساب می‌کند و اعلان «کار تازه» (با پیوند کار و پیوندهای ایمیل) می‌فرستد؛ پایان یا رد درخواست را ثبت می‌کند. `skip_same` کار را برای همان انجام‌دهنده‌ی مرحله‌ی قبل خودکار انجام می‌دهد.
+- **گیرنده‌ها و جانشینی:** `assignment.resolve` (درخواست‌دهنده، مدیر مستقیم او یا انجام‌دهنده‌ی مرحله‌ای، مدیر واحد، سمت، نقش با «فقط واحد درخواست‌دهنده»، کاربر، فیلد کاربر فرم)؛ گیرنده‌ی خالی ← مدیران فرایند یا مدیر کل با `Task.fallback`. `acting_for` گیرنده، برداشته‌کننده‌ی کار گروهی، یا جانشین امروز یکی از آن‌ها برای همان فرایند (`delegation.delegates_of`) را با «به نیابت از» می‌پذیرد.
+- **سیاست گیرنده** (`Task.completion`): `any` (کار گروهی، برداشتن با `Task.claimed_by`) یا `all` (نظر هر گیرنده در `TaskVote` و رویداد تاریخچه؛ تصمیمی غیر از نخستین کار را تمام می‌کند، وگرنه وقتی همه نظر داده‌اند؛ `service._vote`).
+- **مهلت** (`deadlines.py`): `Task.due_at` و `remind_at` با `WorkCalendar` هنگام رسیدن کار. کار دوره‌ای `workflow.deadlines` (هر ۵ دقیقه، `core.jobs.registry.Every`) یادآوری را یک‌بار می‌فرستد و پس از پایان مهلت اعلان، رویداد «پایان مهلت» و یکی از: اعلان به مدیر، ارجاع (`assignment.resolve`)، تصمیم خودکار (`service.auto_complete`). متن دلخواه اعلان مرحله (`message`) با `placeholders.field_texts` و `notify(..., body=...)`.
+- **مرحله‌ی زمان‌بندی:** `SafeScriptEngine(timer=...)` عبارت `wait_until` را با ویژگی `wait` (n روز یا ساعت کاری، یا آغاز روزِ یک فیلد تاریخ) حساب می‌کند و رویداد «انتظار» می‌نویسد؛ `_save` نزدیک‌ترین `Request.wake_at` را نگه می‌دارد و `fire_timers` (در همان کار دوره‌ای) درخواست را جلو می‌برد.
+- **اقدام خودکار:** SpiffWorkflow برای serviceTask `call_service` موتور اسکریپت را صدا می‌زند و `SafeScriptEngine` آن را به `WorkflowAction` رجیستری (`nikyar_workflow_actions`) با زمینه‌ی درخواست می‌دهد؛ `check(config, form_definition)` هنگام انتشار، `run(context, config)` هنگام اجرا. اقدام‌های هسته (`actions.py`): `set_field`، `notify` (با جای‌گذار فیلدها) و `save_submission` (ثبت در فرم دیگر با نگاشت فیلدها، با `forms.service.system_submission`).
+- **تأیید با یک کلیک از ایمیل** (`quick.py`، `QuickAction`): پیوندهای یک‌بارمصرف سه‌روزه برای تصمیم‌های بی یادداشت الزامی، فقط در ایمیل «کار تازه» (`notify(..., email_extra=...)`) و فقط با «نشانی سامانه»؛ ثبت با `POST` صفحه‌ی عمومی (باز شدن پیوند چیزی ثبت نمی‌کند).
+- **پیگیری و گفت‌وگو:** `tracking.py` (نمودار انجام‌شده و جاری از وضعیت موتور، کارهای منتظر، تأییدها با امضای «حساب من»، لغو تا پیش از نخستین تصمیم) و `discussion.py` (`RequestComment`؛ شرکت‌کنندگان: درخواست‌دهنده و ثبت‌کننده، گیرنده‌ها، انجام‌دهندگان، جانشین مجاز، مدیران فرایند و مدیر کل؛ اعلان `workflow.comment`). صفحه‌ی درخواست همین دسترسی را دارد.
+- **کارتابل** (`inbox.py`): زبانه‌های «منتظر من» (تک‌گیرنده، برداشته‌شده یا «همه‌ی گیرنده‌ها» بی نظر)، «گروهی»، «جانشینی» و «انجام‌شده» (۵۰۰ آخر)، شمارش و زمینه‌ی صفحه‌ی کار (تعریف و طرح فرم با دسترسی مرحله، تصمیم‌ها، نظرها، تاریخچه). دیدن کار: گیرنده‌ها، جانشین مجاز، انجام‌دهنده، مدیران فرایند و مدیر کل.
+
+**API** (`/api/workflow/`):
+
+- `processes/` (`workflow.design`): فرایندها با شروع‌کنندگان، مدیران، ثبت به نام دیگری و شماره‌گذاری؛ `form-options/`، `action-types/`، `target-forms/`، `from-template/`، `<id>/form-definition/`، `<id>/new-draft/`، `<id>/copy/`. `versions/`: پیش‌نویس BPMN با `problems` زنده، `publish/`. `process-lookup/`: عنوان فرایندها برای هر کاربر.
+- `start/`: فرایندهای قابل شروع کاربر و `<id>/` زمینه‌ی پر کردن (`StartContext`). `requests/`: درخواست‌های کاربر (ثبت‌کرده یا به نامش، با `current_step`)؛ ایجاد و ویرایش پیش‌نویس، `submit`، `requester`، حذف پیش‌نویس؛ `<id>/track/` و `<id>/cancel/`.
+- `tasks/?box=mine|group|delegated|done`، `counts/`، `<id>/` (با `detail`)، `<id>/complete/`، `<id>/claim/`، `<id>/release/`. `comments/?request=…`. `quick/<نشانه>/` (عمومی، بی ورود).
+
+**رابط کاربری:**
+
+- **فرایندساز** (`pages/workflow/design`): `process-design-page.tsx` (فهرست) و `process-sheet.tsx` (مشخصات)؛ `process-designer-page.tsx` (ذخیره‌ی خودکار، انتشار، فهرست ایرادها)؛ `process-canvas.tsx` (bpmn-js: Modeler یا NavigatedViewer، نشانه‌ی ایراد، و `highlights` برای مرحله‌های انجام‌شده و جاری در پیگیری)؛ `bpmn-modules.ts` (ترجمه‌ی فارسی، نوار ابزار و منوی کنار عنصر محدود به عنصرهای پشتیبانی‌شده)؛ `bpmn-theme.css` (نگاشت `--bio-*` به توکن‌ها و رنگ نشانه‌ها)؛ `spiffworkflow-moddle.ts`؛ `bpmn-props.ts` (ویژگی‌ها، شرط، مسیر پیش‌فرض و زمان انتظار با فرمان‌های bpmn-js، پس واگرد کار می‌کند)؛ `condition-python.ts`؛ `process-properties.tsx` (پانل ویژگی‌ها: گیرنده، تصمیم‌ها، سیاست گیرنده، مهلت، متن اعلان، دسترسی فیلدها، اقدام‌ها، زمان انتظار)؛ `process-versions-sheet.tsx`.
+- **درخواست جدید** (`pages/workflow/requests`): `new-request-page.tsx` و `request-fill-page.tsx` (پرکننده‌ی مشترک `pages/forms/fill-form.tsx` با مقصد درخواست و انتخاب «به نام»).
+- **درخواست‌های من**: `my-requests-page.tsx`، `request-page.tsx` (وضعیت، نمودار، فرم، گفت‌وگو، تاریخچه، لغو)، `request-print-page.tsx` (چاپ A4 با تأییدها و امضاها، `/print/requests/:id`).
+- **کارتابل** (`pages/workflow/tasks`): `inbox-page.tsx` (زبانه‌ها در `?box=`)، `task-page.tsx` (فرم مرحله با `FormRenderer`، تصمیم با یادداشت و پنجره‌ی تأیید، برداشتن، نظرها)، `discussion.tsx` و `history.tsx` (مشترک با صفحه‌ی درخواست). شمار کارها با `useTaskCounts` (`app/workflow.ts`) در منو، زبانه‌ها و پیشخوان.
+- **تأیید از ایمیل:** `pages/quick-action-page.tsx` (مسیر عمومی `/quick/:token` بیرون از نگهبان ورود).
 
 ### تنظیمات
 
@@ -195,7 +177,7 @@ nikyar_settings = [SettingsSection(code="org-profile", title="مشخصات سا�
 
 | مسیر | محتوا |
 |---|---|
-| `app/` | نشست و نگهبان ورود (`auth.tsx`)، مسیرها با نگهبان مجوز (`router.tsx`)، منو با مجوز هر بخش و گروه‌های «کار من»، «فرم‌ساز و فرایندساز»، «سازمان و کاربران»، «پیکربندی»، «نگه‌داری سامانه» و «کیت رابط کاربری» (`navigation.ts`؛ مورد فعال با `activeUrl`: دقیق‌ترین پیوند، تا «/forms/design» «فرم‌ها» را فعال نکند)، QueryClient، و هوک‌های داده‌ی سراسری: `branding`، `work-calendar`، `notifications`، `license`، `delegations`، `lookups`، `forms` (کلیدها، نقش‌ها برای انتخاب، کاتالوگ نوع فیلدها)، `workflow` (کلیدهای درخواست‌ها و فرایندساز)؛ حالت‌های مسیر (`route-states.tsx`: بارگذاری، `PageError` برای خطای داده‌ی اصلی صفحه، بی‌مجوز). دسترسی هر مورد منو و مسیر با `isAllowed` (کد مجوز، `superuser`، یا `forms-viewer` از پرچم نشست) |
+| `app/` | نشست و نگهبان ورود (`auth.tsx`)، مسیرها با نگهبان مجوز (`router.tsx`؛ بی ورود فقط `/login` و پیوند ایمیل `/quick/:token`؛ برگه‌های چاپ و پیش‌نمایش بی پوسته)، منو با مجوز هر بخش و گروه‌های «کار من»، «فرم‌ساز و فرایندساز»، «سازمان و کاربران»، «پیکربندی»، «نگه‌داری سامانه» و «کیت رابط کاربری» (`navigation.ts`؛ مورد فعال با `activeUrl`: دقیق‌ترین پیوند، تا «/forms/design» «فرم‌ها» را فعال نکند)، QueryClient، و هوک‌های داده‌ی سراسری: `branding`، `work-calendar`، `notifications`، `license`، `delegations`، `lookups`، `forms` (کلیدها، نقش‌ها برای انتخاب، کاتالوگ نوع فیلدها)، `workflow` (کلیدهای درخواست‌ها، کارتابل و فرایندساز، `useTaskCounts`، رنگ وضعیت درخواست)؛ حالت‌های مسیر (`route-states.tsx`: بارگذاری، `PageError` برای خطای داده‌ی اصلی صفحه، بی‌مجوز). دسترسی هر مورد منو و مسیر با `isAllowed` (کد مجوز، `superuser`، یا `forms-viewer` از پرچم نشست) |
 | `lib/` | `format.ts` (ارقام فارسی، مبلغ، حجم فایل، تاریخ شمسی، `numberToWords` برای مبلغ به حروف، `formatDuration`)؛ `validators.ts` (شناسه‌های ایرانی + طرح‌های zod)، `banks.ts` (نام بانک از شبا و کارت، فقط نمایشی)، `files.ts` (بارگذاری با پیشرفت، `fileUrl`، `useFileInfo`)، `rich-text.ts` (کلاس و نوع‌های مشترک متن قالب‌دار)، `api/` (کارخواه با نوع‌های خودکار، `unwrap` و `ApiError` با پیام فارسی) |
 | `components/ui/` | اجزای shadcn — فقط با `npx shadcn@latest add <name>`؛ تغییرها حداقلی و توضیح‌دار (ترجمه‌ی متن‌ها، `containerClassName` جدول، پر شدن راست‌به‌چپ نوار پیشرفت) |
 | `components/layout/` | پوسته: نوار بالا (زنگوله‌ی اعلان، منوی کاربر)، منوی کناری، زبانه‌های صفحه‌های باز (با دکمه‌ی جابه‌جایی)، جست‌وجوی سراسری، `PageHeader`، `Section`، `SectionNav`، نوار وضعیت لایسنس، `BrandMark` |
