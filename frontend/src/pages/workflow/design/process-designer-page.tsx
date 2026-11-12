@@ -1,7 +1,7 @@
 import * as React from "react"
 import { useParams } from "react-router"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Maximize, PencilLine, Redo2, Send, Settings2, Undo2, ZoomIn, ZoomOut } from "lucide-react"
+import { History as HistoryIcon, Maximize, PencilLine, Redo2, Send, Settings2, SlidersHorizontal, Undo2, ZoomIn, ZoomOut } from "lucide-react"
 import { toast } from "sonner"
 import { DESIGN_PROCESSES_KEY } from "@/app/forms"
 import { PageHeader } from "@/components/layout/page-header"
@@ -11,10 +11,14 @@ import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
-import { useIsMobile } from "@/hooks/use-mobile"
+import type { FormDefinition } from "@/components/form-renderer/definition"
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet"
+import { useIsMobile, useMinWidth } from "@/hooks/use-mobile"
 import { api, errorMessage, unwrap, type Schemas } from "@/lib/api/client"
 import { formatDateTime, formatNumber, toFaDigits } from "@/lib/format"
 import { ProcessCanvas, type CanvasHandle } from "./process-canvas"
+import { ElementProperties } from "./process-properties"
+import { ProcessVersionsSheet } from "./process-versions-sheet"
 import { ProcessSheet } from "./process-sheet"
 
 type Version = Schemas["ProcessVersionDetail"]
@@ -39,6 +43,8 @@ export default function ProcessDesignerPage() {
     queryFn: () => unwrap(api.GET("/api/workflow/versions/{id}/", { params: { path: { id: current! } } })),
     enabled: current !== undefined,
   })
+  // ورود فایل BPMN همان پیش‌نویس را عوض می‌کند؛ بوم با شماره‌ی تازه از نو ساخته می‌شود
+  const [generation, setGeneration] = React.useState(0)
   if (!process.data || !version.data) {
     return (
       <>
@@ -49,9 +55,13 @@ export default function ProcessDesignerPage() {
   }
   return (
     <Designer
-      key={version.data.id}
+      key={`${version.data.id}-${generation}`}
       process={process.data}
       version={version.data}
+      onReplaced={async () => {
+        await version.refetch()
+        setGeneration((g) => g + 1)
+      }}
       onReload={() => {
         qc.invalidateQueries({ queryKey: DESIGN_PROCESSES_KEY })
       }}
@@ -59,8 +69,20 @@ export default function ProcessDesignerPage() {
   )
 }
 
-function Designer({ process, version, onReload }: { process: Schemas["Process"]; version: Version; onReload: () => void }) {
+function Designer({ process, version, onReload, onReplaced }: { process: Schemas["Process"]; version: Version; onReload: () => void; onReplaced: () => void }) {
   const mobile = useIsMobile()
+  const wide = useMinWidth(1280)
+  const formDefinition = useQuery({
+    queryKey: [...DESIGN_PROCESSES_KEY, "form-definition", process.id],
+    queryFn: () => unwrap(api.GET("/api/workflow/processes/{id}/form-definition/", { params: { path: { id: String(process.id) } } })),
+  })
+  const actionTypes = useQuery({ queryKey: [...DESIGN_PROCESSES_KEY, "action-types"], queryFn: () => unwrap(api.GET("/api/workflow/processes/action-types/")), staleTime: Infinity })
+  const [selected, setSelected] = React.useState<string | null>(null)
+  // هر تغییر بوم پانل ویژگی‌ها را از نو می‌خواند
+  const [, setRevision] = React.useState(0)
+  const [panelOpen, setPanelOpen] = React.useState(false)
+  const [showVersions, setShowVersions] = React.useState(false)
+  const [modeler, setModeler] = React.useState<ReturnType<CanvasHandle["modeler"]>>(null)
   const { resolvedTheme } = useTheme()
   const readOnly = version.status !== "draft" || mobile
   const canvas = React.useRef<CanvasHandle>(null)
@@ -100,6 +122,7 @@ function Designer({ process, version, onReload }: { process: Schemas["Process"];
   }, [version.id, describe])
 
   const onChange = React.useCallback(() => {
+    setRevision((r) => r + 1)
     setDirty(true)
     window.clearTimeout(timer.current)
     timer.current = window.setTimeout(persist, AUTOSAVE_MS)
@@ -121,6 +144,18 @@ function Designer({ process, version, onReload }: { process: Schemas["Process"];
   })
 
   const problemList = Object.entries(problems)
+  const properties =
+    modeler && formDefinition.data ? (
+      <ElementProperties
+        modeler={modeler}
+        id={selected}
+        definition={formDefinition.data as unknown as FormDefinition}
+        actions={actionTypes.data ?? []}
+        problem={selected ? problems[selected] : undefined}
+      />
+    ) : (
+      <p className="text-xs text-muted-foreground">در حال آماده‌سازی…</p>
+    )
   const status =
     version.status !== "draft"
       ? `نسخه‌ی ${toFaDigits(version.number)} منتشرشده · فقط خواندنی`
@@ -150,6 +185,14 @@ function Designer({ process, version, onReload }: { process: Schemas["Process"];
                 </Button>
               </>
             )}
+            {!readOnly && !wide && (
+              <Button variant="outline" disabled={!selected} onClick={() => setPanelOpen(true)}>
+                <SlidersHorizontal /> ویژگی‌های عنصر
+              </Button>
+            )}
+            <Button variant="outline" onClick={() => setShowVersions(true)}>
+              <HistoryIcon /> نسخه‌ها
+            </Button>
             <Button variant="outline" onClick={() => setEditing(true)}>
               <Settings2 /> مشخصات
             </Button>
@@ -204,11 +247,17 @@ function Designer({ process, version, onReload }: { process: Schemas["Process"];
             problems={problems}
             onChange={onChange}
             onHistory={(undo, redo) => setHistory({ undo, redo })}
-            onReady={() => describe(problems)}
+            onReady={() => {
+              describe(problems)
+              setModeler(canvas.current?.modeler() ?? null)
+            }}
+            onSelection={setSelected}
             className="h-[max(26rem,calc(100svh-17rem))]"
           />
         </Section>
         {version.status === "draft" && (
+          <div className="flex flex-col gap-3">
+          {!readOnly && wide && <Section title="ویژگی‌ها">{properties}</Section>}
           <Section title="ایرادهای انتشار" meta={problemList.length ? `${formatNumber(problemList.length)} ایراد` : "آماده‌ی انتشار"}>
             {problemList.length === 0 ? (
               <p className="text-xs text-muted-foreground">ایرادی نیست؛ فرایند آماده‌ی انتشار است.</p>
@@ -235,9 +284,22 @@ function Designer({ process, version, onReload }: { process: Schemas["Process"];
               </ul>
             )}
           </Section>
+          </div>
         )}
       </div>
+      {!readOnly && !wide && (
+        <Sheet open={panelOpen && !!selected} onOpenChange={setPanelOpen}>
+          <SheetContent className="overflow-y-auto">
+            <SheetHeader>
+              <SheetTitle>ویژگی‌های عنصر</SheetTitle>
+              <SheetDescription>تغییرها همان لحظه روی بوم می‌نشینند و خودکار ذخیره می‌شوند.</SheetDescription>
+            </SheetHeader>
+            <div className="px-4 pb-4">{properties}</div>
+          </SheetContent>
+        </Sheet>
+      )}
       {editing && <ProcessSheet process={process} open onOpenChange={setEditing} />}
+      <ProcessVersionsSheet process={process} current={version} open={showVersions} onOpenChange={setShowVersions} onReplaced={onReplaced} />
     </div>
   )
 }

@@ -1,7 +1,7 @@
 import * as React from "react"
 import { Link, useNavigate } from "react-router"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Copy, PencilRuler, Plus, Settings2, Trash2 } from "lucide-react"
+import { Copy, LayoutTemplate, PencilRuler, Plus, Settings2, Trash2 } from "lucide-react"
 import { toast } from "sonner"
 import { DESIGN_PROCESSES_KEY } from "@/app/forms"
 import { ConfirmDialog } from "@/components/confirm-dialog"
@@ -37,6 +37,15 @@ export default function ProcessDesignPage() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: DESIGN_PROCESSES_KEY })
       toast.success("فرایند حذف شد.")
+    },
+    onError: (e) => toast.error(errorMessage(e)),
+  })
+  const fromTemplate = useMutation({
+    mutationFn: () => unwrap(api.POST("/api/workflow/processes/from-template/")),
+    onSuccess: (created) => {
+      qc.invalidateQueries({ queryKey: DESIGN_PROCESSES_KEY })
+      toast.success(`فرایند «${created.title}» با فرم «${created.form_title}» ساخته شد؛ گیرنده‌ی مرحله‌های مشخص‌شده با کادر قرمز را تعیین کنید.`)
+      navigate(designUrl(created))
     },
     onError: (e) => toast.error(errorMessage(e)),
   })
@@ -103,9 +112,14 @@ export default function ProcessDesignPage() {
         title="طراحی فرایندها"
         description="مسیر اداری درخواست‌ها: مرحله‌ها، گیرنده‌ی هر مرحله و مسیرهای شرطی، روی فرمی از فرم‌ساز. پس از انتشار، کاربران مجاز درخواست تازه شروع می‌کنند."
         actions={
-          <Button onClick={() => setEditing({ process: null })}>
-            <Plus /> فرایند جدید
-          </Button>
+          <>
+            <Button variant="outline" disabled={fromTemplate.isPending} onClick={() => fromTemplate.mutate()}>
+              <LayoutTemplate /> الگوی درخواست خرید
+            </Button>
+            <Button onClick={() => setEditing({ process: null })}>
+              <Plus /> فرایند جدید
+            </Button>
+          </>
         }
       />
       <DataTable

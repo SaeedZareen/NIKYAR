@@ -141,7 +141,7 @@ type ConditionProps = {
 }
 
 /** سازنده‌ی شرط: «همه»/«یکی از» چند جمله‌ی «فیلد ـ عملگر ـ مقدار». */
-function ConditionEditor({ id, definition, except, value, onChange }: ConditionProps) {
+export function ConditionEditor({ id, definition, except, value, onChange }: ConditionProps) {
   const fields = referableFields(definition, except)
   const parsed = parseCondition(value)
   if (!parsed)

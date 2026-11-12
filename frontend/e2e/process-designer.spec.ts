@@ -88,3 +88,57 @@ test.describe("فرایندساز", () => {
     await expectAccessible(page)
   })
 })
+
+test.describe("پانل ویژگی‌های فرایند", () => {
+  test("الگوی درخواست خرید: تعیین گیرنده، شرط مسیر، انتشار و خروجی BPMN", async ({ page }) => {
+    test.skip(isMobile(page), "طراحی روی رایانه")
+    const errors = collectErrors(page)
+    const wide = (page.viewportSize()?.width ?? 0) >= 1280
+    await page.goto("/workflow/design")
+    await page.getByRole("button", { name: "الگوی درخواست خرید" }).click()
+    await expect(page.getByRole("heading", { level: 1, name: "درخواست خرید سه‌مرحله‌ای" })).toBeVisible()
+    const canvas = page.getByRole("region", { name: "بوم فرایند" })
+    const problems = page.getByRole("region", { name: "ایرادهای انتشار" })
+    await expect(problems).toContainText("۲ ایراد")
+
+    /** انتخاب عنصر روی بوم و باز کردن پانل ویژگی‌ها (روی لپ‌تاپ در پانل کناری). */
+    const select = async (id: string) => {
+      // مسیر فقط خط باریک است؛ مرکز ناحیه‌ی کلیک خط راست روی خود خط است
+      await canvas.locator(`.djs-element[data-element-id="${id}"] .djs-hit`).click({ force: id.startsWith("Flow_") })
+      if (!wide) await page.getByRole("button", { name: "ویژگی‌های عنصر" }).click()
+      return wide ? page.getByRole("region", { name: "ویژگی‌ها" }) : page.getByRole("dialog", { name: "ویژگی‌های عنصر" })
+    }
+    const close = async () => {
+      if (!wide) await page.keyboard.press("Escape")
+    }
+
+    for (const id of ["Task_finance", "Task_supply"]) {
+      const panel = await select(id)
+      await expect(panel.getByRole("alert")).toContainText("گیرنده")
+      await panel.getByLabel("گیرنده", { exact: true }).click()
+      await page.getByRole("option", { name: "خود درخواست‌دهنده" }).click()
+      await close()
+    }
+    await expect(problems).toContainText("ایرادی نیست")
+
+    // شرط مسیر «تأیید» با سازنده‌ی دیداری و عبارت موتور
+    const flow = await select("Flow_3")
+    await expect(flow.getByLabel("عبارت شرط", { exact: true })).toHaveValue('decision == "approve"')
+    await expect(flow.getByText("تصمیم مرحله‌ی قبل").first()).toBeVisible()
+    await close()
+
+    await expect(page.getByText(/ذخیره شد/)).toBeVisible()
+    await page.getByRole("button", { name: "انتشار" }).click()
+    await expect(page.getByText("نسخه‌ی ۱ منتشر شد", { exact: false })).toBeVisible()
+
+    await page.getByRole("button", { name: "نسخه‌ها" }).click()
+    const sheet = page.getByRole("dialog", { name: "نسخه‌ها" })
+    await expect(sheet.getByRole("list", { name: "نسخه‌های فرایند" })).toContainText("منتشرشده")
+    const download = page.waitForEvent("download")
+    await sheet.getByRole("button", { name: "خروجی BPMN" }).click()
+    const file = await download
+    expect(file.suggestedFilename()).toMatch(/^purchase(-\d+)?-v1\.bpmn$/)
+    await expectAccessible(page)
+    expect(errors).toEqual([])
+  })
+})

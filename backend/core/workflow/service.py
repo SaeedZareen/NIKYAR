@@ -13,7 +13,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from django.contrib.auth import get_user_model
-from django.db import transaction
+from django.db import IntegrityError, transaction
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied
 from SpiffWorkflow.bpmn import BpmnWorkflow
@@ -130,7 +130,16 @@ def from_template(user) -> Process:
     form.fill_by_everyone = True
     form.save(update_fields=["fill_by_everyone"])
     form_service.publish(form.versions.get(), user)
-    process = Process.objects.create(code=free_code("purchase"), title="درخواست خرید سه‌مرحله‌ای", form=form, start_by_everyone=True)
+    for _attempt in range(5):
+        try:
+            with transaction.atomic():
+                process = Process.objects.create(code=free_code("purchase"), title="درخواست خرید سه‌مرحله‌ای", form=form, start_by_everyone=True)
+            break
+        except IntegrityError:
+            # ساخت هم‌زمان از همین الگو: شناسه‌ی آزاد بعدی
+            continue
+    else:
+        raise BusinessError("ساخت فرایند ممکن نشد؛ دوباره تلاش کنید.")
     ProcessVersion.objects.create(process=process, number=1, bpmn=(TEMPLATES / "purchase.bpmn").read_text(encoding="utf-8"))
     return process
 
