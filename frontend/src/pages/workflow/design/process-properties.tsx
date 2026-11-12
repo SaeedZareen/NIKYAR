@@ -24,7 +24,7 @@ import { conditionPython } from "./condition-python"
 type Any = any // eslint-disable-line @typescript-eslint/no-explicit-any
 type Decision = { value: string; label: string; comment?: "required" | "optional" }
 type Rule = { type: string; [key: string]: unknown }
-export type ActionType = { code: string; title: string }
+type ActionType = { code: string; title: string }
 
 const ASSIGNEES: Record<string, string> = {
   requester: "خود درخواست‌دهنده",

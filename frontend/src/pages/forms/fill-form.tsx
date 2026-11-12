@@ -27,7 +27,7 @@ import { ReviewDialog } from "./review-dialog"
 
 type Full = Schemas["FillContext"]
 /** زمینه‌ی پر کردن؛ درخواست فرایند تنظیمات پذیرش فرم (ظرفیت، پیش‌نویس، پس از ثبت) را ندارد و پیش‌فرض‌ها به کار می‌رود. */
-export type FillContextLike = Pick<Full, "title" | "description" | "definition" | "schema" | "draft_schema"> &
+type FillContextLike = Pick<Full, "title" | "description" | "definition" | "schema" | "draft_schema"> &
   Partial<Pick<Full, "availability" | "allow_drafts" | "after_submit" | "after_submit_url" | "edit_hours">>
 const AUTOSAVE_DELAY = 1500
 
