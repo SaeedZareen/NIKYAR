@@ -66,7 +66,7 @@ function RequestView({ data, queryKey }: { data: Track; queryKey: unknown[] }) {
                 <Printer /> چاپ
               </a>
             </Button>
-            {data.can_cancel && (
+            {data.can_cancel && !data.can_manage && (
               <Button variant="outline" className="text-destructive" onClick={() => setCancelling(true)}>
                 <Ban /> لغو درخواست
               </Button>
