@@ -4,7 +4,8 @@ import { useAuth } from "@/app/auth"
 import { visibleNavigation } from "@/app/navigation"
 import { PageHeader } from "@/components/layout/page-header"
 import { Section } from "@/components/layout/section"
-import { formatDate } from "@/lib/format"
+import { pendingTotal, useTaskCounts } from "@/app/workflow"
+import { formatDate, formatNumber } from "@/lib/format"
 
 /** پیشخوان: خوشامد، سمت‌های فعلی کاربر و دسترسی سریع به بخش‌های مجاز. */
 export default function HomePage() {
@@ -16,6 +17,7 @@ export default function HomePage() {
     <>
       <PageHeader title="پیشخوان" meta={`${user.title}، خوش آمدید · ${formatDate(new Date(), "full")}`} />
       <div className="grid gap-4 lg:grid-cols-3">
+        <InboxCard />
         <Section title="سمت‌های من">
           {user.positions.length ? (
             <ul className="flex flex-col gap-2 text-sm">
@@ -27,7 +29,7 @@ export default function HomePage() {
             <p className="text-xs text-muted-foreground">برای شما سمتی در ساختار سازمانی ثبت نشده است.</p>
           )}
         </Section>
-        <Section title="دسترسی سریع" className="lg:col-span-2">
+        <Section title="دسترسی سریع" className="lg:col-span-3">
           {sections.length ? (
             <ul className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
               {sections.map((s) => (
@@ -49,5 +51,30 @@ export default function HomePage() {
         </Section>
       </div>
     </>
+  )
+}
+
+/** کارهای منتظر کارتابل به تفکیک زبانه. */
+function InboxCard() {
+  const counts = useTaskCounts().data
+  const total = pendingTotal(counts)
+  const rows = [
+    { box: "", label: "منتظر من", n: counts?.mine ?? 0 },
+    { box: "?box=group", label: "گروهی", n: counts?.group ?? 0 },
+    { box: "?box=delegated", label: "جانشینی", n: counts?.delegated ?? 0 },
+  ]
+  return (
+    <Section title="کارتابل" meta={total ? `${formatNumber(total)} کار منتظر` : "کاری منتظر نیست"}>
+      <ul className="flex flex-col gap-1.5">
+        {rows.map((r) => (
+          <li key={r.label}>
+            <Link to={`/tasks${r.box}`} className="flex items-center justify-between rounded-md px-2 py-1 text-xs hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring/40 outline-none">
+              <span>{r.label}</span>
+              <span className={r.n ? "font-semibold tabular-nums text-primary" : "tabular-nums text-muted-foreground"}>{formatNumber(r.n)}</span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </Section>
   )
 }

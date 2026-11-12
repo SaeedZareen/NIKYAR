@@ -14,6 +14,7 @@ from django.db.models import Count, Q, QuerySet
 from rest_framework.exceptions import PermissionDenied
 
 from core.delegation import service as delegation
+from core.forms import engine as form_engine
 from core.kernel.api import BusinessError
 
 from . import access, service
@@ -116,6 +117,8 @@ def context(task: Task, user) -> dict:
     allowed, principal = service.acting_for(user, task)
     form = request.version.form_version.definition
     group = task.candidates.count() > 1
+    # پس از انجام یا برای بیننده، همه‌ی فیلدها فقط‌خواندنی‌اند
+    shown = access.view_definition(form, fields if allowed else {k: v for k, v in fields.items() if v == "hidden"})
     return {
         "can_act": allowed,
         "on_behalf_of": str(principal) if principal else "",
@@ -123,8 +126,8 @@ def context(task: Task, user) -> dict:
         "can_claim": allowed and group and not task.claimed_by_id,
         "can_release": bool(task.claimed_by_id) and task.status == Task.Status.OPEN and (task.claimed_by_id == user.pk or _is_admin(user, task)),
         "candidates": [str(u) for u in task.candidates.all()],
-        # پس از انجام یا برای بیننده، همه‌ی فیلدها فقط‌خواندنی‌اند
-        "definition": access.view_definition(form, fields if allowed else {k: v for k, v in fields.items() if v == "hidden"}),
+        "definition": shown,
+        "schema": form_engine.compile_schema(shown, title=task.title),
         "data": access.visible_data(request.data, fields),
         "decisions": step.get("decisions", []),
         "history": history(request, definition),

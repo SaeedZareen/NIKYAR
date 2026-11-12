@@ -8,6 +8,7 @@ import {
   SidebarGroupContent,
   SidebarGroupLabel,
   SidebarMenu,
+  SidebarMenuBadge,
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarRail,
@@ -15,6 +16,8 @@ import {
 } from "@/components/ui/sidebar"
 import { useAuth } from "@/app/auth"
 import { activeUrl, visibleNavigation } from "@/app/navigation"
+import { pendingTotal, useTaskCounts } from "@/app/workflow"
+import { formatNumber } from "@/lib/format"
 
 /** منوی درختی اصلی: گروه‌ها باز و بسته می‌شوند؛ در حالت جمع‌شده فقط آیکون‌ها دیده می‌شوند. */
 export function AppSidebar() {
@@ -23,6 +26,7 @@ export function AppSidebar() {
   const { user, can } = useAuth()
   const groups = visibleNavigation(user, can)
   const active = activeUrl(pathname)
+  const pending = pendingTotal(useTaskCounts().data)
 
   return (
     <Sidebar side="right" collapsible="icon" className="top-(--header-height) h-[calc(100svh-var(--header-height))]">
@@ -46,8 +50,10 @@ export function AppSidebar() {
                           <Link to={item.url} aria-current={item.url === active ? "page" : undefined} onClick={() => isMobile && setOpenMobile(false)}>
                             <item.icon aria-hidden />
                             <span>{item.title}</span>
+                            {item.badge === "tasks" && pending > 0 && <span className="sr-only">، {formatNumber(pending)} کار منتظر</span>}
                           </Link>
                         </SidebarMenuButton>
+                        {item.badge === "tasks" && pending > 0 && <SidebarMenuBadge aria-hidden>{pending > 99 ? "۹۹+" : formatNumber(pending)}</SidebarMenuBadge>}
                       </SidebarMenuItem>
                     ))}
                   </SidebarMenu>

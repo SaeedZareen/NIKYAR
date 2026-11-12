@@ -514,6 +514,7 @@ class TaskDetailSerializer(InboxTaskSerializer):
                 "can_release": serializers.BooleanField(),
                 "candidates": serializers.ListField(child=serializers.CharField()),
                 "definition": serializers.DictField(help_text="تعریف فرم با دسترسی همین مرحله، بی فیلدهای پنهان"),
+                "schema": serializers.DictField(help_text="طرح اعتبارسنجی همان تعریف"),
                 "data": serializers.DictField(),
                 "decisions": TaskDecisionSerializer(many=True),
                 "history": TaskEventSerializer(many=True),

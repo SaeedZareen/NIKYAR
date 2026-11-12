@@ -15,6 +15,8 @@ const FormReportsPage = lazy(() => import("@/pages/forms/submissions/reports-pag
 const FormReportPage = lazy(() => import("@/pages/forms/submissions/report-page"))
 const SubmissionPage = lazy(() => import("@/pages/forms/submissions/submission-page"))
 const SubmissionPrintPage = lazy(() => import("@/pages/forms/submissions/print-page"))
+const InboxPage = lazy(() => import("@/pages/workflow/tasks/inbox-page"))
+const TaskPage = lazy(() => import("@/pages/workflow/tasks/task-page"))
 const NewRequestPage = lazy(() => import("@/pages/workflow/requests/new-request-page"))
 const RequestFillPage = lazy(() => import("@/pages/workflow/requests/request-fill-page"))
 const ProcessDesignPage = lazy(() => import("@/pages/workflow/design/process-design-page"))
@@ -69,6 +71,8 @@ export const router = createBrowserRouter([
           { path: "forms/submissions/:id", element: page(<SubmissionPage />) },
           { path: "forms/design", element: page(<FormsDesignPage />, "forms.design") },
           { path: "forms/design/:formId", element: page(<DesignerPage />, "forms.design") },
+          { path: "tasks", element: page(<InboxPage />) },
+          { path: "tasks/:taskId", element: page(<TaskPage />) },
           { path: "requests/new", element: page(<NewRequestPage />) },
           { path: "requests/new/:processId", element: page(<RequestFillPage />) },
           { path: "workflow/design", element: page(<ProcessDesignPage />, "workflow.design") },

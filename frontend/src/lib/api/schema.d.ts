@@ -4268,6 +4268,10 @@ export interface components {
             definition: {
                 [key: string]: unknown;
             };
+            /** @description طرح اعتبارسنجی همان تعریف */
+            schema: {
+                [key: string]: unknown;
+            };
             data: {
                 [key: string]: unknown;
             };
