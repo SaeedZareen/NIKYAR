@@ -58,6 +58,17 @@ class WorkflowConfig(AppConfig):
             placeholders=TASK_PLACEHOLDERS,
         ),
         NotificationKind(
+            code="workflow.comment",
+            title="پیام تازه در گفت‌وگوی درخواست",
+            template="{author} در گفت‌وگوی درخواست «{process}» شماره‌ی {number} نوشت: {text}",
+            placeholders={
+                "author": ("نویسنده‌ی پیام", "آقای رضا احمدی"),
+                "process": ("عنوان فرایند", "درخواست خرید"),
+                "number": ("شماره‌ی درخواست (یا —)", "خ-۱۴۰۵-۰۰۱۲"),
+                "text": ("متن پیام (تا ۲۰۰ نویسه)", "پیش‌فاکتور را هم پیوست کنید."),
+            },
+        ),
+        NotificationKind(
             code="workflow.message",
             title="اعلان اقدام خودکار فرایند",
             template="{text}",

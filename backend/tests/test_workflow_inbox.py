@@ -1,4 +1,4 @@
-"""کارتابل (4.5a): زبانه‌ها، شمارش، برداشتن و رها کردن کار گروهی، صفحه‌ی انجام کار و انجام از API."""
+"""کارتابل (4.5a و 4.5b): زبانه‌ها، شمارش، برداشتن و رها کردن کار گروهی، صفحه‌ی انجام کار و انجام از API."""
 
 from datetime import timedelta
 
@@ -8,8 +8,9 @@ from django.utils import timezone
 from core.accounts.models import Role
 from core.delegation.models import Delegation
 from core.forms.models import Form, FormVersion
+from core.notifications.models import Notification
 from core.workflow import service
-from core.workflow.models import Process, ProcessVersion, Task
+from core.workflow.models import Process, ProcessVersion, Request, Task
 from tests.test_workflow_routing import linear
 
 TASKS = "/api/workflow/tasks/"
@@ -106,3 +107,73 @@ def test_visibility(setup, client_for):
     detail = client_for(setup["viewer"]).get(f"{TASKS}{task.pk}/").json()["detail"]
     assert detail["can_act"] is False and all(f.get("readonly") for f in detail["definition"]["sections"][0]["fields"])
     assert client_for(setup["viewer"]).get(TASKS, {"box": "nope"}).status_code == 400
+
+
+# ─── 4.5b: «همه‌ی گیرنده‌ها» و گفت‌وگو ──────────────────────────────────
+
+
+@pytest.fixture
+def council(db, admin, make_user):
+    people = {k: make_user(k) for k in ("clerk", "m1", "m2", "m3", "outsider")}
+    board = Role.objects.create(name="کمیسیون", permissions=[])
+    for k in ("m1", "m2", "m3"):
+        people[k].roles.add(board)
+    form = Form.objects.create(code="council-form", title="فرم", fill_by_everyone=True)
+    FormVersion.objects.create(form=form, number=1, status=FormVersion.Status.PUBLISHED, definition={"sections": [{"id": "s", "fields": FIELDS}]})
+    process = Process.objects.create(code="council", title="کمیسیون معاملات", form=form, start_by_everyone=True)
+    decisions = [{"value": "ok", "label": "موافق"}, {"value": "no", "label": "مخالف", "comment": "required"}]
+    text = linear(("vote", "رأی کمیسیون", {"type": "role", "role": board.pk}, {"decisions": decisions, "completion": "all"}))
+    service.publish(ProcessVersion.objects.create(process=process, number=1, bpmn=text), admin)
+    return {**people, "process": process}
+
+
+def test_all_must_approve(council, client_for):
+    request = service.start(council["process"], council["clerk"], {"subject": "خرید سرور"})
+    task = request.tasks.get()
+    assert task.completion == Task.Completion.ALL
+    m1, m2, m3 = (client_for(council[k]) for k in ("m1", "m2", "m3"))
+    # در «منتظر من» هر عضو است، نه «گروهی»، و برداشتنی نیست
+    assert ids(m1, "mine") == [task.pk] and ids(m1, "group") == []
+    assert m1.post(f"{TASKS}{task.pk}/claim/").status_code == 400
+    after = m1.post(f"{TASKS}{task.pk}/complete/", {"decision": "ok"}, format="json").json()
+    assert after["status"] == "open" and after["detail"]["can_act"] is False
+    assert [v["decision"] for v in after["detail"]["votes"]] == ["موافق", "", ""]
+    assert ids(m1, "mine") == [] and ids(m1, "done") == [task.pk] and ids(m2, "mine") == [task.pk]
+    m2.post(f"{TASKS}{task.pk}/complete/", {"decision": "ok"}, format="json")
+    request.refresh_from_db()
+    assert request.status == Request.Status.RUNNING
+    done = m3.post(f"{TASKS}{task.pk}/complete/", {"decision": "ok"}, format="json").json()
+    assert done["status"] == "done" and done["decision"] == "ok"
+    request.refresh_from_db()
+    assert request.status == Request.Status.COMPLETED
+    # هر نظر یک رویداد تاریخچه؛ پایان کار رویداد تکراری نمی‌سازد
+    assert [e.decision for e in request.events.filter(kind="task")] == ["ok", "ok", "ok"]
+
+
+def test_one_objection_is_enough(council, client_for):
+    request = service.start(council["process"], council["clerk"], {"subject": "خرید سرور"})
+    task = request.tasks.get()
+    client_for(council["m1"]).post(f"{TASKS}{task.pk}/complete/", {"decision": "ok"}, format="json")
+    done = client_for(council["m2"]).post(f"{TASKS}{task.pk}/complete/", {"decision": "no", "comment": "گران است"}, format="json").json()
+    assert done["status"] == "done" and done["decision"] == "no" and done["comment"] == "گران است"
+    assert ids(client_for(council["m3"]), "mine") == []
+
+
+def test_discussion(council, client_for, django_capture_on_commit_callbacks):
+    request = service.start(council["process"], council["clerk"], {"subject": "خرید سرور"})
+    COMMENTS = "/api/workflow/comments/"
+    m1, clerk, outsider = client_for(council["m1"]), client_for(council["clerk"]), client_for(council["outsider"])
+    assert m1.post(COMMENTS, {"request": request.pk, "text": "  "}, format="json").status_code == 400
+    with django_capture_on_commit_callbacks(execute=True):
+        sent = m1.post(COMMENTS, {"request": request.pk, "text": "پیش‌فاکتور دوم را هم بفرستید."}, format="json")
+        clerk.post(COMMENTS, {"request": request.pk, "text": "پیوست شد."}, format="json")
+    assert sent.status_code == 201 and sent.json()["mine"] is True
+    rows = clerk.get(COMMENTS, {"request": request.pk}).json()
+    assert [(r["text"], r["mine"]) for r in rows] == [("پیش‌فاکتور دوم را هم بفرستید.", False), ("پیوست شد.", True)]
+    assert outsider.get(COMMENTS, {"request": request.pk}).status_code == 404
+    assert outsider.post(COMMENTS, {"request": request.pk, "text": "سلام"}, format="json").status_code == 404
+    # اعلان به شرکت‌کنندگان دیگر، با پیوند کار هر گیرنده
+    note = Notification.objects.get(user=council["m2"], kind="workflow.comment", text__contains="پیش‌فاکتور دوم")
+    assert note.url == f"/tasks/{request.tasks.get().pk}" and note.text.startswith("کاربر m1 در گفت‌وگوی درخواست «کمیسیون معاملات»")
+    assert Notification.objects.filter(user=council["clerk"], kind="workflow.comment").count() == 1
+    assert not Notification.objects.filter(user=council["outsider"], kind="workflow.comment").exists()

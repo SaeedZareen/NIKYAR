@@ -17,8 +17,8 @@ from core.kernel.registry import workflow_actions
 from core.lookups.models import LookupItem
 from core.numbering.pattern import validate as validate_pattern
 
-from . import bpmn, inbox, service
-from .models import Process, ProcessVersion, Request, Task
+from . import bpmn, discussion, inbox, service
+from .models import Process, ProcessVersion, Request, RequestComment, Task
 
 CATEGORY_LIST = "process-category"
 
@@ -483,6 +483,13 @@ class TaskEventSerializer(serializers.Serializer):
     at = serializers.DateTimeField()
 
 
+class TaskVoteSerializer(serializers.Serializer):
+    candidate = serializers.CharField()
+    decision = serializers.CharField(help_text="برچسب تصمیم؛ خالی یعنی هنوز نظر نداده")
+    actor = serializers.CharField(help_text="جانشینی که به نیابت نظر داده (خالی اگر خود گیرنده)")
+    at = serializers.DateTimeField(allow_null=True)
+
+
 class TaskRequestSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     number = serializers.CharField()
@@ -513,6 +520,8 @@ class TaskDetailSerializer(InboxTaskSerializer):
                 "can_claim": serializers.BooleanField(),
                 "can_release": serializers.BooleanField(),
                 "candidates": serializers.ListField(child=serializers.CharField()),
+                "completion": serializers.ChoiceField(choices=Task.Completion.choices, help_text="any: یکی کافی است؛ all: همه‌ی گیرنده‌ها"),
+                "votes": TaskVoteSerializer(many=True),
                 "definition": serializers.DictField(help_text="تعریف فرم با دسترسی همین مرحله، بی فیلدهای پنهان"),
                 "schema": serializers.DictField(help_text="طرح اعتبارسنجی همان تعریف"),
                 "data": serializers.DictField(),
@@ -609,3 +618,49 @@ class TaskViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.Gen
     def release(self, request, pk=None):
         inbox.release(self.get_object(), request.user)
         return Response(TaskDetailSerializer(self.get_queryset().get(pk=pk), context={"request": request}).data)
+
+
+# ─── گفت‌وگوی درخواست ────────────────────────────────────────────────────
+
+
+class RequestCommentSerializer(serializers.ModelSerializer):
+    author_name = serializers.CharField(source="author.title", read_only=True)
+    mine = serializers.SerializerMethodField()
+
+    class Meta:
+        model = RequestComment
+        fields = ["id", "request", "author_name", "mine", "text", "at"]
+        read_only_fields = ["id", "author_name", "mine", "at"]
+
+    def get_mine(self, obj) -> bool:
+        return obj.author_id == self.context["request"].user.pk
+
+
+class RequestCommentViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, viewsets.GenericViewSet):
+    """گفت‌وگوی یک درخواست (?request=شناسه) برای شرکت‌کنندگانش؛ هر پیام به دیگران اعلان می‌شود."""
+
+    serializer_class = RequestCommentSerializer
+    permission_classes = [HasPerm]
+    perms = {"*": None}
+    pagination_class = None
+
+    def get_queryset(self):
+        if self.action != "list":
+            return RequestComment.objects.none()
+        request = self._request(self.request.query_params.get("request"))
+        return request.comments.select_related("author")
+
+    def _request(self, pk) -> Request:
+        request = Request.objects.select_related("process").filter(pk=pk).first() if str(pk).isdigit() else None
+        if request is None or not discussion.can_discuss(self.request.user, request):
+            raise NotFound()
+        return request
+
+    @extend_schema(parameters=[OpenApiParameter("request", int, required=True)])
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    def create(self, request, *args, **kwargs):
+        target = self._request(request.data.get("request"))
+        comment = discussion.post(target, request.user, str(request.data.get("text", "")))
+        return Response(RequestCommentSerializer(comment, context={"request": request}).data, status=status.HTTP_201_CREATED)

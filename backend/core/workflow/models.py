@@ -135,6 +135,13 @@ class Task(models.Model):
     candidates = models.ManyToManyField(settings.AUTH_USER_MODEL, verbose_name="گیرنده‌ها", blank=True, related_name="workflow_tasks")
     # قاعده‌ی گیرنده به کسی نرسید و کار به مدیران فرایند سپرده شد
     fallback = models.BooleanField("سپرده به مدیران فرایند", default=False)
+
+    class Completion(models.TextChoices):
+        ANY = "any", "یکی از گیرنده‌ها کافی است"
+        ALL = "all", "همه‌ی گیرنده‌ها"
+
+    # سیاست گیرنده (از تعریف مرحله): در «همه» هر گیرنده نظر می‌دهد (TaskVote)؛ یک تصمیم غیر از نخستین کافی است
+    completion = models.CharField("سیاست گیرنده", max_length=3, choices=Completion.choices, default=Completion.ANY)
     # کار گروهی (چند گیرنده) را یکی برمی‌دارد تا دیگران همان را هم‌زمان انجام ندهند؛ «رها کردن» آن را به گروه برمی‌گرداند
     claimed_by = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name="برداشته‌شده توسط", null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
     acted_by = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name="انجام‌دهنده", null=True, blank=True, on_delete=models.PROTECT, related_name="+")
@@ -152,6 +159,43 @@ class Task(models.Model):
 
     def __str__(self):
         return f"{self.title} — {self.request}"
+
+
+class TaskVote(models.Model):
+    """نظر یک گیرنده در کاری با سیاست «همه‌ی گیرنده‌ها»؛ candidate گیرنده‌ای است که نظر به نام اوست (خودش یا اصیلِ جانشین)."""
+
+    task = models.ForeignKey(Task, verbose_name="کار", on_delete=models.CASCADE, related_name="votes")
+    candidate = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name="گیرنده", on_delete=models.PROTECT, related_name="+")
+    actor = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name="انجام‌دهنده", on_delete=models.PROTECT, related_name="+")
+    decision = models.CharField("تصمیم", max_length=40)
+    comment = models.TextField("یادداشت", blank=True)
+    at = models.DateTimeField("زمان", auto_now_add=True)
+
+    class Meta:
+        ordering = ["at", "pk"]
+        verbose_name = "نظر گیرنده"
+        verbose_name_plural = "نظرهای گیرندگان"
+        constraints = [models.UniqueConstraint(fields=["task", "candidate"], name="workflow_vote_unique_candidate")]
+
+    def __str__(self):
+        return f"{self.task} — {self.candidate}: {self.decision}"
+
+
+class RequestComment(models.Model):
+    """گفت‌وگوی درخواست: یادداشت‌های پیوسته‌ی درخواست‌دهنده و گیرنده‌ها، جدا از یادداشت هر تصمیم."""
+
+    request = models.ForeignKey(Request, verbose_name="درخواست", on_delete=models.CASCADE, related_name="comments")
+    author = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name="نویسنده", on_delete=models.PROTECT, related_name="+")
+    text = models.TextField("متن", max_length=2000)
+    at = models.DateTimeField("زمان", auto_now_add=True)
+
+    class Meta:
+        ordering = ["at", "pk"]
+        verbose_name = "پیام گفت‌وگو"
+        verbose_name_plural = "گفت‌وگوی درخواست"
+
+    def __str__(self):
+        return f"{self.request} — {self.author}"
 
 
 class Event(models.Model):
