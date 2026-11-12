@@ -14,6 +14,7 @@ router.register("manage", views.ManagedRequestViewSet, basename="workflow-manage
 router.register("processes", views.ProcessViewSet, basename="process")
 urlpatterns = [
     path("process-lookup/", views.ProcessLookupView.as_view(), name="process-lookup"),
+    path("performance/", views.PerformanceView.as_view(), name="workflow-performance"),
     path("quick/<str:token>/", views.QuickActionView.as_view(), name="quick-action"),
     *router.urls,
 ]

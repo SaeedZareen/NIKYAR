@@ -92,6 +92,13 @@ class TestWorkCalendar:
         Holiday.objects.create(date=j(1405, 8, 23), title="تعطیلی سازمان")
         assert WorkCalendar().add_working_hours(at(1405, 8, 20, 14), 4) == at(1405, 8, 24, 10)
 
+    def test_working_hours_between(self):
+        cal = WorkCalendar()
+        assert cal.working_hours_between(at(1405, 8, 16, 10), at(1405, 8, 16, 14)) == 4
+        # شب، پنجشنبه و جمعه شمرده نمی‌شوند: چهارشنبه ۱۴:۰۰ تا شنبه ۱۰:۰۰ = ۲ + ۲
+        assert cal.working_hours_between(at(1405, 8, 20, 14), at(1405, 8, 23, 10)) == 4
+        assert cal.working_hours_between(at(1405, 8, 16, 6), at(1405, 8, 16, 7)) == 0
+
     def test_add_working_days_and_thursday_half_day(self, api):
         cal = WorkCalendar()
         assert cal.add_working_days(at(1405, 8, 19, 9), 2) == at(1405, 8, 23, 16)
