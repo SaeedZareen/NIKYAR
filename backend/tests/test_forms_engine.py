@@ -7,6 +7,7 @@ from jsonschema import Draft202012Validator
 
 from core.forms import engine
 from core.forms.fieldtypes import REGISTRY, Ctx
+from core.forms.models import Form
 from core.kernel import validators as v
 from core.kernel.api import BusinessError
 
@@ -66,6 +67,7 @@ def stored(user, name="a.png", content=b"\x89PNG\r\n\x1a\n" + b"\x00" * 64):
 class TestDefinition:
     def test_every_catalogue_type_has_title_group_and_valid_minimal_field(self, make_user):
         image = stored(make_user("designer"))
+        Form.objects.create(code="purchase", title="درخواست خرید")
         minimal_props = {
             "image": {"file": image},
             "download": {"file": image},
@@ -77,6 +79,7 @@ class TestDefinition:
             "matrix": {"rows": [{"value": "r", "label": "معیار"}], "columns": [{"value": "1", "label": "ضعیف"}, {"value": "2", "label": "خوب"}]},
             "consent": {"text": "مفاد را می‌پذیرم."},
             "calculated": {"formula": {"+": [1, 2]}},
+            "record": {"source": "form:purchase"},
         }
         fields = [{"id": f"f_{code}", "type": code, "label": t.title, "props": minimal_props.get(code, {})} for code, t in REGISTRY.items()]
         engine.check_definition(form(*fields))

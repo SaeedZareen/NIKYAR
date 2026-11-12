@@ -361,6 +361,12 @@ def _check_prop(spec: Prop, value, path: str, errors: dict) -> str | None:
 
         if not _is_int(value) or not Role.objects.filter(pk=value).exists():
             return "نقش انتخاب‌شده پیدا نشد."
+    elif spec.kind == "record_source":
+        from .fieldtypes import record_source
+
+        provider, target = record_source(value) if isinstance(value, str) else (None, "")
+        if provider is None or target not in dict(provider.targets()):
+            return f"«{spec.title}» انتخاب‌شده پیدا نشد."
     elif spec.kind == "choice_list":
         if not isinstance(value, list) or not value or not all(v in spec.choices for v in value) or len(set(value)) != len(value):
             return f"«{spec.title}» دست‌کم یک مورد از گزینه‌های مجاز است."

@@ -680,6 +680,43 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/forms/record-lookup/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description موارد یک منبع. با search (یا بی آن): موارد نهایی‌شده‌ای که کاربر می‌بیند، تازه‌ترین اول، برای انتخاب.
+         *     با ids: نام همان موارد برای نمایش مقدار ذخیره‌شده؛ برای موردی که کاربر اجازه‌ی دیدنش را ندارد فقط شماره و عنوان.
+         */
+        get: operations["forms_record_lookup_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/forms/record-sources/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description منبع‌های قابل انتخاب در طراح فرم: هر فرم (ثبت‌هایش) و هر فرایند (درخواست‌هایش). */
+        get: operations["forms_record_sources_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/forms/regions/": {
         parameters: {
             query?: never;
@@ -2235,7 +2272,7 @@ export interface components {
         DeliveryStatusEnum: "queued" | "sent" | "failed";
         FieldPropSpec: {
             name: string;
-            /** @description int، number، bool، text، date، choice، choice_list، options، lookup_list، org_unit، role، extensions، columns، logic */
+            /** @description int، number، bool، text، date، choice، choice_list، options، lookup_list، org_unit، role، record_source، extensions، columns، logic */
             kind: string;
             title: string;
             required: boolean;
@@ -3784,6 +3821,25 @@ export interface components {
             readonly problems: {
                 [key: string]: string;
             };
+        };
+        RecordItem: {
+            id: number;
+            /** @description شماره‌ی پیگیری (یا خالی) */
+            number: string;
+            /** @description عنوان فرم یا فرایند */
+            title: string;
+            /** Format: date-time */
+            date: string | null;
+            /** @description ثبت‌کننده یا درخواست‌دهنده؛ خالی اگر کاربر اجازه‌ی دیدن مورد را ندارد */
+            person: string;
+            /** @description صفحه‌ی مشاهده؛ خالی اگر صفحه‌ای ندارد یا کاربر اجازه‌ی دیدنش را ندارد */
+            url: string;
+        };
+        RecordSourceOption: {
+            /** @description مقدار ویژگی «منبع»: <منبع>:<شناسه‌ی هدف> */
+            value: string;
+            label: string;
+            group: string;
         };
         Region: {
             name: string;
@@ -5579,6 +5635,51 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Form"];
+                };
+            };
+        };
+    };
+    forms_record_lookup_list: {
+        parameters: {
+            query: {
+                /** @description شناسه‌ها با ویرگول */
+                ids?: string;
+                /** @description بخشی از شماره */
+                search?: string;
+                /** @description مقدار ویژگی «منبع» فیلد */
+                source: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecordItem"][];
+                };
+            };
+        };
+    };
+    forms_record_sources_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecordSourceOption"][];
                 };
             };
         };

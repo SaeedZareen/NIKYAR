@@ -40,7 +40,8 @@ class Prop:
     int، number، bool، text، choice (یکی از choices)، options (گزینه‌های انتخاب)،
     lookup_list (کد فهرست پایه)، org_unit و role (شناسه‌ی واحد یا نقش)، choice_list (چند مورد از choices)،
     extensions (نوع‌های فایل)، columns (ستون‌های جدول)، logic (عبارت JsonLogic؛ core/forms/rules.py)، date (تاریخ شمسی)،
-    html (متن قالب‌دار؛ پاک‌سازی‌شده با core/forms/html.py)، file (شناسه‌ی فایل بارگذاری‌شده با نوع‌های accept).
+    html (متن قالب‌دار؛ پاک‌سازی‌شده با core/forms/html.py)، file (شناسه‌ی فایل بارگذاری‌شده با نوع‌های accept)،
+    record_source (منبع ارجاع «<منبع>:<شناسه‌ی هدف>»؛ nikyar_record_sources).
     """
 
     kind: str
@@ -820,6 +821,47 @@ class PositionRef(_Reference):
         return set(positions.values_list("pk", flat=True))
 
 
+def record_source(value: str):
+    """(منبع، شناسه‌ی هدف) از مقدار ویژگی «منبع» (مثلاً form:purchase-request)؛ منبع ناشناخته None."""
+    from core.kernel.registry import record_sources
+
+    code, _, target = str(value).partition(":")
+    source = record_sources().get(code)
+    return (source.api(), target) if source and target else (None, target)
+
+
+def _stored_ids(value) -> set:
+    """شناسه‌هایی که از پیش در داده‌ی ذخیره‌شده‌ی همین ثبت بوده‌اند (در هر عمق)."""
+    if isinstance(value, dict):
+        return set().union(*(_stored_ids(v) for v in value.values())) if value else set()
+    if isinstance(value, list):
+        return set().union(*(_stored_ids(v) for v in value)) if value else set()
+    return {value} if isinstance(value, int) and not isinstance(value, bool) else set()
+
+
+@register
+class RecordRef(_Reference):
+    """
+    ارجاع به ثبت نهایی یک فرم یا درخواست یک فرایند (مثلاً درخواست خرید مرتبط). کاربر فقط از مواردی انتخاب می‌کند که
+    اجازه‌ی دیدنشان را دارد؛ مقدارِ از پیش ذخیره‌شده (مثلاً وقتی گیرنده‌ی مرحله‌ی بعد فرم را ذخیره می‌کند) دوباره سنجیده نمی‌شود.
+    """
+
+    code, title = "record", "ارجاع به ثبت یا درخواست"
+    props = {"source": Prop("record_source", "ثبت‌ها یا درخواست‌های", required=True), **_Reference.props}
+    missing_message = "مورد انتخاب‌شده برای «{label}» پیدا نشد یا اجازه‌ی دیدنش را ندارید."
+
+    def check(self, value, props, ctx):
+        ids = set(value if isinstance(value, list) else [value])
+        provider, target = record_source(props["source"])
+        if provider is None:
+            return self.missing_message
+        new = ids - _stored_ids(ctx.previous)
+        if not new:
+            return None
+        found = provider.selectable(ctx.user, target) if ctx.user is not None else provider.records(target, new)
+        return None if new <= set(found.filter(pk__in=new).values_list("pk", flat=True)) else self.missing_message
+
+
 # ─── محاسبه‌ای ───────────────────────────────────────────────────────────
 
 
@@ -1161,6 +1203,7 @@ TABLE_CELL_TYPES = frozenset(
         "user",
         "org_unit",
         "position",
+        "record",
         "url",
         "barcode",
     }

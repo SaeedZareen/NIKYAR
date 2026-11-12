@@ -8,6 +8,7 @@
     nikyar_settings = [SettingsSection(code="org-profile", title="مشخصات سازمان", serializer="core.org.sections.OrgProfileSettings")]
     nikyar_numbering = [NumberingSpec(code="leave", title="درخواست مرخصی", default_pattern="{year}/مرخصی/{seq:5}")]
     nikyar_workflow_actions = [WorkflowAction(code="set_field", title="تنظیم مقدار یک فیلد", check=..., run=...)]
+    nikyar_record_sources = [RecordSource(code="form", title="ثبت‌های فرم", provider="core.forms.records.FormRecords")]
 
 فهرست کامل مجوزها از همین‌جا ساخته می‌شود و نقش‌ها فقط مجوزهای ثبت‌شده را می‌پذیرند.
 """
@@ -106,6 +107,29 @@ class WorkflowAction:
 
 
 @dataclass(frozen=True)
+class RecordSource:
+    """
+    منبع فیلد «ارجاع به ثبت یا درخواست» (ثبت‌های یک فرم، درخواست‌های یک فرایند). مقدار ویژگی «منبع» در تعریف فرم
+    «<code>:<شناسه‌ی هدف>» است (مثلاً form:purchase-request)؛ شناسه‌ی لاتین هدف، تا انتقال فرم بین دو نصب سالم بماند.
+    provider مسیر نقطه‌دار کلاسی با این متدهای ایستا:
+      targets() -> list[tuple[str, str]]       هدف‌ها برای طراح (شناسه، عنوان)
+      selectable(user, target) -> QuerySet      موارد نهایی‌شده‌ای که کاربر می‌بیند و انتخاب می‌کند
+      records(target, ids) -> QuerySet          موارد نهایی‌شده‌ی هدف با این شناسه‌ها (برای نمایش نام)
+      item(obj) -> dict                         {id، number، title، date، person}
+      url(obj) -> str                           صفحه‌ی مشاهده در رابط کاربری؛ "" یعنی صفحه‌ای ندارد
+    """
+
+    code: str
+    title: str
+    provider: str
+
+    def api(self):
+        from django.utils.module_loading import import_string
+
+        return import_string(self.provider)
+
+
+@dataclass(frozen=True)
 class PermissionGroup:
     app_label: str
     title: str
@@ -147,3 +171,7 @@ def module_specs() -> list[ModuleSpec]:
 
 def workflow_actions() -> dict[str, WorkflowAction]:
     return {a.code: a for config in apps.get_app_configs() for a in getattr(config, "nikyar_workflow_actions", [])}
+
+
+def record_sources() -> dict[str, RecordSource]:
+    return {r.code: r for config in apps.get_app_configs() for r in getattr(config, "nikyar_record_sources", [])}
