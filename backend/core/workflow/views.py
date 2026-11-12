@@ -203,7 +203,10 @@ class ProcessViewSet(AuditedModelViewSet):
         rows = []
         for form in Form.objects.filter(versions__status=FormVersion.Status.PUBLISHED).distinct().order_by("title"):
             definition = form.current_version().definition
-            fields = [{"id": f["id"], "label": f.get("label", f["id"]), "type": f["type"], "required": bool(f.get("required"))} for f in form_engine.value_fields(definition)]
+            fields = [
+                {"id": f["id"], "label": f.get("label", f["id"]), "type": f["type"], "required": bool(f.get("required"))}
+                for f in form_engine.value_fields(definition)
+            ]
             rows.append({"code": form.code, "title": form.title, "fields": fields})
         return Response(rows)
 

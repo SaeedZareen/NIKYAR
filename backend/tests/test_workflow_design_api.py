@@ -98,7 +98,7 @@ def test_settings_numbering_and_lookups(designer, form):
     assert bad.status_code == 400 and "number_pattern" in bad.json()["fields"]
     ok = designer.patch(f"{PROCESSES}{process['id']}/", {"number_pattern": "خ-{seq:3}", "number_reset": "never", "start_by_everyone": True}, format="json")
     assert ok.status_code == 200 and ok.json()["start_by_everyone"] is True
-    assert {a["code"] for a in designer.get(f"{PROCESSES}action-types/").json()} == {"set_field", "notify"}
+    assert {a["code"] for a in designer.get(f"{PROCESSES}action-types/").json()} == {"set_field", "notify", "save_submission"}
     definition = designer.get(f"{PROCESSES}{process['id']}/form-definition/").json()
     assert [f["id"] for f in definition["sections"][0]["fields"]] == ["subject", "amount"]
 
