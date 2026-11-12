@@ -38,7 +38,7 @@ from core.org import service as org_service
 
 from . import access, assignment, bpmn
 from .expressions import SafeScriptEngine
-from .models import Event, Process, ProcessVersion, Request, Task
+from .models import Event, Process, ProcessVersion, Request, Task, TaskVote
 
 _serializer = BpmnWorkflowSerializer(BpmnWorkflowSerializer.configure(SPIFF_CONFIG))
 
@@ -374,8 +374,11 @@ def acting_for(user, task: Task):
     """(اجازه دارد، به نیابت از چه کسی): گیرنده‌ی کار، یا جانشین امروز یکی از گیرنده‌ها برای همین فرایند."""
     if task.status != Task.Status.OPEN:
         return False, None
-    # کار گروهی برداشته‌شده فقط برای برداشته‌کننده (و جانشین او) است
+    # کار گروهی برداشته‌شده فقط برای برداشته‌کننده (و جانشین او) است؛ در «همه‌ی گیرنده‌ها» فقط کسانی که هنوز نظر نداده‌اند
     candidates = [task.claimed_by] if task.claimed_by_id else list(task.candidates.all())
+    if task.completion == Task.Completion.ALL:
+        voted = set(task.votes.values_list("candidate_id", flat=True))
+        candidates = [c for c in candidates if c.pk not in voted]
     if user in candidates:
         return True, None
     for principal in candidates:
@@ -406,15 +409,29 @@ def complete(task: Task, user, decision: str, comment: str = "", data: dict | No
             raise BusinessError(f"برای «{chosen['label']}» نوشتن یادداشت الزامی است.", {"comment": "دلیل یا توضیح را بنویسید."})
         if data is not None:
             _apply_step_data(request, task, data, user)
+        if task.completion == Task.Completion.ALL and not _vote(request, task, user, principal, chosen, definition, comment):
+            request.save()
+            return request
         workflow = _load(request)
         spiff_task = workflow.get_task_from_id(task.spiff_id)
         if spiff_task is not None:
             spiff_task.data.update(request.data)
-        _finish(request, workflow, task, user, decision, comment, principal)
+        _finish(request, workflow, task, user, decision, comment, principal, event=task.completion != Task.Completion.ALL)
         _advance(request, workflow)
         _save(request, workflow)
         request.save()
     return request
+
+
+def _vote(request: Request, task: Task, user, principal, chosen: dict, definition, comment: str) -> bool:
+    """
+    نظر یک گیرنده در «همه‌ی گیرنده‌ها» (با رویداد تاریخچه). True یعنی کار تمام است: تصمیمی غیر از نخستین
+    (مثلاً «رد»)، یا همه‌ی گیرنده‌ها نظر داده‌اند.
+    """
+    TaskVote.objects.create(task=task, candidate=principal or user, actor=user, decision=chosen["value"], comment=comment)
+    Event.objects.create(request=request, kind=Event.Kind.TASK, task=task, actor=user, on_behalf_of=principal, decision=chosen["value"], comment=comment)
+    first = definition.tasks[task.element]["decisions"][0]["value"]
+    return chosen["value"] != first or not task.candidates.exclude(pk__in=task.votes.values("candidate_id")).exists()
 
 
 def _apply_step_data(request: Request, task: Task, data: dict, user) -> None:
@@ -435,7 +452,7 @@ def _apply_step_data(request: Request, task: Task, data: dict, user) -> None:
     request.data = {**{k: v for k, v in request.data.items() if k not in editable}, **cleaned}
 
 
-def _finish(request: Request, workflow: BpmnWorkflow, task: Task, user, decision: str, comment: str, principal) -> None:
+def _finish(request: Request, workflow: BpmnWorkflow, task: Task, user, decision: str, comment: str, principal, event: bool = True) -> None:
     spiff_task = workflow.get_task_from_id(task.spiff_id)
     if spiff_task is None or spiff_task.state != TaskState.READY:
         raise BusinessError("این کار دیگر منتظر نیست؛ صفحه را دوباره بارگذاری کنید.")
@@ -444,7 +461,8 @@ def _finish(request: Request, workflow: BpmnWorkflow, task: Task, user, decision
     task.status, task.acted_by, task.on_behalf_of = Task.Status.DONE, user, principal
     task.decision, task.comment, task.completed_at = decision, comment, timezone.now()
     task.save()
-    Event.objects.create(request=request, kind=Event.Kind.TASK, task=task, actor=user, on_behalf_of=principal, decision=decision, comment=comment)
+    if event:
+        Event.objects.create(request=request, kind=Event.Kind.TASK, task=task, actor=user, on_behalf_of=principal, decision=decision, comment=comment)
 
 
 def _advance(request: Request, workflow: BpmnWorkflow) -> None:
@@ -473,18 +491,27 @@ def _sync(request: Request, workflow: BpmnWorkflow):
             continue
         element = spiff_task.task_spec.bpmn_id
         settings = definition.tasks[element]
-        task = Task.objects.create(request=request, spiff_id=spiff_id, element=element, title=spiff_task.task_spec.bpmn_name or element)
+        task = Task.objects.create(
+            request=request, spiff_id=spiff_id, element=element, title=spiff_task.task_spec.bpmn_name or element, completion=settings.get("completion", "any")
+        )
         candidates = assignment.resolve(settings["assignee"], request)
         if not candidates:
             task.fallback = True
             task.save(update_fields=["fallback"])
             candidates = _process_admins(request.process)
-            notify(candidates, "workflow.unassigned", step=task.title, process=request.process.title, number=request.number or "—")
+            notify(candidates, "workflow.unassigned", url=f"/tasks/{task.pk}", step=task.title, process=request.process.title, number=request.number or "—")
         else:
             delegates = {d for c in candidates for d in delegation.delegates_of(c, process=request.process_id)}
-            notify([*candidates, *delegates], "workflow.task", step=task.title, process=request.process.title, number=request.number or "—")
+            notify(
+                [*candidates, *delegates],
+                "workflow.task",
+                url=f"/tasks/{task.pk}",
+                step=task.title,
+                process=request.process.title,
+                number=request.number or "—",
+            )
         task.candidates.set(candidates)
-        if auto is None and settings["skip_same"] and previous and previous.acted_by in candidates:
+        if auto is None and settings["skip_same"] and task.completion == Task.Completion.ANY and previous and previous.acted_by in candidates:
             auto = (task, previous.acted_by, settings["decisions"][0]["value"])
     request.tasks.filter(status=Task.Status.OPEN).exclude(spiff_id__in=ready.keys()).update(status=Task.Status.CANCELLED)
     if workflow.completed:

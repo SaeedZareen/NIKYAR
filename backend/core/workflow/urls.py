@@ -8,6 +8,7 @@ router.register("versions", views.ProcessVersionViewSet, basename="process-versi
 router.register("start", views.StartViewSet, basename="process-start")
 router.register("requests", views.RequestViewSet, basename="workflow-request")
 router.register("tasks", views.TaskViewSet, basename="workflow-task")
+router.register("comments", views.RequestCommentViewSet, basename="workflow-comment")
 # فرایندها در /api/workflow/processes/
 router.register("processes", views.ProcessViewSet, basename="process")
 urlpatterns = [path("process-lookup/", views.ProcessLookupView.as_view(), name="process-lookup"), *router.urls]

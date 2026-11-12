@@ -1,10 +1,10 @@
 """
 کارتابل (4.5a): کارهای هر کاربر در چهار زبانه، برداشتن و رها کردن کار گروهی، و زمینه‌ی صفحه‌ی انجام کار.
 
-    منتظر من   کار باز تک‌گیرنده‌ی کاربر، یا کار گروهی که خودش برداشته
-    گروهی      کار باز چندگیرنده که کسی برنداشته (برداشتن آن را به «منتظر من» می‌برد)
+    منتظر من   کار باز تک‌گیرنده‌ی کاربر، کار گروهی که خودش برداشته، یا کار «همه‌ی گیرنده‌ها» که هنوز نظر نداده
+    گروهی      کار باز چندگیرنده‌ی «یکی کافی است» که کسی برنداشته (برداشتن آن را به «منتظر من» می‌برد)
     جانشینی    کار باز کسانی که کاربر امروز جانشینشان است (برای همان فرایند)
-    انجام‌شده   کارهایی که کاربر انجام داده (به نام خود یا به نیابت)
+    انجام‌شده   کارهایی که کاربر انجام داده یا در آن نظر داده (به نام خود یا به نیابت)
 """
 
 from __future__ import annotations
@@ -33,14 +33,16 @@ def _open() -> QuerySet:
 
 def box(user, name: str) -> QuerySet:
     if name == "mine":
-        return _open().filter(Q(claimed_by=user) | Q(claimed_by__isnull=True, candidates=user, candidate_count=1)).distinct()
+        all_waiting = Q(completion=Task.Completion.ALL, candidates=user) & ~Q(votes__candidate=user)
+        return _open().filter(Q(claimed_by=user) | Q(claimed_by__isnull=True, candidates=user, candidate_count=1) | all_waiting).distinct()
     if name == "group":
-        return _open().filter(claimed_by__isnull=True, candidates=user, candidate_count__gt=1).distinct()
+        return _open().filter(completion=Task.Completion.ANY, claimed_by__isnull=True, candidates=user, candidate_count__gt=1).distinct()
     if name == "delegated":
         return _open().filter(pk__in=_delegated_ids(user))
     if name == "done":
         return (
-            Task.objects.filter(status=Task.Status.DONE, acted_by=user)
+            Task.objects.filter(Q(status=Task.Status.DONE, acted_by=user) | Q(votes__actor=user))
+            .distinct()
             .select_related("request__process", "request__requester", "claimed_by", "on_behalf_of")
             .annotate(candidate_count=Count("candidates", distinct=True))
         )
@@ -62,7 +64,7 @@ def counts(user) -> dict[str, int]:
 
 def can_view(user, task: Task) -> bool:
     """گیرنده‌ها، جانشین مجاز، انجام‌دهنده، مدیران فرایند و مدیر کل."""
-    if user.is_superuser or task.acted_by_id == user.pk or task.candidates.filter(pk=user.pk).exists():
+    if user.is_superuser or task.acted_by_id == user.pk or task.candidates.filter(pk=user.pk).exists() or task.votes.filter(actor=user).exists():
         return True
     if service.acting_for(user, task)[0]:
         return True
@@ -79,8 +81,8 @@ def claim(task: Task, user) -> Task:
             raise BusinessError("این کار دیگر منتظر نیست.")
         if task.claimed_by_id:
             raise BusinessError(f"این کار را {task.claimed_by} برداشته است.")
-        if task.candidates.count() < 2:
-            raise BusinessError("فقط کار گروهی برداشتنی است.")
+        if task.candidates.count() < 2 or task.completion == Task.Completion.ALL:
+            raise BusinessError("فقط کار گروهی «یکی کافی است» برداشتنی است.")
         if not service.acting_for(user, task)[0]:
             raise PermissionDenied()
         task.claimed_by = user
@@ -116,7 +118,7 @@ def context(task: Task, user) -> dict:
     fields = step.get("fields", {})
     allowed, principal = service.acting_for(user, task)
     form = request.version.form_version.definition
-    group = task.candidates.count() > 1
+    group = task.candidates.count() > 1 and task.completion == Task.Completion.ANY
     # پس از انجام یا برای بیننده، همه‌ی فیلدها فقط‌خواندنی‌اند
     shown = access.view_definition(form, fields if allowed else {k: v for k, v in fields.items() if v == "hidden"})
     return {
@@ -126,12 +128,35 @@ def context(task: Task, user) -> dict:
         "can_claim": allowed and group and not task.claimed_by_id,
         "can_release": bool(task.claimed_by_id) and task.status == Task.Status.OPEN and (task.claimed_by_id == user.pk or _is_admin(user, task)),
         "candidates": [str(u) for u in task.candidates.all()],
+        "completion": task.completion,
+        "votes": votes(task, step.get("decisions", [])),
+        "voted": task.votes.filter(actor=user).exists(),
         "definition": shown,
         "schema": form_engine.compile_schema(shown, title=task.title),
         "data": access.visible_data(request.data, fields),
         "decisions": step.get("decisions", []),
         "history": history(request, definition),
     }
+
+
+def votes(task: Task, decisions: list[dict]) -> list[dict]:
+    """نظر هر گیرنده در «همه‌ی گیرنده‌ها» (نظرنداده‌ها با تصمیم خالی)."""
+    if task.completion != Task.Completion.ALL:
+        return []
+    labels = {d["value"]: d["label"] for d in decisions}
+    given = {v.candidate_id: v for v in task.votes.select_related("actor")}
+    rows = []
+    for candidate in task.candidates.order_by("pk"):
+        vote = given.get(candidate.pk)
+        rows.append(
+            {
+                "candidate": str(candidate),
+                "decision": labels.get(vote.decision, vote.decision) if vote else "",
+                "actor": str(vote.actor) if vote and vote.actor_id != candidate.pk else "",
+                "at": vote.at if vote else None,
+            }
+        )
+    return rows
 
 
 def history(request: Request, definition) -> list[dict]:

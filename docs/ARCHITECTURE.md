@@ -140,6 +140,7 @@
   - `service.complete` با قفل درخواست و کار، تصمیم را در داده می‌نویسد و جلو می‌برد.
   - `_sync` کارهای آماده را با جدول `Task` همگام و پایان یا رد را ثبت می‌کند.
 - **گیرنده‌ها و جانشینی:**
+  - سیاست گیرنده (`Task.completion`): «یکی کافی است» یا «همه‌ی گیرنده‌ها» با نظر هر گیرنده در `TaskVote`؛ تصمیمی غیر از نخستین کار را تمام می‌کند (`service._vote`).
   - `assignment.resolve` هنگام رسیدن کار، گیرنده‌ها را می‌سازد. اگر خالی بماند، مدیران فرایند (یا مدیران کل) با `Task.fallback`.
   - `acting_for` گیرنده یا جانشین امروزِ یکی از گیرنده‌ها را برای همان فرایند می‌پذیرد و «به نیابت از» را برمی‌گرداند.
   - `core.delegation.service.delegates_of(user, process=...)`: جانشینی ویژه‌ی فرایند بر جانشینی کامل مقدم است.
@@ -154,6 +155,7 @@
   - `/api/workflow/start/`: فرایندهای قابل شروع کاربر و `<id>/` زمینه‌ی پر کردن (`StartContext`، با `on_behalf`).
   - `/api/workflow/requests/`: درخواست‌های کاربر (ثبت‌کرده یا به نامش)؛ ایجاد و ویرایش پیش‌نویس، `submit`، `requester`، حذف پیش‌نویس.
   - `/api/workflow/tasks/?box=mine|group|delegated|done` (کارتابل، `inbox.box`)، `counts/`، `<id>/` (کار با `detail`: درخواست، تعریف و طرح فرم با دسترسی مرحله، داده‌ی دیدنی، تصمیم‌ها، تاریخچه، برداشتن)، `<id>/complete/`، `<id>/claim/`، `<id>/release/`.
+  - `/api/workflow/comments/?request=…` (گفت‌وگوی درخواست، `discussion.py`): فهرست و افزودن پیام برای شرکت‌کنندگان.
 - **فرایندساز** (`pages/workflow/design`):
   - `process-design-page.tsx` (فهرست) و `process-sheet.tsx` (مشخصات).
   - `process-designer-page.tsx` (ذخیره‌ی خودکار، انتشار، فهرست ایرادها).
@@ -165,7 +167,7 @@
   - `condition-python.ts`: شرط سازنده ← عبارت پایتون.
   - `process-properties.tsx`: پانل ویژگی‌ها.
   - `process-versions-sheet.tsx`: نسخه‌ها، خروجی و ورود BPMN، نمایش کنار هم.
-- **کارتابل** (`pages/workflow/tasks`): `inbox-page.tsx` (زبانه‌ها در `?box=`، جدول کیت) و `task-page.tsx` (خلاصه‌ی درخواست، فرم مرحله با `FormRenderer`، تصمیم با یادداشت و پنجره‌ی تأیید، برداشتن و رها کردن، تاریخچه). شمار کارها با `useTaskCounts` (`app/workflow.ts`) در منو (`badge` مورد منو)، زبانه‌ها و پیشخوان.
+- **کارتابل** (`pages/workflow/tasks`): `inbox-page.tsx` (زبانه‌ها در `?box=`، جدول کیت) و `task-page.tsx` (خلاصه‌ی درخواست، فرم مرحله با `FormRenderer`، تصمیم با یادداشت و پنجره‌ی تأیید، برداشتن و رها کردن، نظر گیرنده‌ها، گفت‌وگو با `discussion.tsx`، تاریخچه). شمار کارها با `useTaskCounts` (`app/workflow.ts`) در منو (`badge` مورد منو)، زبانه‌ها و پیشخوان.
 - **درخواست جدید** (`pages/workflow/requests`): `new-request-page.tsx` (فرایندها به تفکیک دسته و پیش‌نویس‌ها) و `request-fill-page.tsx` (پرکننده‌ی مشترک `pages/forms/fill-form.tsx` با مقصد درخواست و انتخاب «به نام»). کلیدهای داده در `app/workflow.ts`.
 
 ### تنظیمات

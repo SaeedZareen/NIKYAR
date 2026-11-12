@@ -6,6 +6,7 @@
 
     userTask:    assignee   قاعده‌ی گیرنده (assignment.py)
                  decisions  [{"value": "approve", "label": "تأیید", "comment": "optional"|"required"}, ...]
+                 completion "any" (پیش‌فرض: یکی از گیرنده‌ها کافی است) | "all" (همه نظر می‌دهند؛ یک تصمیم غیر از نخستین کافی است)
                  skip_same  true: اگر گیرنده همان انجام‌دهنده‌ی مرحله‌ی قبل است، خودکار با نخستین تصمیم انجام شود
                  fields     {"<فیلد فرم>": "hidden"|"readonly"|"edit"|"required"}؛ فیلد نیامده: فقط‌خواندنی
     sequenceFlow: condition  مدل سازنده‌ی دیداری (JsonLogic) برای ویرایش دوباره؛ شرط اجرایی همان conditionExpression است
@@ -169,11 +170,20 @@ def check(text: str, form_definition: dict) -> Definition:
             skip_same = props.get("skip_same", False)
             if not isinstance(skip_same, bool):
                 message = message or "گزینه‌ی «تأیید خودکار برای همان انجام‌دهنده» نامعتبر است."
+            completion = props.get("completion", "any")
+            if completion not in ("any", "all"):
+                message = message or "سیاست گیرنده نامعتبر است."
             access = props.get("fields", {})
             message = message or _check_access(access, types)
             if message:
                 errors.setdefault(nid, f"«{label}»: {message}")
-            definition.tasks[nid] = {"assignee": props.get("assignee"), "decisions": decisions, "skip_same": skip_same, "fields": access}
+            definition.tasks[nid] = {
+                "assignee": props.get("assignee"),
+                "decisions": decisions,
+                "skip_same": skip_same,
+                "fields": access,
+                "completion": completion,
+            }
         if tag == "serviceTask":
             message = _check_action(node, props.get("action"), actions, form_definition, user_tasks)
             if message:

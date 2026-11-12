@@ -1623,6 +1623,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workflow/comments/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description گفت‌وگوی یک درخواست (?request=شناسه) برای شرکت‌کنندگانش؛ هر پیام به دیگران اعلان می‌شود. */
+        get: operations["workflow_comments_list"];
+        put?: never;
+        /** @description گفت‌وگوی یک درخواست (?request=شناسه) برای شرکت‌کنندگانش؛ هر پیام به دیگران اعلان می‌شود. */
+        post: operations["workflow_comments_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workflow/process-lookup/": {
         parameters: {
             query?: never;
@@ -2305,6 +2323,12 @@ export interface components {
                 [key: string]: unknown;
             };
         };
+        /**
+         * @description * `any` - یکی از گیرنده‌ها کافی است
+         *     * `all` - همه‌ی گیرنده‌ها
+         * @enum {string}
+         */
+        CompletionEnum: "any" | "all";
         Delegation: {
             readonly id: number;
             /** اصیل */
@@ -4047,6 +4071,26 @@ export interface components {
              */
             readonly finished_at: string | null;
         };
+        RequestComment: {
+            readonly id: number;
+            /** درخواست */
+            request: number;
+            readonly author_name: string;
+            readonly mine: boolean;
+            /** متن */
+            text: string;
+            /**
+             * زمان
+             * Format: date-time
+             */
+            readonly at: string;
+        };
+        RequestCommentRequest: {
+            /** درخواست */
+            request: number;
+            /** متن */
+            text: string;
+        };
         RequestDetail: {
             readonly id: number;
             /** فرایند */
@@ -4264,6 +4308,16 @@ export interface components {
             can_claim: boolean;
             can_release: boolean;
             candidates: string[];
+            /**
+             * @description any: یکی کافی است؛ all: همه‌ی گیرنده‌ها
+             *
+             *     * `any` - یکی از گیرنده‌ها کافی است
+             *     * `all` - همه‌ی گیرنده‌ها
+             */
+            completion: components["schemas"]["CompletionEnum"];
+            votes: components["schemas"]["TaskVote"][];
+            /** @description کاربر در این کار نظر داده است */
+            voted: boolean;
             /** @description تعریف فرم با دسترسی همین مرحله، بی فیلدهای پنهان */
             definition: {
                 [key: string]: unknown;
@@ -4353,6 +4407,15 @@ export interface components {
             submitted_at: string | null;
             status: string;
             status_label: string;
+        };
+        TaskVote: {
+            candidate: string;
+            /** @description برچسب تصمیم؛ خالی یعنی هنوز نظر نداده */
+            decision: string;
+            /** @description جانشینی که به نیابت نظر داده (خالی اگر خود گیرنده) */
+            actor: string;
+            /** Format: date-time */
+            at: string | null;
         };
         TestEmailRequest: {
             /**
@@ -7896,6 +7959,52 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["WorkWeekSettings"];
+                };
+            };
+        };
+    };
+    workflow_comments_list: {
+        parameters: {
+            query: {
+                request: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RequestComment"][];
+                };
+            };
+        };
+    };
+    workflow_comments_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestCommentRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["RequestCommentRequest"];
+                "multipart/form-data": components["schemas"]["RequestCommentRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RequestComment"];
                 };
             };
         };
