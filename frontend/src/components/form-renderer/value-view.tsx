@@ -7,13 +7,14 @@ import { formatNumber, toFaDigits } from "@/lib/format"
 import { cn } from "@/lib/utils"
 import { isDisplay, itemsOf, type ChoiceOption, type FieldDef, type FormDefinition } from "./definition"
 import { useUnitOptions, usePositionNames, useUserNames } from "./org-options"
+import { RecordValue } from "./record-field"
 import type { RuleState } from "./rules"
 import { choiceText, fieldText, isEmptyValue, type Names } from "./value-text"
 
 // نمایش فقط‌خواندنی مقدارهای فرم (مرور پیش از ثبت، مشاهده و چاپ ثبت‌ها): برچسب و مقدار خوانای هر فیلد دیدنی.
 
 const EMPTY = <span className="text-muted-foreground">—</span>
-const NO_NAMES: Names = { users: new Map(), units: new Map(), positions: new Map(), lookups: new Map() }
+const NO_NAMES: Names = { users: new Map(), units: new Map(), positions: new Map(), lookups: new Map(), records: new Map() }
 const fa = (v: unknown) => toFaDigits(String(v))
 const optionsOf = (field: FieldDef, key = "options") => (field.props?.[key] ?? []) as ChoiceOption[]
 
@@ -138,6 +139,8 @@ function FieldValue({ field, value, submitted = false }: { field: FieldDef; valu
       return <UnitValue value={value} />
     case "position":
       return <PositionValue value={value} />
+    case "record":
+      return <RecordValue source={String(field.props?.source ?? "")} value={value} />
     case "attachment":
     case "voice":
       return <FilesValue ids={value as string[]} />

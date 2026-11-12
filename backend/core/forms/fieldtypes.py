@@ -847,7 +847,7 @@ class RecordRef(_Reference):
     """
 
     code, title = "record", "ارجاع به ثبت یا درخواست"
-    props = {"source": Prop("record_source", "ثبت‌ها یا درخواست‌های", required=True), **_Reference.props}
+    props = {"source": Prop("record_source", "انتخاب از فرم یا فرایند", required=True), **_Reference.props}
     missing_message = "مورد انتخاب‌شده برای «{label}» پیدا نشد یا اجازه‌ی دیدنش را ندارید."
 
     def check(self, value, props, ctx):

@@ -36,6 +36,7 @@ export type FieldType =
   | "user"
   | "org_unit"
   | "position"
+  | "record"
   | "attachment"
   | "signature"
   | "signature_pad"
@@ -141,6 +142,7 @@ function toInput(field: FieldDef, value: unknown): unknown {
     case "user":
     case "org_unit":
     case "position":
+    case "record":
       return field.props?.multiple === true ? (Array.isArray(value) ? value : []) : (value ?? "")
     case "boolean":
       return typeof value === "boolean" ? String(value) : ""
