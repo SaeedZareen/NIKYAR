@@ -2,7 +2,7 @@
 اقدام‌های خودکار پایه‌ی گردش کار (اعلام‌شده در WorkflowConfig.nikyar_workflow_actions):
 
     {"type": "set_field", "field": "<فیلد فرم>", "value": <مقدار ثابت>}
-    {"type": "notify", "to": <قاعده‌ی گیرنده مثل assignee>, "text": "<متن، با {number} و {process}>"}
+    {"type": "notify", "to": <قاعده‌ی گیرنده مثل assignee>, "text": "<متن، با {number}، {process} و شناسه‌ی فیلدها>"}
 
 ماژول‌ها اقدام‌های خودشان را با همین سازوکار اعلام می‌کنند (مثل «ثبت در پرونده» در 5.6).
 """
@@ -15,6 +15,8 @@ from core.kernel.api import BusinessError
 from core.notifications.service import notify
 
 from . import assignment
+from .deadlines import PLACEHOLDER
+from .placeholders import field_texts
 
 # فیلدهایی که مقدار ثابت ساده می‌گیرند (بی پیوست، امضا، جدول و مانند آن)
 SETTABLE = {"text", "textarea", "number", "amount", "date", "boolean", "choice", "lookup", "hidden"}
@@ -57,5 +59,6 @@ def check_notify(config: dict, definition: dict) -> str | None:
 
 def run_notify(context, config: dict) -> None:
     request = context.request
-    text = config["text"].replace("{number}", request.number or "—").replace("{process}", request.process.title)
+    values = {"number": request.number or "—", "process": request.process.title, **field_texts(request)}
+    text = PLACEHOLDER.sub(lambda m: values.get(m.group(1), m.group(0)), config["text"])
     notify(assignment.resolve(config["to"], request), "workflow.message", text=text)

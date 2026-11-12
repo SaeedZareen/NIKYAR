@@ -21,6 +21,9 @@ TASK_PLACEHOLDERS = {
 }
 
 
+DUE_PLACEHOLDERS = {**TASK_PLACEHOLDERS, "due": ("پایان مهلت", "۱۴۰۵/۰۸/۲۴ ۱۴:۰۰")}
+
+
 class WorkflowConfig(AppConfig):
     name = "core.workflow"
     label = "workflow"
@@ -56,6 +59,24 @@ class WorkflowConfig(AppConfig):
             title="کار بی‌گیرنده (به مدیران فرایند)",
             template="برای کار «{step}» از درخواست «{process}» شماره‌ی {number} گیرنده‌ای پیدا نشد و به شما سپرده شد؛ ساختار سازمانی یا قاعده‌ی گیرنده را بررسی کنید.",
             placeholders=TASK_PLACEHOLDERS,
+        ),
+        NotificationKind(
+            code="workflow.reminder",
+            title="یادآوری مهلت کار",
+            template="مهلت کار «{step}» از درخواست «{process}» شماره‌ی {number} تا {due} است.",
+            placeholders=DUE_PLACEHOLDERS,
+        ),
+        NotificationKind(
+            code="workflow.overdue",
+            title="پایان مهلت کار",
+            template="مهلت کار «{step}» از درخواست «{process}» شماره‌ی {number} ({due}) گذشت.",
+            placeholders=DUE_PLACEHOLDERS,
+        ),
+        NotificationKind(
+            code="workflow.overdue_manager",
+            title="پایان مهلت کار همکار (به مدیر)",
+            template="مهلت کار «{step}» از درخواست «{process}» شماره‌ی {number} نزد {people} ({due}) گذشت.",
+            placeholders={**DUE_PLACEHOLDERS, "people": ("گیرنده‌های کار", "آقای رضا احمدی")},
         ),
         NotificationKind(
             code="workflow.comment",

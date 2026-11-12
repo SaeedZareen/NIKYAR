@@ -45,19 +45,35 @@ class Daily:
         return f"هر روز ساعت {fa_digits(value)}" if value else "غیرفعال"
 
 
+class Every:
+    """هر چند دقیقه یک‌بار (مثلاً بررسی مهلت کارهای گردش کار)."""
+
+    def __init__(self, minutes: int):
+        self.minutes = minutes
+
+    def due(self, now: datetime, last_run: datetime | None) -> bool:
+        return last_run is None or now - last_run >= timedelta(minutes=self.minutes)
+
+    def next_run(self, now: datetime) -> datetime | None:
+        return now + timedelta(minutes=self.minutes)
+
+    def describe(self) -> str:
+        return f"هر {fa_digits(str(self.minutes))} دقیقه"
+
+
 @dataclass(frozen=True)
 class TaskSpec:
     name: str
     title: str
     func: Callable[..., str | None]
-    schedule: Daily | None = None
+    schedule: Daily | Every | None = None
     max_attempts: int = 3
 
 
 TASKS: dict[str, TaskSpec] = {}
 
 
-def task(name: str, title: str, *, schedule: Daily | None = None, max_attempts: int = 3):
+def task(name: str, title: str, *, schedule: Daily | Every | None = None, max_attempts: int = 3):
     def register(func):
         TASKS[name] = TaskSpec(name, title, func, schedule, max_attempts)
         return func

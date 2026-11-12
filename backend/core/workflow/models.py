@@ -150,6 +150,11 @@ class Task(models.Model):
     comment = models.TextField("یادداشت", blank=True)
     created_at = models.DateTimeField("زمان رسیدن", auto_now_add=True)
     completed_at = models.DateTimeField("زمان انجام", null=True, blank=True)
+    # مهلت (از ویژگی deadline مرحله، با تقویم کاری؛ deadlines.py)
+    due_at = models.DateTimeField("مهلت", null=True, blank=True, db_index=True)
+    remind_at = models.DateTimeField("زمان یادآوری", null=True, blank=True)
+    reminded_at = models.DateTimeField("یادآوری فرستاده شد", null=True, blank=True)
+    escalated_at = models.DateTimeField("تشدید پس از مهلت", null=True, blank=True)
 
     class Meta:
         ordering = ["created_at", "pk"]
@@ -207,6 +212,7 @@ class Event(models.Model):
         COMPLETED = "completed", "پایان"
         REJECTED = "rejected", "رد"
         CANCELLED = "cancelled", "لغو"
+        ESCALATED = "escalated", "پایان مهلت"
 
     request = models.ForeignKey(Request, verbose_name="درخواست", on_delete=models.CASCADE, related_name="events")
     kind = models.CharField("نوع", max_length=10, choices=Kind.choices)

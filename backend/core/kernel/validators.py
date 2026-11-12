@@ -16,7 +16,12 @@ def fa_digits(value) -> str:
 
 def jalali_now() -> str:
     """زمان فعلی برای متن اعلان‌ها: «۱۴۰۵/۰۸/۱۶ ۱۰:۲۰»."""
-    return fa_digits(jdatetime.datetime.fromgregorian(datetime=timezone.localtime()).strftime("%Y/%m/%d %H:%M"))
+    return jalali_datetime(timezone.now())
+
+
+def jalali_datetime(value) -> str:
+    """یک لحظه برای متن اعلان‌ها: «۱۴۰۵/۰۸/۱۶ ۱۰:۲۰»."""
+    return fa_digits(jdatetime.datetime.fromgregorian(datetime=timezone.localtime(value)).strftime("%Y/%m/%d %H:%M"))
 
 
 def only_digits(value: str) -> str:
