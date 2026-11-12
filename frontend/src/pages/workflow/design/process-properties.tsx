@@ -1,4 +1,5 @@
 import * as React from "react"
+import { useQuery } from "@tanstack/react-query"
 import { Plus, Trash2 } from "lucide-react"
 import { useRoleOptions } from "@/app/forms"
 import { isDisplay, itemsOf, type FieldDef, type FormDefinition } from "@/components/form-renderer/definition"
@@ -16,6 +17,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { UserPicker } from "@/components/user-picker"
 import { ConditionEditor } from "@/pages/forms/design/rule-editors"
 import { decisionsBefore, DEFAULT_DECISIONS, infoOf, setCondition, setDefault, setName, setProps, setWait, userTasks } from "./bpmn-props"
+import { api, unwrap } from "@/lib/api/client"
 import { onlyDigits } from "@/lib/format"
 import { conditionPython } from "./condition-python"
 
@@ -222,6 +224,69 @@ function AssigneeEditor({ id, value, onChange, fields, tasks }: { id: string; va
   )
 }
 
+/** فیلدهایی که نگاشت نمی‌شوند (هم‌سو با UNMAPPABLE در core/workflow/actions.py). */
+const UNMAPPABLE = new Set(["attachment", "voice", "signature", "signature_pad", "table", "submitter", "calculated"])
+const TEXTUAL = new Set(["text", "textarea"])
+const compatible = (target: string, source: string) => target === source || (TEXTUAL.has(target) && TEXTUAL.has(source))
+
+/** «ثبت در فرم دیگر»: فرم مقصد، ثبت تازه یا به‌روزرسانی، نگاشت هر فیلد مقصد به فیلدی از فرم اصلی، و فیلد ارجاع. */
+function SaveSubmissionEditor({ id, fields, value, onChange }: { id: string; fields: FieldDef[]; value?: Rule; onChange: (r: Rule) => void }) {
+  const forms = useQuery({ queryKey: ["workflow", "target-forms"], queryFn: () => unwrap(api.GET("/api/workflow/processes/target-forms/")), staleTime: 60_000 }).data ?? []
+  const target = forms.find((f) => f.code === value?.form)
+  const mode = (value?.mode as string) ?? "create"
+  const map = (value?.map as Record<string, string> | undefined) ?? {}
+  const set = (patch: Record<string, unknown>) => onChange({ ...value, type: "save_submission", ...patch })
+  const references = fields.filter((f) => f.type === "record" && f.props?.source === `form:${value?.form}`)
+  return (
+    <>
+      <Row id={`${id}-form`} label="فرم مقصد">
+        <SearchPicker id={`${id}-form`} options={forms.map((f) => ({ value: f.code, label: f.title }))} value={String(value?.form ?? "")} onChange={(v) => set({ form: v, map: {}, record_field: undefined })} placeholder="انتخاب فرم" />
+      </Row>
+      <Row id={`${id}-mode`} label="کار">
+        <Pick id={`${id}-mode`} value={mode} onChange={(v) => set({ mode: v })} options={{ create: "ثبت تازه به نام درخواست‌دهنده", update: "به‌روزرسانی ثبتی که در درخواست انتخاب شده" }} />
+      </Row>
+      <Row
+        id={`${id}-record`}
+        label={mode === "update" ? "ثبت مقصد (فیلد ارجاع)" : "نگه‌داشتن ثبت تازه در (اختیاری)"}
+        help="فیلد «ارجاع به ثبت یا درخواست» فرم اصلی که به همین فرم مقصد اشاره می‌کند."
+      >
+        <Pick
+          id={`${id}-record`}
+          value={String(value?.record_field ?? "")}
+          onChange={(v) => set({ record_field: v || undefined })}
+          options={Object.fromEntries(references.map((f) => [f.id, f.label ?? f.id]))}
+          placeholder={references.length ? "انتخاب فیلد" : "فرم اصلی فیلد ارجاع به این فرم ندارد"}
+        />
+      </Row>
+      {target && (
+        <div className="flex flex-col gap-2">
+          <p className="text-xs font-medium">نگاشت فیلدها</p>
+          {target.fields
+            .filter((t) => !UNMAPPABLE.has(t.type))
+            .map((t) => {
+              const sources = fields.filter((f) => compatible(t.type, f.type))
+              return (
+                <Row key={t.id} id={`${id}-map-${t.id}`} label={`${t.label}${t.required ? " (الزامی)" : ""}`}>
+                  <Pick
+                    id={`${id}-map-${t.id}`}
+                    value={map[t.id] ?? "__none"}
+                    onChange={(v) => {
+                      const next = { ...map }
+                      if (v === "__none") delete next[t.id]
+                      else next[t.id] = v
+                      set({ map: next })
+                    }}
+                    options={{ __none: "—", ...Object.fromEntries(sources.map((f) => [f.id, f.label ?? f.id])) }}
+                  />
+                </Row>
+              )
+            })}
+        </div>
+      )}
+    </>
+  )
+}
+
 type Wait = { value?: number; unit?: "days" | "hours"; field?: string }
 
 /** زمان انتظار: چند روز یا ساعت کاری، یا تا تاریخی که در فرم آمده. */
@@ -421,6 +486,7 @@ function ActionEditor({ id, actions, fields, tasks, value, onChange }: { id: str
           )}
         </>
       )}
+      {kind === "save_submission" && <SaveSubmissionEditor id={id} fields={fields} value={value} onChange={onChange} />}
       {kind === "notify" && (
         <>
           <Row id={`${id}-to`} label="گیرنده‌ی اعلان">

@@ -133,6 +133,19 @@ class ProcessCopySerializer(serializers.Serializer):
         return value
 
 
+class TargetFormFieldSerializer(serializers.Serializer):
+    id = serializers.CharField()
+    label = serializers.CharField()
+    type = serializers.CharField()
+    required = serializers.BooleanField()
+
+
+class TargetFormSerializer(serializers.Serializer):
+    code = serializers.CharField()
+    title = serializers.CharField()
+    fields = TargetFormFieldSerializer(many=True)
+
+
 class ProcessViewSet(AuditedModelViewSet):
     """فرایندها برای طراحان (فرایندساز)."""
 
@@ -180,6 +193,19 @@ class ProcessViewSet(AuditedModelViewSet):
         """فرم‌های منتشرشده برای انتخاب «فرم اصلی»."""
         forms = Form.objects.filter(versions__status=FormVersion.Status.PUBLISHED).distinct().order_by("title")
         return Response([{"id": f.pk, "title": f.title} for f in forms])
+
+    @extend_schema(responses=TargetFormSerializer(many=True))
+    @action(detail=False, url_path="target-forms")
+    def target_forms(self, request):
+        """فرم‌های منتشرشده با فیلدهایشان، برای اقدام «ثبت در فرم دیگر»."""
+        from core.forms import engine as form_engine
+
+        rows = []
+        for form in Form.objects.filter(versions__status=FormVersion.Status.PUBLISHED).distinct().order_by("title"):
+            definition = form.current_version().definition
+            fields = [{"id": f["id"], "label": f.get("label", f["id"]), "type": f["type"], "required": bool(f.get("required"))} for f in form_engine.value_fields(definition)]
+            rows.append({"code": form.code, "title": form.title, "fields": fields})
+        return Response(rows)
 
     @extend_schema(responses=ActionTypeSerializer(many=True))
     @action(detail=False, url_path="action-types")

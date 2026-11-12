@@ -1798,6 +1798,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workflow/processes/target-forms/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description فرم‌های منتشرشده با فیلدهایشان، برای اقدام «ثبت در فرم دیگر». */
+        get: operations["workflow_processes_target_forms_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workflow/quick/{token}/": {
         parameters: {
             query?: never;
@@ -4344,6 +4361,17 @@ export interface components {
             readonly url: string;
             readonly is_image: boolean;
             readonly previewable: boolean;
+        };
+        TargetForm: {
+            code: string;
+            title: string;
+            fields: components["schemas"]["TargetFormField"][];
+        };
+        TargetFormField: {
+            id: string;
+            label: string;
+            type: string;
+            required: boolean;
         };
         TaskContext: {
             can_act: boolean;
@@ -8358,6 +8386,30 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Process"];
+                };
+            };
+        };
+    };
+    workflow_processes_target_forms_list: {
+        parameters: {
+            query?: {
+                /** @description چند مقدار با ویرگول جدا می‌شود. */
+                category?: string;
+                /** @description چند مقدار با ویرگول جدا می‌شود. */
+                is_active?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TargetForm"][];
                 };
             };
         };

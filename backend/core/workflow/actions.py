@@ -3,6 +3,9 @@
 
     {"type": "set_field", "field": "<فیلد فرم>", "value": <مقدار ثابت>}
     {"type": "notify", "to": <قاعده‌ی گیرنده مثل assignee>, "text": "<متن، با {number}، {process} و شناسه‌ی فیلدها>"}
+    {"type": "save_submission", "form": "<شناسه‌ی فرم مقصد>", "mode": "create"|"update",
+     "map": {"<فیلد فرم مقصد>": "<فیلد فرم اصلی>"}, "record_field": "<فیلد «ارجاع» فرم اصلی به همان فرم>"}
+        create: ثبت تازه به نام درخواست‌دهنده (شناسه‌اش در record_field اگر تعیین شده)؛ update: ثبتی که record_field نشان می‌دهد
 
 ماژول‌ها اقدام‌های خودشان را با همین سازوکار اعلام می‌کنند (مثل «ثبت در پرونده» در 5.6).
 """
@@ -62,3 +65,75 @@ def run_notify(context, config: dict) -> None:
     values = {"number": request.number or "—", "process": request.process.title, **field_texts(request)}
     text = PLACEHOLDER.sub(lambda m: values.get(m.group(1), m.group(0)), config["text"])
     notify(assignment.resolve(config["to"], request), "workflow.message", text=text)
+
+
+# ─── ثبت در فرم دیگر (Form Connector) ────────────────────────────────────
+
+# فیلدهایی که نگاشت نمی‌شوند: فایل‌دار (پیوست و صدا و امضا، مالک فایل یکی است)، جدول، و مقدارهای سروری
+UNMAPPABLE = {"attachment", "voice", "signature", "signature_pad", "table", "submitter", "calculated"}
+TEXTUAL = {"text", "textarea"}
+
+
+def _fields(definition: dict) -> dict[str, dict]:
+    return {f["id"]: f for f in form_engine.value_fields(definition)}
+
+
+def _compatible(target: str, source: str) -> bool:
+    return target == source or (target in TEXTUAL and source in TEXTUAL)
+
+
+def check_save_submission(config: dict, definition: dict) -> str | None:
+    from core.forms.models import Form
+
+    form = Form.objects.filter(code=config.get("form")).first()
+    version = form.current_version() if form else None
+    if version is None:
+        return "فرم مقصد پیدا نشد یا منتشر نشده است."
+    mode = config.get("mode", "create")
+    if mode not in ("create", "update"):
+        return "نوع ثبت نامعتبر است."
+    mapping = config.get("map")
+    if not isinstance(mapping, dict) or not mapping:
+        return "دست‌کم یک فیلد فرم مقصد را به فیلدی از فرم اصلی وصل کنید."
+    targets, sources = _fields(version.definition), _fields(definition)
+    for target, source in mapping.items():
+        if target not in targets or targets[target]["type"] in UNMAPPABLE:
+            return f"فیلد «{target}» در فرم «{form.title}» نیست یا نگاشت‌پذیر نیست."
+        if source not in sources:
+            return f"فیلد «{source}» در فرم اصلی نیست."
+        if not _compatible(targets[target]["type"], sources[source]["type"]):
+            return f"نوع «{targets[target].get('label', target)}» با «{sources[source].get('label', source)}» یکی نیست."
+    if mode == "create":
+        missing = [
+            f.get("label", fid) for fid, f in targets.items() if f.get("required") and fid not in mapping and "default" not in f and f["type"] not in UNMAPPABLE
+        ]
+        if missing:
+            return f"فیلدهای الزامی فرم مقصد وصل نشده‌اند: {'، '.join(missing)}."
+    field = config.get("record_field")
+    if mode == "update" and not field:
+        return "برای به‌روزرسانی، فیلد «ارجاع» فرم اصلی که ثبت مقصد را نشان می‌دهد تعیین کنید."
+    if field:
+        ref = sources.get(field)
+        if not ref or ref["type"] != "record" or ref.get("props", {}).get("source") != f"form:{form.code}":
+            return f"فیلد ارجاع باید یکی از فیلدهای «ارجاع به ثبت یا درخواست» فرم اصلی به فرم «{form.title}» باشد."
+    return None
+
+
+def run_save_submission(context, config: dict) -> None:
+    from core.forms import service as form_service
+    from core.forms.models import Form, Submission
+
+    request = context.request
+    form = Form.objects.get(code=config["form"])
+    values = {t: request.data[s] for t, s in config["map"].items() if s in request.data}
+    field = config.get("record_field")
+    if config.get("mode", "create") == "update":
+        target = Submission.objects.filter(pk=request.data.get(field), form=form, status=Submission.Status.SUBMITTED).first()
+        if target is None:
+            raise BusinessError(f"ثبت فرم «{form.title}» برای به‌روزرسانی در درخواست انتخاب نشده یا پیدا نشد.")
+        form_service.system_submission(form, request.requester, values, target)
+        return
+    saved = form_service.system_submission(form, request.requester, values)
+    if field:
+        context.data[field] = saved.pk
+        request.data[field] = saved.pk

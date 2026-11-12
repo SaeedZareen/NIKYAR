@@ -103,6 +103,31 @@ test.describe("فرایندساز", () => {
     expect(errors).toEqual([])
   })
 
+  test("اقدام «ثبت در فرم دیگر» با نگاشت فیلدها", async ({ page }, info) => {
+    test.skip(info.project.name !== "desktop", "پانل ویژگی‌ها کنار بوم (صفحه‌ی پهن)")
+    const errors = collectErrors(page)
+    const target = `اموال ${Date.now()}`
+    await publishedForm(page, target)
+    const main = await publishedForm(page, `فرم اصلی ${Date.now()}`)
+    const process = await call(page, "POST", "/api/workflow/processes/", { code: unique("c"), title: `ثبت اموال ${Date.now()}`, form: main.id })
+    await page.goto(`/workflow/design/${process.id}`)
+    const canvas = page.getByRole("region", { name: "بوم فرایند" })
+    await canvas.locator('[data-element-id="StartEvent_1"]').click()
+    await canvas.locator('.djs-context-pad [title="افزودن اقدام خودکار"]').click()
+    const panel = page.getByRole("region", { name: "ویژگی‌ها" })
+    await panel.getByLabel("اقدام", { exact: true }).click()
+    await page.getByRole("option", { name: "ثبت در فرم دیگر" }).click()
+    await panel.getByLabel("فرم مقصد", { exact: true }).click()
+    await page.getByRole("option", { name: target }).click()
+    await panel.getByLabel("موضوع (الزامی)", { exact: true }).click()
+    await page.getByRole("option", { name: "موضوع" }).click()
+    await expect(page.getByText(/ذخیره شد/)).toBeVisible()
+    const version = await call(page, "GET", `/api/workflow/versions/${process.draft_version}/`)
+    expect(version.bpmn).toContain("save_submission")
+    await expectAccessible(page)
+    expect(errors).toEqual([])
+  })
+
   test("روی موبایل فقط نمودار دیده می‌شود", async ({ page }, info) => {
     test.skip(!isMobile(page))
     const form = await publishedForm(page, `فرم موبایل ${info.project.name} ${Date.now()}`)
