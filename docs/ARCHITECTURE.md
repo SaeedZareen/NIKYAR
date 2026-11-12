@@ -130,7 +130,7 @@
   - مسیر؛
   - یادداشت.
 
-  تنظیمات نیک‌یار در `spiffworkflow:properties` (JSON) قرار می‌گیرند: `assignee`، `decisions` (با `comment`)، `skip_same`، `action` (کار خودکار با عملگر `nikyar`)، `outcome`. `bpmn.check` همه را پیش از انتشار می‌سنجد و خطاها را با شناسه‌ی عنصر برمی‌گرداند.
+  تنظیمات نیک‌یار در `spiffworkflow:properties` (JSON) قرار می‌گیرند: `assignee`، `decisions` (با `comment`)، `skip_same`، `fields` (دسترسی فیلدها در مرحله)، `action` (کار خودکار با عملگر `nikyar`)، `outcome`، و روی مسیر `condition` (مدل سازنده؛ شرط اجرایی `conditionExpression` است). `bpmn.check` همه را پیش از انتشار می‌سنجد و خطاها را با شناسه‌ی عنصر برمی‌گرداند.
 - **شرط‌ها:** عبارت پایتونی امن روی داده‌ی درخواست و `decision` (تصمیم آخرین مرحله). `expressions.check` با فهرست سفید گره‌های `ast`، و تفسیر بی eval در `SafeScriptEngine`، که موتور اسکریپت SpiffWorkflow را جایگزین می‌کند. اسکریپت و خدمت بیرونی همیشه رد می‌شوند.
 - **اجرا:**
   - `service.start` داده را با فرم اصلی کامل می‌سنجد، شماره (`process-شناسه` در `core.numbering`) می‌گیرد و موتور را تا نخستین کارها جلو می‌برد.
@@ -145,7 +145,7 @@
   - `check(config, form_definition)` هنگام انتشار، `run(context, config)` هنگام اجرا.
 - **وضعیت:** سریال‌ساز SpiffWorkflow در `Request.state`. مشخصات اجرایی هر نسخه با `lru_cache` روی متن BPMN نگه داشته می‌شود.
 - **API:**
-  - `/api/workflow/processes/` (`workflow.design`): فرایندها، `form-options/`، `<id>/new-draft/`، `<id>/copy/`.
+  - `/api/workflow/processes/` (`workflow.design`): فرایندها با شروع‌کنندگان، مدیران و شماره‌گذاری؛ `form-options/`، `action-types/`، `from-template/`، `<id>/form-definition/`، `<id>/new-draft/`، `<id>/copy/`.
   - `/api/workflow/versions/`: پیش‌نویس BPMN با `problems` زنده، `publish/`.
   - `GET /api/workflow/process-lookup/`: عنوان فرایندها برای هر کاربر.
   - درخواست و کارتابل از 4.4 و 4.5.
@@ -155,6 +155,11 @@
   - `process-canvas.tsx`: bpmn-js، Modeler یا NavigatedViewer، و نشانه‌ی ایراد روی عنصر.
   - `bpmn-modules.ts`: ترجمه‌ی فارسی، نوار ابزار و منوی کنار عنصر محدود به عنصرهای پشتیبانی‌شده، رنگ از توکن‌ها.
   - `bpmn-theme.css`: نگاشت `--bio-*` به توکن‌های پوسته.
+  - `spiffworkflow-moddle.ts`: تعریف moddle عنصرهای افزوده‌ی SpiffWorkflow.
+  - `bpmn-props.ts`: خواندن و نوشتن ویژگی‌ها، شرط و مسیر پیش‌فرض با فرمان‌های bpmn-js.
+  - `condition-python.ts`: شرط سازنده ← عبارت پایتون.
+  - `process-properties.tsx`: پانل ویژگی‌ها.
+  - `process-versions-sheet.tsx`: نسخه‌ها، خروجی و ورود BPMN، نمایش کنار هم.
 
 ### تنظیمات
 

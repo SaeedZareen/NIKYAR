@@ -14,12 +14,12 @@
     <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_manager"></bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_manager" targetRef="Gateway_review"></bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_3" name="تأیید" sourceRef="Gateway_review" targetRef="Task_finance"><bpmn:extensionElements><spiffworkflow:properties><spiffworkflow:property name="condition" value='{"==": [{"var": "decision"}, "approve"]}'/></spiffworkflow:properties></bpmn:extensionElements><bpmn:conditionExpression>decision == "approve"</bpmn:conditionExpression></bpmn:sequenceFlow>
-    <bpmn:sequenceFlow id="Flow_4" name="رد" sourceRef="Gateway_review" targetRef="End_rejected"></bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_4" sourceRef="Gateway_review" targetRef="End_rejected"></bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_5" name="اصلاح" sourceRef="Gateway_review" targetRef="Task_fix"><bpmn:extensionElements><spiffworkflow:properties><spiffworkflow:property name="condition" value='{"==": [{"var": "decision"}, "return"]}'/></spiffworkflow:properties></bpmn:extensionElements><bpmn:conditionExpression>decision == "return"</bpmn:conditionExpression></bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_6" sourceRef="Task_fix" targetRef="Task_manager"></bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_7" sourceRef="Task_finance" targetRef="Gateway_finance"></bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_8" name="تأیید" sourceRef="Gateway_finance" targetRef="Task_supply"><bpmn:extensionElements><spiffworkflow:properties><spiffworkflow:property name="condition" value='{"==": [{"var": "decision"}, "approve"]}'/></spiffworkflow:properties></bpmn:extensionElements><bpmn:conditionExpression>decision == "approve"</bpmn:conditionExpression></bpmn:sequenceFlow>
-    <bpmn:sequenceFlow id="Flow_9" name="رد" sourceRef="Gateway_finance" targetRef="End_rejected_finance"></bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_9" sourceRef="Gateway_finance" targetRef="End_rejected_finance"></bpmn:sequenceFlow>
     <bpmn:sequenceFlow id="Flow_10" sourceRef="Task_supply" targetRef="End_done"></bpmn:sequenceFlow>
   </bpmn:process>
   <bpmndi:BPMNDiagram id="BPMNDiagram_1">
