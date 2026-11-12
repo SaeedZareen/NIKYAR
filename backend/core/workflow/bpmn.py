@@ -7,6 +7,8 @@
     userTask:    assignee   قاعده‌ی گیرنده (assignment.py)
                  decisions  [{"value": "approve", "label": "تأیید", "comment": "optional"|"required"}, ...]
                  skip_same  true: اگر گیرنده همان انجام‌دهنده‌ی مرحله‌ی قبل است، خودکار با نخستین تصمیم انجام شود
+                 fields     {"<فیلد فرم>": "hidden"|"readonly"|"edit"|"required"}؛ فیلد نیامده: فقط‌خواندنی
+    sequenceFlow: condition  مدل سازنده‌ی دیداری (JsonLogic) برای ویرایش دوباره؛ شرط اجرایی همان conditionExpression است
     serviceTask: action     {"type": "<کد اقدام>", ...} از رجیستری اقدام‌ها (actions.py)؛ عملگر SpiffWorkflow: «nikyar»
     endEvent:    outcome    "completed" | "rejected"
 
@@ -52,6 +54,7 @@ DECISION = "decision"
 DEFAULT_DECISIONS = [{"value": "approve", "label": "تأیید"}, {"value": "reject", "label": "رد", "comment": "required"}]
 OUTCOMES = {"completed", "rejected"}
 OPERATOR = "nikyar"
+ACCESS = {"hidden": "پنهان", "readonly": "فقط‌خواندنی", "edit": "قابل ویرایش", "required": "الزامی"}
 
 _parser = etree.XMLParser(resolve_entities=False, no_network=True, remove_comments=True, huge_tree=False)
 
@@ -166,9 +169,11 @@ def check(text: str, form_definition: dict) -> Definition:
             skip_same = props.get("skip_same", False)
             if not isinstance(skip_same, bool):
                 message = message or "گزینه‌ی «تأیید خودکار برای همان انجام‌دهنده» نامعتبر است."
+            access = props.get("fields", {})
+            message = message or _check_access(access, types)
             if message:
                 errors.setdefault(nid, f"«{label}»: {message}")
-            definition.tasks[nid] = {"assignee": props.get("assignee"), "decisions": decisions, "skip_same": skip_same}
+            definition.tasks[nid] = {"assignee": props.get("assignee"), "decisions": decisions, "skip_same": skip_same, "fields": access}
         if tag == "serviceTask":
             message = _check_action(node, props.get("action"), actions, form_definition, user_tasks)
             if message:
@@ -204,6 +209,17 @@ def _check_action(node, config, actions: dict, form_definition: dict, user_tasks
     if isinstance(to, dict) and to.get("type") == "actor_manager" and to.get("element") not in user_tasks:
         return "مرحله‌ای که مدیر انجام‌دهنده‌اش گیرنده است، در این فرایند نیست."
     return actions[config["type"]].check(config, form_definition)
+
+
+def _check_access(access, types: dict[str, str]) -> str | None:
+    if not isinstance(access, dict):
+        return "دسترسی فیلدها نامعتبر است."
+    unknown = sorted(set(access) - set(types))
+    if unknown:
+        return f"دسترسی برای فیلدهایی تعیین شده که در فرم اصلی نیستند: {'، '.join(unknown)}."
+    if any(v not in ACCESS for v in access.values()):
+        return "دسترسی هر فیلد یکی از پنهان، فقط‌خواندنی، قابل ویرایش یا الزامی است."
+    return None
 
 
 def _check_decisions(decisions) -> str | None:

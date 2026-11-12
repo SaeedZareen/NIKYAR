@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:spiffworkflow="http://spiffworkflow.org/bpmn/schema/1.0/core" id="Definitions_purchase" targetNamespace="http://bpmn.io/schema/bpmn">
+  <bpmn:process id="Process_purchase" isExecutable="true">
+    <bpmn:startEvent id="StartEvent_1" name="ثبت درخواست"><bpmn:outgoing>Flow_1</bpmn:outgoing></bpmn:startEvent>
+    <bpmn:userTask id="Task_manager" name="تأیید مدیر مستقیم"><bpmn:extensionElements><spiffworkflow:properties><spiffworkflow:property name="assignee" value='{"type": "requester_manager"}'/><spiffworkflow:property name="decisions" value='[{"value": "approve", "label": "تأیید"}, {"value": "return", "label": "بازگشت برای اصلاح", "comment": "required"}, {"value": "reject", "label": "رد", "comment": "required"}]'/></spiffworkflow:properties></bpmn:extensionElements><bpmn:incoming>Flow_1</bpmn:incoming><bpmn:incoming>Flow_6</bpmn:incoming><bpmn:outgoing>Flow_2</bpmn:outgoing></bpmn:userTask>
+    <bpmn:exclusiveGateway id="Gateway_review" name="نظر مدیر" default="Flow_4"><bpmn:incoming>Flow_2</bpmn:incoming><bpmn:outgoing>Flow_3</bpmn:outgoing><bpmn:outgoing>Flow_4</bpmn:outgoing><bpmn:outgoing>Flow_5</bpmn:outgoing></bpmn:exclusiveGateway>
+    <bpmn:userTask id="Task_fix" name="اصلاح درخواست"><bpmn:extensionElements><spiffworkflow:properties><spiffworkflow:property name="assignee" value='{"type": "requester"}'/><spiffworkflow:property name="decisions" value='[{"value": "resubmit", "label": "ارسال دوباره"}]'/><spiffworkflow:property name="fields" value='{"priority": "edit", "need": "required", "items": "required", "quotes": "edit"}'/></spiffworkflow:properties></bpmn:extensionElements><bpmn:incoming>Flow_5</bpmn:incoming><bpmn:outgoing>Flow_6</bpmn:outgoing></bpmn:userTask>
+    <bpmn:userTask id="Task_finance" name="تأیید مدیر مالی"><bpmn:extensionElements><spiffworkflow:properties><spiffworkflow:property name="decisions" value='[{"value": "approve", "label": "تأیید"}, {"value": "reject", "label": "رد", "comment": "required"}]'/></spiffworkflow:properties></bpmn:extensionElements><bpmn:incoming>Flow_3</bpmn:incoming><bpmn:outgoing>Flow_7</bpmn:outgoing></bpmn:userTask>
+    <bpmn:exclusiveGateway id="Gateway_finance" name="نظر مالی" default="Flow_9"><bpmn:incoming>Flow_7</bpmn:incoming><bpmn:outgoing>Flow_8</bpmn:outgoing><bpmn:outgoing>Flow_9</bpmn:outgoing></bpmn:exclusiveGateway>
+    <bpmn:userTask id="Task_supply" name="خرید (تدارکات)"><bpmn:extensionElements><spiffworkflow:properties><spiffworkflow:property name="decisions" value='[{"value": "done", "label": "خرید انجام شد"}]'/></spiffworkflow:properties></bpmn:extensionElements><bpmn:incoming>Flow_8</bpmn:incoming><bpmn:outgoing>Flow_10</bpmn:outgoing></bpmn:userTask>
+    <bpmn:endEvent id="End_done" name="انجام شد"><bpmn:incoming>Flow_10</bpmn:incoming></bpmn:endEvent>
+    <bpmn:endEvent id="End_rejected" name="رد مدیر"><bpmn:extensionElements><spiffworkflow:properties><spiffworkflow:property name="outcome" value='"rejected"'/></spiffworkflow:properties></bpmn:extensionElements><bpmn:incoming>Flow_4</bpmn:incoming></bpmn:endEvent>
+    <bpmn:endEvent id="End_rejected_finance" name="رد مالی"><bpmn:extensionElements><spiffworkflow:properties><spiffworkflow:property name="outcome" value='"rejected"'/></spiffworkflow:properties></bpmn:extensionElements><bpmn:incoming>Flow_9</bpmn:incoming></bpmn:endEvent>
+    <bpmn:sequenceFlow id="Flow_1" sourceRef="StartEvent_1" targetRef="Task_manager"></bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_2" sourceRef="Task_manager" targetRef="Gateway_review"></bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_3" name="تأیید" sourceRef="Gateway_review" targetRef="Task_finance"><bpmn:extensionElements><spiffworkflow:properties><spiffworkflow:property name="condition" value='{"==": [{"var": "decision"}, "approve"]}'/></spiffworkflow:properties></bpmn:extensionElements><bpmn:conditionExpression>decision == "approve"</bpmn:conditionExpression></bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_4" name="رد" sourceRef="Gateway_review" targetRef="End_rejected"></bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_5" name="اصلاح" sourceRef="Gateway_review" targetRef="Task_fix"><bpmn:extensionElements><spiffworkflow:properties><spiffworkflow:property name="condition" value='{"==": [{"var": "decision"}, "return"]}'/></spiffworkflow:properties></bpmn:extensionElements><bpmn:conditionExpression>decision == "return"</bpmn:conditionExpression></bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_6" sourceRef="Task_fix" targetRef="Task_manager"></bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_7" sourceRef="Task_finance" targetRef="Gateway_finance"></bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_8" name="تأیید" sourceRef="Gateway_finance" targetRef="Task_supply"><bpmn:extensionElements><spiffworkflow:properties><spiffworkflow:property name="condition" value='{"==": [{"var": "decision"}, "approve"]}'/></spiffworkflow:properties></bpmn:extensionElements><bpmn:conditionExpression>decision == "approve"</bpmn:conditionExpression></bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_9" name="رد" sourceRef="Gateway_finance" targetRef="End_rejected_finance"></bpmn:sequenceFlow>
+    <bpmn:sequenceFlow id="Flow_10" sourceRef="Task_supply" targetRef="End_done"></bpmn:sequenceFlow>
+  </bpmn:process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_1">
+    <bpmndi:BPMNPlane id="BPMNPlane_1" bpmnElement="Process_purchase">
+      <bpmndi:BPMNShape id="StartEvent_1_di" bpmnElement="StartEvent_1"><dc:Bounds x="152" y="202" width="36" height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_manager_di" bpmnElement="Task_manager"><dc:Bounds x="240" y="180" width="100" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_review_di" bpmnElement="Gateway_review"><dc:Bounds x="395" y="195" width="50" height="50"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_finance_di" bpmnElement="Task_finance"><dc:Bounds x="500" y="180" width="100" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Gateway_finance_di" bpmnElement="Gateway_finance"><dc:Bounds x="655" y="195" width="50" height="50"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_supply_di" bpmnElement="Task_supply"><dc:Bounds x="760" y="180" width="100" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_done_di" bpmnElement="End_done"><dc:Bounds x="922" y="202" width="36" height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_rejected_di" bpmnElement="End_rejected"><dc:Bounds x="402" y="72" width="36" height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="End_rejected_finance_di" bpmnElement="End_rejected_finance"><dc:Bounds x="662" y="72" width="36" height="36"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Task_fix_di" bpmnElement="Task_fix"><dc:Bounds x="370" y="320" width="100" height="80"/></bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Flow_1_di" bpmnElement="Flow_1"><di:waypoint x="188" y="220"/><di:waypoint x="240" y="220"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_2_di" bpmnElement="Flow_2"><di:waypoint x="340" y="220"/><di:waypoint x="395" y="220"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_3_di" bpmnElement="Flow_3"><di:waypoint x="445" y="220"/><di:waypoint x="500" y="220"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_4_di" bpmnElement="Flow_4"><di:waypoint x="420" y="195"/><di:waypoint x="420" y="108"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_5_di" bpmnElement="Flow_5"><di:waypoint x="420" y="245"/><di:waypoint x="420" y="320"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_6_di" bpmnElement="Flow_6"><di:waypoint x="370" y="360"/><di:waypoint x="290" y="360"/><di:waypoint x="290" y="260"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_7_di" bpmnElement="Flow_7"><di:waypoint x="600" y="220"/><di:waypoint x="655" y="220"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_8_di" bpmnElement="Flow_8"><di:waypoint x="705" y="220"/><di:waypoint x="760" y="220"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_9_di" bpmnElement="Flow_9"><di:waypoint x="680" y="195"/><di:waypoint x="680" y="108"/></bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Flow_10_di" bpmnElement="Flow_10"><di:waypoint x="860" y="220"/><di:waypoint x="922" y="220"/></bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</bpmn:definitions>

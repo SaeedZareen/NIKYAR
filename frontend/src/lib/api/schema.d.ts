@@ -1658,6 +1658,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workflow/processes/{id}/form-definition/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description تعریف آخرین نسخه‌ی منتشرشده‌ی فرم اصلی (فیلدها برای گیرنده، دسترسی و شرط‌ها). */
+        get: operations["workflow_processes_form_definition_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workflow/processes/{id}/new-draft/": {
         parameters: {
             query?: never;
@@ -1675,6 +1692,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workflow/processes/action-types/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description اقدام‌های خودکار رجیستری (هسته و ماژول‌ها) برای پانل ویژگی‌ها. */
+        get: operations["workflow_processes_action_types_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workflow/processes/form-options/": {
         parameters: {
             query?: never;
@@ -1686,6 +1720,23 @@ export interface paths {
         get: operations["workflow_processes_form_options_list"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workflow/processes/from-template/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description الگوی «درخواست خرید سه‌مرحله‌ای» با فرم «درخواست خرید». */
+        post: operations["workflow_processes_from_template_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1767,6 +1818,10 @@ export interface components {
          * @enum {string}
          */
         ActionEnum: "create" | "update" | "delete" | "login" | "logout" | "login_failed";
+        ActionType: {
+            code: string;
+            title: string;
+        };
         /**
          * @description * `forms` - بازگشت به «فرم‌ها»
          *     * `page` - صفحه‌ی تأیید
@@ -3345,6 +3400,16 @@ export interface components {
             form?: number;
             /** فعال */
             is_active?: boolean;
+            /** همه‌ی کاربران شروع کنند */
+            start_by_everyone?: boolean;
+            /** نقش‌های شروع‌کننده */
+            start_roles?: number[];
+            /** مدیران فرایند */
+            admin_roles?: number[];
+            /** الگوی شماره */
+            number_pattern?: string;
+            /** شروع دوباره‌ی شماره */
+            number_reset?: components["schemas"]["NumberResetEnum"];
         };
         PatchedProcessVersionDetailRequest: {
             /** تعریف BPMN */
@@ -3505,6 +3570,16 @@ export interface components {
             readonly form_title: string;
             /** فعال */
             is_active: boolean;
+            /** همه‌ی کاربران شروع کنند */
+            start_by_everyone: boolean;
+            /** نقش‌های شروع‌کننده */
+            start_roles: number[];
+            /** مدیران فرایند */
+            admin_roles: number[];
+            /** الگوی شماره */
+            number_pattern: string;
+            /** شروع دوباره‌ی شماره */
+            number_reset: components["schemas"]["NumberResetEnum"];
             /** @description شماره‌ی آخرین نسخه‌ی منتشرشده؛ null یعنی هنوز منتشر نشده. */
             readonly published_version: number | null;
             /** @description شناسه‌ی نسخه‌ی پیش‌نویس باز؛ null یعنی پیش‌نویسی نیست. */
@@ -3535,6 +3610,16 @@ export interface components {
             form: number;
             /** فعال */
             is_active?: boolean;
+            /** همه‌ی کاربران شروع کنند */
+            start_by_everyone?: boolean;
+            /** نقش‌های شروع‌کننده */
+            start_roles?: number[];
+            /** مدیران فرایند */
+            admin_roles?: number[];
+            /** الگوی شماره */
+            number_pattern?: string;
+            /** شروع دوباره‌ی شماره */
+            number_reset?: components["schemas"]["NumberResetEnum"];
         };
         ProcessVersion: {
             readonly id: number;
@@ -7405,6 +7490,29 @@ export interface operations {
             };
         };
     };
+    workflow_processes_form_definition_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        [key: string]: unknown;
+                    };
+                };
+            };
+        };
+    };
     workflow_processes_new_draft_create: {
         parameters: {
             query?: never;
@@ -7422,6 +7530,30 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProcessVersionDetail"];
+                };
+            };
+        };
+    };
+    workflow_processes_action_types_list: {
+        parameters: {
+            query?: {
+                /** @description چند مقدار با ویرگول جدا می‌شود. */
+                category?: string;
+                /** @description چند مقدار با ویرگول جدا می‌شود. */
+                is_active?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActionType"][];
                 };
             };
         };
@@ -7446,6 +7578,25 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["FormOption"][];
+                };
+            };
+        };
+    };
+    workflow_processes_from_template_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Process"];
                 };
             };
         };

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 from functools import lru_cache
+from pathlib import Path
 from types import SimpleNamespace
 
 from django.contrib.auth import get_user_model
@@ -104,6 +105,34 @@ def default_bpmn(process: Process) -> str:
 def create(process: Process) -> ProcessVersion:
     """هر فرایند تازه با پیش‌نویس نسخه‌ی ۱ و نمودار آغازین."""
     return ProcessVersion.objects.create(process=process, number=1, bpmn=default_bpmn(process))
+
+
+TEMPLATES = Path(__file__).resolve().parent / "templates"
+
+
+def free_code(base: str) -> str:
+    candidate, n = base, 2
+    while Process.objects.filter(code=candidate).exists():
+        candidate, n = f"{base}-{n}", n + 1
+    return candidate
+
+
+@transaction.atomic
+def from_template(user) -> Process:
+    """
+    الگوی «درخواست خرید سه‌مرحله‌ای»: فرم «درخواست خرید» از الگوهای فرم‌ساز (منتشرشده) و فرایند پیش‌نویس
+    مدیر مستقیم ← مدیر مالی ← تدارکات، با بازگشت برای اصلاح. گیرنده‌ی مالی و تدارکات را سازمان تعیین می‌کند.
+    """
+    from core.forms import service as form_service
+    from core.forms import transfer
+
+    form = transfer.import_form(transfer.templates()["purchase_request"], user)
+    form.fill_by_everyone = True
+    form.save(update_fields=["fill_by_everyone"])
+    form_service.publish(form.versions.get(), user)
+    process = Process.objects.create(code=free_code("purchase"), title="درخواست خرید سه‌مرحله‌ای", form=form, start_by_everyone=True)
+    ProcessVersion.objects.create(process=process, number=1, bpmn=(TEMPLATES / "purchase.bpmn").read_text(encoding="utf-8"))
+    return process
 
 
 @transaction.atomic
