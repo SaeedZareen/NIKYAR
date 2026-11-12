@@ -75,6 +75,22 @@ class WorkCalendar:
             day += timedelta(days=1)
         raise ValueError("No working time found; check the work-week settings.")
 
+    def working_hours_between(self, start: datetime, end: datetime) -> float:
+        """ساعت‌های کاری میان دو لحظه (مبنای زمان مرحله‌ها در گزارش عملکرد)؛ بیرون از ساعت کاری و تعطیلات شمرده نمی‌شود."""
+        start, end = timezone.localtime(start), timezone.localtime(end)
+        total = timedelta()
+        day = start.date()
+        for _ in range(_MAX_DAYS):
+            if day > end.date():
+                break
+            window = self._window(day)
+            if window:
+                begin, finish = max(start, window[0]), min(end, window[1])
+                if begin < finish:
+                    total += finish - begin
+            day += timedelta(days=1)
+        return total.total_seconds() / 3600
+
     def add_working_days(self, start: datetime, days: int) -> datetime:
         """پایان ساعت کاری n-امین روز کاری پس از روز start (روز start شمرده نمی‌شود)."""
         day = timezone.localtime(start).date()

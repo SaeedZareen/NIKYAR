@@ -1,7 +1,7 @@
 // ساختار منوی اصلی. هر مورد مجوز لازم را اعلام می‌کند و فقط به کاربر دارای مجوز نمایش داده می‌شود.
 // ماژول‌ها در فازهای بعد گروه خودشان را اضافه می‌کنند.
 import type { LucideIcon } from "lucide-react"
-import { Bell, FileCog, FilePlus2, Inbox, ListTodo, Building2, ClipboardList, FileCheck, FileSpreadsheet, PencilRuler, KeyRound, UserRound, UserRoundCog, CalendarDays, Component, DatabaseBackup, ListChecks, FormInput, History, LayoutDashboard, ListTree, Settings, ShieldCheck, Table2, Users, Workflow } from "lucide-react"
+import { Bell, ChartColumn, FileCog, FilePlus2, Inbox, ListTodo, Building2, ClipboardList, FileCheck, FileSpreadsheet, PencilRuler, KeyRound, UserRound, UserRoundCog, CalendarDays, Component, DatabaseBackup, ListChecks, FormInput, History, LayoutDashboard, ListTree, Settings, ShieldCheck, Table2, Users, Workflow } from "lucide-react"
 
 /**
  * مجوز مورد نیاز: کد مجوز، "superuser" (فقط مدیر کل؛ راهنمای توسعه)، "workflow-manager" (مجوز مدیریت درخواست‌ها یا مدیر یک فرایند؛ از نشست) یا "forms-viewer"
@@ -43,6 +43,7 @@ const navigation: NavGroup[] = [
     items: [
       { title: "طراحی فرم‌ها", url: "/forms/design", icon: PencilRuler, access: "forms.design", keywords: "فرم‌ساز طراح فرم ساخت فرم انتشار الگو" },
       { title: "مدیریت درخواست‌ها", url: "/workflow/requests", icon: FileCog, access: "workflow-manager", keywords: "مدیریت درخواست ارجاع دوباره لغو شروع دوباره دیرکرد بی‌گیرنده" },
+      { title: "گزارش عملکرد", url: "/workflow/performance", icon: ChartColumn, access: "workflow-manager", keywords: "گزارش عملکرد گلوگاه زمان مرحله بار کاری دیرکرد نمودار" },
       { title: "طراحی فرایندها", url: "/workflow/design", icon: Workflow, access: "workflow.design", keywords: "فرایندساز گردش کار مرحله تأیید BPMN" },
     ],
   },

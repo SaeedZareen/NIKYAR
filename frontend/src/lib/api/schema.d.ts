@@ -1661,6 +1661,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workflow/performance/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description «گزارش عملکرد» (4.8): زمان فرایندها و مرحله‌ها به ساعت کاری، گلوگاه‌ها، دیرکرد و بار کاری افراد و واحدها،
+         *     برای درخواست‌هایی که در بازه ارسال شده‌اند؛ فقط برای مدیران (همان دامنه‌ی «مدیریت درخواست‌ها»).
+         */
+        get: operations["workflow_performance_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workflow/process-lookup/": {
         parameters: {
             query?: never;
@@ -4015,6 +4035,81 @@ export interface components {
          * @enum {string}
          */
         PerUserPeriodEnum: "ever" | "day" | "month" | "year";
+        PerformancePerson: {
+            done: number;
+            open: number;
+            /** Format: double */
+            avg_hours: number | null;
+            /** Format: double */
+            max_hours: number | null;
+            late: number;
+            late_percent: number | null;
+            id: number;
+            name: string;
+            unit: string;
+        };
+        PerformanceProcess: {
+            id: number;
+            title: string;
+            requests: number;
+            running: number;
+            /** Format: double */
+            avg_hours: number | null;
+            /** Format: double */
+            max_hours: number | null;
+            late_percent: number | null;
+        };
+        PerformanceProcessOption: {
+            id: number;
+            title: string;
+        };
+        PerformanceReport: {
+            summary: components["schemas"]["PerformanceSummary"];
+            processes: components["schemas"]["PerformanceProcess"][];
+            steps: components["schemas"]["PerformanceStep"][];
+            people: components["schemas"]["PerformancePerson"][];
+            units: components["schemas"]["PerformanceUnit"][];
+            process_options: components["schemas"]["PerformanceProcessOption"][];
+        };
+        PerformanceStep: {
+            done: number;
+            open: number;
+            /** Format: double */
+            avg_hours: number | null;
+            /** Format: double */
+            max_hours: number | null;
+            late: number;
+            late_percent: number | null;
+            key: string;
+            process: string;
+            title: string;
+        };
+        PerformanceSummary: {
+            requests: number;
+            running: number;
+            completed: number;
+            rejected: number;
+            cancelled: number;
+            /** Format: double */
+            avg_hours: number | null;
+            /** Format: double */
+            max_hours: number | null;
+            tasks: number;
+            late: number;
+            late_percent: number | null;
+        };
+        PerformanceUnit: {
+            done: number;
+            open: number;
+            /** Format: double */
+            avg_hours: number | null;
+            /** Format: double */
+            max_hours: number | null;
+            late: number;
+            late_percent: number | null;
+            id: number | null;
+            name: string;
+        };
         PermissionGroup: {
             app: string;
             title: string;
@@ -8347,6 +8442,29 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ManagedRequest"][];
+                };
+            };
+        };
+    };
+    workflow_performance_retrieve: {
+        parameters: {
+            query?: {
+                end?: string;
+                process?: number;
+                start?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PerformanceReport"];
                 };
             };
         };

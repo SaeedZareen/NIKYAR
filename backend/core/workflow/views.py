@@ -16,11 +16,12 @@ from core.audit.models import AuditLog
 from core.audit.service import AuditedModelViewSet, record
 from core.forms.models import Form, FormVersion
 from core.kernel.api import BusinessError, HasPerm, MultiValueFilter
+from core.kernel.fields import JalaliDateField
 from core.kernel.registry import workflow_actions
 from core.lookups.models import LookupItem
 from core.numbering.pattern import validate as validate_pattern
 
-from . import bpmn, discussion, inbox, manage, quick, service, tracking
+from . import bpmn, discussion, inbox, manage, performance, quick, service, tracking
 from .models import Process, ProcessVersion, Request, RequestComment, Task
 
 CATEGORY_LIST = "process-category"
@@ -923,3 +924,95 @@ class ManagedRequestViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
     def list(self, request, *args, **kwargs):
         rows = self.filter_queryset(self.get_queryset())[:MANAGE_LIMIT]
         return Response(self.get_serializer(rows, many=True).data)
+
+
+class PerformanceQuerySerializer(serializers.Serializer):
+    process = serializers.IntegerField(required=False)
+    start = JalaliDateField(required=False)
+    end = JalaliDateField(required=False)
+
+    def validate(self, attrs):
+        if attrs.get("start") and attrs.get("end") and attrs["start"] > attrs["end"]:
+            raise serializers.ValidationError({"end": "پایان بازه پیش از آغاز آن است."})
+        return attrs
+
+
+class PerformanceStatsSerializer(serializers.Serializer):
+    done = serializers.IntegerField()
+    open = serializers.IntegerField()
+    avg_hours = serializers.FloatField(allow_null=True)
+    max_hours = serializers.FloatField(allow_null=True)
+    late = serializers.IntegerField()
+    late_percent = serializers.IntegerField(allow_null=True)
+
+
+class PerformanceSummarySerializer(serializers.Serializer):
+    requests = serializers.IntegerField()
+    running = serializers.IntegerField()
+    completed = serializers.IntegerField()
+    rejected = serializers.IntegerField()
+    cancelled = serializers.IntegerField()
+    avg_hours = serializers.FloatField(allow_null=True)
+    max_hours = serializers.FloatField(allow_null=True)
+    tasks = serializers.IntegerField()
+    late = serializers.IntegerField()
+    late_percent = serializers.IntegerField(allow_null=True)
+
+
+class PerformanceProcessSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    title = serializers.CharField()
+    requests = serializers.IntegerField()
+    running = serializers.IntegerField()
+    avg_hours = serializers.FloatField(allow_null=True)
+    max_hours = serializers.FloatField(allow_null=True)
+    late_percent = serializers.IntegerField(allow_null=True)
+
+
+class PerformanceStepSerializer(PerformanceStatsSerializer):
+    key = serializers.CharField()
+    process = serializers.CharField()
+    title = serializers.CharField()
+
+
+class PerformancePersonSerializer(PerformanceStatsSerializer):
+    id = serializers.IntegerField()
+    name = serializers.CharField()
+    unit = serializers.CharField()
+
+
+class PerformanceUnitSerializer(PerformanceStatsSerializer):
+    id = serializers.IntegerField(allow_null=True)
+    name = serializers.CharField()
+
+
+class PerformanceProcessOptionSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    title = serializers.CharField()
+
+
+class PerformanceReportSerializer(serializers.Serializer):
+    summary = PerformanceSummarySerializer()
+    processes = PerformanceProcessSerializer(many=True)
+    steps = PerformanceStepSerializer(many=True)
+    people = PerformancePersonSerializer(many=True)
+    units = PerformanceUnitSerializer(many=True)
+    process_options = PerformanceProcessOptionSerializer(many=True)
+
+
+class PerformanceView(APIView):
+    """
+    «گزارش عملکرد» (4.8): زمان فرایندها و مرحله‌ها به ساعت کاری، گلوگاه‌ها، دیرکرد و بار کاری افراد و واحدها،
+    برای درخواست‌هایی که در بازه ارسال شده‌اند؛ فقط برای مدیران (همان دامنه‌ی «مدیریت درخواست‌ها»).
+    """
+
+    permission_classes = [HasPerm]
+    perms = {"*": None}
+
+    @extend_schema(parameters=[PerformanceQuerySerializer], responses=PerformanceReportSerializer)
+    def get(self, request):
+        if not manage.is_manager(request.user):
+            raise PermissionDenied()
+        query = PerformanceQuerySerializer(data=request.query_params)
+        query.is_valid(raise_exception=True)
+        return Response(performance.report(request.user, **query.validated_data))
