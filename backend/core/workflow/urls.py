@@ -11,4 +11,8 @@ router.register("tasks", views.TaskViewSet, basename="workflow-task")
 router.register("comments", views.RequestCommentViewSet, basename="workflow-comment")
 # فرایندها در /api/workflow/processes/
 router.register("processes", views.ProcessViewSet, basename="process")
-urlpatterns = [path("process-lookup/", views.ProcessLookupView.as_view(), name="process-lookup"), *router.urls]
+urlpatterns = [
+    path("process-lookup/", views.ProcessLookupView.as_view(), name="process-lookup"),
+    path("quick/<str:token>/", views.QuickActionView.as_view(), name="quick-action"),
+    *router.urls,
+]

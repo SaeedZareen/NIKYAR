@@ -233,3 +233,21 @@ class Event(models.Model):
 
     def __str__(self):
         return f"{self.get_kind_display()} — {self.request}"
+
+
+class QuickAction(models.Model):
+    """پیوند یک‌بارمصرف و زمان‌دار «تأیید با یک کلیک از ایمیل» برای یک گیرنده و یک تصمیم (quick.py)."""
+
+    token = models.CharField("نشانه", max_length=64, unique=True)
+    task = models.ForeignKey(Task, verbose_name="کار", on_delete=models.CASCADE, related_name="quick_actions")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name="گیرنده", on_delete=models.CASCADE, related_name="+")
+    decision = models.CharField("تصمیم", max_length=40)
+    expires_at = models.DateTimeField("انقضا")
+    used_at = models.DateTimeField("زمان استفاده", null=True, blank=True)
+
+    class Meta:
+        verbose_name = "پیوند تصمیم ایمیل"
+        verbose_name_plural = "پیوندهای تصمیم ایمیل"
+
+    def __str__(self):
+        return f"{self.task} — {self.user}: {self.decision}"

@@ -40,7 +40,7 @@ from core.numbering.models import NumberSequence
 from core.org import service as org_service
 from core.workcalendar.service import WorkCalendar
 
-from . import access, assignment, bpmn, deadlines
+from . import access, assignment, bpmn, deadlines, quick
 from .expressions import SafeScriptEngine
 from .models import Event, Process, ProcessVersion, Request, Task, TaskVote
 
@@ -569,6 +569,7 @@ def _sync(request: Request, workflow: BpmnWorkflow):
                 "workflow.task",
                 url=f"/tasks/{task.pk}",
                 body=body,
+                email_extra=quick.email_links(task, settings["decisions"]),
                 step=task.title,
                 process=request.process.title,
                 number=request.number or "—",

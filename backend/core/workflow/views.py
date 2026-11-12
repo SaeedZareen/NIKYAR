@@ -7,7 +7,9 @@ from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema
 from rest_framework import generics, mixins, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound
+from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from core.accounts.models import Role, User
 from core.audit.models import AuditLog
@@ -18,7 +20,7 @@ from core.kernel.registry import workflow_actions
 from core.lookups.models import LookupItem
 from core.numbering.pattern import validate as validate_pattern
 
-from . import bpmn, discussion, inbox, service
+from . import bpmn, discussion, inbox, quick, service
 from .models import Process, ProcessVersion, Request, RequestComment, Task
 
 CATEGORY_LIST = "process-category"
@@ -673,3 +675,59 @@ class RequestCommentViewSet(mixins.ListModelMixin, mixins.CreateModelMixin, view
         target = self._request(request.data.get("request"))
         comment = discussion.post(target, request.user, str(request.data.get("text", "")))
         return Response(RequestCommentSerializer(comment, context={"request": request}).data, status=status.HTTP_201_CREATED)
+
+
+# ─── تأیید با یک کلیک از ایمیل ───────────────────────────────────────────
+
+
+class QuickActionSerializer(serializers.Serializer):
+    status = serializers.ChoiceField(choices=["ready", "used", "expired", "closed", "invalid"])
+    message = serializers.CharField()
+    step = serializers.CharField()
+    process_title = serializers.CharField()
+    number = serializers.CharField()
+    requester_name = serializers.CharField()
+    user_name = serializers.CharField(help_text="گیرنده‌ی ایمیل")
+    decision_label = serializers.CharField()
+
+
+def _quick_data(action) -> dict:
+    status = quick.state(action)
+    if action is None:
+        return {
+            "status": status,
+            "message": quick.MESSAGES[status],
+            "step": "",
+            "process_title": "",
+            "number": "",
+            "requester_name": "",
+            "user_name": "",
+            "decision_label": "",
+        }
+    task, request = action.task, action.task.request
+    label = next((d["label"] for d in service.decisions_of(task) if d["value"] == action.decision), action.decision)
+    return {
+        "status": status,
+        "message": quick.MESSAGES[status],
+        "step": task.title,
+        "process_title": request.process.title,
+        "number": request.number,
+        "requester_name": request.requester.title,
+        "user_name": action.user.title,
+        "decision_label": label,
+    }
+
+
+class QuickActionView(APIView):
+    """صفحه‌ی عمومی پیوند ایمیل: GET وضعیت و شرح، POST ثبت تصمیم (بی ورود؛ نشانه‌ی یک‌بارمصرف و زمان‌دار)."""
+
+    permission_classes = [AllowAny]
+    authentication_classes = []
+
+    @extend_schema(responses=QuickActionSerializer)
+    def get(self, request, token):
+        return Response(_quick_data(quick.find(token)))
+
+    @extend_schema(request=None, responses=QuickActionSerializer)
+    def post(self, request, token):
+        return Response(_quick_data(quick.use(token)))
