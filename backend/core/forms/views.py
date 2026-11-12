@@ -260,7 +260,7 @@ class FormSubmissionSerializer(serializers.ModelSerializer):
 class FieldPropSpecSerializer(serializers.Serializer):
     name = serializers.CharField()
     kind = serializers.CharField(
-        help_text="int، number، bool، text، date، choice، choice_list، options، lookup_list، org_unit، role، extensions، columns، logic"
+        help_text="int، number، bool، text، date، choice، choice_list، options، lookup_list، org_unit، role، record_source، extensions، columns، logic"
     )
     title = serializers.CharField()
     required = serializers.BooleanField()

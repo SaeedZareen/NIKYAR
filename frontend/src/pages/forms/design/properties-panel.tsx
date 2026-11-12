@@ -482,6 +482,8 @@ function PropEditor({ spec, value, error, onChange }: { spec: PropSpec; value: u
       return <LookupListEditor id={id} title={spec.title} value={String(current ?? "")} error={error} onChange={onChange} />
     case "org_unit":
       return <UnitEditor id={id} title={spec.title} value={typeof current === "number" ? current : undefined} error={error} onChange={onChange} />
+    case "record_source":
+      return <RecordSourceEditor id={id} title={spec.title} value={typeof current === "string" ? current : ""} error={error} onChange={onChange} />
     case "role":
       return <RoleEditor id={id} title={spec.title} value={typeof current === "number" ? current : undefined} error={error} onChange={onChange} />
     case "extensions":
@@ -555,6 +557,17 @@ function RoleEditor({ id, title, value, error, onChange }: { id: string; title: 
   return (
     <Row id={id} label={title} error={error}>
       <SearchPicker id={id} options={[{ value: "", label: "بدون محدودیت" }, ...roles]} value={value ? String(value) : ""} onChange={(v) => onChange(v ? Number(v) : undefined)} placeholder="بدون محدودیت" />
+    </Row>
+  )
+}
+
+/** منبع ارجاع: ثبت‌های یک فرم یا درخواست‌های یک فرایند. */
+function RecordSourceEditor({ id, title, value, error, onChange }: { id: string; title: string; value: string; error?: string; onChange: (v: unknown) => void }) {
+  const sources = useQuery({ queryKey: ["forms", "record-sources"], queryFn: () => unwrap(api.GET("/api/forms/record-sources/")), staleTime: 60_000 }).data ?? []
+  const options = sources.map((o) => ({ value: o.value, label: o.label, hint: o.group }))
+  return (
+    <Row id={id} label={title} error={error}>
+      <SearchPicker id={id} options={options} value={value} onChange={(v) => onChange(v || undefined)} placeholder="انتخاب فرم یا فرایند" />
     </Row>
   )
 }

@@ -45,6 +45,7 @@
 | `nikyar_numbering` | `NumberingSpec` | نوع سند شماره‌دار با الگو و شروع دوباره‌ی پیش‌فرض |
 | `nikyar_notifications` | `NotificationKind` | نوع اعلان با متن پیش‌فرض، جای‌گذارها (برچسب و مقدار نمونه) و کانال‌های پیش‌فرض |
 | `nikyar_workflow_actions` | `WorkflowAction` | اقدام خودکار فرایند (کار خودکار در فرایندساز) با بررسی تنظیمات و اجرا |
+| `nikyar_record_sources` | `RecordSource` | منبع فیلد «ارجاع به ثبت یا درخواست»: هدف‌ها برای طراح، موارد قابل انتخاب برای هر کاربر، نام و صفحه‌ی مشاهده‌ی هر مورد (فرم‌ها: `core/forms/records.py`؛ فرایندها: `core/workflow/records.py`) |
 | `nikyar_module` | `ModuleSpec` | ماژول قابل فروش؛ اگر در لایسنس نباشد، API آن در دسترس نیست |
 | `tasks.py` + `@task` | `TaskSpec` | کار پس‌زمینه، با زمان‌بندی دوره‌ای اختیاری |
 
@@ -73,8 +74,9 @@
 
 **کاتالوگ نوع‌ها** (`fieldtypes.py`، یک کلاس با `@register` برای هر نوع):
 
-- ویژگی‌ها (`Prop` با `kind`: int، number، bool، text، date، html، file، choice، choice_list، options، lookup_list، org_unit، role، extensions، columns، logic)، طرح JSON Schema مقدار، بررسی‌های فقط-سروری (`check`)، پیام‌های فارسی (`extra_messages`، `count_message`)، `normalize` (مثل پاک‌سازی متن غنی) و `file_ids` (فایل‌های مقدار).
+- ویژگی‌ها (`Prop` با `kind`: int، number، bool، text، date، html، file، choice، choice_list، options، lookup_list، org_unit، role، record_source، extensions، columns، logic)، طرح JSON Schema مقدار، بررسی‌های فقط-سروری (`check`)، پیام‌های فارسی (`extra_messages`، `count_message`)، `normalize` (مثل پاک‌سازی متن غنی) و `file_ids` (فایل‌های مقدار).
 - طراح پانل ویژگی‌ها را از `/api/forms/field-types/` می‌سازد؛ نوع یا ویژگی تازه خودکار در طراح می‌آید.
+- **ارجاع به ثبت یا درخواست** (`record`): ویژگی «منبع» `<منبع>:<شناسه‌ی لاتین هدف>` (مثلاً `form:purchase-request`، `process:leave`)، تا انتقال فرم بین دو نصب سالم بماند. سرور فقط موردی را می‌پذیرد که کاربر اجازه‌ی دیدنش را دارد (ثبت‌های نهایی خودش یا فرم‌هایی که بیننده‌شان است؛ درخواست‌های خودش، به نامش، یا فرایندهایی که مدیرشان است). مقداری که از پیش در داده‌ی همان ثبت بوده دوباره سنجیده نمی‌شود، تا گیرنده‌ی مرحله‌ی بعد بتواند فرم را ذخیره کند. API: `GET /api/forms/record-sources/` (طراحان) و `GET /api/forms/record-lookup/?source=…&search=…` (انتخاب) یا `&ids=…` (نام برای نمایش؛ برای مورد نادیدنی فقط شماره و عنوان، بی ثبت‌کننده و پیوند).
 - فهرست‌های کمکی: `UNIQUE_TYPES` (مقدار یکتا)، `PREFILL` (پیش‌پر از حساب کاربر)، `TABLE_CELL_TYPES` (خانه‌ی جدول گروه)، `COLUMN_TYPES` (فیلد درون گروه).
 
 **طرح و اعتبارسنجی یک‌جا:**

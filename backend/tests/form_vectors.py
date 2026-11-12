@@ -56,6 +56,7 @@ DEFINITION = {
                 {"id": "site", "type": "url", "label": "وب‌سایت"},
                 {"id": "scan", "type": "barcode", "label": "بارکد", "props": {"digits_only": True}},
                 {"id": "spot", "type": "location", "label": "محل"},
+                {"id": "related", "type": "record", "label": "درخواست مرتبط", "props": {"source": "form:purchase"}},
                 {
                     "id": "family",
                     "type": "table",
@@ -140,7 +141,12 @@ CASES = [
         },
         "errors": None,
     },
-    {"name": "web and location", "partial": True, "data": {"site": "nikyar.ir", "scan": "12-3", "spot": {"lat": 120, "lng": 51}}, "errors": None},
+    {
+        "name": "web and location",
+        "partial": True,
+        "data": {"site": "nikyar.ir", "scan": "12-3", "spot": {"lat": 120, "lng": 51}, "related": "خ-001"},
+        "errors": None,
+    },
     {
         "name": "incomplete location",
         "partial": False,

@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
-from core.kernel.registry import LookupItemSpec, LookupSpec, NotificationKind
+from core.kernel.registry import LookupItemSpec, LookupSpec, NotificationKind, RecordSource
 
 
 class FormsConfig(AppConfig):
@@ -21,6 +21,7 @@ class FormsConfig(AppConfig):
             ],
         ),
     ]
+    nikyar_record_sources = [RecordSource(code="form", title="ثبت‌های فرم", provider="core.forms.records.FormRecords")]
     nikyar_notifications = [
         NotificationKind(
             code="forms.submitted",

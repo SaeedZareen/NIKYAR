@@ -1,3 +1,4 @@
+import { RecordField } from "./record-field"
 import * as React from "react"
 import type { Control } from "react-hook-form"
 import { FormGrid } from "@/components/form/form-grid"
@@ -147,6 +148,7 @@ const CONTROLS: Partial<Record<FieldType, (p: FieldProps) => React.ReactNode>> =
   user: UserField,
   org_unit: OrgUnitField,
   position: PositionField,
+  record: RecordField,
   region: RegionField,
   submitter: SubmitterField,
   attachment: AttachmentField,

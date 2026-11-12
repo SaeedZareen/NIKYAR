@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
-from core.kernel.registry import LookupItemSpec, LookupSpec, NotificationKind, WorkflowAction
+from core.kernel.registry import LookupItemSpec, LookupSpec, NotificationKind, RecordSource, WorkflowAction
 
 
 def _action(name: str):
@@ -43,6 +43,7 @@ class WorkflowConfig(AppConfig):
         WorkflowAction(code="set_field", title="تنظیم مقدار یک فیلد", check=_action("check_set_field"), run=_action("run_set_field")),
         WorkflowAction(code="notify", title="اعلان یا ایمیل", check=_action("check_notify"), run=_action("run_notify")),
     ]
+    nikyar_record_sources = [RecordSource(code="process", title="درخواست‌های فرایند", provider="core.workflow.records.RequestRecords")]
     nikyar_notifications = [
         NotificationKind(
             code="workflow.task",

@@ -4,6 +4,7 @@ import { api, unwrap } from "@/lib/api/client"
 import { formatNumber, toFaDigits } from "@/lib/format"
 import { itemsOf, type ChoiceOption, type FieldDef, type FormDefinition } from "./definition"
 import { usePositionNames, useUnitOptions, useUserNames } from "./org-options"
+import { recordLabel } from "./record-names"
 
 // متن ساده‌ی مقدار هر فیلد، برای ستون‌های جدول ثبت‌ها، جست‌وجو و خروجی اکسل (نمایش کامل در value-view).
 
@@ -13,6 +14,8 @@ export type Names = {
   units: Map<string, string>
   positions: Map<number, string>
   lookups: Map<string, Map<string, string>>
+  /** «منبع#شناسه» ← شماره (فیلد ارجاع به ثبت یا درخواست) */
+  records: Map<string, string>
 }
 
 const fa = (v: unknown) => toFaDigits(String(v))
@@ -104,6 +107,12 @@ export function fieldText(field: FieldDef, value: unknown, names: Names): string
       return list(value)
         .map((v) => names.positions.get(Number(v)) ?? fa(v))
         .join("، ")
+    case "record": {
+      const source = String(field.props?.source ?? "")
+      return list(value)
+        .map((v) => names.records.get(`${source}#${v}`) ?? fa(v))
+        .join("، ")
+    }
     case "submitter":
       return Object.values(value as Record<string, string>)
         .filter(Boolean)
@@ -121,29 +130,50 @@ export function fieldText(field: FieldDef, value: unknown, names: Names): string
   }
 }
 
+/** شناسه‌های عددی این فیلدها در داده‌ها (با ردیف‌های گروه تکرارشونده)، مرتب. */
+function idsOf(fields: FieldDef[], rows: Record<string, unknown>[]): number[] {
+  const keys = new Set(fields.map((f) => f.id))
+  const ids = new Set<number>()
+  const collect = (data: Record<string, unknown>) => {
+    for (const [key, value] of Object.entries(data)) {
+      if (keys.has(key)) {
+        for (const v of list(value)) if (!isEmptyValue(v)) ids.add(Number(v))
+      } else if (Array.isArray(value)) {
+        for (const row of value) if (row && typeof row === "object") collect(row as Record<string, unknown>)
+      }
+    }
+  }
+  if (keys.size) rows.forEach(collect)
+  return [...ids].sort((a, b) => a - b)
+}
+
 /** همه‌ی فیلدهای تعریف، با اقلام گروه‌ها. */
 const allFields = (definition: FormDefinition) => definition.sections.flatMap((s) => s.fields).flatMap((f) => [f, ...itemsOf(f)])
 
 /** نام‌های شناسه‌های به‌کاررفته در این ثبت‌ها (فقط آنچه فرم لازم دارد بارگیری می‌شود). */
 export function useNames(definition: FormDefinition | undefined, rows: Record<string, unknown>[]): Names {
   const fields = React.useMemo(() => (definition ? allFields(definition) : []), [definition])
-  const userIds = React.useMemo(() => {
-    const ids = new Set<number>()
-    const userFields = fields.filter((f) => f.type === "user").map((f) => f.id)
-    const collect = (data: Record<string, unknown>) => {
-      for (const [key, value] of Object.entries(data)) {
-        if (userFields.includes(key)) {
-          for (const v of list(value)) if (!isEmptyValue(v)) ids.add(Number(v))
-        } else if (Array.isArray(value)) {
-          // ردیف‌های گروه تکرارشونده
-          for (const row of value) if (row && typeof row === "object") collect(row as Record<string, unknown>)
-        }
-      }
-    }
-    if (userFields.length) rows.forEach(collect)
-    return [...ids].sort((a, b) => a - b)
-  }, [fields, rows])
+  const userIds = React.useMemo(() => idsOf(fields.filter((f) => f.type === "user"), rows), [fields, rows])
   const users = useUserNames(userIds).data
+  // شناسه‌های ارجاع، به تفکیک منبع
+  const recordIds = React.useMemo(() => {
+    const bySource = new Map<string, FieldDef[]>()
+    for (const f of fields.filter((f) => f.type === "record")) bySource.set(String(f.props?.source ?? ""), [...(bySource.get(String(f.props?.source ?? "")) ?? []), f])
+    return [...bySource.entries()].map(([source, fs]) => ({ source, ids: idsOf(fs, rows) })).filter((x) => x.ids.length > 0)
+  }, [fields, rows])
+  const recordData = useQueries({
+    queries: recordIds.map(({ source, ids }) => ({
+      queryKey: ["forms", "record-names", source, ids.join(",")],
+      queryFn: () => unwrap(api.GET("/api/forms/record-lookup/", { params: { query: { source, ids: ids.join(",") } } })),
+      staleTime: 60_000,
+    })),
+  })
+  const recordKey = recordData.map((q) => q.dataUpdatedAt).join()
+  const records = React.useMemo(
+    () => new Map(recordIds.flatMap(({ source }, i) => (recordData[i]?.data ?? []).map((r) => [`${source}#${r.id}`, recordLabel(r)] as const))),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- نتیجه‌ی useQueries در هر رندر آرایه‌ی تازه است؛ زمان به‌روزرسانی کافی است
+    [recordIds, recordKey]
+  )
   const units = useUnitOptions()
   const positions = usePositionNames()
   const listCodes = React.useMemo(() => [...new Set(fields.filter((f) => f.type === "lookup").map((f) => String(f.props?.list ?? "")))], [fields])
@@ -163,7 +193,8 @@ export function useNames(definition: FormDefinition | undefined, rows: Record<st
       units: new Map(units.map((u) => [u.value, u.label])),
       positions: new Map((positions ?? []).map((p) => [p.id, p.title])),
       lookups,
+      records,
     }),
-    [users, units, positions, lookups]
+    [users, units, positions, lookups, records]
   )
 }
