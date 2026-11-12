@@ -2,12 +2,12 @@ import re
 
 from django.db import transaction
 from django.db.models import Count, Max, OuterRef, Q
-from drf_spectacular.utils import extend_schema
-from rest_framework import generics, mixins, serializers, viewsets
+from drf_spectacular.utils import extend_schema, extend_schema_field
+from rest_framework import generics, mixins, serializers, status, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
-from core.accounts.models import Role
+from core.accounts.models import Role, User
 from core.audit.models import AuditLog
 from core.audit.service import AuditedModelViewSet, record
 from core.forms.models import Form, FormVersion
@@ -17,7 +17,7 @@ from core.lookups.models import LookupItem
 from core.numbering.pattern import validate as validate_pattern
 
 from . import bpmn, service
-from .models import Process, ProcessVersion
+from .models import Process, ProcessVersion, Request
 
 CATEGORY_LIST = "process-category"
 
@@ -34,6 +34,7 @@ class ProcessSerializer(serializers.ModelSerializer):
     request_count = serializers.IntegerField(read_only=True)
     start_roles = serializers.PrimaryKeyRelatedField(queryset=Role.objects.all(), many=True, required=False, label="نقش‌های شروع‌کننده")
     admin_roles = serializers.PrimaryKeyRelatedField(queryset=Role.objects.all(), many=True, required=False, label="مدیران فرایند")
+    on_behalf_roles = serializers.PrimaryKeyRelatedField(queryset=Role.objects.all(), many=True, required=False, label="ثبت به نام دیگری")
 
     class Meta:
         model = Process
@@ -50,6 +51,7 @@ class ProcessSerializer(serializers.ModelSerializer):
             "start_by_everyone",
             "start_roles",
             "admin_roles",
+            "on_behalf_roles",
             "number_pattern",
             "number_reset",
             "published_version",
@@ -259,3 +261,150 @@ class ProcessLookupView(generics.ListAPIView):
 
     def list(self, request, *args, **kwargs):
         return Response([{"id": p.pk, "title": p.title} for p in Process.objects.filter(is_active=True).order_by("title")])
+
+
+# ─── شروع درخواست ───────────────────────────────────────────────────────
+
+
+class StartableProcessSerializer(serializers.ModelSerializer):
+    category_title = serializers.CharField(source="category.title", read_only=True, default="")
+
+    class Meta:
+        model = Process
+        fields = ["id", "title", "description", "category_title"]
+
+
+class StartContextSerializer(serializers.Serializer):
+    """آنچه صفحه‌ی پر کردن لازم دارد: تعریف فرم اصلی و دو طرح اعتبارسنجی (ارسال و پیش‌نویس)."""
+
+    process = serializers.IntegerField()
+    title = serializers.CharField()
+    description = serializers.CharField(allow_blank=True)
+    definition = serializers.DictField()
+    schema = serializers.DictField()
+    draft_schema = serializers.DictField()
+    on_behalf = serializers.BooleanField(help_text="کاربر می‌تواند درخواست را به نام دیگری ثبت کند")
+
+
+class StartViewSet(viewsets.ReadOnlyModelViewSet):
+    """فرایندهایی که کاربر اجازه‌ی شروعشان را دارد («درخواست جدید») و زمینه‌ی پر کردن فرم هر کدام."""
+
+    permission_classes = [HasPerm]
+    perms = {"*": None}
+    serializer_class = StartableProcessSerializer
+    pagination_class = None
+
+    def get_queryset(self):
+        return service.startable_processes(self.request.user).select_related("category").order_by("category__order", "title")
+
+    @extend_schema(responses=StartContextSerializer)
+    def retrieve(self, request, *args, **kwargs):
+        return Response(service.start_context(self.get_object(), request.user))
+
+
+class RequestSerializer(serializers.ModelSerializer):
+    process_title = serializers.CharField(source="process.title", read_only=True)
+    requester_name = serializers.CharField(source="requester.title", read_only=True)
+    created_by_name = serializers.CharField(source="created_by.title", read_only=True, default="")
+    status_label = serializers.CharField(source="get_status_display", read_only=True)
+    data = serializers.DictField(read_only=True)
+
+    class Meta:
+        model = Request
+        fields = [
+            "id",
+            "process",
+            "process_title",
+            "number",
+            "status",
+            "status_label",
+            "requester",
+            "requester_name",
+            "created_by",
+            "created_by_name",
+            "data",
+            "created_at",
+            "updated_at",
+            "submitted_at",
+            "finished_at",
+        ]
+        read_only_fields = fields
+
+
+class RequestDetailSerializer(RequestSerializer):
+    context = serializers.SerializerMethodField(help_text="زمینه‌ی پر کردن فرم (فقط پیش‌نویس)")
+
+    class Meta(RequestSerializer.Meta):
+        fields = [*RequestSerializer.Meta.fields, "context"]
+        read_only_fields = fields
+
+    @extend_schema_field(StartContextSerializer(allow_null=True))
+    def get_context(self, obj):
+        if obj.status != Request.Status.DRAFT or obj.process.current_version() is None:
+            return None
+        return service.start_context(obj.process, self.context["request"].user)
+
+
+class RequestWriteSerializer(serializers.Serializer):
+    process = serializers.PrimaryKeyRelatedField(queryset=Process.objects.all(), required=False, help_text="فقط هنگام ایجاد")
+    data = serializers.DictField()
+    submit = serializers.BooleanField(default=False, help_text="false: ذخیره‌ی پیش‌نویس؛ true: ارسال و شروع فرایند")
+    requester = serializers.PrimaryKeyRelatedField(
+        queryset=User.objects.filter(is_active=True), required=False, allow_null=True, help_text="ثبت به نام دیگری (با مجوز همان فرایند)"
+    )
+
+
+class RequestViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.DestroyModelMixin, viewsets.GenericViewSet):
+    """
+    درخواست‌هایی که کاربر ثبت کرده یا به نامش ثبت شده. پیش‌نویس فقط برای پرکننده‌اش دیده، ویرایش و حذف می‌شود.
+    کارتابل و پیگیری درخواست‌های دیگران با 4.5 و 4.7.
+    """
+
+    queryset = Request.objects.all()
+    permission_classes = [HasPerm]
+    perms = {"*": None}
+    filter_backends = [MultiValueFilter]
+    filter_fields = {"status": "status", "process": "process_id"}
+
+    def get_queryset(self):
+        user = self.request.user
+        mine = Request.objects.select_related("process", "requester", "created_by")
+        return mine.filter(Q(created_by=user) | (Q(requester=user) & ~Q(status=Request.Status.DRAFT))).order_by("-updated_at")
+
+    def get_serializer_class(self):
+        return RequestDetailSerializer if self.action == "retrieve" else RequestSerializer
+
+    @extend_schema(request=RequestWriteSerializer, responses={201: RequestSerializer})
+    def create(self, request, *args, **kwargs):
+        params = self._params(request)
+        if params.get("process") is None:
+            raise BusinessError("فرایند مشخص نشده است.", {"process": "فرایند را انتخاب کنید."})
+        saved = service.save_request(
+            user=request.user, process=params["process"], data=params["data"], submit=params["submit"], requester=params.get("requester")
+        )
+        self._audit(request, saved)
+        return Response(RequestSerializer(saved).data, status=status.HTTP_201_CREATED)
+
+    @extend_schema(request=RequestWriteSerializer, responses=RequestSerializer)
+    def partial_update(self, request, *args, **kwargs):
+        params = self._params(request)
+        saved = service.save_request(
+            user=request.user, request=self.get_object(), data=params["data"], submit=params["submit"], requester=params.get("requester")
+        )
+        self._audit(request, saved)
+        return Response(RequestSerializer(saved).data)
+
+    def perform_destroy(self, instance):
+        service.delete_draft(self.request.user, instance)
+
+    @staticmethod
+    def _params(request) -> dict:
+        serializer = RequestWriteSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        return serializer.validated_data
+
+    @staticmethod
+    def _audit(request, saved):
+        # پیش‌نویس‌ها (ذخیره‌ی خودکار) ثبت نمی‌شوند؛ ارسال در سوابق می‌آید.
+        if saved.status != Request.Status.DRAFT:
+            record(request, AuditLog.Action.CREATE, saved)

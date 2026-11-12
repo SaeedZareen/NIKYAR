@@ -15,6 +15,8 @@ const FormReportsPage = lazy(() => import("@/pages/forms/submissions/reports-pag
 const FormReportPage = lazy(() => import("@/pages/forms/submissions/report-page"))
 const SubmissionPage = lazy(() => import("@/pages/forms/submissions/submission-page"))
 const SubmissionPrintPage = lazy(() => import("@/pages/forms/submissions/print-page"))
+const NewRequestPage = lazy(() => import("@/pages/workflow/requests/new-request-page"))
+const RequestFillPage = lazy(() => import("@/pages/workflow/requests/request-fill-page"))
 const ProcessDesignPage = lazy(() => import("@/pages/workflow/design/process-design-page"))
 const ProcessDesignerPage = lazy(() => import("@/pages/workflow/design/process-designer-page"))
 const FormsDesignPage = lazy(() => import("@/pages/forms/design/forms-design-page"))
@@ -67,6 +69,8 @@ export const router = createBrowserRouter([
           { path: "forms/submissions/:id", element: page(<SubmissionPage />) },
           { path: "forms/design", element: page(<FormsDesignPage />, "forms.design") },
           { path: "forms/design/:formId", element: page(<DesignerPage />, "forms.design") },
+          { path: "requests/new", element: page(<NewRequestPage />) },
+          { path: "requests/new/:processId", element: page(<RequestFillPage />) },
           { path: "workflow/design", element: page(<ProcessDesignPage />, "workflow.design") },
           { path: "workflow/design/:processId", element: page(<ProcessDesignerPage />, "workflow.design") },
           { path: "account", element: page(<AccountPage />) },

@@ -161,10 +161,8 @@ def save_submission(*, user, data, submit: bool, form: Form | None = None, submi
     )
     if submit:
         _check_unique(form, submission, definition, cleaned)
-    signatures = _fields_of(definition, "signature") if submit and not editing else []
-    for field in signatures:
-        if field.get("required") and user.signature_id is None:
-            raise BusinessError(REGISTRY["signature"].required_message, {field["id"]: REGISTRY["signature"].required_message})
+    if submit and not editing:
+        check_signatures(definition, user)
 
     with transaction.atomic():
         if submission is None:
@@ -182,13 +180,8 @@ def save_submission(*, user, data, submit: bool, form: Form | None = None, submi
             for field in _fields_of(definition, "signature") + _fields_of(definition, "submitter"):
                 if field["id"] in submission.data:
                     cleaned[field["id"]] = submission.data[field["id"]]
-        if user.signature_id is not None:
-            for field in signatures:
-                cleaned[field["id"]] = str(files.duplicate(user.signature, user).pk)
         if first_submit:
-            # مشخصات ثبت‌کننده همان لحظه‌ی ثبت؛ تغییر بعدی سمت یا واحد ثبت‌های گذشته را عوض نمی‌کند.
-            for field in _fields_of(definition, "submitter"):
-                cleaned[field["id"]] = submitter_snapshot(user, engine.props_of(field)["items"])
+            cleaned.update(server_values(definition, user))
         current = engine.file_ids(definition, cleaned)
         for file_id in current - previous:
             files.claim(file_id)
@@ -256,6 +249,27 @@ def _check_unique(form: Form, submission: Submission | None, definition: dict, c
     }
     if errors:
         raise BusinessError("فرم را بررسی کنید؛ برخی فیلدها ایراد دارند.", errors)
+
+
+def check_signatures(definition: dict, user) -> None:
+    """امضای الزامی «حساب من» بی تصویر امضای کاربر پذیرفته نیست."""
+    for field in _fields_of(definition, "signature"):
+        if field.get("required") and user.signature_id is None:
+            raise BusinessError(REGISTRY["signature"].required_message, {field["id"]: REGISTRY["signature"].required_message})
+
+
+def server_values(definition: dict, user, signature: bool = True) -> dict:
+    """
+    مقدار فیلدهایی که سرور هنگام ثبت نهایی می‌گذارد: رونوشت امضای «حساب من» و مشخصات ثبت‌کننده همان لحظه
+    (تغییر بعدی سمت یا امضا ثبت‌های گذشته را عوض نمی‌کند). signature=False: بی امضا (ثبت به نام دیگری).
+    """
+    values = {}
+    if signature and user.signature_id is not None:
+        for field in _fields_of(definition, "signature"):
+            values[field["id"]] = str(files.duplicate(user.signature, user).pk)
+    for field in _fields_of(definition, "submitter"):
+        values[field["id"]] = submitter_snapshot(user, engine.props_of(field)["items"])
+    return values
 
 
 def _fields_of(definition: dict, ftype: str) -> list[dict]:

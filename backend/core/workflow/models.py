@@ -30,6 +30,8 @@ class Process(models.Model):
     start_by_everyone = models.BooleanField("همه‌ی کاربران شروع کنند", default=False)
     start_roles = models.ManyToManyField("accounts.Role", verbose_name="نقش‌های شروع‌کننده", blank=True, related_name="+")
     admin_roles = models.ManyToManyField("accounts.Role", verbose_name="مدیران فرایند", blank=True, related_name="+")
+    # دارندگان این نقش‌ها درخواست را به نام کاربر دیگری هم ثبت می‌کنند (مثلاً دبیرخانه برای مدیر)
+    on_behalf_roles = models.ManyToManyField("accounts.Role", verbose_name="ثبت به نام دیگری", blank=True, related_name="+")
     # شماره‌ی درخواست با شمارنده‌ی خود فرایند (core.numbering، کد «process-شناسه»)؛ الگوی خالی یعنی بی‌شماره
     number_pattern = models.CharField("الگوی شماره", max_length=60, blank=True)
     number_reset = models.CharField(
@@ -87,6 +89,7 @@ class Request(models.Model):
     """یک درخواست (نمونه‌ی اجرای فرایند)؛ تا پایان روی نسخه‌ای که با آن شروع شده می‌ماند."""
 
     class Status(models.TextChoices):
+        DRAFT = "draft", "پیش‌نویس"
         RUNNING = "running", "در جریان"
         COMPLETED = "completed", "پایان‌یافته"
         REJECTED = "rejected", "ردشده"
@@ -96,12 +99,15 @@ class Request(models.Model):
     version = models.ForeignKey(ProcessVersion, verbose_name="نسخه", on_delete=models.PROTECT, related_name="requests")
     number = models.CharField("شماره", max_length=60, blank=True)
     requester = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name="درخواست‌دهنده", on_delete=models.PROTECT, related_name="+")
+    # کسی که فرم را پر کرد؛ با «ثبت به نام دیگری» با درخواست‌دهنده فرق دارد. پیش‌نویس فقط برای او.
+    created_by = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name="ثبت‌کننده", null=True, on_delete=models.PROTECT, related_name="+")
     status = models.CharField("وضعیت", max_length=10, choices=Status.choices, default=Status.RUNNING)
     data = models.JSONField("داده", default=dict)
     # وضعیت کامل موتور (سریال‌ساز SpiffWorkflow)
     state = models.JSONField("وضعیت موتور", default=dict)
     created_at = models.DateTimeField("زمان شروع", auto_now_add=True)
     updated_at = models.DateTimeField("آخرین تغییر", auto_now=True)
+    submitted_at = models.DateTimeField("زمان ارسال", null=True, blank=True)
     finished_at = models.DateTimeField("زمان پایان", null=True, blank=True)
 
     class Meta:

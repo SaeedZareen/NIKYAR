@@ -7,10 +7,27 @@ import type { Schemas } from "@/lib/api/client"
 import { formatDateTime, toFaDigits } from "@/lib/format"
 import { confirmationHtml } from "./confirmation-text"
 
-type Submission = Schemas["FormSubmission"]
+/** آنچه صفحه‌ی تأیید از ثبت فرم یا درخواست فرایند لازم دارد. */
+export type Confirmed = Pick<Schemas["FormSubmission"], "id" | "number" | "submitted_at"> & { editable_until?: string | null }
 
-/** صفحه‌ی تأیید پس از ثبت: پیام فرم، شماره‌ی پیگیری، و کار بعدی (فرم‌ها، ثبت دوباره، ویرایش در مهلت). */
-export function Confirmation({ title, template, submission, name, formId }: { title: string; template?: string; submission: Submission; name: string; formId: number }) {
+/** صفحه‌ی تأیید پس از ثبت: پیام فرم، شماره‌ی پیگیری، و کار بعدی (بازگشت، ثبت دوباره، ویرایش در مهلت). */
+export function Confirmation({
+  title,
+  template,
+  submission,
+  name,
+  back,
+  again,
+  editUrl,
+}: {
+  title: string
+  template?: string
+  submission: Confirmed
+  name: string
+  back: { label: string; to: string }
+  again: { label: string; to: string }
+  editUrl?: (id: number) => string
+}) {
   const number = submission.number ? toFaDigits(submission.number) : ""
   const date = submission.submitted_at ? formatDateTime(submission.submitted_at) : ""
   return (
@@ -19,18 +36,18 @@ export function Confirmation({ title, template, submission, name, formId }: { ti
       footer={
         <div className="flex flex-wrap items-center gap-2">
           <Button asChild>
-            <Link to="/forms">
-              <List /> بازگشت به فرم‌ها
+            <Link to={back.to}>
+              <List /> بازگشت به {back.label}
             </Link>
           </Button>
           <Button asChild variant="outline">
-            <Link to={`/forms/${formId}/fill`} reloadDocument>
-              <FilePlus2 /> ثبت دوباره‌ی همین فرم
+            <Link to={again.to} reloadDocument>
+              <FilePlus2 /> {again.label}
             </Link>
           </Button>
-          {submission.editable_until && (
+          {submission.editable_until && editUrl && (
             <Button asChild variant="ghost">
-              <Link to={`/forms/${formId}/fill?edit=${submission.id}`} reloadDocument>
+              <Link to={editUrl(submission.id)} reloadDocument>
                 <PencilLine /> ویرایش ثبت
               </Link>
             </Button>

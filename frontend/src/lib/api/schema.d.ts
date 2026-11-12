@@ -1743,6 +1743,92 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workflow/requests/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description درخواست‌هایی که کاربر ثبت کرده یا به نامش ثبت شده. پیش‌نویس فقط برای پرکننده‌اش دیده، ویرایش و حذف می‌شود.
+         *     کارتابل و پیگیری درخواست‌های دیگران با 4.5 و 4.7.
+         */
+        get: operations["workflow_requests_list"];
+        put?: never;
+        /**
+         * @description درخواست‌هایی که کاربر ثبت کرده یا به نامش ثبت شده. پیش‌نویس فقط برای پرکننده‌اش دیده، ویرایش و حذف می‌شود.
+         *     کارتابل و پیگیری درخواست‌های دیگران با 4.5 و 4.7.
+         */
+        post: operations["workflow_requests_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workflow/requests/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description درخواست‌هایی که کاربر ثبت کرده یا به نامش ثبت شده. پیش‌نویس فقط برای پرکننده‌اش دیده، ویرایش و حذف می‌شود.
+         *     کارتابل و پیگیری درخواست‌های دیگران با 4.5 و 4.7.
+         */
+        get: operations["workflow_requests_retrieve"];
+        put?: never;
+        post?: never;
+        /**
+         * @description درخواست‌هایی که کاربر ثبت کرده یا به نامش ثبت شده. پیش‌نویس فقط برای پرکننده‌اش دیده، ویرایش و حذف می‌شود.
+         *     کارتابل و پیگیری درخواست‌های دیگران با 4.5 و 4.7.
+         */
+        delete: operations["workflow_requests_destroy"];
+        options?: never;
+        head?: never;
+        /**
+         * @description درخواست‌هایی که کاربر ثبت کرده یا به نامش ثبت شده. پیش‌نویس فقط برای پرکننده‌اش دیده، ویرایش و حذف می‌شود.
+         *     کارتابل و پیگیری درخواست‌های دیگران با 4.5 و 4.7.
+         */
+        patch: operations["workflow_requests_partial_update"];
+        trace?: never;
+    };
+    "/api/workflow/start/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description فرایندهایی که کاربر اجازه‌ی شروعشان را دارد («درخواست جدید») و زمینه‌ی پر کردن فرم هر کدام. */
+        get: operations["workflow_start_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workflow/start/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description فرایندهایی که کاربر اجازه‌ی شروعشان را دارد («درخواست جدید») و زمینه‌ی پر کردن فرم هر کدام. */
+        get: operations["workflow_start_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workflow/versions/": {
         parameters: {
             query?: never;
@@ -3203,6 +3289,10 @@ export interface components {
             count: number;
             results: components["schemas"]["Notification"][];
         };
+        PaginatedRequestList: {
+            count: number;
+            results: components["schemas"]["Request"][];
+        };
         PaginatedUserList: {
             count: number;
             results: components["schemas"]["User"][];
@@ -3406,6 +3496,8 @@ export interface components {
             start_roles?: number[];
             /** مدیران فرایند */
             admin_roles?: number[];
+            /** ثبت به نام دیگری */
+            on_behalf_roles?: number[];
             /** الگوی شماره */
             number_pattern?: string;
             /** شروع دوباره‌ی شماره */
@@ -3427,6 +3519,20 @@ export interface components {
              * @default
              */
             signature: string;
+        };
+        PatchedRequestWriteRequest: {
+            /** @description فقط هنگام ایجاد */
+            process?: number;
+            data?: {
+                [key: string]: unknown;
+            };
+            /**
+             * @description false: ذخیره‌ی پیش‌نویس؛ true: ارسال و شروع فرایند
+             * @default false
+             */
+            submit: boolean;
+            /** @description ثبت به نام دیگری (با مجوز همان فرایند) */
+            requester?: number | null;
         };
         PatchedRoleRequest: {
             /** عنوان */
@@ -3576,6 +3682,8 @@ export interface components {
             start_roles: number[];
             /** مدیران فرایند */
             admin_roles: number[];
+            /** ثبت به نام دیگری */
+            on_behalf_roles: number[];
             /** الگوی شماره */
             number_pattern: string;
             /** شروع دوباره‌ی شماره */
@@ -3616,6 +3724,8 @@ export interface components {
             start_roles?: number[];
             /** مدیران فرایند */
             admin_roles?: number[];
+            /** ثبت به نام دیگری */
+            on_behalf_roles?: number[];
             /** الگوی شماره */
             number_pattern?: string;
             /** شروع دوباره‌ی شماره */
@@ -3679,6 +3789,104 @@ export interface components {
             name: string;
             counties: string[];
             cities: string[];
+        };
+        Request: {
+            readonly id: number;
+            /** فرایند */
+            readonly process: number;
+            readonly process_title: string;
+            /** شماره */
+            readonly number: string;
+            /** وضعیت */
+            readonly status: components["schemas"]["Status53aEnum"];
+            readonly status_label: string;
+            /** درخواست‌دهنده */
+            readonly requester: number;
+            readonly requester_name: string;
+            /** ثبت‌کننده */
+            readonly created_by: number | null;
+            /** @default  */
+            readonly created_by_name: string;
+            readonly data: {
+                [key: string]: unknown;
+            };
+            /**
+             * زمان شروع
+             * Format: date-time
+             */
+            readonly created_at: string;
+            /**
+             * آخرین تغییر
+             * Format: date-time
+             */
+            readonly updated_at: string;
+            /**
+             * زمان ارسال
+             * Format: date-time
+             */
+            readonly submitted_at: string | null;
+            /**
+             * زمان پایان
+             * Format: date-time
+             */
+            readonly finished_at: string | null;
+        };
+        RequestDetail: {
+            readonly id: number;
+            /** فرایند */
+            readonly process: number;
+            readonly process_title: string;
+            /** شماره */
+            readonly number: string;
+            /** وضعیت */
+            readonly status: components["schemas"]["Status53aEnum"];
+            readonly status_label: string;
+            /** درخواست‌دهنده */
+            readonly requester: number;
+            readonly requester_name: string;
+            /** ثبت‌کننده */
+            readonly created_by: number | null;
+            /** @default  */
+            readonly created_by_name: string;
+            readonly data: {
+                [key: string]: unknown;
+            };
+            /**
+             * زمان شروع
+             * Format: date-time
+             */
+            readonly created_at: string;
+            /**
+             * آخرین تغییر
+             * Format: date-time
+             */
+            readonly updated_at: string;
+            /**
+             * زمان ارسال
+             * Format: date-time
+             */
+            readonly submitted_at: string | null;
+            /**
+             * زمان پایان
+             * Format: date-time
+             */
+            readonly finished_at: string | null;
+            /** @description زمینه‌ی پر کردن فرم (فقط پیش‌نویس) */
+            readonly context: components["schemas"]["StartContext"] | null;
+        };
+        RequestWriteRequest: {
+            /** @description فقط هنگام ایجاد */
+            process?: number;
+            data: {
+                [key: string]: unknown;
+            };
+            /**
+             * @description false: ذخیره‌ی پیش‌نویس؛ true: ارسال و شروع فرایند
+             * @default false
+             */
+            submit: boolean;
+            /** @description ثبت به نام دیگری (با مجوز همان فرایند) */
+            requester?: number | null;
         };
         /**
          * @description * `never` - هرگز (ادامه‌دار)
@@ -3753,6 +3961,23 @@ export interface components {
          * @enum {string}
          */
         SmtpSecurityEnum: "starttls" | "ssl" | "none";
+        /** @description آنچه صفحه‌ی پر کردن لازم دارد: تعریف فرم اصلی و دو طرح اعتبارسنجی (ارسال و پیش‌نویس). */
+        StartContext: {
+            process: number;
+            title: string;
+            description: string;
+            definition: {
+                [key: string]: unknown;
+            };
+            schema: {
+                [key: string]: unknown;
+            };
+            draft_schema: {
+                [key: string]: unknown;
+            };
+            /** @description کاربر می‌تواند درخواست را به نام دیگری ثبت کند */
+            on_behalf: boolean;
+        };
         /**
          * @description * `1` - فروردین
          *     * `2` - اردیبهشت
@@ -3769,6 +3994,24 @@ export interface components {
          * @enum {integer}
          */
         StartMonthEnum: 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12;
+        StartableProcess: {
+            readonly id: number;
+            /** عنوان */
+            title: string;
+            /** توضیح */
+            description: string;
+            /** @default  */
+            readonly category_title: string;
+        };
+        /**
+         * @description * `draft` - پیش‌نویس
+         *     * `running` - در جریان
+         *     * `completed` - پایان‌یافته
+         *     * `rejected` - ردشده
+         *     * `cancelled` - لغوشده
+         * @enum {string}
+         */
+        Status53aEnum: "draft" | "running" | "completed" | "rejected" | "cancelled";
         StoredFile: {
             /** Format: uuid */
             readonly id: string;
@@ -7597,6 +7840,170 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Process"];
+                };
+            };
+        };
+    };
+    workflow_requests_list: {
+        parameters: {
+            query?: {
+                /** @description یک شماره صفحه‌ در مجموعه نتایج صفحه‌بندی شده. */
+                page?: number;
+                /** @description تعداد نتایج برای نمایش در هر صفحه. */
+                page_size?: number;
+                /** @description چند مقدار با ویرگول جدا می‌شود. */
+                process?: string;
+                /** @description چند مقدار با ویرگول جدا می‌شود. */
+                status?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaginatedRequestList"];
+                };
+            };
+        };
+    };
+    workflow_requests_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestWriteRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["RequestWriteRequest"];
+                "multipart/form-data": components["schemas"]["RequestWriteRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Request"];
+                };
+            };
+        };
+    };
+    workflow_requests_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description یک مقداد عدد یکتا که این درخواست را شناسایی میکند. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RequestDetail"];
+                };
+            };
+        };
+    };
+    workflow_requests_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description یک مقداد عدد یکتا که این درخواست را شناسایی میکند. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    workflow_requests_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description یک مقداد عدد یکتا که این درخواست را شناسایی میکند. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedRequestWriteRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedRequestWriteRequest"];
+                "multipart/form-data": components["schemas"]["PatchedRequestWriteRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Request"];
+                };
+            };
+        };
+    };
+    workflow_start_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StartableProcess"][];
+                };
+            };
+        };
+    };
+    workflow_start_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StartContext"];
                 };
             };
         };
