@@ -37,6 +37,8 @@ def act(client, request, **body):
 def test_managed_list_and_filters(setup, org, client_for, admin):  # noqa: F811
     boss = client_for(setup["boss"])
     assert [r["id"] for r in boss.get(MANAGE).json()] == [setup["request"].pk]
+    assert [r["id"] for r in boss.get(MANAGE, {"status": "running", "search": "x-none"}).json()] == []
+    assert len(boss.get(MANAGE, {"status": "running"}).json()) == 1
     assert client_for(org["janitor"]).get(MANAGE).status_code == 403
     assert client_for(setup["boss"]).get("/api/auth/session/").json()["workflow_manager"] is True
     assert client_for(org["janitor"]).get("/api/auth/session/").json()["workflow_manager"] is False

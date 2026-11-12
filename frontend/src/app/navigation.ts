@@ -1,20 +1,21 @@
 // ساختار منوی اصلی. هر مورد مجوز لازم را اعلام می‌کند و فقط به کاربر دارای مجوز نمایش داده می‌شود.
 // ماژول‌ها در فازهای بعد گروه خودشان را اضافه می‌کنند.
 import type { LucideIcon } from "lucide-react"
-import { Bell, FilePlus2, Inbox, ListTodo, Building2, ClipboardList, FileCheck, FileSpreadsheet, PencilRuler, KeyRound, UserRound, UserRoundCog, CalendarDays, Component, DatabaseBackup, ListChecks, FormInput, History, LayoutDashboard, ListTree, Settings, ShieldCheck, Table2, Users, Workflow } from "lucide-react"
+import { Bell, FileCog, FilePlus2, Inbox, ListTodo, Building2, ClipboardList, FileCheck, FileSpreadsheet, PencilRuler, KeyRound, UserRound, UserRoundCog, CalendarDays, Component, DatabaseBackup, ListChecks, FormInput, History, LayoutDashboard, ListTree, Settings, ShieldCheck, Table2, Users, Workflow } from "lucide-react"
 
 /**
- * مجوز مورد نیاز: کد مجوز، "superuser" (فقط مدیر کل؛ راهنمای توسعه)، یا "forms-viewer"
+ * مجوز مورد نیاز: کد مجوز، "superuser" (فقط مدیر کل؛ راهنمای توسعه)، "workflow-manager" (مجوز مدیریت درخواست‌ها یا مدیر یک فرایند؛ از نشست) یا "forms-viewer"
  * (کسی که ثبت‌های دست‌کم یک فرم را می‌بیند: طراح یا نقش بیننده؛ از نشست).
  */
-export type Access = string | "superuser" | "forms-viewer" | undefined
+export type Access = string | "superuser" | "forms-viewer" | "workflow-manager" | undefined
 
-type Viewer = { is_superuser: boolean; forms_viewer: boolean } | null
+type Viewer = { is_superuser: boolean; forms_viewer: boolean; workflow_manager: boolean } | null
 
 export function isAllowed(access: Access, user: Viewer, can: (permission: string) => boolean): boolean {
   if (access === undefined) return true
   if (access === "superuser") return !!user?.is_superuser
   if (access === "forms-viewer") return !!user?.forms_viewer
+  if (access === "workflow-manager") return !!user?.workflow_manager
   return can(access)
 }
 
@@ -41,6 +42,7 @@ const navigation: NavGroup[] = [
     title: "فرم‌ساز و فرایندساز",
     items: [
       { title: "طراحی فرم‌ها", url: "/forms/design", icon: PencilRuler, access: "forms.design", keywords: "فرم‌ساز طراح فرم ساخت فرم انتشار الگو" },
+      { title: "مدیریت درخواست‌ها", url: "/workflow/requests", icon: FileCog, access: "workflow-manager", keywords: "مدیریت درخواست ارجاع دوباره لغو شروع دوباره دیرکرد بی‌گیرنده" },
       { title: "طراحی فرایندها", url: "/workflow/design", icon: Workflow, access: "workflow.design", keywords: "فرایندساز گردش کار مرحله تأیید BPMN" },
     ],
   },

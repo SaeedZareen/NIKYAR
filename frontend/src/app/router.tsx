@@ -21,6 +21,7 @@ const TaskPage = lazy(() => import("@/pages/workflow/tasks/task-page"))
 const MyRequestsPage = lazy(() => import("@/pages/workflow/requests/my-requests-page"))
 const RequestPage = lazy(() => import("@/pages/workflow/requests/request-page"))
 const RequestPrintPage = lazy(() => import("@/pages/workflow/requests/request-print-page"))
+const ManageRequestsPage = lazy(() => import("@/pages/workflow/manage/manage-requests-page"))
 const NewRequestPage = lazy(() => import("@/pages/workflow/requests/new-request-page"))
 const RequestFillPage = lazy(() => import("@/pages/workflow/requests/request-fill-page"))
 const ProcessDesignPage = lazy(() => import("@/pages/workflow/design/process-design-page"))
@@ -84,6 +85,7 @@ export const router = createBrowserRouter([
           { path: "requests/:requestId", element: page(<RequestPage />) },
           { path: "requests/new", element: page(<NewRequestPage />) },
           { path: "requests/new/:processId", element: page(<RequestFillPage />) },
+          { path: "workflow/requests", element: page(<ManageRequestsPage />, "workflow-manager") },
           { path: "workflow/design", element: page(<ProcessDesignPage />, "workflow.design") },
           { path: "workflow/design/:processId", element: page(<ProcessDesignerPage />, "workflow.design") },
           { path: "account", element: page(<AccountPage />) },

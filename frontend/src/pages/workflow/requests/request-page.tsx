@@ -20,6 +20,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { api, errorMessage, unwrap, type Schemas } from "@/lib/api/client"
 import { formatDateTime, toFaDigits } from "@/lib/format"
 import { ProcessCanvas } from "@/pages/workflow/design/process-canvas"
+import { ManageSection } from "@/pages/workflow/manage/manage-section"
 import { Discussion } from "@/pages/workflow/tasks/discussion"
 import { History } from "@/pages/workflow/tasks/history"
 
@@ -99,6 +100,7 @@ function RequestView({ data, queryKey }: { data: Track; queryKey: unknown[] }) {
           </ul>
         )}
       </Section>
+      {data.can_manage && <ManageSection data={data} queryKey={queryKey} />}
       <Section title="نمودار فرایند" description="مرحله‌های انجام‌شده سبز و مرحله‌ی فعلی با رنگ اصلی و کادر ضخیم نشان داده می‌شوند." contentClassName="p-0">
         <ProcessCanvas key={resolvedTheme} xml={data.bpmn} readOnly problems={{}} highlights={{ done: data.done, active: data.active }} label="نمودار درخواست" className="h-80" />
       </Section>

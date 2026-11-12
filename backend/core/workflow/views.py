@@ -571,6 +571,7 @@ class RequestViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.De
 # ─── کارتابل ────────────────────────────────────────────────────────────
 
 DONE_LIMIT = 500
+MANAGE_LIMIT = 1000
 
 
 class InboxTaskSerializer(serializers.ModelSerializer):
@@ -916,8 +917,9 @@ class ManagedRequestViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
         problem = self.request.query_params.get("problem")
         if problem:
             requests = requests.filter(manage.problem_filter(problem)).distinct()
-        return requests.order_by("-submitted_at", "-pk")[:1000]
+        return requests.order_by("-submitted_at", "-pk")
 
     @extend_schema(parameters=[OpenApiParameter("problem", str, enum=["unassigned", "overdue"])])
     def list(self, request, *args, **kwargs):
-        return super().list(request, *args, **kwargs)
+        rows = self.filter_queryset(self.get_queryset())[:MANAGE_LIMIT]
+        return Response(self.get_serializer(rows, many=True).data)
