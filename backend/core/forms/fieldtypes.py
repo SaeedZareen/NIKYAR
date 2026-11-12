@@ -1095,13 +1095,30 @@ class Location(FieldType):
         return s
 
 
+# مقدارهایی که درخواست فرایند در فیلد پنهان می‌گذارد (core/workflow/service.py)
+PROCESS_VALUES = {
+    "none": "—",
+    "number": "شماره‌ی درخواست",
+    "process": "عنوان فرایند",
+    "requester_name": "نام درخواست‌دهنده",
+    "requester_unit": "واحد درخواست‌دهنده",
+    "requester_position": "سمت درخواست‌دهنده",
+}
+
+
 @register
 class Hidden(FieldType):
-    """فیلد پنهان: در فرم دیده نمی‌شود ولی ذخیره می‌شود؛ مقدار از پیش‌فرض یا پارامتر نشانی صفحه (?param=…)."""
+    """
+    فیلد پنهان: در فرم دیده نمی‌شود ولی ذخیره می‌شود؛ مقدار از پیش‌فرض، پارامتر نشانی صفحه (?param=…)،
+    یا در درخواست فرایند از خود درخواست (process_value؛ سرور هنگام ثبت می‌گذارد، core/workflow).
+    """
 
     code, title, group = "hidden", "فیلد پنهان", "وب و رسانه"
     supports_default = True
-    props = {"param": Prop("text", "پارامتر نشانی صفحه", max=40)}
+    props = {
+        "param": Prop("text", "پارامتر نشانی صفحه", max=40),
+        "process_value": Prop("choice", "مقدار از درخواست فرایند", default="none", choices=PROCESS_VALUES),
+    }
 
     def schema(self, props, partial):
         return {"type": "string", "maxLength": 500}

@@ -14,6 +14,7 @@ from types import SimpleNamespace
 
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError, transaction
+from django.db.models import Q
 from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied
 from SpiffWorkflow.bpmn import BpmnWorkflow
@@ -26,14 +27,16 @@ from SpiffWorkflow.util.task import TaskState
 from core.delegation import service as delegation
 from core.files import service as files
 from core.forms import engine as form_engine
+from core.forms import service as form_service
 from core.forms.fieldtypes import Ctx
 from core.kernel.api import BusinessError
 from core.kernel.registry import workflow_actions
 from core.notifications.service import notify
 from core.numbering import service as numbering
 from core.numbering.models import NumberSequence
+from core.org import service as org_service
 
-from . import assignment, bpmn
+from . import access, assignment, bpmn
 from .expressions import SafeScriptEngine
 from .models import Event, Process, ProcessVersion, Request, Task
 
@@ -43,6 +46,14 @@ _serializer = BpmnWorkflowSerializer(BpmnWorkflowSerializer.configure(SPIFF_CONF
 DESIGN = "workflow.design"
 
 # ─── دسترسی ─────────────────────────────────────────────────────────────
+
+
+def startable_processes(user):
+    """فرایندهای فعال و منتشرشده‌ای که کاربر اجازه‌ی شروعشان را دارد."""
+    processes = Process.objects.filter(is_active=True, versions__status=ProcessVersion.Status.PUBLISHED)
+    if not user.is_superuser:
+        processes = processes.filter(Q(start_by_everyone=True) | Q(start_roles__users=user))
+    return processes.distinct()
 
 
 def can_start(user, process: Process) -> bool:
@@ -233,27 +244,124 @@ def _run(workflow: BpmnWorkflow) -> None:
         raise BusinessError(f"فرایند در مرحله‌ی «{step}» متوقف شد: {exc}") from None
 
 
+def can_start_for_others(user, process: Process) -> bool:
+    return user.is_superuser or process.on_behalf_roles.filter(users=user).exists()
+
+
+def save_request(*, user, data: dict, submit: bool, process: Process | None = None, request: Request | None = None, requester=None) -> Request:
+    """
+    پیش‌نویس درخواست (داده فقط از نظر نوع سنجیده می‌شود) یا ارسال نهایی (سنجش کامل، شماره، فیلدهای سروری و
+    شروع موتور). requester: ثبت به نام دیگری (فقط با مجوز «ثبت به نام دیگری» همان فرایند).
+    """
+    if request is None:
+        if not can_start(user, process):
+            raise PermissionDenied()
+        version = process.current_version()
+    else:
+        if request.created_by_id != user.pk or request.status != Request.Status.DRAFT:
+            raise BusinessError("این درخواست دیگر پیش‌نویس نیست.")
+        process = request.process
+        # پیش‌نویس همیشه با آخرین نسخه‌ی منتشرشده ارسال می‌شود
+        version = process.current_version() if submit else request.version
+        if version is None or (submit and not can_start(user, process)):
+            raise BusinessError("این فرایند دیگر درخواست تازه نمی‌پذیرد.")
+    if requester is not None and requester != user and not can_start_for_others(user, process):
+        raise BusinessError("اجازه‌ی ثبت درخواست به نام دیگری را ندارید.", {"requester": "اجازه‌ی ثبت به نام دیگری را ندارید."})
+    definition = version.form_version.definition
+    previous = form_engine.file_ids(definition, request.data if request else None)
+    cleaned = form_engine.validate_data(
+        definition, data, Ctx(user=user, previous_files=frozenset(previous), partial=not submit, previous=request.data if request else {})
+    )
+    behalf = requester is not None and requester != user
+    if submit and not behalf:
+        form_service.check_signatures(definition, user)
+    with transaction.atomic():
+        if request is None:
+            request = Request(process=process, version=version, requester=requester or user, created_by=user, status=Request.Status.DRAFT)
+        else:
+            request = Request.objects.select_for_update().get(pk=request.pk)
+            request.version = version
+            if requester is not None:
+                request.requester = requester
+        current = form_engine.file_ids(definition, cleaned)
+        for file_id in current - previous:
+            files.claim(file_id)
+        for file_id in previous - current:
+            transaction.on_commit(lambda file_id=file_id: files.release(file_id))
+        request.data = cleaned
+        request.save()
+        if submit:
+            _submit(request, definition, behalf)
+    return request
+
+
+def _submit(request: Request, definition: dict, behalf: bool) -> None:
+    """ارسال نهایی: شماره، امضا و مشخصات درخواست‌دهنده، فیلدهای پنهان از درخواست، و شروع موتور."""
+    process, user = request.process, request.requester
+    if process.number_pattern:
+        request.number = numbering.allocate(sequence_code(process))
+    request.data.update(form_service.server_values(definition, user, signature=not behalf))
+    request.data.update(_process_values(definition, request))
+    request.status, request.submitted_at = Request.Status.RUNNING, timezone.now()
+    spec, _ = _compiled(request.version)
+    workflow = BpmnWorkflow(spec, script_engine=_engine(request))
+    workflow.task_tree.data.update(request.data)
+    Event.objects.create(request=request, kind=Event.Kind.STARTED, actor=request.created_by, on_behalf_of=user if behalf else None)
+    _advance(request, workflow)
+    _save(request, workflow)
+    request.save()
+
+
+def _process_values(definition: dict, request: Request) -> dict:
+    """مقدار فیلدهای پنهانی که «مقدار از درخواست فرایند» دارند."""
+    assignment = org_service.primary_assignment(request.requester)
+    values = {
+        "number": request.number,
+        "process": request.process.title,
+        "requester_name": request.requester.get_full_name() or request.requester.username,
+        "requester_unit": assignment.position.unit.name if assignment else "",
+        "requester_position": assignment.position.title if assignment else "",
+    }
+    result = {}
+    for field in form_engine.value_fields(definition):
+        source = (field.get("props") or {}).get("process_value", "none")
+        if field["type"] == "hidden" and source in values and values[source]:
+            result[field["id"]] = values[source]
+    return result
+
+
 def start(process: Process, user, data: dict) -> Request:
-    """شروع درخواست با داده‌ی فرم اصلی (اعتبارسنجی کامل)؛ نخستین کارها ساخته می‌شوند."""
-    if not can_start(user, process):
-        raise PermissionDenied()
+    """شروع یک‌جای درخواست (بی پیش‌نویس)."""
+    return save_request(user=user, process=process, data=data, submit=True)
+
+
+def delete_draft(user, request: Request) -> None:
+    if request.created_by_id != user.pk or request.status != Request.Status.DRAFT:
+        raise BusinessError("فقط پیش‌نویس خودتان حذف می‌شود.")
+    ids = form_engine.file_ids(request.version.form_version.definition, request.data)
+    request.delete()
+    for file_id in ids:
+        transaction.on_commit(lambda file_id=file_id: files.release(file_id))
+
+
+def start_context(process: Process, user) -> dict:
+    """آنچه صفحه‌ی پر کردن لازم دارد (هم‌شکل فرم‌های مستقل)، برای آخرین نسخه‌ی منتشرشده‌ی فرایند."""
     version = process.current_version()
     definition = version.form_version.definition
-    cleaned = form_engine.validate_data(definition, data, Ctx(user=user))
-    spec, _ = _compiled(version)
-    with transaction.atomic():
-        request = Request.objects.create(process=process, version=version, requester=user, data=cleaned)
-        if process.number_pattern:
-            request.number = numbering.allocate(sequence_code(process))
-        for file_id in form_engine.file_ids(definition, cleaned):
-            files.claim(file_id)
-        workflow = BpmnWorkflow(spec, script_engine=_engine(request))
-        workflow.task_tree.data.update(cleaned)
-        Event.objects.create(request=request, kind=Event.Kind.STARTED, actor=user)
-        _advance(request, workflow)
-        _save(request, workflow)
-        request.save()
-    return request
+    return {
+        "process": process.pk,
+        "title": process.title,
+        "description": process.description,
+        "definition": definition,
+        "schema": form_engine.compile_schema(definition, title=process.title),
+        "draft_schema": form_engine.compile_schema(definition, title=process.title, partial=True),
+        "on_behalf": can_start_for_others(user, process),
+    }
+
+
+def step_access(task: Task) -> dict[str, str]:
+    _, definition = _compiled(task.request.version)
+    return definition.tasks[task.element].get("fields", {})
 
 
 def acting_for(user, task: Task):
@@ -269,8 +377,11 @@ def acting_for(user, task: Task):
     return False, None
 
 
-def complete(task: Task, user, decision: str, comment: str = "") -> Request:
-    """انجام یک کار با تصمیم (از تصمیم‌های همان مرحله) و یادداشت؛ موتور تا کار بعدی یا پایان جلو می‌رود."""
+def complete(task: Task, user, decision: str, comment: str = "", data: dict | None = None) -> Request:
+    """
+    انجام یک کار با تصمیم (از تصمیم‌های همان مرحله)، یادداشت و ویرایش فیلدها با دسترسی همان مرحله
+    (فیلد پنهان یا فقط‌خواندنی از مرورگر پذیرفته نمی‌شود)؛ موتور تا کار بعدی یا پایان جلو می‌رود.
+    """
     with transaction.atomic():
         request = Request.objects.select_for_update().get(pk=task.request_id)
         task = Task.objects.select_for_update().get(pk=task.pk)
@@ -286,12 +397,35 @@ def complete(task: Task, user, decision: str, comment: str = "") -> Request:
         comment = comment.strip()
         if chosen.get("comment") == "required" and not comment:
             raise BusinessError(f"برای «{chosen['label']}» نوشتن یادداشت الزامی است.", {"comment": "دلیل یا توضیح را بنویسید."})
+        if data is not None:
+            _apply_step_data(request, task, data, user)
         workflow = _load(request)
+        spiff_task = workflow.get_task_from_id(task.spiff_id)
+        if spiff_task is not None:
+            spiff_task.data.update(request.data)
         _finish(request, workflow, task, user, decision, comment, principal)
         _advance(request, workflow)
         _save(request, workflow)
         request.save()
     return request
+
+
+def _apply_step_data(request: Request, task: Task, data: dict, user) -> None:
+    """داده‌ی ویرایش‌شده‌ی مرحله با تعریف همان مرحله سنجیده و با داده‌ی درخواست یکی می‌شود."""
+    form_definition = access.step_definition(request.version.form_version.definition, step_access(task))
+    previous = form_engine.file_ids(form_definition, request.data)
+    hidden = access.hidden_fields(step_access(task))
+    # فیلدهای پنهان این مرحله دیده نشده‌اند؛ مقدار پیشین می‌ماند
+    merged = {**{k: v for k, v in data.items() if k not in hidden}, **{k: v for k, v in request.data.items() if k in hidden}}
+    cleaned = form_engine.validate_data(form_definition, merged, Ctx(user=user, previous_files=frozenset(previous), previous=request.data))
+    current = form_engine.file_ids(form_definition, cleaned)
+    for file_id in current - previous:
+        files.claim(file_id)
+    for file_id in previous - current:
+        transaction.on_commit(lambda file_id=file_id: files.release(file_id))
+    # فیلدهای سروری (امضا، مشخصات درخواست‌دهنده) و مقدارهای پنهان از درخواست از داده‌ی پیشین می‌مانند
+    editable = {fid for fid, mode in step_access(task).items() if mode in access.EDITABLE}
+    request.data = {**{k: v for k, v in request.data.items() if k not in editable}, **cleaned}
 
 
 def _finish(request: Request, workflow: BpmnWorkflow, task: Task, user, decision: str, comment: str, principal) -> None:
