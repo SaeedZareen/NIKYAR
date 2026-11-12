@@ -1885,6 +1885,46 @@ export interface paths {
         patch: operations["workflow_requests_partial_update"];
         trace?: never;
     };
+    "/api/workflow/requests/{id}/cancel/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description درخواست‌هایی که کاربر ثبت کرده یا به نامش ثبت شده. پیش‌نویس فقط برای پرکننده‌اش دیده، ویرایش و حذف می‌شود.
+         *     کارتابل و پیگیری درخواست‌های دیگران با 4.5 و 4.7.
+         */
+        post: operations["workflow_requests_cancel_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workflow/requests/{id}/track/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description درخواست‌هایی که کاربر ثبت کرده یا به نامش ثبت شده. پیش‌نویس فقط برای پرکننده‌اش دیده، ویرایش و حذف می‌شود.
+         *     کارتابل و پیگیری درخواست‌های دیگران با 4.5 و 4.7.
+         */
+        get: operations["workflow_requests_track_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workflow/start/": {
         parameters: {
             query?: never;
@@ -2148,6 +2188,17 @@ export interface components {
          * @enum {string}
          */
         AllowedExtensionsEnum: "pdf" | "jpg" | "jpeg" | "png" | "webp" | "gif" | "docx" | "xlsx" | "pptx" | "doc" | "xls" | "zip" | "mp3" | "m4a" | "ogg" | "wav" | "webm" | "txt" | "csv";
+        Approval: {
+            step: string;
+            actor: string;
+            on_behalf_of: string;
+            decision: string;
+            comment: string;
+            /** Format: date-time */
+            at: string;
+            /** @description شناسه‌ی فایل امضای «حساب من» تأییدکننده؛ خالی یعنی ثبت نشده */
+            signature: string;
+        };
         Assignment: {
             readonly id: number;
             /** کاربر */
@@ -2325,6 +2376,10 @@ export interface components {
             holidays: components["schemas"]["Holiday"][];
             /** @description سال‌هایی که تعطیلات رسمی‌شان بارگذاری شده */
             official_years: number[];
+        };
+        CancelRequestRequest: {
+            /** @default  */
+            reason: string;
         };
         ChangePasswordRequest: {
             /** گذرواژه‌ی فعلی */
@@ -4132,6 +4187,8 @@ export interface components {
              * Format: date-time
              */
             readonly finished_at: string | null;
+            /** @description عنوان مرحله‌های منتظر (درخواست در جریان) */
+            readonly current_step: string;
         };
         RequestComment: {
             readonly id: number;
@@ -4193,8 +4250,66 @@ export interface components {
              * Format: date-time
              */
             readonly finished_at: string | null;
+            /** @description عنوان مرحله‌های منتظر (درخواست در جریان) */
+            readonly current_step: string;
             /** @description زمینه‌ی پر کردن فرم (فقط پیش‌نویس) */
             readonly context: components["schemas"]["StartContext"] | null;
+        };
+        /** @description درخواست با زمینه‌ی صفحه‌ی پیگیری (tracking.context). */
+        RequestTrack: {
+            readonly id: number;
+            /** فرایند */
+            readonly process: number;
+            readonly process_title: string;
+            /** شماره */
+            readonly number: string;
+            /** وضعیت */
+            readonly status: components["schemas"]["Status53aEnum"];
+            readonly status_label: string;
+            /** درخواست‌دهنده */
+            readonly requester: number;
+            readonly requester_name: string;
+            /** ثبت‌کننده */
+            readonly created_by: number | null;
+            /** @default  */
+            readonly created_by_name: string;
+            readonly data: {
+                [key: string]: unknown;
+            };
+            /**
+             * زمان شروع
+             * Format: date-time
+             */
+            readonly created_at: string;
+            /**
+             * آخرین تغییر
+             * Format: date-time
+             */
+            readonly updated_at: string;
+            /**
+             * زمان ارسال
+             * Format: date-time
+             */
+            readonly submitted_at: string | null;
+            /**
+             * زمان پایان
+             * Format: date-time
+             */
+            readonly finished_at: string | null;
+            /** @description عنوان مرحله‌های منتظر (درخواست در جریان) */
+            readonly current_step: string;
+            definition: {
+                [key: string]: unknown;
+            };
+            bpmn: string;
+            /** @description عنصرهای انجام‌شده‌ی نمودار */
+            done: string[];
+            /** @description عنصرهای جاری نمودار */
+            active: string[];
+            waiting: components["schemas"]["TrackTask"][];
+            history: components["schemas"]["TaskEvent"][];
+            approvals: components["schemas"]["Approval"][];
+            can_cancel: boolean;
         };
         RequestWriteRequest: {
             /** @description فقط هنگام ایجاد */
@@ -4507,6 +4622,14 @@ export interface components {
         TestSmsRequest: {
             /** شماره‌ی موبایل */
             mobile: string;
+        };
+        TrackTask: {
+            id: number;
+            title: string;
+            candidates: string[];
+            /** Format: date-time */
+            due_at: string | null;
+            overdue: boolean;
         };
         UnitLookup: {
             id: number;
@@ -8576,6 +8699,56 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Request"];
+                };
+            };
+        };
+    };
+    workflow_requests_cancel_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description یک مقداد عدد یکتا که این درخواست را شناسایی میکند. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["CancelRequestRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["CancelRequestRequest"];
+                "multipart/form-data": components["schemas"]["CancelRequestRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RequestTrack"];
+                };
+            };
+        };
+    };
+    workflow_requests_track_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description یک مقداد عدد یکتا که این درخواست را شناسایی میکند. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RequestTrack"];
                 };
             };
         };

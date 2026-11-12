@@ -80,6 +80,12 @@ class WorkflowConfig(AppConfig):
             placeholders={**DUE_PLACEHOLDERS, "people": ("گیرنده‌های کار", "آقای رضا احمدی")},
         ),
         NotificationKind(
+            code="workflow.cancelled",
+            title="لغو درخواست",
+            template="درخواست «{process}» شماره‌ی {number} را {actor} لغو کرد؛ کار آن از کارتابل شما برداشته شد.",
+            placeholders={"process": TASK_PLACEHOLDERS["process"], "number": TASK_PLACEHOLDERS["number"], "actor": ("لغوکننده", "آقای رضا احمدی")},
+        ),
+        NotificationKind(
             code="workflow.comment",
             title="پیام تازه در گفت‌وگوی درخواست",
             template="{author} در گفت‌وگوی درخواست «{process}» شماره‌ی {number} نوشت: {text}",

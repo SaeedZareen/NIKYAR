@@ -20,7 +20,7 @@ from core.kernel.registry import workflow_actions
 from core.lookups.models import LookupItem
 from core.numbering.pattern import validate as validate_pattern
 
-from . import bpmn, discussion, inbox, quick, service
+from . import bpmn, discussion, inbox, quick, service, tracking
 from .models import Process, ProcessVersion, Request, RequestComment, Task
 
 CATEGORY_LIST = "process-category"
@@ -342,6 +342,8 @@ class RequestSerializer(serializers.ModelSerializer):
     status_label = serializers.CharField(source="get_status_display", read_only=True)
     data = serializers.DictField(read_only=True)
 
+    current_step = serializers.SerializerMethodField(help_text="عنوان مرحله‌های منتظر (درخواست در جریان)")
+
     class Meta:
         model = Request
         fields = [
@@ -360,8 +362,12 @@ class RequestSerializer(serializers.ModelSerializer):
             "updated_at",
             "submitted_at",
             "finished_at",
+            "current_step",
         ]
         read_only_fields = fields
+
+    def get_current_step(self, obj) -> str:
+        return "، ".join(t.title for t in obj.tasks.all() if t.status == Task.Status.OPEN)
 
 
 class RequestDetailSerializer(RequestSerializer):
@@ -387,6 +393,56 @@ class RequestWriteSerializer(serializers.Serializer):
     )
 
 
+class TaskEventSerializer(serializers.Serializer):
+    kind = serializers.CharField()
+    kind_label = serializers.CharField()
+    step = serializers.CharField()
+    actor = serializers.CharField()
+    on_behalf_of = serializers.CharField()
+    decision = serializers.CharField()
+    comment = serializers.CharField()
+    at = serializers.DateTimeField()
+
+
+class TrackTaskSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    title = serializers.CharField()
+    candidates = serializers.ListField(child=serializers.CharField())
+    due_at = serializers.DateTimeField(allow_null=True)
+    overdue = serializers.BooleanField()
+
+
+class ApprovalSerializer(serializers.Serializer):
+    step = serializers.CharField()
+    actor = serializers.CharField()
+    on_behalf_of = serializers.CharField()
+    decision = serializers.CharField()
+    comment = serializers.CharField()
+    at = serializers.DateTimeField()
+    signature = serializers.CharField(help_text="شناسه‌ی فایل امضای «حساب من» تأییدکننده؛ خالی یعنی ثبت نشده")
+
+
+class RequestTrackSerializer(RequestSerializer):
+    """درخواست با زمینه‌ی صفحه‌ی پیگیری (tracking.context)."""
+
+    definition = serializers.DictField()
+    bpmn = serializers.CharField()
+    done = serializers.ListField(child=serializers.CharField(), help_text="عنصرهای انجام‌شده‌ی نمودار")
+    active = serializers.ListField(child=serializers.CharField(), help_text="عنصرهای جاری نمودار")
+    waiting = TrackTaskSerializer(many=True)
+    history = TaskEventSerializer(many=True)
+    approvals = ApprovalSerializer(many=True)
+    can_cancel = serializers.BooleanField()
+
+    class Meta(RequestSerializer.Meta):
+        fields = [*RequestSerializer.Meta.fields, "definition", "bpmn", "done", "active", "waiting", "history", "approvals", "can_cancel"]
+        read_only_fields = fields
+
+
+class CancelRequestSerializer(serializers.Serializer):
+    reason = serializers.CharField(required=False, allow_blank=True, default="", max_length=500)
+
+
 class RequestViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.DestroyModelMixin, viewsets.GenericViewSet):
     """
     درخواست‌هایی که کاربر ثبت کرده یا به نامش ثبت شده. پیش‌نویس فقط برای پرکننده‌اش دیده، ویرایش و حذف می‌شود.
@@ -401,11 +457,33 @@ class RequestViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.De
 
     def get_queryset(self):
         user = self.request.user
-        mine = Request.objects.select_related("process", "requester", "created_by")
+        mine = Request.objects.select_related("process", "requester", "created_by").prefetch_related("tasks")
         return mine.filter(Q(created_by=user) | (Q(requester=user) & ~Q(status=Request.Status.DRAFT))).order_by("-updated_at")
 
     def get_serializer_class(self):
         return RequestDetailSerializer if self.action == "retrieve" else RequestSerializer
+
+    def _tracked(self) -> Request:
+        """درخواست برای پیگیری: درخواست‌دهنده و شرکت‌کنندگان (همان دسترسی گفت‌وگو)؛ نه پیش‌نویس."""
+        request = Request.objects.select_related("process", "requester", "created_by", "version__form_version").filter(pk=self.kwargs["pk"]).first()
+        if request is None or not discussion.can_discuss(self.request.user, request):
+            raise NotFound()
+        return request
+
+    @extend_schema(responses=RequestTrackSerializer)
+    @action(detail=True)
+    def track(self, request, pk=None):
+        target = self._tracked()
+        return Response({**RequestSerializer(target).data, **tracking.context(target, request.user)})
+
+    @extend_schema(request=CancelRequestSerializer, responses=RequestTrackSerializer)
+    @action(detail=True, methods=["post"])
+    def cancel(self, request, pk=None):
+        params = CancelRequestSerializer(data=request.data)
+        params.is_valid(raise_exception=True)
+        target = tracking.cancel(self._tracked(), request.user, params.validated_data["reason"])
+        record(request, AuditLog.Action.UPDATE, target)
+        return self.track(request, pk)
 
     @extend_schema(request=RequestWriteSerializer, responses={201: RequestSerializer})
     def create(self, request, *args, **kwargs):
@@ -509,17 +587,6 @@ class TaskDecisionSerializer(serializers.Serializer):
     value = serializers.CharField()
     label = serializers.CharField()
     comment = serializers.CharField(required=False, help_text="required یا optional")
-
-
-class TaskEventSerializer(serializers.Serializer):
-    kind = serializers.CharField()
-    kind_label = serializers.CharField()
-    step = serializers.CharField()
-    actor = serializers.CharField()
-    on_behalf_of = serializers.CharField()
-    decision = serializers.CharField()
-    comment = serializers.CharField()
-    at = serializers.DateTimeField()
 
 
 class TaskVoteSerializer(serializers.Serializer):
