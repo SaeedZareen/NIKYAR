@@ -6,6 +6,7 @@ import * as React from "react"
 import Modeler from "bpmn-js/lib/Modeler"
 import NavigatedViewer from "bpmn-js/lib/NavigatedViewer"
 import { nikyarModules, themeOptions } from "./bpmn-modules"
+import { spiffworkflowModdle } from "./spiffworkflow-moddle"
 
 /** کنترل بوم از بیرون (نوار ابزار و فهرست ایرادها). */
 export type CanvasHandle = {
@@ -16,17 +17,23 @@ export type CanvasHandle = {
   zoom: (step: number) => void
   focus: (id: string) => void
   label: (id: string) => string | null
+  /** ویرایشگر bpmn-js برای پانل ویژگی‌ها (null در حالت فقط‌خواندنی). */
+  modeler: () => Modeler | null
 }
 
 type Props = {
   xml: string
   readOnly: boolean
   problems: Record<string, string>
-  ref: React.Ref<CanvasHandle>
+  ref?: React.Ref<CanvasHandle>
   onChange?: () => void
   onHistory?: (canUndo: boolean, canRedo: boolean) => void
   /** پس از خواندن نمودار (برای نام عنصرهای فهرست ایرادها). */
   onReady?: () => void
+  /** عنصر انتخاب‌شده تغییر کرد یا ویژگی‌هایش عوض شد (شناسه یا null). */
+  onSelection?: (id: string | null) => void
+  /** نام دسترس‌پذیر بوم (پیش‌فرض: «بوم فرایند» یا «نمودار فقط‌خواندنی»). */
+  label?: string
   className?: string
 }
 
@@ -46,18 +53,18 @@ const TYPE_LABELS: Record<string, string> = {
  * بوم BPMN (bpmn-js): ویرایشگر با عنصرهای پشتیبانی‌شده‌ی نیک‌یار، یا نمایشگر فقط‌خواندنی.
  * xml فقط هنگام ساخت خوانده می‌شود؛ برای نسخه یا پوسته‌ی دیگر، والد با key بوم را از نو می‌سازد.
  */
-export function ProcessCanvas({ xml, readOnly, problems, ref, onChange, onHistory, onReady, className }: Props) {
+export function ProcessCanvas({ xml, readOnly, problems, ref, onChange, onHistory, onReady, onSelection, label, className }: Props) {
   const host = React.useRef<HTMLDivElement>(null)
   const diagram = React.useRef<Diagram | null>(null)
   const [ready, setReady] = React.useState(false)
   const [failed, setFailed] = React.useState<string | null>(null)
-  const callbacks = React.useRef({ onChange, onHistory, onReady })
+  const callbacks = React.useRef({ onChange, onHistory, onReady, onSelection })
   React.useEffect(() => {
-    callbacks.current = { onChange, onHistory, onReady }
+    callbacks.current = { onChange, onHistory, onReady, onSelection }
   })
 
   React.useEffect(() => {
-    const options = { container: host.current!, ...themeOptions() }
+    const options = { container: host.current!, moddleExtensions: { spiffworkflow: spiffworkflowModdle }, ...themeOptions() }
     const instance: Diagram = readOnly ? new NavigatedViewer(options) : new Modeler({ ...options, additionalModules: nikyarModules })
     diagram.current = instance
     let disposed = false
@@ -76,6 +83,7 @@ export function ProcessCanvas({ xml, readOnly, problems, ref, onChange, onHistor
         callbacks.current.onHistory?.(stack.canUndo(), stack.canRedo())
         callbacks.current.onChange?.()
       })
+      instance.on("selection.changed", (event: any) => callbacks.current.onSelection?.(event.newSelection?.length === 1 ? event.newSelection[0].id : null))
     }
     return () => {
       disposed = true
@@ -115,6 +123,7 @@ export function ProcessCanvas({ xml, readOnly, problems, ref, onChange, onHistor
         canvas.scrollToElement(element)
         if (!readOnly) (instance.get("selection") as any).select(element)
       },
+      modeler: () => (readOnly ? null : (diagram.current as Modeler | null)),
       label: (id) => {
         const element = (diagram.current?.get("elementRegistry") as any)?.get(id)
         if (!element) return null
@@ -130,7 +139,7 @@ export function ProcessCanvas({ xml, readOnly, problems, ref, onChange, onHistor
         <p className="p-4 text-xs text-destructive">{failed}</p>
       ) : (
         // بوم چپ‌به‌راست می‌ماند (جهت جریان BPMN)؛ برچسب‌های فارسی درون عنصرها درست نمایش داده می‌شوند.
-        <div ref={host} dir="ltr" role="region" aria-label={readOnly ? "نمودار فقط‌خواندنی" : "بوم فرایند"} className="nk-bpmn size-full" />
+        <div ref={host} dir="ltr" role="region" aria-label={label ?? (readOnly ? "نمودار فقط‌خواندنی" : "بوم فرایند")} className="nk-bpmn size-full" />
       )}
     </div>
   )

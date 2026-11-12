@@ -90,3 +90,33 @@ def test_copy_and_permissions(designer, form, make_user, client_for):
     plain = client_for(make_user("plain"))
     assert plain.get(PROCESSES).status_code == 403
     assert plain.get(f"{VERSIONS}{process['draft_version']}/").status_code == 403
+
+
+def test_settings_numbering_and_lookups(designer, form):
+    process = designer.post(PROCESSES, {"code": "nums", "title": "شماره", "form": form.pk}, format="json").json()
+    bad = designer.patch(f"{PROCESSES}{process['id']}/", {"number_pattern": "بی‌شمارنده"}, format="json")
+    assert bad.status_code == 400 and "number_pattern" in bad.json()["fields"]
+    ok = designer.patch(f"{PROCESSES}{process['id']}/", {"number_pattern": "خ-{seq:3}", "number_reset": "never", "start_by_everyone": True}, format="json")
+    assert ok.status_code == 200 and ok.json()["start_by_everyone"] is True
+    assert {a["code"] for a in designer.get(f"{PROCESSES}action-types/").json()} == {"set_field", "notify"}
+    definition = designer.get(f"{PROCESSES}{process['id']}/form-definition/").json()
+    assert [f["id"] for f in definition["sections"][0]["fields"]] == ["subject", "amount"]
+
+
+def test_purchase_template(designer):
+    created = designer.post(f"{PROCESSES}from-template/").json()
+    assert created["title"] == "درخواست خرید سه‌مرحله‌ای" and created["form_title"] == "درخواست خرید" and created["code"] == "purchase"
+    draft = designer.get(f"{VERSIONS}{created['draft_version']}/").json()
+    # فقط گیرنده‌ی مالی و تدارکات را سازمان باید تعیین کند
+    assert set(draft["problems"]) == {"Task_finance", "Task_supply"}
+    assert designer.post(f"{PROCESSES}from-template/").json()["code"] == "purchase-2"
+
+
+def test_field_access_checked(designer, form):
+    process = designer.post(PROCESSES, {"code": "acc", "title": "دسترسی", "form": form.pk}, format="json").json()
+    draft = designer.get(f"{VERSIONS}{process['draft_version']}/").json()
+    text = with_task(draft["bpmn"], {"type": "requester"}).replace(
+        "</spiffworkflow:properties>", f"{prop('fields', {'subject': 'required', 'ghost': 'edit'})}</spiffworkflow:properties>"
+    )
+    problems = designer.patch(f"{VERSIONS}{draft['id']}/", {"bpmn": text}, format="json").json()["problems"]
+    assert "ghost" in problems["Task_1"]

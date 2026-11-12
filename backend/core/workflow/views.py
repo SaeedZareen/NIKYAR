@@ -7,11 +7,14 @@ from rest_framework import generics, mixins, serializers, viewsets
 from rest_framework.decorators import action
 from rest_framework.response import Response
 
+from core.accounts.models import Role
 from core.audit.models import AuditLog
 from core.audit.service import AuditedModelViewSet, record
 from core.forms.models import Form, FormVersion
 from core.kernel.api import BusinessError, HasPerm, MultiValueFilter
+from core.kernel.registry import workflow_actions
 from core.lookups.models import LookupItem
+from core.numbering.pattern import validate as validate_pattern
 
 from . import bpmn, service
 from .models import Process, ProcessVersion
@@ -29,6 +32,8 @@ class ProcessSerializer(serializers.ModelSerializer):
     published_version = serializers.IntegerField(read_only=True, allow_null=True, help_text="شماره‌ی آخرین نسخه‌ی منتشرشده؛ null یعنی هنوز منتشر نشده.")
     draft_version = serializers.IntegerField(read_only=True, allow_null=True, help_text="شناسه‌ی نسخه‌ی پیش‌نویس باز؛ null یعنی پیش‌نویسی نیست.")
     request_count = serializers.IntegerField(read_only=True)
+    start_roles = serializers.PrimaryKeyRelatedField(queryset=Role.objects.all(), many=True, required=False, label="نقش‌های شروع‌کننده")
+    admin_roles = serializers.PrimaryKeyRelatedField(queryset=Role.objects.all(), many=True, required=False, label="مدیران فرایند")
 
     class Meta:
         model = Process
@@ -42,6 +47,11 @@ class ProcessSerializer(serializers.ModelSerializer):
             "form",
             "form_title",
             "is_active",
+            "start_by_everyone",
+            "start_roles",
+            "admin_roles",
+            "number_pattern",
+            "number_reset",
             "published_version",
             "draft_version",
             "request_count",
@@ -51,6 +61,16 @@ class ProcessSerializer(serializers.ModelSerializer):
         if self.instance is not None and value != self.instance.code:
             raise serializers.ValidationError("شناسه پس از ساخت تغییر نمی‌کند.")
         return value
+
+    def validate(self, attrs):
+        pattern = attrs.get("number_pattern", getattr(self.instance, "number_pattern", ""))
+        reset = attrs.get("number_reset", getattr(self.instance, "number_reset", "year"))
+        if pattern:
+            try:
+                validate_pattern(pattern, reset)
+            except serializers.ValidationError as exc:
+                raise serializers.ValidationError({"number_pattern": exc.detail["pattern"]}) from exc
+        return attrs
 
     def validate_form(self, value):
         if value.current_version() is None:
@@ -84,6 +104,11 @@ class ProcessVersionDetailSerializer(ProcessVersionSerializer):
             raise BusinessError("نسخه‌ی منتشرشده تغییر نمی‌کند؛ پیش‌نویس تازه بسازید.")
         bpmn.parse_xml(value)  # فقط خوانا بودن؛ ایرادهای طراحی در problems می‌آیند تا ذخیره‌ی خودکار متوقف نشود
         return value
+
+
+class ActionTypeSerializer(serializers.Serializer):
+    code = serializers.CharField()
+    title = serializers.CharField()
 
 
 class FormOptionSerializer(serializers.Serializer):
@@ -129,11 +154,13 @@ class ProcessViewSet(AuditedModelViewSet):
     def perform_create(self, serializer):
         super().perform_create(serializer)
         service.create(serializer.instance)
+        service.sync_numbering(serializer.instance)
         serializer.instance = self.get_queryset().get(pk=serializer.instance.pk)
 
     @transaction.atomic
     def perform_update(self, serializer):
         super().perform_update(serializer)
+        service.sync_numbering(serializer.instance)
         serializer.instance = self.get_queryset().get(pk=serializer.instance.pk)
 
     def perform_destroy(self, instance):
@@ -147,6 +174,28 @@ class ProcessViewSet(AuditedModelViewSet):
         """فرم‌های منتشرشده برای انتخاب «فرم اصلی»."""
         forms = Form.objects.filter(versions__status=FormVersion.Status.PUBLISHED).distinct().order_by("title")
         return Response([{"id": f.pk, "title": f.title} for f in forms])
+
+    @extend_schema(responses=ActionTypeSerializer(many=True))
+    @action(detail=False, url_path="action-types")
+    def action_types(self, request):
+        """اقدام‌های خودکار رجیستری (هسته و ماژول‌ها) برای پانل ویژگی‌ها."""
+        return Response([{"code": a.code, "title": a.title} for a in workflow_actions().values()])
+
+    @extend_schema(responses={200: {"type": "object", "additionalProperties": True}})
+    @action(detail=True, url_path="form-definition")
+    def form_definition(self, request, pk=None):
+        """تعریف آخرین نسخه‌ی منتشرشده‌ی فرم اصلی (فیلدها برای گیرنده، دسترسی و شرط‌ها)."""
+        version = self.get_object().form.current_version()
+        return Response(version.definition if version else {"sections": []})
+
+    @extend_schema(request=None, responses=ProcessSerializer)
+    @action(detail=False, methods=["post"], url_path="from-template")
+    def from_template(self, request):
+        """الگوی «درخواست خرید سه‌مرحله‌ای» با فرم «درخواست خرید»."""
+        with transaction.atomic():
+            process = service.from_template(request.user)
+            record(request, AuditLog.Action.CREATE, process)
+        return Response(ProcessSerializer(self.get_queryset().get(pk=process.pk)).data, status=201)
 
     @extend_schema(request=None, responses=ProcessVersionDetailSerializer)
     @action(detail=True, methods=["post"], url_path="new-draft")
