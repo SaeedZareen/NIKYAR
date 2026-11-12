@@ -123,7 +123,7 @@ def waiting_process(people, process_form, admin, wait):
     """شروع ← صبر ← بررسی حسابدار ← پایان."""
     from tests.test_workflow_engine import document, ext, flow, prop, user_task
 
-    timer = '<bpmn:timerEventDefinition><bpmn:timeDate>wait_until</bpmn:timeDate></bpmn:timerEventDefinition>'
+    timer = "<bpmn:timerEventDefinition><bpmn:timeDate>wait_until</bpmn:timeDate></bpmn:timerEventDefinition>"
     text = document(
         '<bpmn:startEvent id="start"><bpmn:outgoing>f0</bpmn:outgoing></bpmn:startEvent>',
         f'<bpmn:intermediateCatchEvent id="wait" name="صبر">{ext(prop("wait", wait))}<bpmn:incoming>f0</bpmn:incoming><bpmn:outgoing>f1</bpmn:outgoing>{timer}</bpmn:intermediateCatchEvent>',
