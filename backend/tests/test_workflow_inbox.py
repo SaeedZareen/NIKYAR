@@ -136,7 +136,7 @@ def test_all_must_approve(council, client_for):
     assert ids(m1, "mine") == [task.pk] and ids(m1, "group") == []
     assert m1.post(f"{TASKS}{task.pk}/claim/").status_code == 400
     after = m1.post(f"{TASKS}{task.pk}/complete/", {"decision": "ok"}, format="json").json()
-    assert after["status"] == "open" and after["detail"]["can_act"] is False
+    assert after["status"] == "open" and after["detail"]["can_act"] is False and after["detail"]["voted"] is True
     assert [v["decision"] for v in after["detail"]["votes"]] == ["موافق", "", ""]
     assert ids(m1, "mine") == [] and ids(m1, "done") == [task.pk] and ids(m2, "mine") == [task.pk]
     m2.post(f"{TASKS}{task.pk}/complete/", {"decision": "ok"}, format="json")

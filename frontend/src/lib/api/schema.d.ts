@@ -4316,6 +4316,8 @@ export interface components {
              */
             completion: components["schemas"]["CompletionEnum"];
             votes: components["schemas"]["TaskVote"][];
+            /** @description کاربر در این کار نظر داده است */
+            voted: boolean;
             /** @description تعریف فرم با دسترسی همین مرحله، بی فیلدهای پنهان */
             definition: {
                 [key: string]: unknown;

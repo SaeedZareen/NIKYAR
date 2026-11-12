@@ -48,6 +48,23 @@ async function openTask(page: Page, process: string) {
   else await panel.getByText(process).first().click()
 }
 
+/** یک مرحله‌ی «همه‌ی گیرنده‌ها» برای دارندگان یک نقش */
+function councilBpmn(roleId: number) {
+  const decisions = [
+    { value: "ok", label: "موافق" },
+    { value: "no", label: "مخالف", comment: "required" },
+  ]
+  return (
+    '<?xml version="1.0" encoding="UTF-8"?><bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:spiffworkflow="http://spiffworkflow.org/bpmn/schema/1.0/core" id="d" targetNamespace="http://bpmn.io/schema/bpmn"><bpmn:process id="council" isExecutable="true">' +
+    '<bpmn:startEvent id="start"><bpmn:outgoing>f0</bpmn:outgoing></bpmn:startEvent>' +
+    userTask("vote", "رأی کمیسیون", { assignee: { type: "role", role: roleId }, decisions, completion: "all" }, "f0", "f1") +
+    '<bpmn:endEvent id="end"><bpmn:incoming>f1</bpmn:incoming></bpmn:endEvent>' +
+    flow("f0", "start", "vote") +
+    flow("f1", "vote", "end") +
+    "</bpmn:process></bpmn:definitions>"
+  )
+}
+
 async function signIn(browser: Browser, info: TestInfo, username: string) {
   const context = await browser.newContext({ storageState: { cookies: [], origins: [] }, ...(info.project.use.viewport ? { viewport: info.project.use.viewport } : {}) })
   const page = await context.newPage()
@@ -119,5 +136,47 @@ test.describe("کارتابل", () => {
     await expectAccessible(other)
     expect(errors).toEqual([])
     await other.context().close()
+  })
+
+  test("همه‌ی گیرنده‌ها نظر می‌دهند و گفت‌وگوی درخواست", async ({ page, browser }, info) => {
+    await page.goto("/")
+    const role = await call(page, "POST", "/api/auth/roles/", { name: unique("کمیسیون"), permissions: [] })
+    const names = [unique("m1"), unique("m2")]
+    for (const [i, username] of names.entries())
+      await call(page, "POST", "/api/auth/users/", { username, first_name: "عضو", last_name: `کمیسیون ${i + 1}`, gender: "male", password: PASSWORD, roles: [role.id] })
+    const form = await call(page, "POST", "/api/forms/", { code: unique("cm").replace(/_/g, "-"), title: "فرم کمیسیون", fill_by_everyone: true })
+    await call(page, "PATCH", `/api/forms/versions/${form.draft_version}/`, { definition: { sections: [{ id: "s", fields: [{ id: "subject", type: "text", label: "موضوع" }] }] } })
+    await call(page, "POST", `/api/forms/versions/${form.draft_version}/publish/`)
+    const title = `کمیسیون ${info.project.name} ${Date.now()}`
+    const process = await call(page, "POST", "/api/workflow/processes/", { code: unique("cm").replace(/_/g, "-"), title, form: form.id, start_by_everyone: true })
+    await call(page, "PATCH", `/api/workflow/versions/${process.draft_version}/`, { bpmn: councilBpmn(role.id) })
+    await call(page, "POST", `/api/workflow/versions/${process.draft_version}/publish/`)
+    await call(page, "POST", "/api/workflow/requests/", { process: process.id, data: { subject: "خرید سرور" }, submit: true })
+
+    const first = await signIn(browser, info, names[0])
+    const errors = collectErrors(first)
+    await first.goto("/tasks")
+    await openTask(first, title)
+    await expect(first.getByRole("region", { name: "نظر گیرنده‌ها" })).toContainText("۰ از ۲ نظر")
+    await first.getByLabel("پیام تازه", { exact: true }).fill("پیش‌فاکتور دوم هم لازم است.")
+    await first.getByRole("button", { name: "ارسال پیام" }).click()
+    await expect(first.getByRole("list", { name: "پیام‌های گفت‌وگو" })).toContainText("پیش‌فاکتور دوم هم لازم است.")
+    await first.getByRole("button", { name: "موافق", exact: true }).click()
+    await first.getByRole("alertdialog").getByRole("button", { name: "ثبت «موافق»" }).click()
+    await expect(first.getByText("نظر «موافق» ثبت شد؛ کار منتظر نظر دیگر گیرنده‌هاست.")).toBeVisible()
+    await expectAccessible(first)
+    expect(errors).toEqual([])
+    await first.context().close()
+
+    // عضو دوم: پیام گفت‌وگو را می‌بیند و با نظر او کار تمام می‌شود
+    const second = await signIn(browser, info, names[1])
+    await second.goto("/tasks")
+    await openTask(second, title)
+    await expect(second.getByRole("region", { name: "نظر گیرنده‌ها" })).toContainText("۱ از ۲ نظر")
+    await expect(second.getByRole("list", { name: "پیام‌های گفت‌وگو" })).toContainText("پیش‌فاکتور دوم هم لازم است.")
+    await second.getByRole("button", { name: "موافق", exact: true }).click()
+    await second.getByRole("alertdialog").getByRole("button", { name: "ثبت «موافق»" }).click()
+    await expect(second.getByText("«موافق» برای «رأی کمیسیون» ثبت شد.")).toBeVisible()
+    await second.context().close()
   })
 })

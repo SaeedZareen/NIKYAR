@@ -79,6 +79,18 @@ export function ElementProperties({ modeler, id, definition, actions, problem }:
           <Row id={`${info.id}-assignee`} label="گیرنده" help="چه کسی این مرحله را انجام می‌دهد؛ از ساختار سازمانی حساب می‌شود. اگر به کسی نرسد، کار به مدیران فرایند می‌رسد.">
             <AssigneeEditor id={`${info.id}-assignee`} value={info.props.assignee as Rule | undefined} onChange={(assignee) => write({ assignee })} fields={fields} tasks={userTasks(modeler).filter((t) => t.id !== info.id)} />
           </Row>
+          <Row
+            id={`${info.id}-completion`}
+            label="تصمیم با"
+            help="وقتی کار به چند نفر می‌رسد (مثلاً دارندگان یک نقش): «یکی کافی است» یعنی نخستین تصمیم هر کدام کافی است و کار برداشتنی است؛ «همه‌ی گیرنده‌ها» یعنی هر کدام نظر می‌دهد و کار وقتی تأیید می‌شود که همه تصمیم نخست را بزنند. یک تصمیم دیگر (مثلاً «رد») همان‌جا کار را تمام می‌کند."
+          >
+            <Pick
+              id={`${info.id}-completion`}
+              value={(info.props.completion as string) ?? "any"}
+              onChange={(v) => write({ completion: v === "any" ? undefined : v })}
+              options={{ any: "یکی از گیرنده‌ها کافی است", all: "همه‌ی گیرنده‌ها" }}
+            />
+          </Row>
           <DecisionsEditor id={`${info.id}-decisions`} value={(info.props.decisions as Decision[] | undefined) ?? [...DEFAULT_DECISIONS]} onChange={(decisions) => write({ decisions })} />
           <Field orientation="horizontal">
             <Switch id={`${info.id}-skip`} checked={info.props.skip_same === true} onCheckedChange={(on) => write({ skip_same: on || undefined })} />

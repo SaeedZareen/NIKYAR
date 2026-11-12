@@ -522,6 +522,7 @@ class TaskDetailSerializer(InboxTaskSerializer):
                 "candidates": serializers.ListField(child=serializers.CharField()),
                 "completion": serializers.ChoiceField(choices=Task.Completion.choices, help_text="any: یکی کافی است؛ all: همه‌ی گیرنده‌ها"),
                 "votes": TaskVoteSerializer(many=True),
+                "voted": serializers.BooleanField(help_text="کاربر در این کار نظر داده است"),
                 "definition": serializers.DictField(help_text="تعریف فرم با دسترسی همین مرحله، بی فیلدهای پنهان"),
                 "schema": serializers.DictField(help_text="طرح اعتبارسنجی همان تعریف"),
                 "data": serializers.DictField(),

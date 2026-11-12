@@ -130,6 +130,7 @@ def context(task: Task, user) -> dict:
         "candidates": [str(u) for u in task.candidates.all()],
         "completion": task.completion,
         "votes": votes(task, step.get("decisions", [])),
+        "voted": task.votes.filter(actor=user).exists(),
         "definition": shown,
         "schema": form_engine.compile_schema(shown, title=task.title),
         "data": access.visible_data(request.data, fields),
