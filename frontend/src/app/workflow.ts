@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query"
+import type { StatusTone } from "@/components/status-badge"
 import { api, unwrap } from "@/lib/api/client"
 
 /** کلید داده‌ی درخواست‌های فرایند؛ با ثبت یا حذف پیش‌نویس، فهرست‌ها تازه می‌شوند. */
@@ -17,3 +18,6 @@ export function useTaskCounts() {
 
 /** جمع کارهای منتظر (منتظر من، گروهی، جانشینی). */
 export const pendingTotal = (c?: { mine: number; group: number; delegated: number }) => (c ? c.mine + c.group + c.delegated : 0)
+
+/** رنگ وضعیت درخواست. */
+export const REQUEST_TONES: Record<string, StatusTone> = { running: "info", completed: "success", rejected: "destructive", cancelled: "neutral", draft: "neutral" }

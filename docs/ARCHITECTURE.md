@@ -159,6 +159,7 @@
   - `/api/workflow/requests/`: درخواست‌های کاربر (ثبت‌کرده یا به نامش)؛ ایجاد و ویرایش پیش‌نویس، `submit`، `requester`، حذف پیش‌نویس.
   - `/api/workflow/tasks/?box=mine|group|delegated|done` (کارتابل، `inbox.box`)، `counts/`، `<id>/` (کار با `detail`: درخواست، تعریف و طرح فرم با دسترسی مرحله، داده‌ی دیدنی، تصمیم‌ها، تاریخچه، برداشتن)، `<id>/complete/`، `<id>/claim/`، `<id>/release/`.
   - `GET /api/workflow/processes/target-forms/`: فرم‌های منتشرشده با فیلدها برای اقدام «ثبت در فرم دیگر» (`save_submission` در `actions.py`، با `forms.service.system_submission`).
+  - `/api/workflow/requests/<id>/track/` (پیگیری، `tracking.py`: نمودار با انجام‌شده و جاری، کارهای منتظر، تاریخچه، تأییدها با امضا) و `<id>/cancel/` (لغو تا پیش از نخستین تصمیم).
   - `/api/workflow/comments/?request=…` (گفت‌وگوی درخواست، `discussion.py`): فهرست و افزودن پیام برای شرکت‌کنندگان.
 - **فرایندساز** (`pages/workflow/design`):
   - `process-design-page.tsx` (فهرست) و `process-sheet.tsx` (مشخصات).
@@ -171,6 +172,7 @@
   - `condition-python.ts`: شرط سازنده ← عبارت پایتون.
   - `process-properties.tsx`: پانل ویژگی‌ها.
   - `process-versions-sheet.tsx`: نسخه‌ها، خروجی و ورود BPMN، نمایش کنار هم.
+- **درخواست‌های من** (`pages/workflow/requests`): `my-requests-page.tsx`، `request-page.tsx` (نمودار با `ProcessCanvas` و `highlights`، گفت‌وگو و تاریخچه‌ی مشترک با صفحه‌ی کار)، `request-print-page.tsx` (چاپ A4).
 - **کارتابل** (`pages/workflow/tasks`): `inbox-page.tsx` (زبانه‌ها در `?box=`، جدول کیت) و `task-page.tsx` (خلاصه‌ی درخواست، فرم مرحله با `FormRenderer`، تصمیم با یادداشت و پنجره‌ی تأیید، برداشتن و رها کردن، نظر گیرنده‌ها، گفت‌وگو با `discussion.tsx`، تاریخچه). شمار کارها با `useTaskCounts` (`app/workflow.ts`) در منو (`badge` مورد منو)، زبانه‌ها و پیشخوان.
 - **درخواست جدید** (`pages/workflow/requests`): `new-request-page.tsx` (فرایندها به تفکیک دسته و پیش‌نویس‌ها) و `request-fill-page.tsx` (پرکننده‌ی مشترک `pages/forms/fill-form.tsx` با مقصد درخواست و انتخاب «به نام»). کلیدهای داده در `app/workflow.ts`.
 

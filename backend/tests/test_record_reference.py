@@ -101,7 +101,7 @@ def test_process_requests_source(records, admin, client_for, make_user):
     request = service.start(process, records["clerk"], {"t": "میز"})
     service.save_request(user=records["clerk"], process=process, data={}, submit=False)  # پیش‌نویس انتخاب‌پذیر نیست
     rows = client_for(records["clerk"]).get(LOOKUP, {"source": "process:buy"}).json()
-    assert [(r["id"], r["number"], r["url"]) for r in rows] == [(request.pk, request.number, "")]
+    assert [(r["id"], r["number"], r["url"]) for r in rows] == [(request.pk, request.number, f"/requests/{request.pk}")]
     assert client_for(boss).get(LOOKUP, {"source": "process:buy"}).json() == []
     admins = Role.objects.create(name="مدیر خرید", permissions=[])
     boss.roles.add(admins)

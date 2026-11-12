@@ -28,5 +28,4 @@ class RequestRecords:
 
     @staticmethod
     def url(obj):
-        # صفحه‌ی پیگیری درخواست با 4.5 و 4.7
-        return ""
+        return f"/requests/{obj.pk}"

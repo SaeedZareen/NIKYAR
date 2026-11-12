@@ -33,3 +33,14 @@
   stroke: var(--destructive) !important;
   stroke-width: 2.5px !important;
 }
+
+/* پیگیری درخواست: مرحله‌های انجام‌شده (سبز) و جاری (رنگ اصلی، ضخیم) */
+.nk-bpmn .djs-element.nk-done .djs-visual > :first-child {
+  stroke: var(--success) !important;
+  fill: color-mix(in oklab, var(--success) 12%, var(--card)) !important;
+}
+.nk-bpmn .djs-element.nk-active .djs-visual > :first-child {
+  stroke: var(--primary) !important;
+  stroke-width: 3px !important;
+  fill: color-mix(in oklab, var(--primary) 14%, var(--card)) !important;
+}
