@@ -359,6 +359,12 @@ def start_context(process: Process, user) -> dict:
     }
 
 
+def decisions_of(task: Task) -> list[dict]:
+    """تصمیم‌های مرحله‌ی این کار (مقدار، برچسب، یادداشت)."""
+    _, definition = _compiled(task.request.version)
+    return definition.tasks.get(task.element, {}).get("decisions", [])
+
+
 def step_access(task: Task) -> dict[str, str]:
     _, definition = _compiled(task.request.version)
     return definition.tasks[task.element].get("fields", {})
@@ -368,7 +374,8 @@ def acting_for(user, task: Task):
     """(اجازه دارد، به نیابت از چه کسی): گیرنده‌ی کار، یا جانشین امروز یکی از گیرنده‌ها برای همین فرایند."""
     if task.status != Task.Status.OPEN:
         return False, None
-    candidates = list(task.candidates.all())
+    # کار گروهی برداشته‌شده فقط برای برداشته‌کننده (و جانشین او) است
+    candidates = [task.claimed_by] if task.claimed_by_id else list(task.candidates.all())
     if user in candidates:
         return True, None
     for principal in candidates:

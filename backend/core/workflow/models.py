@@ -135,6 +135,8 @@ class Task(models.Model):
     candidates = models.ManyToManyField(settings.AUTH_USER_MODEL, verbose_name="گیرنده‌ها", blank=True, related_name="workflow_tasks")
     # قاعده‌ی گیرنده به کسی نرسید و کار به مدیران فرایند سپرده شد
     fallback = models.BooleanField("سپرده به مدیران فرایند", default=False)
+    # کار گروهی (چند گیرنده) را یکی برمی‌دارد تا دیگران همان را هم‌زمان انجام ندهند؛ «رها کردن» آن را به گروه برمی‌گرداند
+    claimed_by = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name="برداشته‌شده توسط", null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
     acted_by = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name="انجام‌دهنده", null=True, blank=True, on_delete=models.PROTECT, related_name="+")
     on_behalf_of = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name="به نیابت از", null=True, blank=True, on_delete=models.PROTECT, related_name="+")
     decision = models.CharField("تصمیم", max_length=40, blank=True)

@@ -41,3 +41,12 @@ def visible_data(data: dict, access: dict[str, str]) -> dict:
     """داده‌ای که گیرنده‌ی مرحله می‌بیند (بی فیلدهای پنهان)."""
     hidden = hidden_fields(access)
     return {k: v for k, v in data.items() if k not in hidden}
+
+
+def view_definition(definition: dict, access: dict[str, str]) -> dict:
+    """تعریفی که گیرنده‌ی مرحله می‌بیند: دسترسی همان مرحله، بی فیلدهای پنهان."""
+    hidden = hidden_fields(access)
+    result = step_definition(definition, access)
+    for section in result.get("sections", []):
+        section["fields"] = [f for f in section.get("fields", []) if f.get("id") not in hidden]
+    return result

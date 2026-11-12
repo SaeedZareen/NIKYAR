@@ -2,9 +2,10 @@ import re
 
 from django.db import transaction
 from django.db.models import Count, Max, OuterRef, Q
-from drf_spectacular.utils import extend_schema, extend_schema_field
+from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_field, inline_serializer
 from rest_framework import generics, mixins, serializers, status, viewsets
 from rest_framework.decorators import action
+from rest_framework.exceptions import NotFound
 from rest_framework.response import Response
 
 from core.accounts.models import Role, User
@@ -16,8 +17,8 @@ from core.kernel.registry import workflow_actions
 from core.lookups.models import LookupItem
 from core.numbering.pattern import validate as validate_pattern
 
-from . import bpmn, service
-from .models import Process, ProcessVersion, Request
+from . import bpmn, inbox, service
+from .models import Process, ProcessVersion, Request, Task
 
 CATEGORY_LIST = "process-category"
 
@@ -408,3 +409,202 @@ class RequestViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.De
         # پیش‌نویس‌ها (ذخیره‌ی خودکار) ثبت نمی‌شوند؛ ارسال در سوابق می‌آید.
         if saved.status != Request.Status.DRAFT:
             record(request, AuditLog.Action.CREATE, saved)
+
+
+# ─── کارتابل ────────────────────────────────────────────────────────────
+
+DONE_LIMIT = 500
+
+
+class InboxTaskSerializer(serializers.ModelSerializer):
+    request = serializers.IntegerField(source="request_id", read_only=True)
+    number = serializers.CharField(source="request.number", read_only=True)
+    process_title = serializers.CharField(source="request.process.title", read_only=True)
+    requester_name = serializers.CharField(source="request.requester.title", read_only=True)
+    group = serializers.SerializerMethodField(help_text="کار گروهی (چند گیرنده)")
+    claimed_by_name = serializers.SerializerMethodField()
+    on_behalf_of_name = serializers.SerializerMethodField()
+    decision_label = serializers.SerializerMethodField()
+    status_label = serializers.CharField(source="get_status_display", read_only=True)
+
+    class Meta:
+        model = Task
+        fields = [
+            "id",
+            "title",
+            "status",
+            "status_label",
+            "request",
+            "number",
+            "process_title",
+            "requester_name",
+            "group",
+            "claimed_by_name",
+            "on_behalf_of_name",
+            "decision",
+            "decision_label",
+            "comment",
+            "created_at",
+            "completed_at",
+        ]
+        read_only_fields = fields
+
+    def get_group(self, obj) -> bool:
+        count = getattr(obj, "candidate_count", None)
+        return (count if count is not None else obj.candidates.count()) > 1
+
+    def get_claimed_by_name(self, obj) -> str:
+        return str(obj.claimed_by) if obj.claimed_by_id else ""
+
+    def get_on_behalf_of_name(self, obj) -> str:
+        return str(obj.on_behalf_of) if obj.on_behalf_of_id else ""
+
+    def get_decision_label(self, obj) -> str:
+        if not obj.decision:
+            return ""
+        decisions = service.decisions_of(obj)
+        return next((d["label"] for d in decisions if d["value"] == obj.decision), obj.decision)
+
+
+class TaskDecisionSerializer(serializers.Serializer):
+    value = serializers.CharField()
+    label = serializers.CharField()
+    comment = serializers.CharField(required=False, help_text="required یا optional")
+
+
+class TaskEventSerializer(serializers.Serializer):
+    kind = serializers.CharField()
+    kind_label = serializers.CharField()
+    step = serializers.CharField()
+    actor = serializers.CharField()
+    on_behalf_of = serializers.CharField()
+    decision = serializers.CharField()
+    comment = serializers.CharField()
+    at = serializers.DateTimeField()
+
+
+class TaskRequestSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    number = serializers.CharField()
+    process_title = serializers.CharField()
+    requester_name = serializers.CharField()
+    created_by_name = serializers.CharField()
+    submitted_at = serializers.DateTimeField(allow_null=True)
+    status = serializers.CharField()
+    status_label = serializers.CharField()
+
+
+class TaskDetailSerializer(InboxTaskSerializer):
+    """کار با زمینه‌ی صفحه‌ی انجام کار (inbox.context)."""
+
+    detail = serializers.SerializerMethodField()
+
+    class Meta(InboxTaskSerializer.Meta):
+        fields = [*InboxTaskSerializer.Meta.fields, "detail"]
+        read_only_fields = fields
+
+    @extend_schema_field(
+        inline_serializer(
+            "TaskContext",
+            {
+                "can_act": serializers.BooleanField(),
+                "on_behalf_of": serializers.CharField(help_text="انجام به نیابت از (جانشینی)"),
+                "group": serializers.BooleanField(),
+                "can_claim": serializers.BooleanField(),
+                "can_release": serializers.BooleanField(),
+                "candidates": serializers.ListField(child=serializers.CharField()),
+                "definition": serializers.DictField(help_text="تعریف فرم با دسترسی همین مرحله، بی فیلدهای پنهان"),
+                "data": serializers.DictField(),
+                "decisions": TaskDecisionSerializer(many=True),
+                "history": TaskEventSerializer(many=True),
+                "request": TaskRequestSerializer(),
+            },
+        )
+    )
+    def get_detail(self, obj):
+        r = obj.request
+        return {
+            **inbox.context(obj, self.context["request"].user),
+            "request": {
+                "id": r.pk,
+                "number": r.number,
+                "process_title": r.process.title,
+                "requester_name": r.requester.title,
+                "created_by_name": r.created_by.title if r.created_by_id and r.created_by_id != r.requester_id else "",
+                "submitted_at": r.submitted_at,
+                "status": r.status,
+                "status_label": r.get_status_display(),
+            },
+        }
+
+
+class CompleteTaskSerializer(serializers.Serializer):
+    decision = serializers.CharField()
+    comment = serializers.CharField(required=False, allow_blank=True, default="")
+    data = serializers.DictField(required=False, help_text="فیلدهای قابل ویرایش همین مرحله")
+
+
+class TaskViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
+    """
+    کارتابل: ?box=mine (منتظر من)، group (گروهی)، delegated (جانشینی)، done (انجام‌شده).
+    هر کار برای گیرنده‌ها، جانشین مجاز، انجام‌دهنده، مدیران فرایند و مدیر کل دیدنی است.
+    """
+
+    permission_classes = [HasPerm]
+    perms = {"*": None}
+    pagination_class = None
+
+    def get_queryset(self):
+        if self.action == "list":
+            name = self.request.query_params.get("box", "mine")
+            if name not in inbox.BOXES:
+                raise BusinessError("زبانه‌ی کارتابل نامعتبر است.")
+            tasks = inbox.box(self.request.user, name)
+            return tasks.order_by("-completed_at", "-pk")[:DONE_LIMIT] if name == "done" else tasks.order_by("created_at", "pk")
+        return Task.objects.select_related(
+            "request__process", "request__requester", "request__created_by", "request__version__form_version", "claimed_by", "on_behalf_of"
+        )
+
+    def get_serializer_class(self):
+        return InboxTaskSerializer if self.action == "list" else TaskDetailSerializer
+
+    def get_object(self):
+        task = super().get_object()
+        if not inbox.can_view(self.request.user, task):
+            raise NotFound()
+        return task
+
+    @extend_schema(parameters=[OpenApiParameter("box", str, enum=list(inbox.BOXES))])
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @extend_schema(
+        responses=inline_serializer(
+            "TaskCounts", {"mine": serializers.IntegerField(), "group": serializers.IntegerField(), "delegated": serializers.IntegerField()}
+        )
+    )
+    @action(detail=False)
+    def counts(self, request):
+        return Response(inbox.counts(request.user))
+
+    @extend_schema(request=CompleteTaskSerializer, responses=TaskDetailSerializer)
+    @action(detail=True, methods=["post"])
+    def complete(self, request, pk=None):
+        task = self.get_object()
+        params = CompleteTaskSerializer(data=request.data)
+        params.is_valid(raise_exception=True)
+        service.complete(task, request.user, params.validated_data["decision"], params.validated_data["comment"], params.validated_data.get("data"))
+        record(request, AuditLog.Action.UPDATE, task.request)
+        return Response(TaskDetailSerializer(self.get_queryset().get(pk=task.pk), context={"request": request}).data)
+
+    @extend_schema(request=None, responses=TaskDetailSerializer)
+    @action(detail=True, methods=["post"])
+    def claim(self, request, pk=None):
+        inbox.claim(self.get_object(), request.user)
+        return Response(TaskDetailSerializer(self.get_queryset().get(pk=pk), context={"request": request}).data)
+
+    @extend_schema(request=None, responses=TaskDetailSerializer)
+    @action(detail=True, methods=["post"])
+    def release(self, request, pk=None):
+        inbox.release(self.get_object(), request.user)
+        return Response(TaskDetailSerializer(self.get_queryset().get(pk=pk), context={"request": request}).data)

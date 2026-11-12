@@ -1866,6 +1866,126 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workflow/tasks/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description کارتابل: ?box=mine (منتظر من)، group (گروهی)، delegated (جانشینی)، done (انجام‌شده).
+         *     هر کار برای گیرنده‌ها، جانشین مجاز، انجام‌دهنده، مدیران فرایند و مدیر کل دیدنی است.
+         */
+        get: operations["workflow_tasks_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workflow/tasks/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description کارتابل: ?box=mine (منتظر من)، group (گروهی)، delegated (جانشینی)، done (انجام‌شده).
+         *     هر کار برای گیرنده‌ها، جانشین مجاز، انجام‌دهنده، مدیران فرایند و مدیر کل دیدنی است.
+         */
+        get: operations["workflow_tasks_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workflow/tasks/{id}/claim/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description کارتابل: ?box=mine (منتظر من)، group (گروهی)، delegated (جانشینی)، done (انجام‌شده).
+         *     هر کار برای گیرنده‌ها، جانشین مجاز، انجام‌دهنده، مدیران فرایند و مدیر کل دیدنی است.
+         */
+        post: operations["workflow_tasks_claim_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workflow/tasks/{id}/complete/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description کارتابل: ?box=mine (منتظر من)، group (گروهی)، delegated (جانشینی)، done (انجام‌شده).
+         *     هر کار برای گیرنده‌ها، جانشین مجاز، انجام‌دهنده، مدیران فرایند و مدیر کل دیدنی است.
+         */
+        post: operations["workflow_tasks_complete_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workflow/tasks/{id}/release/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * @description کارتابل: ?box=mine (منتظر من)، group (گروهی)، delegated (جانشینی)، done (انجام‌شده).
+         *     هر کار برای گیرنده‌ها، جانشین مجاز، انجام‌دهنده، مدیران فرایند و مدیر کل دیدنی است.
+         */
+        post: operations["workflow_tasks_release_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workflow/tasks/counts/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description کارتابل: ?box=mine (منتظر من)، group (گروهی)، delegated (جانشینی)، done (انجام‌شده).
+         *     هر کار برای گیرنده‌ها، جانشین مجاز، انجام‌دهنده، مدیران فرایند و مدیر کل دیدنی است.
+         */
+        get: operations["workflow_tasks_counts_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workflow/versions/": {
         parameters: {
             query?: never;
@@ -2176,6 +2296,15 @@ export interface components {
          * @enum {string}
          */
         CodeEnum: "open" | "not_yet" | "closed" | "full" | "limit";
+        CompleteTaskRequest: {
+            decision: string;
+            /** @default  */
+            comment: string;
+            /** @description فیلدهای قابل ویرایش همین مرحله */
+            data?: {
+                [key: string]: unknown;
+            };
+        };
         Delegation: {
             readonly id: number;
             /** اصیل */
@@ -2834,6 +2963,37 @@ export interface components {
             created: number;
             updated: number;
             errors: components["schemas"]["ImportError"][];
+        };
+        InboxTask: {
+            readonly id: number;
+            /** عنوان */
+            readonly title: string;
+            /** وضعیت */
+            readonly status: components["schemas"]["Status66fEnum"];
+            readonly status_label: string;
+            readonly request: number;
+            readonly number: string;
+            readonly process_title: string;
+            readonly requester_name: string;
+            /** @description کار گروهی (چند گیرنده) */
+            readonly group: boolean;
+            readonly claimed_by_name: string;
+            readonly on_behalf_of_name: string;
+            /** تصمیم */
+            readonly decision: string;
+            readonly decision_label: string;
+            /** یادداشت */
+            readonly comment: string;
+            /**
+             * زمان رسیدن
+             * Format: date-time
+             */
+            readonly created_at: string;
+            /**
+             * زمان انجام
+             * Format: date-time
+             */
+            readonly completed_at: string | null;
         };
         Issued: {
             number: string;
@@ -4068,6 +4228,13 @@ export interface components {
          * @enum {string}
          */
         Status53aEnum: "draft" | "running" | "completed" | "rejected" | "cancelled";
+        /**
+         * @description * `open` - منتظر
+         *     * `done` - انجام‌شده
+         *     * `cancelled` - لغوشده
+         * @enum {string}
+         */
+        Status66fEnum: "open" | "done" | "cancelled";
         StoredFile: {
             /** Format: uuid */
             readonly id: string;
@@ -4089,6 +4256,80 @@ export interface components {
             readonly is_image: boolean;
             readonly previewable: boolean;
         };
+        TaskContext: {
+            can_act: boolean;
+            /** @description انجام به نیابت از (جانشینی) */
+            on_behalf_of: string;
+            group: boolean;
+            can_claim: boolean;
+            can_release: boolean;
+            candidates: string[];
+            /** @description تعریف فرم با دسترسی همین مرحله، بی فیلدهای پنهان */
+            definition: {
+                [key: string]: unknown;
+            };
+            data: {
+                [key: string]: unknown;
+            };
+            decisions: components["schemas"]["TaskDecision"][];
+            history: components["schemas"]["TaskEvent"][];
+            request: components["schemas"]["TaskRequest"];
+        };
+        TaskCounts: {
+            mine: number;
+            group: number;
+            delegated: number;
+        };
+        TaskDecision: {
+            value: string;
+            label: string;
+            /** @description required یا optional */
+            comment: string;
+        };
+        /** @description کار با زمینه‌ی صفحه‌ی انجام کار (inbox.context). */
+        TaskDetail: {
+            readonly id: number;
+            /** عنوان */
+            readonly title: string;
+            /** وضعیت */
+            readonly status: components["schemas"]["Status66fEnum"];
+            readonly status_label: string;
+            readonly request: number;
+            readonly number: string;
+            readonly process_title: string;
+            readonly requester_name: string;
+            /** @description کار گروهی (چند گیرنده) */
+            readonly group: boolean;
+            readonly claimed_by_name: string;
+            readonly on_behalf_of_name: string;
+            /** تصمیم */
+            readonly decision: string;
+            readonly decision_label: string;
+            /** یادداشت */
+            readonly comment: string;
+            /**
+             * زمان رسیدن
+             * Format: date-time
+             */
+            readonly created_at: string;
+            /**
+             * زمان انجام
+             * Format: date-time
+             */
+            readonly completed_at: string | null;
+            readonly detail: components["schemas"]["TaskContext"];
+        };
+        TaskEvent: {
+            kind: string;
+            kind_label: string;
+            step: string;
+            actor: string;
+            on_behalf_of: string;
+            decision: string;
+            comment: string;
+            /** Format: date-time */
+            at: string;
+        };
         TaskInfo: {
             name: string;
             title: string;
@@ -4097,6 +4338,17 @@ export interface components {
             /** Format: date-time */
             next_run: string | null;
             last_job: components["schemas"]["Job"] | null;
+        };
+        TaskRequest: {
+            id: number;
+            number: string;
+            process_title: string;
+            requester_name: string;
+            created_by_name: string;
+            /** Format: date-time */
+            submitted_at: string | null;
+            status: string;
+            status_label: string;
         };
         TestEmailRequest: {
             /**
@@ -8105,6 +8357,140 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["StartContext"];
+                };
+            };
+        };
+    };
+    workflow_tasks_list: {
+        parameters: {
+            query?: {
+                box?: "delegated" | "done" | "group" | "mine";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InboxTask"][];
+                };
+            };
+        };
+    };
+    workflow_tasks_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description یک مقداد عدد یکتا که این کار را شناسایی میکند. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskDetail"];
+                };
+            };
+        };
+    };
+    workflow_tasks_claim_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description یک مقداد عدد یکتا که این کار را شناسایی میکند. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskDetail"];
+                };
+            };
+        };
+    };
+    workflow_tasks_complete_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description یک مقداد عدد یکتا که این کار را شناسایی میکند. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CompleteTaskRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["CompleteTaskRequest"];
+                "multipart/form-data": components["schemas"]["CompleteTaskRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskDetail"];
+                };
+            };
+        };
+    };
+    workflow_tasks_release_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description یک مقداد عدد یکتا که این کار را شناسایی میکند. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskDetail"];
+                };
+            };
+        };
+    };
+    workflow_tasks_counts_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TaskCounts"];
                 };
             };
         };
