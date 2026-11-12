@@ -46,7 +46,7 @@ export default function FormFillPage() {
         qc.invalidateQueries({ queryKey: ["forms", "available"] })
       },
       back: { label: "فرم‌ها", to: "/forms" },
-      againUrl: `/forms/${formKey}/fill`,
+      again: { label: "ثبت دوباره‌ی همین فرم", to: `/forms/${formKey}/fill` },
       editUrl: (id) => `/forms/${formKey}/fill?edit=${id}`,
       submittedMessage: (saved) => (saved.number ? `فرم «${title}» با شماره‌ی ${toFaDigits(saved.number)} ثبت شد.` : `فرم «${title}» ثبت شد.`),
     }),

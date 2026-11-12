@@ -17,7 +17,7 @@ export function Confirmation({
   submission,
   name,
   back,
-  againUrl,
+  again,
   editUrl,
 }: {
   title: string
@@ -25,7 +25,7 @@ export function Confirmation({
   submission: Confirmed
   name: string
   back: { label: string; to: string }
-  againUrl: string
+  again: { label: string; to: string }
   editUrl?: (id: number) => string
 }) {
   const number = submission.number ? toFaDigits(submission.number) : ""
@@ -41,8 +41,8 @@ export function Confirmation({
             </Link>
           </Button>
           <Button asChild variant="outline">
-            <Link to={againUrl} reloadDocument>
-              <FilePlus2 /> ثبت دوباره‌ی همین فرم
+            <Link to={again.to} reloadDocument>
+              <FilePlus2 /> {again.label}
             </Link>
           </Button>
           {submission.editable_until && editUrl && (

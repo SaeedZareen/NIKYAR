@@ -41,7 +41,9 @@ export type FillTarget = {
   invalidate: () => void
   back: { label: string; to: string }
   /** نشانی «ثبت دوباره» و (در مهلت ویرایش) «ویرایش ثبت» در صفحه‌ی تأیید */
-  againUrl: string
+  again: { label: string; to: string }
+  /** پیام پیش‌فرض صفحه‌ی تأیید وقتی فرم پیام خودش را ندارد */
+  confirmation?: string
   editUrl?: (id: number) => string
   /** متن نوار پس از ثبت (وقتی صفحه‌ی تأیید نیست) */
   submittedMessage: (saved: Confirmed) => string
@@ -211,11 +213,11 @@ export function FillForm({ context, target, before, editing, initialData, initia
         {header}
         <Confirmation
           title={context.title}
-          template={definition.confirmation}
+          template={definition.confirmation || target.confirmation}
           submission={done}
           name={user?.full_name || user?.username || ""}
           back={target.back}
-          againUrl={target.againUrl}
+          again={target.again}
           editUrl={target.editUrl}
         />
       </>

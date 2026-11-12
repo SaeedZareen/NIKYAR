@@ -69,7 +69,8 @@ function RequestFill({ context, data, requestId, updatedAt, behalf: initialBehal
       remove: (id) => unwrap(api.DELETE("/api/workflow/requests/{id}/", { params: { path: { id } } })),
       invalidate: () => qc.invalidateQueries({ queryKey: REQUESTS_KEY }),
       back: { label: "درخواست جدید", to: "/requests/new" },
-      againUrl: `/requests/new/${process}`,
+      confirmation: "<p>درخواست «{فرم}» ثبت شد.</p>",
+      again: { label: "ثبت درخواست دیگر", to: `/requests/new/${process}` },
       submittedMessage: (saved) => `درخواست «${title}» با شماره‌ی ${toFaDigits(saved.number)} ثبت شد.`,
     }),
     [process, qc, title]
@@ -88,7 +89,7 @@ function RequestFill({ context, data, requestId, updatedAt, behalf: initialBehal
           <Section title="ثبت‌کننده" description="اگر درخواست را برای همکار دیگری ثبت می‌کنید، نام او را انتخاب کنید؛ درخواست به نام او پیش می‌رود و ثبت شما در سابقه‌ی درخواست می‌ماند.">
             <StaticField label="به نام">
               <div className="flex items-center gap-1">
-                <UserPicker value={behalf} onChange={pick} placeholder={`خودم (${user?.full_name || user?.username || ""})`} />
+                <UserPicker aria-label="به نام" value={behalf} onChange={pick} placeholder={`خودم (${user?.full_name || user?.username || ""})`} />
                 {behalf && (
                   <Button type="button" variant="ghost" size="icon" aria-label="ثبت به نام خودم" title="ثبت به نام خودم" onClick={() => pick(null)}>
                     <X />

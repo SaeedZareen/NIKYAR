@@ -17,7 +17,7 @@ type Props = {
   placeholder?: string
   /** فقط کارکنان یک واحد (با زیرواحدها) یا دارندگان یک نقش. */
   filters?: { unit?: number; role?: number }
-} & Pick<React.AriaAttributes, "aria-invalid" | "aria-describedby">
+} & Pick<React.AriaAttributes, "aria-invalid" | "aria-describedby" | "aria-label">
 
 /** انتخاب کاربر فعال با جست‌وجو در سرور (نام، نام کاربری، موبایل)؛ برای هر کاربر واردشده (بدون مجوز فهرست کاربران). */
 export function UserPicker({ id, value, onChange, placeholder = "انتخاب کاربر", filters, ...aria }: Props) {
