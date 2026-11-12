@@ -1641,6 +1641,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workflow/manage/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description «مدیریت درخواست‌ها»: همه‌ی درخواست‌های ثبت‌شده (مجوز workflow.manage) یا درخواست‌های فرایندهایی که کاربر مدیرشان است.
+         *     فیلتر process، status و problem (unassigned: کار بی‌گیرنده، overdue: دیرکرده)؛ جست‌وجوی شماره، فرایند و درخواست‌دهنده.
+         */
+        get: operations["workflow_manage_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workflow/process-lookup/": {
         parameters: {
             query?: never;
@@ -1842,13 +1862,13 @@ export interface paths {
         };
         /**
          * @description درخواست‌هایی که کاربر ثبت کرده یا به نامش ثبت شده. پیش‌نویس فقط برای پرکننده‌اش دیده، ویرایش و حذف می‌شود.
-         *     کارتابل و پیگیری درخواست‌های دیگران با 4.5 و 4.7.
+         *     پیگیری (`track/`، `cancel/`) برای همه‌ی شرکت‌کنندگان درخواست است (tracking.py)؛ کارتابل در TaskViewSet.
          */
         get: operations["workflow_requests_list"];
         put?: never;
         /**
          * @description درخواست‌هایی که کاربر ثبت کرده یا به نامش ثبت شده. پیش‌نویس فقط برای پرکننده‌اش دیده، ویرایش و حذف می‌شود.
-         *     کارتابل و پیگیری درخواست‌های دیگران با 4.5 و 4.7.
+         *     پیگیری (`track/`، `cancel/`) برای همه‌ی شرکت‌کنندگان درخواست است (tracking.py)؛ کارتابل در TaskViewSet.
          */
         post: operations["workflow_requests_create"];
         delete?: never;
@@ -1866,21 +1886,21 @@ export interface paths {
         };
         /**
          * @description درخواست‌هایی که کاربر ثبت کرده یا به نامش ثبت شده. پیش‌نویس فقط برای پرکننده‌اش دیده، ویرایش و حذف می‌شود.
-         *     کارتابل و پیگیری درخواست‌های دیگران با 4.5 و 4.7.
+         *     پیگیری (`track/`، `cancel/`) برای همه‌ی شرکت‌کنندگان درخواست است (tracking.py)؛ کارتابل در TaskViewSet.
          */
         get: operations["workflow_requests_retrieve"];
         put?: never;
         post?: never;
         /**
          * @description درخواست‌هایی که کاربر ثبت کرده یا به نامش ثبت شده. پیش‌نویس فقط برای پرکننده‌اش دیده، ویرایش و حذف می‌شود.
-         *     کارتابل و پیگیری درخواست‌های دیگران با 4.5 و 4.7.
+         *     پیگیری (`track/`، `cancel/`) برای همه‌ی شرکت‌کنندگان درخواست است (tracking.py)؛ کارتابل در TaskViewSet.
          */
         delete: operations["workflow_requests_destroy"];
         options?: never;
         head?: never;
         /**
          * @description درخواست‌هایی که کاربر ثبت کرده یا به نامش ثبت شده. پیش‌نویس فقط برای پرکننده‌اش دیده، ویرایش و حذف می‌شود.
-         *     کارتابل و پیگیری درخواست‌های دیگران با 4.5 و 4.7.
+         *     پیگیری (`track/`، `cancel/`) برای همه‌ی شرکت‌کنندگان درخواست است (tracking.py)؛ کارتابل در TaskViewSet.
          */
         patch: operations["workflow_requests_partial_update"];
         trace?: never;
@@ -1896,9 +1916,26 @@ export interface paths {
         put?: never;
         /**
          * @description درخواست‌هایی که کاربر ثبت کرده یا به نامش ثبت شده. پیش‌نویس فقط برای پرکننده‌اش دیده، ویرایش و حذف می‌شود.
-         *     کارتابل و پیگیری درخواست‌های دیگران با 4.5 و 4.7.
+         *     پیگیری (`track/`، `cancel/`) برای همه‌ی شرکت‌کنندگان درخواست است (tracking.py)؛ کارتابل در TaskViewSet.
          */
         post: operations["workflow_requests_cancel_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workflow/requests/{id}/manage/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description کار مدیر روی درخواست در جریان: reassign (task، users)، move (element)، restart، cancel؛ همه با دلیل. */
+        post: operations["workflow_requests_manage_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1914,7 +1951,7 @@ export interface paths {
         };
         /**
          * @description درخواست‌هایی که کاربر ثبت کرده یا به نامش ثبت شده. پیش‌نویس فقط برای پرکننده‌اش دیده، ویرایش و حذف می‌شود.
-         *     کارتابل و پیگیری درخواست‌های دیگران با 4.5 و 4.7.
+         *     پیگیری (`track/`، `cancel/`) برای همه‌ی شرکت‌کنندگان درخواست است (tracking.py)؛ کارتابل در TaskViewSet.
          */
         get: operations["workflow_requests_track_retrieve"];
         put?: never;
@@ -2144,16 +2181,6 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        /**
-         * @description * `create` - ایجاد
-         *     * `update` - ویرایش
-         *     * `delete` - حذف
-         *     * `login` - ورود
-         *     * `logout` - خروج
-         *     * `login_failed` - ورود ناموفق
-         * @enum {string}
-         */
-        ActionEnum: "create" | "update" | "delete" | "login" | "logout" | "login_failed";
         ActionType: {
             code: string;
             title: string;
@@ -2249,7 +2276,7 @@ export interface components {
             user: number | null;
             readonly user_name: string;
             /** عمل */
-            action: components["schemas"]["ActionEnum"];
+            action: components["schemas"]["AuditLogActionEnum"];
             readonly action_label: string;
             /** نوع */
             model: string;
@@ -2269,6 +2296,16 @@ export interface components {
             /** نشانی IP */
             ip: string | null;
         };
+        /**
+         * @description * `create` - ایجاد
+         *     * `update` - ویرایش
+         *     * `delete` - حذف
+         *     * `login` - ورود
+         *     * `logout` - خروج
+         *     * `login_failed` - ورود ناموفق
+         * @enum {string}
+         */
+        AuditLogActionEnum: "create" | "update" | "delete" | "login" | "logout" | "login_failed";
         Availability: {
             /**
              * @description open: پذیرای ثبت
@@ -3266,6 +3303,75 @@ export interface components {
             /** توضیح */
             description?: string;
         };
+        /**
+         * @description * `reassign` - ارجاع دوباره
+         *     * `move` - ارسال به مرحله
+         *     * `restart` - شروع دوباره
+         *     * `cancel` - لغو
+         * @enum {string}
+         */
+        ManageActionActionEnum: "reassign" | "move" | "restart" | "cancel";
+        ManageActionRequest: {
+            action: components["schemas"]["ManageActionActionEnum"];
+            reason: string;
+            /** @description reassign: کار منتظر */
+            task?: number;
+            /** @description reassign: گیرنده‌های تازه */
+            users?: number[];
+            /** @description move: شناسه‌ی مرحله */
+            element?: string;
+        };
+        ManageStep: {
+            element: string;
+            title: string;
+        };
+        ManagedRequest: {
+            readonly id: number;
+            /** فرایند */
+            readonly process: number;
+            readonly process_title: string;
+            /** شماره */
+            readonly number: string;
+            /** وضعیت */
+            readonly status: components["schemas"]["Status53aEnum"];
+            readonly status_label: string;
+            /** درخواست‌دهنده */
+            readonly requester: number;
+            readonly requester_name: string;
+            /** ثبت‌کننده */
+            readonly created_by: number | null;
+            /** @default  */
+            readonly created_by_name: string;
+            readonly data: {
+                [key: string]: unknown;
+            };
+            /**
+             * زمان شروع
+             * Format: date-time
+             */
+            readonly created_at: string;
+            /**
+             * آخرین تغییر
+             * Format: date-time
+             */
+            readonly updated_at: string;
+            /**
+             * زمان ارسال
+             * Format: date-time
+             */
+            readonly submitted_at: string | null;
+            /**
+             * زمان پایان
+             * Format: date-time
+             */
+            readonly finished_at: string | null;
+            /** @description عنوان مرحله‌های منتظر (درخواست در جریان) */
+            readonly current_step: string;
+            /** @description کار منتظر سپرده به مدیران فرایند (بی‌گیرنده) */
+            readonly unassigned: boolean;
+            /** @description کار منتظری که مهلتش گذشته */
+            readonly overdue: boolean;
+        };
         Me: {
             readonly id: number;
             /**
@@ -3299,6 +3405,8 @@ export interface components {
             readonly assignment: components["schemas"]["MeAssignment"] | null;
             /** @description ثبت‌های فرمی را می‌بیند (طراح یا نقش بیننده)؛ برای منوی «ثبت‌های فرم‌ها». */
             readonly forms_viewer: boolean;
+            /** @description مجوز «مدیریت همه‌ی درخواست‌ها» یا مدیر دست‌کم یک فرایند؛ برای منوی «مدیریت درخواست‌ها». */
+            readonly workflow_manager: boolean;
         };
         MeAssignment: {
             unit_id: number;
@@ -4310,6 +4418,10 @@ export interface components {
             history: components["schemas"]["TaskEvent"][];
             approvals: components["schemas"]["Approval"][];
             can_cancel: boolean;
+            /** @description کاربر این درخواست در جریان را مدیریت می‌کند */
+            can_manage: boolean;
+            /** @description مرحله‌های گذشته برای «ارسال به مرحله» */
+            steps: components["schemas"]["ManageStep"][];
         };
         RequestWriteRequest: {
             /** @description فقط هنگام ایجاد */
@@ -8212,6 +8324,33 @@ export interface operations {
             };
         };
     };
+    workflow_manage_list: {
+        parameters: {
+            query?: {
+                problem?: "overdue" | "unassigned";
+                /** @description چند مقدار با ویرگول جدا می‌شود. */
+                process?: string;
+                /** @description یک عبارت جستجو. */
+                search?: string;
+                /** @description چند مقدار با ویرگول جدا می‌شود. */
+                status?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ManagedRequest"][];
+                };
+            };
+        };
+    };
     workflow_process_lookup_list: {
         parameters: {
             query?: never;
@@ -8718,6 +8857,34 @@ export interface operations {
                 "application/json": components["schemas"]["CancelRequestRequest"];
                 "application/x-www-form-urlencoded": components["schemas"]["CancelRequestRequest"];
                 "multipart/form-data": components["schemas"]["CancelRequestRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RequestTrack"];
+                };
+            };
+        };
+    };
+    workflow_requests_manage_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description یک مقداد عدد یکتا که این درخواست را شناسایی میکند. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ManageActionRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["ManageActionRequest"];
+                "multipart/form-data": components["schemas"]["ManageActionRequest"];
             };
         };
         responses: {

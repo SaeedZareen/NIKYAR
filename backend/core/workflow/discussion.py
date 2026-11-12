@@ -15,7 +15,7 @@ from core.forms.fieldtypes import fa_number
 from core.kernel.api import BusinessError
 from core.notifications.service import notify
 
-from . import service
+from . import manage, service
 from .models import Request, RequestComment, Task
 
 MAX_LENGTH = 2000
@@ -35,7 +35,7 @@ def can_discuss(user, request: Request) -> bool:
         return False
     if user.is_superuser or user in participants(request):
         return True
-    if request.process.admin_roles.filter(users=user).exists():
+    if manage.can_manage(user, request):
         return True
     return any(service.acting_for(user, t)[0] for t in request.tasks.filter(status=Task.Status.OPEN).prefetch_related("candidates"))
 

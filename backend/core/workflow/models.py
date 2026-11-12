@@ -216,6 +216,9 @@ class Event(models.Model):
         CANCELLED = "cancelled", "لغو"
         ESCALATED = "escalated", "پایان مهلت"
         WAITING = "waiting", "انتظار"
+        REASSIGNED = "reassigned", "ارجاع دوباره"
+        MOVED = "moved", "ارسال به مرحله"
+        RESTARTED = "restarted", "شروع دوباره"
 
     request = models.ForeignKey(Request, verbose_name="درخواست", on_delete=models.CASCADE, related_name="events")
     kind = models.CharField("نوع", max_length=10, choices=Kind.choices)

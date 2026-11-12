@@ -12,7 +12,7 @@ from SpiffWorkflow.util.task import TaskState
 
 from core.notifications.service import notify
 
-from . import inbox, service
+from . import inbox, manage, service
 from .models import Event, Request, Task
 
 
@@ -95,4 +95,6 @@ def context(request: Request, user) -> dict:
         "history": inbox.history(request, definition),
         "approvals": approvals,
         "can_cancel": can_cancel(user, request),
+        "can_manage": request.status == Request.Status.RUNNING and manage.can_manage(user, request),
+        "steps": manage.steps(request) if manage.can_manage(user, request) else [],
     }

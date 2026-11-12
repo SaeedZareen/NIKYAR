@@ -4,9 +4,9 @@ from django.db import transaction
 from django.db.models import Count, Max, OuterRef, Q
 from django.utils import timezone
 from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_field, inline_serializer
-from rest_framework import generics, mixins, serializers, status, viewsets
+from rest_framework import filters, generics, mixins, serializers, status, viewsets
 from rest_framework.decorators import action
-from rest_framework.exceptions import NotFound
+from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -20,7 +20,7 @@ from core.kernel.registry import workflow_actions
 from core.lookups.models import LookupItem
 from core.numbering.pattern import validate as validate_pattern
 
-from . import bpmn, discussion, inbox, quick, service, tracking
+from . import bpmn, discussion, inbox, manage, quick, service, tracking
 from .models import Process, ProcessVersion, Request, RequestComment, Task
 
 CATEGORY_LIST = "process-category"
@@ -422,6 +422,11 @@ class ApprovalSerializer(serializers.Serializer):
     signature = serializers.CharField(help_text="شناسه‌ی فایل امضای «حساب من» تأییدکننده؛ خالی یعنی ثبت نشده")
 
 
+class ManageStepSerializer(serializers.Serializer):
+    element = serializers.CharField()
+    title = serializers.CharField()
+
+
 class RequestTrackSerializer(RequestSerializer):
     """درخواست با زمینه‌ی صفحه‌ی پیگیری (tracking.context)."""
 
@@ -433,10 +438,32 @@ class RequestTrackSerializer(RequestSerializer):
     history = TaskEventSerializer(many=True)
     approvals = ApprovalSerializer(many=True)
     can_cancel = serializers.BooleanField()
+    can_manage = serializers.BooleanField(help_text="کاربر این درخواست در جریان را مدیریت می‌کند")
+    steps = ManageStepSerializer(many=True, help_text="مرحله‌های گذشته برای «ارسال به مرحله»")
 
     class Meta(RequestSerializer.Meta):
-        fields = [*RequestSerializer.Meta.fields, "definition", "bpmn", "done", "active", "waiting", "history", "approvals", "can_cancel"]
+        fields = [
+            *RequestSerializer.Meta.fields,
+            "definition",
+            "bpmn",
+            "done",
+            "active",
+            "waiting",
+            "history",
+            "approvals",
+            "can_cancel",
+            "can_manage",
+            "steps",
+        ]
         read_only_fields = fields
+
+
+class ManageActionSerializer(serializers.Serializer):
+    action = serializers.ChoiceField(choices=[("reassign", "ارجاع دوباره"), ("move", "ارسال به مرحله"), ("restart", "شروع دوباره"), ("cancel", "لغو")])
+    reason = serializers.CharField(allow_blank=True, max_length=500)
+    task = serializers.IntegerField(required=False, help_text="reassign: کار منتظر")
+    users = serializers.ListField(child=serializers.IntegerField(), required=False, help_text="reassign: گیرنده‌های تازه")
+    element = serializers.CharField(required=False, help_text="move: شناسه‌ی مرحله")
 
 
 class CancelRequestSerializer(serializers.Serializer):
@@ -475,6 +502,26 @@ class RequestViewSet(mixins.ListModelMixin, mixins.RetrieveModelMixin, mixins.De
     def track(self, request, pk=None):
         target = self._tracked()
         return Response({**RequestSerializer(target).data, **tracking.context(target, request.user)})
+
+    @extend_schema(request=ManageActionSerializer, responses=RequestTrackSerializer)
+    @action(detail=True, methods=["post"])
+    def manage(self, request, pk=None):
+        """کار مدیر روی درخواست در جریان: reassign (task، users)، move (element)، restart، cancel؛ همه با دلیل."""
+        params = ManageActionSerializer(data=request.data)
+        params.is_valid(raise_exception=True)
+        data, target = params.validated_data, self._tracked()
+        kind, reason = data["action"], data["reason"]
+        if kind == "reassign":
+            people = list(User.objects.filter(pk__in=data.get("users") or []))
+            manage.reassign(target, request.user, data.get("task") or 0, people, reason)
+        elif kind == "move":
+            manage.move_to(target, request.user, data.get("element", ""), reason)
+        elif kind == "restart":
+            manage.restart(target, request.user, reason)
+        else:
+            manage.cancel(target, request.user, reason)
+        record(request, AuditLog.Action.UPDATE, target)
+        return self.track(request, pk)
 
     @extend_schema(request=CancelRequestSerializer, responses=RequestTrackSerializer)
     @action(detail=True, methods=["post"])
@@ -827,3 +874,50 @@ class QuickActionView(APIView):
     @extend_schema(request=None, responses=QuickActionSerializer)
     def post(self, request, token):
         return Response(_quick_data(quick.use(token)))
+
+
+# ─── مدیریت درخواست‌ها ───────────────────────────────────────────────────
+
+
+class ManagedRequestSerializer(RequestSerializer):
+    unassigned = serializers.SerializerMethodField(help_text="کار منتظر سپرده به مدیران فرایند (بی‌گیرنده)")
+    overdue = serializers.SerializerMethodField(help_text="کار منتظری که مهلتش گذشته")
+
+    class Meta(RequestSerializer.Meta):
+        fields = [*RequestSerializer.Meta.fields, "unassigned", "overdue"]
+        read_only_fields = fields
+
+    def get_unassigned(self, obj) -> bool:
+        return any(t.status == Task.Status.OPEN and t.fallback for t in obj.tasks.all())
+
+    def get_overdue(self, obj) -> bool:
+        now = timezone.now()
+        return any(t.status == Task.Status.OPEN and t.due_at and t.due_at <= now for t in obj.tasks.all())
+
+
+class ManagedRequestViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
+    """
+    «مدیریت درخواست‌ها»: همه‌ی درخواست‌های ثبت‌شده (مجوز workflow.manage) یا درخواست‌های فرایندهایی که کاربر مدیرشان است.
+    فیلتر process، status و problem (unassigned: کار بی‌گیرنده، overdue: دیرکرده)؛ جست‌وجوی شماره، فرایند و درخواست‌دهنده.
+    """
+
+    serializer_class = ManagedRequestSerializer
+    permission_classes = [HasPerm]
+    perms = {"*": None}
+    filter_backends = [MultiValueFilter, filters.SearchFilter]
+    filter_fields = {"status": "status", "process": "process_id"}
+    search_fields = ["number", "process__title", "requester__first_name", "requester__last_name"]
+    pagination_class = None
+
+    def get_queryset(self):
+        if not manage.is_manager(self.request.user):
+            raise PermissionDenied()
+        requests = manage.managed_requests(self.request.user)
+        problem = self.request.query_params.get("problem")
+        if problem:
+            requests = requests.filter(manage.problem_filter(problem)).distinct()
+        return requests.order_by("-submitted_at", "-pk")[:1000]
+
+    @extend_schema(parameters=[OpenApiParameter("problem", str, enum=["unassigned", "overdue"])])
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
