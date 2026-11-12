@@ -56,6 +56,14 @@ def test_confirm_page_then_use_once(task, org, site):  # noqa: F811
     assert again.status_code == 400 and "پیش‌تر استفاده شده" in again.json()["detail"]
 
 
+def test_using_one_link_closes_the_others_of_the_same_email(task, org, site):  # noqa: F811
+    both = [{"value": "approve", "label": "تأیید"}, {"value": "return", "label": "بازگشت"}]
+    text = quick.email_links(task, both)(org["clerk"])
+    approve, other = (token_of(line) for line in text.splitlines()[1:])
+    APIClient().post(f"{URL}{approve}/")
+    assert APIClient().get(f"{URL}{other}/").json()["status"] == "used"
+
+
 def test_expired_closed_and_invalid(task, org, site):  # noqa: F811
     first = token_of(quick.email_links(task, DECISIONS)(org["clerk"]))
     QuickAction.objects.filter(token=first).update(expires_at=timezone.now() - timedelta(minutes=1))

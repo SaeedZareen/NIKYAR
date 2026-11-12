@@ -47,7 +47,7 @@ function evaluate(logic: Logic, data: Record<string, unknown>): unknown {
 const truthy = (value: unknown) => jsonLogic.truthy(value)
 
 /** شناسه‌ی فیلدهایی که عبارت به آن‌ها اشاره می‌کند. */
-export function variables(logic: Logic): Set<string> {
+function variables(logic: Logic): Set<string> {
   const found = new Set<string>()
   const walk = (node: unknown) => {
     if (Array.isArray(node)) node.forEach(walk)

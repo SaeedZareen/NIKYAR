@@ -26,7 +26,7 @@ function parse(value: string | undefined): unknown {
   }
 }
 
-export function propsOf(bo: Any): Record<string, unknown> {
+function propsOf(bo: Any): Record<string, unknown> {
   const ext = (bo?.extensionElements?.values ?? []).find((v: Any) => v.$type === PROPS)
   return Object.fromEntries((ext?.properties ?? []).map((p: Any) => [p.name, parse(p.value)]))
 }

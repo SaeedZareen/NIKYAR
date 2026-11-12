@@ -21,7 +21,7 @@ const TOOLS = new Set(["hand-tool", "lasso-tool", "space-tool", "global-connect-
 const PAD = new Set(["connect", "delete", "append.end-event", "append.gateway"])
 
 /** برچسب‌های فارسی ابزارها و منوی کنار عنصر (کلیدها همان متن انگلیسی bpmn-js). */
-export const TRANSLATIONS: Record<string, string> = {
+const TRANSLATIONS: Record<string, string> = {
   "Activate hand tool": "جابه‌جایی بوم",
   "Activate lasso tool": "انتخاب چند عنصر",
   "Activate create/remove space tool": "باز یا بسته کردن فضا",

@@ -72,8 +72,8 @@ def use(token: str) -> QuickAction:
             service.complete(action.task, action.user, action.decision, COMMENT)
         except PermissionDenied:
             raise BusinessError("این کار دیگر به شما سپرده نیست (مثلاً همکار دیگری آن را برداشته است).") from None
-        action.used_at = timezone.now()
-        action.save(update_fields=["used_at"])
+        # پیوندهای دیگر همان ایمیل (تصمیم‌های دیگر همین کار) هم بسته می‌شوند؛ در «همه‌ی گیرنده‌ها» کار پس از نظر باز می‌ماند
+        QuickAction.objects.filter(task_id=action.task_id, user_id=action.user_id, used_at=None).update(used_at=timezone.now())
     return find(token)
 
 
