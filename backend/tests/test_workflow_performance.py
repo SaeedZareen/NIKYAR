@@ -70,8 +70,8 @@ def test_report(report, org, client_for):  # noqa: F811
 
 def test_filters_and_access(report, org, client_for, admin):  # noqa: F811
     boss = client_for(report["boss"])
-    assert boss.get(URL, {"start": "2026-11-09", "end": "2026-11-09"}).json()["summary"]["requests"] == 1
+    assert boss.get(URL, {"start": "1405/08/18", "end": "1405/08/18"}).json()["summary"]["requests"] == 1
     assert boss.get(URL, {"process": report["process"].pk + 99}).json()["summary"]["requests"] == 0
-    assert boss.get(URL, {"start": "2026-11-10", "end": "2026-11-01"}).status_code == 400
+    assert boss.get(URL, {"start": "1405/08/19", "end": "1405/08/10"}).status_code == 400
     assert client_for(org["janitor"]).get(URL).status_code == 403
     assert client_for(admin).get(URL).json()["summary"]["requests"] == 2

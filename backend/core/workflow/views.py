@@ -16,6 +16,7 @@ from core.audit.models import AuditLog
 from core.audit.service import AuditedModelViewSet, record
 from core.forms.models import Form, FormVersion
 from core.kernel.api import BusinessError, HasPerm, MultiValueFilter
+from core.kernel.fields import JalaliDateField
 from core.kernel.registry import workflow_actions
 from core.lookups.models import LookupItem
 from core.numbering.pattern import validate as validate_pattern
@@ -927,8 +928,8 @@ class ManagedRequestViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
 
 class PerformanceQuerySerializer(serializers.Serializer):
     process = serializers.IntegerField(required=False)
-    start = serializers.DateField(required=False)
-    end = serializers.DateField(required=False)
+    start = JalaliDateField(required=False)
+    end = JalaliDateField(required=False)
 
     def validate(self, attrs):
         if attrs.get("start") and attrs.get("end") and attrs["start"] > attrs["end"]:
