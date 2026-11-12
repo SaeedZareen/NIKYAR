@@ -141,6 +141,8 @@
   - `_sync` کارهای آماده را با جدول `Task` همگام و پایان یا رد را ثبت می‌کند.
 - **گیرنده‌ها و جانشینی:**
   - مهلت (`deadlines.py`): `Task.due_at` و `remind_at` با `WorkCalendar` هنگام رسیدن کار؛ کار دوره‌ای `workflow.deadlines` (هر ۵ دقیقه، `core.jobs.registry.Every`) یادآوری و پس از پایان مهلت اعلان، اعلان به مدیر، ارجاع یا تصمیم خودکار (`service.auto_complete`) را یک‌بار انجام می‌دهد. متن دلخواه اعلان مرحله (`message`) با `placeholders.field_texts` و `notify(..., body=...)`.
+  - مرحله‌ی زمان‌بندی: رویداد میانی زمان‌دار با `timeDate` ثابت `wait_until` (`bpmn.WAIT_EXPRESSION`)؛ `SafeScriptEngine(timer=...)` زمان را از ویژگی `wait` و تقویم کاری می‌سازد، `service._save` نزدیک‌ترین `Request.wake_at` را نگه می‌دارد و `service.fire_timers` (در کار دوره‌ای) درخواست را جلو می‌برد.
+  - تأیید با یک کلیک از ایمیل (`quick.py`، `QuickAction`): پیوندها با `notify(..., email_extra=...)` فقط در ایمیل؛ API عمومی `GET/POST /api/workflow/quick/<نشانه>/` و صفحه‌ی `/quick/:token` بی ورود.
   - سیاست گیرنده (`Task.completion`): «یکی کافی است» یا «همه‌ی گیرنده‌ها» با نظر هر گیرنده در `TaskVote`؛ تصمیمی غیر از نخستین کار را تمام می‌کند (`service._vote`).
   - `assignment.resolve` هنگام رسیدن کار، گیرنده‌ها را می‌سازد. اگر خالی بماند، مدیران فرایند (یا مدیران کل) با `Task.fallback`.
   - `acting_for` گیرنده یا جانشین امروزِ یکی از گیرنده‌ها را برای همان فرایند می‌پذیرد و «به نیابت از» را برمی‌گرداند.
@@ -156,6 +158,7 @@
   - `/api/workflow/start/`: فرایندهای قابل شروع کاربر و `<id>/` زمینه‌ی پر کردن (`StartContext`، با `on_behalf`).
   - `/api/workflow/requests/`: درخواست‌های کاربر (ثبت‌کرده یا به نامش)؛ ایجاد و ویرایش پیش‌نویس، `submit`، `requester`، حذف پیش‌نویس.
   - `/api/workflow/tasks/?box=mine|group|delegated|done` (کارتابل، `inbox.box`)، `counts/`، `<id>/` (کار با `detail`: درخواست، تعریف و طرح فرم با دسترسی مرحله، داده‌ی دیدنی، تصمیم‌ها، تاریخچه، برداشتن)، `<id>/complete/`، `<id>/claim/`، `<id>/release/`.
+  - `GET /api/workflow/processes/target-forms/`: فرم‌های منتشرشده با فیلدها برای اقدام «ثبت در فرم دیگر» (`save_submission` در `actions.py`، با `forms.service.system_submission`).
   - `/api/workflow/comments/?request=…` (گفت‌وگوی درخواست، `discussion.py`): فهرست و افزودن پیام برای شرکت‌کنندگان.
 - **فرایندساز** (`pages/workflow/design`):
   - `process-design-page.tsx` (فهرست) و `process-sheet.tsx` (مشخصات).
