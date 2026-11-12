@@ -54,12 +54,12 @@ def post(request: Request, user, text: str) -> RequestComment:
 
 
 def _notify(request: Request, author, text: str) -> None:
-    """هر گیرنده با پیوند آخرین کار خودش در این درخواست (درخواست‌دهنده تا صفحه‌ی پیگیری 4.7 بی پیوند)."""
+    """هر گیرنده با پیوند آخرین کار خودش در این درخواست؛ بقیه (مثل درخواست‌دهنده) با پیوند صفحه‌ی درخواست."""
     recipients = [u for u in participants(request) if u.pk != author.pk]
     by_url: dict[str, list] = {}
     for user in recipients:
         task = request.tasks.filter(Q(candidates=user) | Q(acted_by=user)).order_by("-pk").first()
-        by_url.setdefault(f"/tasks/{task.pk}" if task else "", []).append(user)
+        by_url.setdefault(f"/tasks/{task.pk}" if task else f"/requests/{request.pk}", []).append(user)
     data = {"author": str(author), "process": request.process.title, "number": request.number or "—", "text": text[:200]}
     for url, users in by_url.items():
         notify(users, "workflow.comment", url=url, **data)
