@@ -91,6 +91,19 @@ function BoxTable({ box, empty }: { box: Box; empty: string }) {
               meta: { label: "زمان رسیدن" },
               cell: (c) => <span className="tabular-nums">{formatDateTime(c.getValue())}</span>,
             }),
+            col.accessor("due_at", {
+              header: "مهلت",
+              meta: { label: "مهلت" },
+              cell: (c) =>
+                c.getValue() ? (
+                  <span className="inline-flex flex-wrap items-center gap-1.5">
+                    <span className="tabular-nums">{formatDateTime(c.getValue())}</span>
+                    {c.row.original.overdue && <StatusBadge tone="destructive">دیرکرد</StatusBadge>}
+                  </span>
+                ) : (
+                  "—"
+                ),
+            }),
             col.accessor("claimed_by_name", {
               header: "وضعیت",
               meta: { label: "وضعیت" },

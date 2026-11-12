@@ -31,7 +31,7 @@ function bpmn(bossId: number, roleId: number) {
   return (
     '<?xml version="1.0" encoding="UTF-8"?><bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:spiffworkflow="http://spiffworkflow.org/bpmn/schema/1.0/core" id="d" targetNamespace="http://bpmn.io/schema/bpmn"><bpmn:process id="inbox" isExecutable="true">' +
     '<bpmn:startEvent id="start"><bpmn:outgoing>f0</bpmn:outgoing></bpmn:startEvent>' +
-    userTask("boss_ok", "تأیید مدیر", { assignee: { type: "user", user: bossId }, decisions, fields: { note: "edit" } }, "f0", "f1") +
+    userTask("boss_ok", "تأیید مدیر", { assignee: { type: "user", user: bossId }, decisions, fields: { note: "edit" }, deadline: { value: 2, unit: "days" } }, "f0", "f1") +
     userTask("buy", "خرید کالا", { assignee: { type: "role", role: roleId } }, "f1", "f2") +
     '<bpmn:endEvent id="end"><bpmn:incoming>f2</bpmn:incoming></bpmn:endEvent>' +
     flow("f0", "start", "boss_ok") +
@@ -103,6 +103,7 @@ test.describe("کارتابل", () => {
     await openTask(other, title)
     await expect(other.getByRole("heading", { level: 1, name: "تأیید مدیر" })).toBeVisible()
     await expect(other.getByLabel("موضوع", { exact: true })).toHaveValue("میز اداری")
+    await expect(other.getByRole("group", { name: "مهلت" })).toBeVisible()
     await expect(other.getByLabel("موضوع", { exact: true })).not.toBeEditable()
     await expectAccessible(other)
 
