@@ -112,5 +112,84 @@ def test_no_deadline_no_escalation(org, form, admin):  # noqa: F811
     request = start(org, form, admin)
     task = open_task(request, "t1")
     assert task.due_at is None
-    assert deadlines.run() == "0 reminders, 0 escalations"
+    assert deadlines.run() == "0 reminders, 0 escalations, 0 timers"
     assert ProcessVersion.objects.count() == 1
+
+
+# ─── مرحله‌ی زمان‌بندی (4.6b) ────────────────────────────────────────────
+
+
+def waiting_process(people, process_form, admin, wait):
+    """شروع ← صبر ← بررسی حسابدار ← پایان."""
+    from tests.test_workflow_engine import document, ext, flow, prop, user_task
+
+    timer = "<bpmn:timerEventDefinition><bpmn:timeDate>wait_until</bpmn:timeDate></bpmn:timerEventDefinition>"
+    text = document(
+        '<bpmn:startEvent id="start"><bpmn:outgoing>f0</bpmn:outgoing></bpmn:startEvent>',
+        f'<bpmn:intermediateCatchEvent id="wait" name="صبر">{ext(prop("wait", wait))}<bpmn:incoming>f0</bpmn:incoming><bpmn:outgoing>f1</bpmn:outgoing>{timer}</bpmn:intermediateCatchEvent>',
+        user_task("t1", "بررسی حسابدار", {"type": "user", "user": people["clerk"].pk}, ["f1"], ["f2"]),
+        '<bpmn:endEvent id="end"><bpmn:incoming>f2</bpmn:incoming></bpmn:endEvent>',
+        flow("f0", "start", "wait"),
+        flow("f1", "wait", "t1"),
+        flow("f2", "t1", "end"),
+    )
+    return publish(process_form, text, admin)
+
+
+@pytest.fixture
+def dated_form(form):  # noqa: F811
+    version = form.versions.get()
+    version.definition["sections"][0]["fields"].append({"id": "start_on", "type": "date", "label": "تاریخ شروع"})
+    version.save()
+    return form
+
+
+def test_wait_working_days(org, dated_form, admin):  # noqa: F811
+    process = waiting_process(org, dated_form, admin, {"value": 2, "unit": "days"})
+    before = timezone.now()
+    request = service.start(process, org["ceo"], {"subject": "x"})
+    assert request.status == Request.Status.RUNNING and not request.tasks.exists()
+    expected = WorkCalendar().add_working_days(before, 2)
+    assert abs((request.wake_at - expected).total_seconds()) < 5
+    assert request.events.get(kind=Event.Kind.WAITING).comment.startswith("«صبر» تا ")
+    deadlines.run()
+    assert not request.tasks.exists()
+
+
+def test_wait_until_form_date_then_continue(org, dated_form, admin, monkeypatch):  # noqa: F811
+    import datetime as dt
+
+    import jdatetime
+    from SpiffWorkflow.bpmn.specs.event_definitions import timer as spiff_timer
+
+    process = waiting_process(org, dated_form, admin, {"field": "start_on"})
+    # تاریخ گذشته: بی انتظار ادامه می‌دهد
+    past = jdatetime.date.fromgregorian(date=timezone.localdate() - timedelta(days=1)).strftime("%Y/%m/%d")
+    assert open_task(service.start(process, org["ceo"], {"subject": "x", "start_on": past}), "t1")
+    # تاریخ آینده: تا آن روز منتظر می‌ماند و کار دوره‌ای پس از آن جلو می‌برد
+    future = jdatetime.date.fromgregorian(date=timezone.localdate() + timedelta(days=3)).strftime("%Y/%m/%d")
+    request = service.start(process, org["ceo"], {"subject": "x", "start_on": future})
+    request.refresh_from_db()
+    assert request.wake_at > timezone.now() and not request.tasks.exists()
+    assert deadlines.run().endswith("0 timers")
+    later = request.wake_at + timedelta(minutes=1)
+
+    class Later(dt.datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return later
+
+    monkeypatch.setattr(spiff_timer, "datetime", Later)
+    assert deadlines.run(later).endswith("1 timers")
+    request.refresh_from_db()
+    assert open_task(request, "t1") and request.wake_at is None
+
+
+@pytest.mark.parametrize(
+    "wait, message",
+    [({}, "زمان انتظار تعیین نشده"), ({"value": 0, "unit": "days"}, "عدد صحیح"), ({"field": "subject"}, "فیلدهای «تاریخ»")],
+)
+def test_invalid_wait(org, dated_form, admin, wait, message):  # noqa: F811
+    with pytest.raises(BusinessError) as exc:
+        waiting_process(org, dated_form, admin, wait)
+    assert message in exc.value.fields["wait"]

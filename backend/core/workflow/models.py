@@ -109,6 +109,8 @@ class Request(models.Model):
     updated_at = models.DateTimeField("آخرین تغییر", auto_now=True)
     submitted_at = models.DateTimeField("زمان ارسال", null=True, blank=True)
     finished_at = models.DateTimeField("زمان پایان", null=True, blank=True)
+    # نزدیک‌ترین پایان انتظار مرحله‌های زمان‌بندی (کار دوره‌ای workflow.deadlines آن را جلو می‌برد)
+    wake_at = models.DateTimeField("پایان انتظار", null=True, blank=True, db_index=True)
 
     class Meta:
         ordering = ["-created_at"]
@@ -213,6 +215,7 @@ class Event(models.Model):
         REJECTED = "rejected", "رد"
         CANCELLED = "cancelled", "لغو"
         ESCALATED = "escalated", "پایان مهلت"
+        WAITING = "waiting", "انتظار"
 
     request = models.ForeignKey(Request, verbose_name="درخواست", on_delete=models.CASCADE, related_name="events")
     kind = models.CharField("نوع", max_length=10, choices=Kind.choices)
@@ -230,3 +233,21 @@ class Event(models.Model):
 
     def __str__(self):
         return f"{self.get_kind_display()} — {self.request}"
+
+
+class QuickAction(models.Model):
+    """پیوند یک‌بارمصرف و زمان‌دار «تأیید با یک کلیک از ایمیل» برای یک گیرنده و یک تصمیم (quick.py)."""
+
+    token = models.CharField("نشانه", max_length=64, unique=True)
+    task = models.ForeignKey(Task, verbose_name="کار", on_delete=models.CASCADE, related_name="quick_actions")
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name="گیرنده", on_delete=models.CASCADE, related_name="+")
+    decision = models.CharField("تصمیم", max_length=40)
+    expires_at = models.DateTimeField("انقضا")
+    used_at = models.DateTimeField("زمان استفاده", null=True, blank=True)
+
+    class Meta:
+        verbose_name = "پیوند تصمیم ایمیل"
+        verbose_name_plural = "پیوندهای تصمیم ایمیل"
+
+    def __str__(self):
+        return f"{self.task} — {self.user}: {self.decision}"

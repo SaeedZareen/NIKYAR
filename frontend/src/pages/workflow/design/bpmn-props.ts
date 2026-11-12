@@ -58,6 +58,16 @@ export function setProps(modeler: Any, element: Any, patch: Record<string, unkno
   modeler.get("modeling").updateProperties(element, { extensionElements: values.length ? moddle.create("bpmn:ExtensionElements", { values }) : undefined })
 }
 
+/** زمان انتظار مرحله‌ی زمان‌بندی؛ عبارت زمان رویداد همیشه «wait_until» است و سرور آن را حساب می‌کند. */
+export function setWait(modeler: Any, element: Any, wait: Record<string, unknown> | undefined) {
+  const definition = element.businessObject.eventDefinitions?.[0]
+  if (definition && definition.timeDate?.body !== "wait_until") {
+    const timeDate = modeler.get("moddle").create("bpmn:FormalExpression", { body: "wait_until" })
+    modeler.get("modeling").updateModdleProperties(element, definition, { timeDate })
+  }
+  setProps(modeler, element, { wait })
+}
+
 export function setName(modeler: Any, element: Any, name: string) {
   modeler.get("modeling").updateProperties(element, { name: name || undefined })
 }

@@ -9,7 +9,7 @@
 """
 
 import re
-from collections.abc import Iterable
+from collections.abc import Callable, Iterable
 
 from django.db import transaction
 from rest_framework import serializers
@@ -67,8 +67,11 @@ def preview(code: str, template: str | None = None) -> str:
     return render(template if template is not None else template_of(code), {name: sample for name, (_, sample) in spec.placeholders.items()})
 
 
-def notify(users: Iterable, code: str, *, url: str = "", body: str | None = None, **data) -> None:
-    """body: متن آماده به‌جای قالب این نوع (مثلاً متن دلخواه یک مرحله‌ی فرایند)؛ کانال‌ها همان کانال‌های این نوع است."""
+def notify(users: Iterable, code: str, *, url: str = "", body: str | None = None, email_extra: Callable | None = None, **data) -> None:
+    """
+    body: متن آماده به‌جای قالب این نوع (مثلاً متن دلخواه یک مرحله‌ی فرایند)؛ کانال‌ها همان کانال‌های این نوع است.
+    email_extra(user): متن افزوده‌ی فقط ایمیل همان کاربر (مثلاً پیوندهای تصمیم با یک کلیک).
+    """
     if kind(code) is None:
         raise KeyError(f"Unknown notification kind: {code}")
     recipients = {u.pk: u for u in users if u is not None and u.is_active}
@@ -79,7 +82,8 @@ def notify(users: Iterable, code: str, *, url: str = "", body: str | None = None
         default = org_channels(code)
         for user in recipients.values():
             for channel in user_channels(user, code, default):
-                queue(channel, user, text, kind=code, title=kind(code).title, url=url)
+                extra = email_extra(user) if email_extra and channel == "email" else ""
+                queue(channel, user, f"{text}\n\n{extra}" if extra else text, kind=code, title=kind(code).title, url=url)
 
     if recipients:
         transaction.on_commit(create)

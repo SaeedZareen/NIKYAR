@@ -45,6 +45,7 @@ class WorkflowConfig(AppConfig):
     nikyar_workflow_actions = [
         WorkflowAction(code="set_field", title="تنظیم مقدار یک فیلد", check=_action("check_set_field"), run=_action("run_set_field")),
         WorkflowAction(code="notify", title="اعلان یا ایمیل", check=_action("check_notify"), run=_action("run_notify")),
+        WorkflowAction(code="save_submission", title="ثبت در فرم دیگر", check=_action("check_save_submission"), run=_action("run_save_submission")),
     ]
     nikyar_record_sources = [RecordSource(code="process", title="درخواست‌های فرایند", provider="core.workflow.records.RequestRecords")]
     nikyar_notifications = [

@@ -292,3 +292,34 @@ def remove_old_drafts(now=None) -> int:
                     transaction.on_commit(lambda file_id=file_id: files.release(file_id))
             removed += 1
     return removed
+
+
+def system_submission(form: Form, user, values: dict, submission: Submission | None = None) -> Submission:
+    """
+    ثبت نهایی یا به‌روزرسانی ثبت از سوی سامانه (اقدام «ثبت در فرم دیگر» گردش کار): بی بررسی اجازه‌ی پر کردن، بازه‌ی پذیرش و
+    مهلت ویرایش، ولی با سنجش کامل داده، مقدار یکتا، فیلدهای سروری و شماره. فیلدهای فایل‌دار نگاشت نمی‌شوند (workflow/actions.py).
+    """
+    with transaction.atomic():
+        if submission is not None:
+            submission = Submission.objects.select_for_update().get(pk=submission.pk)
+            form, version, data = submission.form, submission.version, {**submission.data, **values}
+        else:
+            version = form.current_version()
+            if version is None:
+                raise BusinessError(f"فرم «{form.title}» منتشر نشده است.")
+            data = values
+        definition = version.definition
+        cleaned = engine.validate_data(definition, data, Ctx(user=user, previous=submission.data if submission else {}))
+        _check_unique(form, submission, definition, cleaned)
+        if submission is None:
+            submission = Submission(form=form, version=version, created_by=user, status=Submission.Status.SUBMITTED, submitted_at=timezone.now())
+            cleaned.update(server_values(definition, user, signature=False))
+            if form.number_pattern:
+                submission.number = numbering.allocate(sequence_code(form))
+        else:
+            for field in _fields_of(definition, "signature") + _fields_of(definition, "submitter"):
+                if field["id"] in submission.data:
+                    cleaned[field["id"]] = submission.data[field["id"]]
+        submission.data = cleaned
+        submission.save()
+    return submission

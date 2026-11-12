@@ -1798,6 +1798,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workflow/processes/target-forms/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description فرم‌های منتشرشده با فیلدهایشان، برای اقدام «ثبت در فرم دیگر». */
+        get: operations["workflow_processes_target_forms_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workflow/quick/{token}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description صفحه‌ی عمومی پیوند ایمیل: GET وضعیت و شرح، POST ثبت تصمیم (بی ورود؛ نشانه‌ی یک‌بارمصرف و زمان‌دار). */
+        get: operations["workflow_quick_retrieve"];
+        put?: never;
+        /** @description صفحه‌ی عمومی پیوند ایمیل: GET وضعیت و شرح، POST ثبت تصمیم (بی ورود؛ نشانه‌ی یک‌بارمصرف و زمان‌دار). */
+        post: operations["workflow_quick_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workflow/requests/": {
         parameters: {
             query?: never;
@@ -4013,6 +4048,26 @@ export interface components {
                 [key: string]: string;
             };
         };
+        QuickAction: {
+            status: components["schemas"]["QuickActionStatusEnum"];
+            message: string;
+            step: string;
+            process_title: string;
+            number: string;
+            requester_name: string;
+            /** @description گیرنده‌ی ایمیل */
+            user_name: string;
+            decision_label: string;
+        };
+        /**
+         * @description * `ready` - ready
+         *     * `used` - used
+         *     * `expired` - expired
+         *     * `closed` - closed
+         *     * `invalid` - invalid
+         * @enum {string}
+         */
+        QuickActionStatusEnum: "ready" | "used" | "expired" | "closed" | "invalid";
         RecordItem: {
             id: number;
             /** @description شماره‌ی پیگیری (یا خالی) */
@@ -4306,6 +4361,17 @@ export interface components {
             readonly url: string;
             readonly is_image: boolean;
             readonly previewable: boolean;
+        };
+        TargetForm: {
+            code: string;
+            title: string;
+            fields: components["schemas"]["TargetFormField"][];
+        };
+        TargetFormField: {
+            id: string;
+            label: string;
+            type: string;
+            required: boolean;
         };
         TaskContext: {
             can_act: boolean;
@@ -8320,6 +8386,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Process"];
+                };
+            };
+        };
+    };
+    workflow_processes_target_forms_list: {
+        parameters: {
+            query?: {
+                /** @description چند مقدار با ویرگول جدا می‌شود. */
+                category?: string;
+                /** @description چند مقدار با ویرگول جدا می‌شود. */
+                is_active?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TargetForm"][];
+                };
+            };
+        };
+    };
+    workflow_quick_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuickAction"];
+                };
+            };
+        };
+    };
+    workflow_quick_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QuickAction"];
                 };
             };
         };

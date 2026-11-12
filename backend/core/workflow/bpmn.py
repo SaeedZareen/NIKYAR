@@ -14,6 +14,8 @@
     sequenceFlow: condition  مدل سازنده‌ی دیداری (JsonLogic) برای ویرایش دوباره؛ شرط اجرایی همان conditionExpression است
     serviceTask: action     {"type": "<کد اقدام>", ...} از رجیستری اقدام‌ها (actions.py)؛ عملگر SpiffWorkflow: «nikyar»
     endEvent:    outcome    "completed" | "rejected"
+    intermediateCatchEvent (مرحله‌ی زمان‌بندی؛ رویداد زمان‌دار با timeDate «wait_until»):
+                 wait       {"value": n, "unit": "days"|"hours"} (روز یا ساعت کاری) یا {"field": "<فیلد تاریخ فرم>"}
 
 شرط مسیرهای دروازه‌ی انحصاری عبارت امن پایتون است (expressions.py) روی فیلدهای فرم اصلی و `decision`.
 خطاها با کلید شناسه‌ی همان عنصر برمی‌گردند تا فرایندساز روی عنصر نشانشان دهد.
@@ -48,11 +50,14 @@ ELEMENTS = {
     "serviceTask": "اقدام خودکار",
     "exclusiveGateway": "دروازه‌ی انحصاری",
     "parallelGateway": "دروازه‌ی موازی",
+    "intermediateCatchEvent": "مرحله‌ی زمان‌بندی",
     "sequenceFlow": "مسیر",
     "textAnnotation": "یادداشت",
     "association": "پیوند یادداشت",
 }
-STRUCTURAL = {"incoming", "outgoing", "conditionExpression", "documentation", "extensionElements", "text"}
+STRUCTURAL = {"incoming", "outgoing", "conditionExpression", "documentation", "extensionElements", "text", "timerEventDefinition"}
+# عبارت زمان رویداد زمان‌دار؛ موتور اسکریپت آن را با تقویم کاری و ویژگی wait حساب می‌کند (service._engine)
+WAIT_EXPRESSION = "wait_until"
 DECISION = "decision"
 DEFAULT_DECISIONS = [{"value": "approve", "label": "تأیید"}, {"value": "reject", "label": "رد", "comment": "required"}]
 OUTCOMES = {"completed", "rejected"}
@@ -70,6 +75,7 @@ class Definition:
     tasks: dict[str, dict] = field(default_factory=dict)
     actions: dict[str, dict] = field(default_factory=dict)
     outcomes: dict[str, str] = field(default_factory=dict)
+    waits: dict[str, dict] = field(default_factory=dict)
 
 
 def _tag(node) -> str:
@@ -163,7 +169,7 @@ def check(text: str, form_definition: dict) -> Definition:
             errors.setdefault(nid, f"از «{label}» هیچ مسیری بیرون نمی‌رود.")
         if tag in ("startEvent", "endEvent") and len(node) and node.xpath("./*[contains(local-name(), 'EventDefinition')]"):
             errors[nid] = f"«{label}» از نوع ویژه است؛ فقط رویداد ساده پشتیبانی می‌شود."
-        if tag in ("userTask", "serviceTask") and not (node.get("name") or "").strip():
+        if tag in ("userTask", "serviceTask", "intermediateCatchEvent") and not (node.get("name") or "").strip():
             errors.setdefault(nid, f"هر {ELEMENTS[tag]} باید عنوان داشته باشد.")
         if tag == "userTask":
             message = assignment.check(props.get("assignee"), tasks=user_tasks - {nid}, user_fields=user_fields)
@@ -192,6 +198,11 @@ def check(text: str, form_definition: dict) -> Definition:
                 "deadline": deadline,
                 "message": props.get("message"),
             }
+        if tag == "intermediateCatchEvent":
+            message = _check_timer(node) or _check_wait(props.get("wait"), types)
+            if message:
+                errors.setdefault(nid, f"«{label}»: {message}")
+            definition.waits[nid] = props.get("wait") or {}
         if tag == "serviceTask":
             message = _check_action(node, props.get("action"), actions, form_definition, user_tasks)
             if message:
@@ -227,6 +238,27 @@ def _check_action(node, config, actions: dict, form_definition: dict, user_tasks
     if isinstance(to, dict) and to.get("type") == "actor_manager" and to.get("element") not in user_tasks:
         return "مرحله‌ای که مدیر انجام‌دهنده‌اش گیرنده است، در این فرایند نیست."
     return actions[config["type"]].check(config, form_definition)
+
+
+def _check_timer(node) -> str | None:
+    timers = node.xpath("./bpmn:timerEventDefinition", namespaces=NS)
+    if len(timers) != 1 or len(node.xpath("./*[contains(local-name(), 'EventDefinition')]")) != 1:
+        return "فقط رویداد زمان‌دار (صبر تا زمان تعیین‌شده) پشتیبانی می‌شود."
+    dates = timers[0].xpath("./bpmn:timeDate", namespaces=NS)
+    if len(timers[0]) != 1 or len(dates) != 1 or (dates[0].text or "").strip() != WAIT_EXPRESSION:
+        return "زمان انتظار را از پانل ویژگی‌ها تعیین کنید."
+    return None
+
+
+def _check_wait(wait, types: dict[str, str]) -> str | None:
+    if not isinstance(wait, dict) or not wait:
+        return "زمان انتظار تعیین نشده است."
+    if "field" in wait:
+        return None if types.get(wait["field"]) == "date" else "فیلد زمان انتظار باید یکی از فیلدهای «تاریخ» فرم اصلی باشد."
+    value, unit = wait.get("value"), wait.get("unit")
+    if not isinstance(value, int) or isinstance(value, bool) or not 1 <= value <= 365 or unit not in ("days", "hours"):
+        return "زمان انتظار باید عدد صحیح ۱ تا ۳۶۵ روز یا ساعت کاری باشد."
+    return None
 
 
 def _check_access(access, types: dict[str, str]) -> str | None:
