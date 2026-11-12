@@ -77,6 +77,32 @@ test.describe("فرایندساز", () => {
     expect(errors).toEqual([])
   })
 
+  test("مرحله‌ی زمان‌بندی: افزودن از منوی کنار عنصر و تعیین زمان انتظار", async ({ page }, info) => {
+    test.skip(info.project.name !== "desktop", "پانل ویژگی‌ها کنار بوم (صفحه‌ی پهن)")
+    const errors = collectErrors(page)
+    const form = await publishedForm(page, `فرم زمان‌بندی ${Date.now()}`)
+    const process = await call(page, "POST", "/api/workflow/processes/", { code: unique("t"), title: `زمان‌بندی ${Date.now()}`, form: form.id })
+    await page.goto(`/workflow/design/${process.id}`)
+    const canvas = page.getByRole("region", { name: "بوم فرایند" })
+    const problems = page.getByRole("region", { name: "ایرادهای انتشار" })
+    await canvas.locator('[data-element-id="StartEvent_1"]').click()
+    await canvas.locator('.djs-context-pad [title="افزودن مرحله‌ی زمان‌بندی"]').click()
+    const panel = page.getByRole("region", { name: "ویژگی‌ها" })
+    await expect(panel.getByText("مرحله‌ی زمان‌بندی", { exact: true })).toBeVisible()
+    await panel.getByLabel("عنوان", { exact: true }).fill("صبر دو روز")
+    await panel.getByLabel("عنوان", { exact: true }).press("Enter")
+    await panel.getByLabel("صبر تا", { exact: true }).click()
+    await page.getByRole("option", { name: "گذشتن چند روز یا ساعت کاری" }).click()
+    await expect(page.getByText(/ذخیره شد/)).toBeVisible()
+    // تنها ایراد باقی، وصل نبودن مسیر خروجی است؛ زمان رویداد «wait_until» و ویژگی wait در فایل
+    await expect(problems).toContainText("هیچ مسیری بیرون نمی‌رود")
+    await expect(problems).toContainText("۱ ایراد")
+    const version = await call(page, "GET", `/api/workflow/versions/${process.draft_version}/`)
+    expect(version.bpmn).toContain("wait_until")
+    expect(version.bpmn).toContain('name="wait"')
+    expect(errors).toEqual([])
+  })
+
   test("روی موبایل فقط نمودار دیده می‌شود", async ({ page }, info) => {
     test.skip(!isMobile(page))
     const form = await publishedForm(page, `فرم موبایل ${info.project.name} ${Date.now()}`)

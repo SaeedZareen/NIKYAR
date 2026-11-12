@@ -174,14 +174,18 @@ class SafeScriptEngine(PythonScriptEngine):
     کار خودکار BPMN (serviceTask) به run_action(task, operation_name) می‌رسد: اقدام‌های رجیستری نیک‌یار.
     """
 
-    def __init__(self, run_action=None):
+    def __init__(self, run_action=None, timer=None):
         super().__init__()
         self.run_action = run_action
+        # timer(task) زمان پایان انتظار مرحله‌ی زمان‌بندی (ISO 8601) را برمی‌گرداند (عبارت ویژه‌ی bpmn.WAIT_EXPRESSION)
+        self.timer = timer
 
     def validate(self, expression):
         check(expression)
 
     def evaluate(self, task, expression, external_context=None):
+        if self.timer is not None and expression.strip() == "wait_until":
+            return self.timer(task)
         try:
             return evaluate(expression, task.data)
         except ExpressionError as exc:

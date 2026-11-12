@@ -125,7 +125,10 @@ def run(now=None) -> str:
         if Task.objects.filter(pk=task.pk, escalated_at__isnull=True).update(escalated_at=now):
             escalate(Task.objects.select_related("request__process", "request__version", "claimed_by").get(pk=task.pk))
             escalated += 1
-    return f"{reminded} reminders, {escalated} escalations"
+    from . import service
+
+    fired = service.fire_timers(now)
+    return f"{reminded} reminders, {escalated} escalations, {fired} timers"
 
 
 def escalate(task: Task) -> None:

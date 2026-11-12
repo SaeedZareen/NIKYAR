@@ -8,10 +8,12 @@ SpiffWorkflow در `Request.state` و کارهای آماده در جدول `Tas
 from __future__ import annotations
 
 import json
+from datetime import datetime, time
 from functools import lru_cache
 from pathlib import Path
 from types import SimpleNamespace
 
+import jdatetime
 from django.contrib.auth import get_user_model
 from django.db import IntegrityError, transaction
 from django.db.models import Q
@@ -31,10 +33,12 @@ from core.forms import service as form_service
 from core.forms.fieldtypes import Ctx
 from core.kernel.api import BusinessError
 from core.kernel.registry import workflow_actions
+from core.kernel.validators import jalali_datetime
 from core.notifications.service import notify
 from core.numbering import service as numbering
 from core.numbering.models import NumberSequence
 from core.org import service as org_service
+from core.workcalendar.service import WorkCalendar
 
 from . import access, assignment, bpmn, deadlines
 from .expressions import SafeScriptEngine
@@ -223,7 +227,21 @@ def _engine(request: Request) -> SafeScriptEngine:
         config = definition.actions[task.task_spec.bpmn_id]
         actions[config["type"]].run(SimpleNamespace(request=request, data=task.data), config)
 
-    return SafeScriptEngine(run_action=run_action)
+    def timer(task) -> str:
+        """پایان انتظار مرحله‌ی زمان‌بندی: n روز یا ساعت کاری از حالا، یا آغاز روزِ تاریخ یک فیلد فرم (رویداد «انتظار» در تاریخچه)."""
+        wait = definition.waits.get(task.task_spec.bpmn_id, {})
+        now = timezone.now()
+        if "field" in wait:
+            value = request.data.get(wait["field"])
+            until = timezone.make_aware(datetime.combine(jdatetime.datetime.strptime(value, "%Y/%m/%d").togregorian().date(), time.min)) if value else now
+        else:
+            calendar = WorkCalendar()
+            until = calendar.add_working_days(now, wait["value"]) if wait.get("unit") == "days" else calendar.add_working_hours(now, wait.get("value", 0))
+        name = task.task_spec.bpmn_name or task.task_spec.bpmn_id
+        Event.objects.create(request=request, kind=Event.Kind.WAITING, comment=f"«{name}» تا {jalali_datetime(until)}")
+        return until.isoformat()
+
+    return SafeScriptEngine(run_action=run_action, timer=timer)
 
 
 def _load(request: Request) -> BpmnWorkflow:
@@ -234,6 +252,28 @@ def _load(request: Request) -> BpmnWorkflow:
 
 def _save(request: Request, workflow: BpmnWorkflow) -> None:
     request.state = _serializer.to_dict(workflow)
+    # نزدیک‌ترین پایان انتظار (رویدادهای زمان‌دار منتظر)
+    waits = [t._get_internal_data("event_value") for t in workflow.get_tasks(state=TaskState.WAITING)]
+    times = [datetime.fromisoformat(v) for v in waits if isinstance(v, str)]
+    request.wake_at = min(times) if times else None
+
+
+def fire_timers(now=None) -> int:
+    """درخواست‌هایی که انتظارشان تمام شده جلو می‌روند (کار دوره‌ای workflow.deadlines)."""
+    now = now or timezone.now()
+    fired = 0
+    for pk in Request.objects.filter(status=Request.Status.RUNNING, wake_at__lte=now).values_list("pk", flat=True):
+        with transaction.atomic():
+            request = Request.objects.select_for_update().get(pk=pk)
+            if request.status != Request.Status.RUNNING or request.wake_at is None or request.wake_at > now:
+                continue
+            workflow = _load(request)
+            workflow.refresh_waiting_tasks()
+            _advance(request, workflow)
+            _save(request, workflow)
+            request.save()
+            fired += 1
+    return fired
 
 
 def _run(workflow: BpmnWorkflow) -> None:

@@ -8,8 +8,14 @@ const CREATABLE = [
   { id: "service-task", type: "bpmn:ServiceTask", title: "اقدام خودکار", className: "bpmn-icon-service-task" },
   { id: "exclusive-gateway", type: "bpmn:ExclusiveGateway", title: "دروازه‌ی شرطی (یکی از مسیرها)", className: "bpmn-icon-gateway-xor" },
   { id: "parallel-gateway", type: "bpmn:ParallelGateway", title: "دروازه‌ی موازی (همه‌ی مسیرها)", className: "bpmn-icon-gateway-parallel" },
+  { id: "timer-event", type: "bpmn:IntermediateCatchEvent", title: "مرحله‌ی زمان‌بندی (صبر تا زمان تعیین‌شده)", className: "bpmn-icon-intermediate-event-catch-timer", timer: true },
   { id: "end-event", type: "bpmn:EndEvent", title: "رویداد پایان", className: "bpmn-icon-end-event-none" },
 ] as const
+
+/** شکل تازه؛ مرحله‌ی زمان‌بندی رویداد میانی با تعریف زمان است. */
+function shape(elementFactory: any, type: string, timer?: boolean) {
+  return elementFactory.createShape(timer ? { type, eventDefinitionType: "bpmn:TimerEventDefinition" } : { type })
+}
 
 const TOOLS = new Set(["hand-tool", "lasso-tool", "space-tool", "global-connect-tool", "tool-separator"])
 const PAD = new Set(["connect", "delete", "append.end-event", "append.gateway"])
@@ -32,8 +38,8 @@ function translate(template: string, replacements?: Record<string, string>) {
   return text.replace(/{([^}]+)}/g, (_, key) => replacements?.[key] ?? `{${key}}`)
 }
 
-function createAction(elementFactory: any, create: any, type: string) {
-  return (event: Event) => create.start(event, elementFactory.createShape({ type }))
+function createAction(elementFactory: any, create: any, type: string, timer?: boolean) {
+  return (event: Event) => create.start(event, shape(elementFactory, type, timer))
 }
 
 function PaletteFilter(this: any, palette: any, create: any, elementFactory: any) {
@@ -41,7 +47,7 @@ function PaletteFilter(this: any, palette: any, create: any, elementFactory: any
     getPaletteEntries: () => (entries: Record<string, any>) => {
       const kept = Object.fromEntries(Object.entries(entries).filter(([id]) => TOOLS.has(id)))
       for (const item of CREATABLE) {
-        const action = createAction(elementFactory, create, item.type)
+        const action = createAction(elementFactory, create, item.type, "timer" in item)
         kept[`create.${item.id}`] = { group: "nikyar", className: item.className, title: item.title, action: { dragstart: action, click: action } }
       }
       return kept
@@ -51,13 +57,13 @@ function PaletteFilter(this: any, palette: any, create: any, elementFactory: any
 PaletteFilter.$inject = ["palette", "create", "elementFactory"]
 
 function ContextPadFilter(this: any, contextPad: any, create: any, elementFactory: any, autoPlace: any) {
-  const append = (type: string, title: string, className: string) => ({
+  const append = (type: string, title: string, className: string, timer?: boolean) => ({
     group: "model",
     className,
     title,
     action: {
-      click: (_event: Event, element: any) => autoPlace.append(element, elementFactory.createShape({ type })),
-      dragstart: (event: Event, element: any) => create.start(event, elementFactory.createShape({ type }), { source: element }),
+      click: (_event: Event, element: any) => autoPlace.append(element, shape(elementFactory, type, timer)),
+      dragstart: (event: Event, element: any) => create.start(event, shape(elementFactory, type, timer), { source: element }),
     },
   })
   contextPad.registerProvider(500, {
@@ -67,6 +73,7 @@ function ContextPadFilter(this: any, contextPad: any, create: any, elementFactor
         kept["append.user-task"] = append("bpmn:UserTask", "افزودن کار کاربری", "bpmn-icon-user-task")
         kept["append.service-task"] = append("bpmn:ServiceTask", "افزودن اقدام خودکار", "bpmn-icon-service-task")
         kept["append.parallel-gateway"] = append("bpmn:ParallelGateway", "افزودن دروازه‌ی موازی", "bpmn-icon-gateway-parallel")
+        kept["append.timer-event"] = append("bpmn:IntermediateCatchEvent", "افزودن مرحله‌ی زمان‌بندی", "bpmn-icon-intermediate-event-catch-timer", true)
       }
       return kept
     },

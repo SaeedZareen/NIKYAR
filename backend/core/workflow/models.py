@@ -109,6 +109,8 @@ class Request(models.Model):
     updated_at = models.DateTimeField("آخرین تغییر", auto_now=True)
     submitted_at = models.DateTimeField("زمان ارسال", null=True, blank=True)
     finished_at = models.DateTimeField("زمان پایان", null=True, blank=True)
+    # نزدیک‌ترین پایان انتظار مرحله‌های زمان‌بندی (کار دوره‌ای workflow.deadlines آن را جلو می‌برد)
+    wake_at = models.DateTimeField("پایان انتظار", null=True, blank=True, db_index=True)
 
     class Meta:
         ordering = ["-created_at"]
@@ -213,6 +215,7 @@ class Event(models.Model):
         REJECTED = "rejected", "رد"
         CANCELLED = "cancelled", "لغو"
         ESCALATED = "escalated", "پایان مهلت"
+        WAITING = "waiting", "انتظار"
 
     request = models.ForeignKey(Request, verbose_name="درخواست", on_delete=models.CASCADE, related_name="events")
     kind = models.CharField("نوع", max_length=10, choices=Kind.choices)

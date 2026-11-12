@@ -15,7 +15,7 @@ import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { UserPicker } from "@/components/user-picker"
 import { ConditionEditor } from "@/pages/forms/design/rule-editors"
-import { decisionsBefore, DEFAULT_DECISIONS, infoOf, setCondition, setDefault, setName, setProps, userTasks } from "./bpmn-props"
+import { decisionsBefore, DEFAULT_DECISIONS, infoOf, setCondition, setDefault, setName, setProps, setWait, userTasks } from "./bpmn-props"
 import { onlyDigits } from "@/lib/format"
 import { conditionPython } from "./condition-python"
 
@@ -43,6 +43,7 @@ const TYPE_TITLES: Record<string, string> = {
   "bpmn:ExclusiveGateway": "دروازه‌ی شرطی",
   "bpmn:ParallelGateway": "دروازه‌ی موازی",
   "bpmn:SequenceFlow": "مسیر",
+  "bpmn:IntermediateCatchEvent": "مرحله‌ی زمان‌بندی",
 }
 /** فیلدهای ساده‌ای که «تنظیم مقدار فیلد» می‌پذیرد (هم‌سو با SETTABLE در core/workflow/actions.py). */
 const SETTABLE = new Set(["text", "textarea", "number", "amount", "date", "boolean", "choice", "lookup", "hidden"])
@@ -117,6 +118,9 @@ export function ElementProperties({ modeler, id, definition, actions, problem }:
       )}
       {info.type === "bpmn:ServiceTask" && (
         <ActionEditor id={`${info.id}-action`} actions={actions} fields={fields} tasks={userTasks(modeler)} value={info.props.action as Rule | undefined} onChange={(action) => write({ action })} />
+      )}
+      {info.type === "bpmn:IntermediateCatchEvent" && (
+        <WaitEditor id={`${info.id}-wait`} value={info.props.wait as Wait | undefined} onChange={(wait) => setWait(modeler, element, wait)} fields={fields} />
       )}
       {info.type === "bpmn:EndEvent" && (
         <Row id={`${info.id}-outcome`} label="نتیجه‌ی درخواست">
@@ -213,6 +217,48 @@ function AssigneeEditor({ id, value, onChange, fields, tasks }: { id: string; va
           placeholder="فیلد «کاربر» فرم"
           emptyText="فرم اصلی فیلد «کاربر» ندارد."
         />
+      )}
+    </div>
+  )
+}
+
+type Wait = { value?: number; unit?: "days" | "hours"; field?: string }
+
+/** زمان انتظار: چند روز یا ساعت کاری، یا تا تاریخی که در فرم آمده. */
+function WaitEditor({ id, value, onChange, fields }: { id: string; value?: Wait; onChange: (w: Wait) => void; fields: FieldDef[] }) {
+  const mode = value?.field !== undefined ? "field" : "duration"
+  const dates = fields.filter((f) => f.type === "date")
+  return (
+    <div className="flex flex-col gap-2">
+      <Row id={`${id}-mode`} label="صبر تا" help="درخواست تا این زمان منتظر می‌ماند و سپس خودکار به مرحله‌ی بعد می‌رود. روز و ساعت کاری با «تقویم کاری» شمرده می‌شود؛ تاریخ فرم یعنی آغاز همان روز (تاریخ گذشته یعنی بی انتظار).">
+        <Pick
+          id={`${id}-mode`}
+          value={value ? mode : ""}
+          onChange={(m) => onChange(m === "field" ? { field: dates[0]?.id ?? "" } : { value: 1, unit: "days" })}
+          options={{ duration: "گذشتن چند روز یا ساعت کاری", field: "تاریخی از فرم" }}
+        />
+      </Row>
+      {value && mode === "duration" && (
+        <div className="grid grid-cols-2 gap-2">
+          <Row id={`${id}-value`} label="مقدار">
+            <Input
+              id={`${id}-value`}
+              inputMode="numeric"
+              dir="ltr"
+              className="text-start tabular-nums"
+              value={String(value.value ?? "")}
+              onChange={(e) => onChange({ ...value, value: Number(onlyDigits(e.target.value)) || 1 })}
+            />
+          </Row>
+          <Row id={`${id}-unit`} label="واحد">
+            <Pick id={`${id}-unit`} value={value.unit ?? "days"} onChange={(unit) => onChange({ ...value, unit: unit as Wait["unit"] })} options={{ days: "روز کاری", hours: "ساعت کاری" }} />
+          </Row>
+        </div>
+      )}
+      {value && mode === "field" && (
+        <Row id={`${id}-field`} label="فیلد تاریخ">
+          <Pick id={`${id}-field`} value={value.field ?? ""} onChange={(field) => onChange({ field })} options={Object.fromEntries(dates.map((f) => [f.id, f.label ?? f.id]))} placeholder="فرم فیلد تاریخ ندارد" />
+        </Row>
       )}
     </div>
   )
