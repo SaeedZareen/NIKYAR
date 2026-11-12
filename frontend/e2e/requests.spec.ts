@@ -101,4 +101,53 @@ test.describe("درخواست جدید", () => {
     await expect(page).toHaveURL(/\/requests\/new$/)
     await expect(page.getByRole("link", { name: title })).toBeVisible()
   })
+
+  test("درخواست‌های من: صفحه‌ی درخواست با نمودار، مرحله‌ی منتظر، لغو و چاپ", async ({ page }, info) => {
+    const errors = collectErrors(page)
+    const title = `پیگیری ${info.project.name} ${Date.now()}`
+    await page.goto("/requests")
+    const form = await call(page, "POST", "/api/forms/", { code: unique("tr"), title: `فرم ${title}`, fill_by_everyone: true })
+    await call(page, "PATCH", `/api/forms/versions/${form.draft_version}/`, { definition: { sections: [{ id: "s", fields: [{ id: "subject", type: "text", label: "موضوع" }] }] } })
+    await call(page, "POST", `/api/forms/versions/${form.draft_version}/publish/`)
+    const process = await call(page, "POST", "/api/workflow/processes/", { code: unique("tp"), title, form: form.id, number_pattern: "پ-{year}-{seq:3}" })
+    const bpmn =
+      '<?xml version="1.0" encoding="UTF-8"?><bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:spiffworkflow="http://spiffworkflow.org/bpmn/schema/1.0/core" id="d" targetNamespace="http://bpmn.io/schema/bpmn"><bpmn:process id="tr" isExecutable="true">' +
+      '<bpmn:startEvent id="start"><bpmn:outgoing>f0</bpmn:outgoing></bpmn:startEvent>' +
+      '<bpmn:userTask id="review" name="بررسی"><bpmn:extensionElements><spiffworkflow:properties><spiffworkflow:property name="assignee" value=\'{"type":"requester"}\'/></spiffworkflow:properties></bpmn:extensionElements><bpmn:incoming>f0</bpmn:incoming><bpmn:outgoing>f1</bpmn:outgoing></bpmn:userTask>' +
+      '<bpmn:endEvent id="end"><bpmn:incoming>f1</bpmn:incoming></bpmn:endEvent>' +
+      '<bpmn:sequenceFlow id="f0" sourceRef="start" targetRef="review"/><bpmn:sequenceFlow id="f1" sourceRef="review" targetRef="end"/></bpmn:process>' +
+      '<bpmndi:BPMNDiagram id="dg"><bpmndi:BPMNPlane id="pl" bpmnElement="tr">' +
+      '<bpmndi:BPMNShape id="s_di" bpmnElement="start"><dc:Bounds x="100" y="100" width="36" height="36"/></bpmndi:BPMNShape>' +
+      '<bpmndi:BPMNShape id="r_di" bpmnElement="review"><dc:Bounds x="200" y="78" width="100" height="80"/></bpmndi:BPMNShape>' +
+      '<bpmndi:BPMNShape id="e_di" bpmnElement="end"><dc:Bounds x="360" y="100" width="36" height="36"/></bpmndi:BPMNShape>' +
+      '<bpmndi:BPMNEdge id="f0_di" bpmnElement="f0"><di:waypoint x="136" y="118"/><di:waypoint x="200" y="118"/></bpmndi:BPMNEdge>' +
+      '<bpmndi:BPMNEdge id="f1_di" bpmnElement="f1"><di:waypoint x="300" y="118"/><di:waypoint x="360" y="118"/></bpmndi:BPMNEdge>' +
+      "</bpmndi:BPMNPlane></bpmndi:BPMNDiagram></bpmn:definitions>"
+    await call(page, "PATCH", `/api/workflow/versions/${process.draft_version}/`, { bpmn })
+    await call(page, "POST", `/api/workflow/versions/${process.draft_version}/publish/`)
+    const sent = await call(page, "POST", "/api/workflow/requests/", { process: process.id, data: { subject: "میز" }, submit: true })
+
+    await page.goto("/requests")
+    await expect(page.getByRole("heading", { level: 1, name: "درخواست‌های من" })).toBeVisible()
+    await page.goto(`/requests/${sent.id}`)
+    await expect(page.getByRole("heading", { level: 1, name: new RegExp(title) })).toBeVisible()
+    await expect(page.getByRole("list", { name: "مرحله‌های منتظر" })).toContainText("بررسی")
+    const diagram = page.getByRole("region", { name: "نمودار درخواست" })
+    await expect(diagram.locator('.djs-element.nk-active[data-element-id="review"]')).toHaveCount(1)
+    await expect(diagram.locator('.djs-element.nk-done[data-element-id="start"]')).toHaveCount(1)
+    await expectAccessible(page)
+
+    await page.getByRole("button", { name: "لغو درخواست" }).click()
+    const dialog = page.getByRole("dialog", { name: "لغو درخواست" })
+    await dialog.getByLabel("دلیل (اختیاری)", { exact: true }).fill("اشتباه ثبت شد")
+    await dialog.getByRole("button", { name: "لغو درخواست" }).click()
+    await expect(page.getByText("درخواست لغو شد.")).toBeVisible()
+    await expect(page.getByRole("button", { name: "لغو درخواست" })).toHaveCount(0)
+    await expect(page.getByRole("region", { name: "تاریخچه" })).toContainText("اشتباه ثبت شد")
+
+    await page.goto(`/print/requests/${sent.id}`)
+    await expect(page.getByRole("heading", { level: 1, name: title })).toBeVisible()
+    await expect(page.getByRole("region", { name: "تأییدها" })).toContainText("هنوز مرحله‌ای تصمیم نگرفته است.")
+    expect(errors).toEqual([])
+  })
 })

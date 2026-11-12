@@ -1,5 +1,5 @@
 import * as React from "react"
-import { useNavigate, useParams } from "react-router"
+import { Link, useNavigate, useParams } from "react-router"
 import { useForm, useWatch } from "react-hook-form"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Hand, Undo2 } from "lucide-react"
@@ -9,6 +9,7 @@ import { useAuth } from "@/app/auth"
 import { PageError, PageFallback } from "@/app/route-states"
 import { ConfirmDialog } from "@/components/confirm-dialog"
 import { Discussion } from "./discussion"
+import { History } from "./history"
 import { ErrorSummary } from "@/components/form/error-summary"
 import { StaticField } from "@/components/form/form-field"
 import { FormGrid } from "@/components/form/form-grid"
@@ -145,6 +146,11 @@ function TaskView({ task }: { task: Task }) {
               </span>
             </StaticField>
           )}
+          <StaticField label="صفحه‌ی درخواست">
+            <Link to={`/requests/${request.id}`} className="text-primary underline underline-offset-2">
+              پیگیری، نمودار و چاپ
+            </Link>
+          </StaticField>
           {detail.group && <StaticField label="گیرنده‌ها">{detail.candidates.join("، ")}</StaticField>}
         </FormGrid>
       </Section>
@@ -298,30 +304,6 @@ function Votes({ votes }: { votes: Task["detail"]["votes"] }) {
           </li>
         ))}
       </ul>
-    </Section>
-  )
-}
-
-function History({ rows }: { rows: Task["detail"]["history"] }) {
-  return (
-    <Section title="تاریخچه" meta={`${formatNumber(rows.length)} رویداد`}>
-      <ol className="flex flex-col gap-3">
-        {rows.map((h, i) => (
-          <li key={i} className="flex flex-col gap-0.5 border-s-2 border-border ps-3">
-            <div className="flex flex-wrap items-baseline gap-x-2 text-xs">
-              <span className="font-medium">{h.step ? `${h.step}: ${h.decision || h.kind_label}` : h.kind_label}</span>
-              {h.actor && (
-                <span>
-                  {h.actor}
-                  {h.on_behalf_of && <span className="text-muted-foreground"> (به نیابت از {h.on_behalf_of})</span>}
-                </span>
-              )}
-            </div>
-            <span className="text-2xs text-muted-foreground tabular-nums">{formatDateTime(h.at)}</span>
-            {h.comment && <p className="text-xs whitespace-pre-line">{h.comment}</p>}
-          </li>
-        ))}
-      </ol>
     </Section>
   )
 }

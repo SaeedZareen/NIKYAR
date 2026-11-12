@@ -18,6 +18,9 @@ const SubmissionPage = lazy(() => import("@/pages/forms/submissions/submission-p
 const SubmissionPrintPage = lazy(() => import("@/pages/forms/submissions/print-page"))
 const InboxPage = lazy(() => import("@/pages/workflow/tasks/inbox-page"))
 const TaskPage = lazy(() => import("@/pages/workflow/tasks/task-page"))
+const MyRequestsPage = lazy(() => import("@/pages/workflow/requests/my-requests-page"))
+const RequestPage = lazy(() => import("@/pages/workflow/requests/request-page"))
+const RequestPrintPage = lazy(() => import("@/pages/workflow/requests/request-print-page"))
 const NewRequestPage = lazy(() => import("@/pages/workflow/requests/new-request-page"))
 const RequestFillPage = lazy(() => import("@/pages/workflow/requests/request-fill-page"))
 const ProcessDesignPage = lazy(() => import("@/pages/workflow/design/process-design-page"))
@@ -61,6 +64,7 @@ export const router = createBrowserRouter([
       { path: "forms/preview/:versionId", element: page(<FormPreviewPage />, "forms.design") },
       // برگه‌ی چاپ ثبت، بی پوسته‌ی برنامه
       { path: "print/submissions/:id", element: page(<SubmissionPrintPage />) },
+      { path: "print/requests/:id", element: page(<RequestPrintPage />) },
       {
         element: <AppShell />,
         children: [
@@ -76,6 +80,8 @@ export const router = createBrowserRouter([
           { path: "forms/design/:formId", element: page(<DesignerPage />, "forms.design") },
           { path: "tasks", element: page(<InboxPage />) },
           { path: "tasks/:taskId", element: page(<TaskPage />) },
+          { path: "requests", element: page(<MyRequestsPage />) },
+          { path: "requests/:requestId", element: page(<RequestPage />) },
           { path: "requests/new", element: page(<NewRequestPage />) },
           { path: "requests/new/:processId", element: page(<RequestFillPage />) },
           { path: "workflow/design", element: page(<ProcessDesignPage />, "workflow.design") },

@@ -34,6 +34,8 @@ type Props = {
   onSelection?: (id: string | null) => void
   /** نام دسترس‌پذیر بوم (پیش‌فرض: «بوم فرایند» یا «نمودار فقط‌خواندنی»). */
   label?: string
+  /** پیگیری درخواست: عنصرهای انجام‌شده و جاری رنگی می‌شوند. */
+  highlights?: { done: string[]; active: string[] }
   className?: string
 }
 
@@ -47,13 +49,14 @@ const TYPE_LABELS: Record<string, string> = {
   "bpmn:ExclusiveGateway": "دروازه‌ی شرطی",
   "bpmn:ParallelGateway": "دروازه‌ی موازی",
   "bpmn:SequenceFlow": "مسیر",
+  "bpmn:IntermediateCatchEvent": "مرحله‌ی زمان‌بندی بی‌عنوان",
 }
 
 /**
  * بوم BPMN (bpmn-js): ویرایشگر با عنصرهای پشتیبانی‌شده‌ی نیک‌یار، یا نمایشگر فقط‌خواندنی.
  * xml فقط هنگام ساخت خوانده می‌شود؛ برای نسخه یا پوسته‌ی دیگر، والد با key بوم را از نو می‌سازد.
  */
-export function ProcessCanvas({ xml, readOnly, problems, ref, onChange, onHistory, onReady, onSelection, label, className }: Props) {
+export function ProcessCanvas({ xml, readOnly, problems, ref, onChange, onHistory, onReady, onSelection, label, highlights, className }: Props) {
   const host = React.useRef<HTMLDivElement>(null)
   const diagram = React.useRef<Diagram | null>(null)
   const [ready, setReady] = React.useState(false)
@@ -103,6 +106,21 @@ export function ProcessCanvas({ xml, readOnly, problems, ref, onChange, onHistor
     registry.forEach((element: any) => canvas.removeMarker(element, "nk-error"))
     for (const id of Object.keys(problems)) if (registry.get(id)) canvas.addMarker(id, "nk-error")
   }, [problems, ready])
+
+  // پیگیری درخواست: مرحله‌های انجام‌شده و جاری
+  const doneKey = highlights?.done.join() ?? ""
+  const activeKey = highlights?.active.join() ?? ""
+  React.useEffect(() => {
+    const instance = diagram.current
+    if (!instance || !ready) return
+    const canvas = instance.get("canvas") as any
+    const registry = instance.get("elementRegistry") as any
+    for (const [ids, marker] of [
+      [doneKey, "nk-done"],
+      [activeKey, "nk-active"],
+    ] as const)
+      for (const id of ids ? ids.split(",") : []) if (registry.get(id)) canvas.addMarker(id, marker)
+  }, [doneKey, activeKey, ready])
 
   React.useImperativeHandle(
     ref,
