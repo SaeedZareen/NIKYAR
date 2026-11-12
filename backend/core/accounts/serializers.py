@@ -128,6 +128,7 @@ class MeSerializer(serializers.ModelSerializer):
     positions = serializers.SerializerMethodField()
     assignment = serializers.SerializerMethodField(help_text="سمت اصلی جاری؛ null یعنی بدون سمت.")
     forms_viewer = serializers.SerializerMethodField(help_text="ثبت‌های فرمی را می‌بیند (طراح یا نقش بیننده)؛ برای منوی «ثبت‌های فرم‌ها».")
+    workflow_manager = serializers.SerializerMethodField(help_text="مجوز «مدیریت همه‌ی درخواست‌ها» یا مدیر دست‌کم یک فرایند؛ برای منوی «مدیریت درخواست‌ها».")
 
     class Meta:
         model = User
@@ -147,6 +148,7 @@ class MeSerializer(serializers.ModelSerializer):
             "positions",
             "assignment",
             "forms_viewer",
+            "workflow_manager",
         ]
 
     def get_signature(self, obj) -> str:
@@ -167,6 +169,11 @@ class MeSerializer(serializers.ModelSerializer):
 
     def get_permissions(self, obj) -> list[str]:
         return sorted(all_permissions()) if obj.is_superuser else sorted(obj.permission_codes())
+
+    def get_workflow_manager(self, obj) -> bool:
+        from core.workflow.manage import is_manager
+
+        return is_manager(obj)
 
     def get_forms_viewer(self, obj) -> bool:
         from core.forms.service import viewable_forms

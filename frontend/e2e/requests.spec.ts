@@ -1,4 +1,4 @@
-import { expect, test, type Page } from "@playwright/test"
+import { expect, test, type Browser, type Page, type TestInfo } from "@playwright/test"
 import { collectErrors, confirmReview, expectAccessible } from "./helpers"
 
 async function call(page: Page, method: string, url: string, body?: unknown) {
@@ -13,6 +13,18 @@ async function call(page: Page, method: string, url: string, body?: unknown) {
 }
 
 const unique = (prefix: string) => `${prefix}-${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`
+const PASSWORD = "First-Pass-123"
+
+async function signIn(browser: Browser, info: TestInfo, username: string) {
+  const context = await browser.newContext({ storageState: { cookies: [], origins: [] }, ...(info.project.use.viewport ? { viewport: info.project.use.viewport } : {}) })
+  const page = await context.newPage()
+  await page.goto("/login")
+  await page.getByLabel("نام کاربری", { exact: true }).fill(username)
+  await page.getByLabel("گذرواژه", { exact: true }).fill(PASSWORD)
+  await page.getByRole("button", { name: "ورود" }).click()
+  await expect(page.getByRole("heading", { level: 1, name: "پیشخوان" })).toBeVisible()
+  return page
+}
 
 /** فرایند منتشرشده با فرم اصلی «موضوع» و شماره‌ی پیگیری؛ بی مرحله (شروع تا پایان). */
 async function publishedProcess(page: Page, title: string) {
@@ -102,14 +114,15 @@ test.describe("درخواست جدید", () => {
     await expect(page.getByRole("link", { name: title })).toBeVisible()
   })
 
-  test("درخواست‌های من: صفحه‌ی درخواست با نمودار، مرحله‌ی منتظر، لغو و چاپ", async ({ page }, info) => {
-    const errors = collectErrors(page)
+  test("درخواست‌های من: صفحه‌ی درخواست با نمودار، مرحله‌ی منتظر، لغو و چاپ", async ({ page: admin, browser }, info) => {
     const title = `پیگیری ${info.project.name} ${Date.now()}`
-    await page.goto("/requests")
-    const form = await call(page, "POST", "/api/forms/", { code: unique("tr"), title: `فرم ${title}`, fill_by_everyone: true })
-    await call(page, "PATCH", `/api/forms/versions/${form.draft_version}/`, { definition: { sections: [{ id: "s", fields: [{ id: "subject", type: "text", label: "موضوع" }] }] } })
-    await call(page, "POST", `/api/forms/versions/${form.draft_version}/publish/`)
-    const process = await call(page, "POST", "/api/workflow/processes/", { code: unique("tp"), title, form: form.id, number_pattern: "پ-{year}-{seq:3}" })
+    await admin.goto("/requests")
+    const username = unique("tr")
+    await call(admin, "POST", "/api/auth/users/", { username, first_name: "مینا", last_name: "پیگیر", gender: "female", password: PASSWORD })
+    const form = await call(admin, "POST", "/api/forms/", { code: unique("tr"), title: `فرم ${title}`, fill_by_everyone: true })
+    await call(admin, "PATCH", `/api/forms/versions/${form.draft_version}/`, { definition: { sections: [{ id: "s", fields: [{ id: "subject", type: "text", label: "موضوع" }] }] } })
+    await call(admin, "POST", `/api/forms/versions/${form.draft_version}/publish/`)
+    const process = await call(admin, "POST", "/api/workflow/processes/", { code: unique("tp"), title, form: form.id, number_pattern: "پ-{year}-{seq:3}", start_by_everyone: true })
     const bpmn =
       '<?xml version="1.0" encoding="UTF-8"?><bpmn:definitions xmlns:bpmn="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:spiffworkflow="http://spiffworkflow.org/bpmn/schema/1.0/core" id="d" targetNamespace="http://bpmn.io/schema/bpmn"><bpmn:process id="tr" isExecutable="true">' +
       '<bpmn:startEvent id="start"><bpmn:outgoing>f0</bpmn:outgoing></bpmn:startEvent>' +
@@ -123,8 +136,10 @@ test.describe("درخواست جدید", () => {
       '<bpmndi:BPMNEdge id="f0_di" bpmnElement="f0"><di:waypoint x="136" y="118"/><di:waypoint x="200" y="118"/></bpmndi:BPMNEdge>' +
       '<bpmndi:BPMNEdge id="f1_di" bpmnElement="f1"><di:waypoint x="300" y="118"/><di:waypoint x="360" y="118"/></bpmndi:BPMNEdge>' +
       "</bpmndi:BPMNPlane></bpmndi:BPMNDiagram></bpmn:definitions>"
-    await call(page, "PATCH", `/api/workflow/versions/${process.draft_version}/`, { bpmn })
-    await call(page, "POST", `/api/workflow/versions/${process.draft_version}/publish/`)
+    await call(admin, "PATCH", `/api/workflow/versions/${process.draft_version}/`, { bpmn })
+    await call(admin, "POST", `/api/workflow/versions/${process.draft_version}/publish/`)
+    const page = await signIn(browser, info, username)
+    const errors = collectErrors(page)
     const sent = await call(page, "POST", "/api/workflow/requests/", { process: process.id, data: { subject: "میز" }, submit: true })
 
     await page.goto("/requests")
@@ -135,6 +150,7 @@ test.describe("درخواست جدید", () => {
     const diagram = page.getByRole("region", { name: "نمودار درخواست" })
     await expect(diagram.locator('.djs-element.nk-active[data-element-id="review"]')).toHaveCount(1)
     await expect(diagram.locator('.djs-element.nk-done[data-element-id="start"]')).toHaveCount(1)
+    await expect(page.getByRole("region", { name: "مدیریت درخواست" })).toHaveCount(0)
     await expectAccessible(page)
 
     await page.getByRole("button", { name: "لغو درخواست" }).click()
