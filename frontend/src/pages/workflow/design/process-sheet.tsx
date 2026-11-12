@@ -3,7 +3,8 @@ import { useNavigate } from "react-router"
 import { toast } from "sonner"
 import { z } from "zod"
 import { useLookupItems } from "@/app/lookups"
-import { DESIGN_PROCESSES_KEY, useRoleOptions } from "@/app/forms"
+import { useRoleOptions } from "@/app/forms"
+import { DESIGN_PROCESSES_KEY } from "@/app/workflow"
 import { ErrorSummary } from "@/components/form/error-summary"
 import { FormField } from "@/components/form/form-field"
 import { FormGrid } from "@/components/form/form-grid"
@@ -31,6 +32,7 @@ const schema = z.object({
   start_by_everyone: z.boolean(),
   start_roles: z.array(z.string()),
   admin_roles: z.array(z.string()),
+  on_behalf_roles: z.array(z.string()),
   number_pattern: z.string().max(60, "الگو حداکثر ۶۰ نویسه است."),
   number_reset: z.enum(["never", "year", "fiscal"]),
 })
@@ -45,6 +47,7 @@ const LABELS = {
   start_by_everyone: "همه‌ی کاربران شروع کنند",
   start_roles: "نقش‌های شروع‌کننده",
   admin_roles: "مدیران فرایند",
+  on_behalf_roles: "ثبت به نام دیگری",
   number_pattern: "الگوی شماره‌ی درخواست",
   number_reset: "شروع دوباره‌ی شماره",
 }
@@ -66,6 +69,7 @@ export function ProcessSheet({ process, open, onOpenChange }: { process: Process
     start_by_everyone: process?.start_by_everyone ?? false,
     start_roles: (process?.start_roles ?? []).map(String),
     admin_roles: (process?.admin_roles ?? []).map(String),
+    on_behalf_roles: (process?.on_behalf_roles ?? []).map(String),
     number_pattern: process?.number_pattern ?? "",
     number_reset: (process?.number_reset ?? "year") as "never" | "year" | "fiscal",
   })
@@ -83,6 +87,7 @@ export function ProcessSheet({ process, open, onOpenChange }: { process: Process
         start_by_everyone: v.start_by_everyone,
         start_roles: v.start_roles.map(Number),
         admin_roles: v.admin_roles.map(Number),
+        on_behalf_roles: v.on_behalf_roles.map(Number),
         number_pattern: v.number_pattern.trim(),
         number_reset: v.number_reset,
       }
@@ -175,6 +180,13 @@ export function ProcessSheet({ process, open, onOpenChange }: { process: Process
           name="admin_roles"
           label={LABELS.admin_roles}
           description="کاری که قاعده‌ی گیرنده‌اش به کسی نرسد به این نقش‌ها سپرده می‌شود و هشدار می‌دهد؛ مدیریت درخواست‌ها و گزارش این فرایند هم با آن‌هاست."
+          render={({ field, id, aria }) => <SearchPicker id={id} options={roles} multiple value={field.value} onChange={field.onChange} onBlur={field.onBlur} placeholder="انتخاب نقش‌ها" {...aria} />}
+        />
+        <FormField
+          control={form.control}
+          name="on_behalf_roles"
+          label={LABELS.on_behalf_roles}
+          description="دارندگان این نقش‌ها (مثلاً دبیرخانه) می‌توانند درخواست را به نام همکار دیگری ثبت کنند؛ درخواست به نام او پیش می‌رود و ثبت‌کننده در سابقه‌ی درخواست می‌ماند."
           render={({ field, id, aria }) => <SearchPicker id={id} options={roles} multiple value={field.value} onChange={field.onChange} onBlur={field.onBlur} placeholder="انتخاب نقش‌ها" {...aria} />}
         />
         <FormField

@@ -1,7 +1,7 @@
 // ساختار منوی اصلی. هر مورد مجوز لازم را اعلام می‌کند و فقط به کاربر دارای مجوز نمایش داده می‌شود.
 // ماژول‌ها در فازهای بعد گروه خودشان را اضافه می‌کنند.
 import type { LucideIcon } from "lucide-react"
-import { Bell, Building2, ClipboardList, FileCheck, FileSpreadsheet, PencilRuler, KeyRound, UserRound, UserRoundCog, CalendarDays, Component, DatabaseBackup, ListChecks, FormInput, History, LayoutDashboard, ListTree, Settings, ShieldCheck, Table2, Users, Workflow } from "lucide-react"
+import { Bell, FilePlus2, Building2, ClipboardList, FileCheck, FileSpreadsheet, PencilRuler, KeyRound, UserRound, UserRoundCog, CalendarDays, Component, DatabaseBackup, ListChecks, FormInput, History, LayoutDashboard, ListTree, Settings, ShieldCheck, Table2, Users, Workflow } from "lucide-react"
 
 /**
  * مجوز مورد نیاز: کد مجوز، "superuser" (فقط مدیر کل؛ راهنمای توسعه)، یا "forms-viewer"
@@ -26,6 +26,7 @@ const navigation: NavGroup[] = [
     title: "کار من",
     items: [
       { title: "پیشخوان", url: "/", icon: LayoutDashboard, keywords: "خانه داشبورد" },
+      { title: "درخواست جدید", url: "/requests/new", icon: FilePlus2, keywords: "درخواست فرایند ثبت شروع پیش‌نویس گردش کار" },
       { title: "فرم‌ها", url: "/forms", icon: ClipboardList, keywords: "فرم درخواست پر کردن پیش‌نویس" },
       { title: "ثبت‌های من", url: "/forms/mine", icon: FileCheck, keywords: "ثبت فرم پیش‌نویس رسید پیگیری" },
       { title: "ثبت‌های فرم‌ها", url: "/forms/reports", icon: FileSpreadsheet, access: "forms-viewer", keywords: "گزارش ثبت فرم خروجی اکسل چاپ" },

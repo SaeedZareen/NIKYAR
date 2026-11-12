@@ -281,8 +281,8 @@ def save_request(*, user, data: dict, submit: bool, process: Process | None = No
         else:
             request = Request.objects.select_for_update().get(pk=request.pk)
             request.version = version
-            if requester is not None:
-                request.requester = requester
+            # بی «به نام»: خود پرکننده (انتخاب همکار در پیش‌نویس برگشت‌پذیر است)
+            request.requester = requester or user
         current = form_engine.file_ids(definition, cleaned)
         for file_id in current - previous:
             files.claim(file_id)

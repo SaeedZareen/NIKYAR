@@ -83,6 +83,11 @@ def test_on_behalf(process, people, client_for):
     people["secretary"].roles.add(role)
     process.on_behalf_roles.add(role)
     assert c.get(f"{START}{process.pk}/").json()["on_behalf"] is True
+    # در پیش‌نویس، «به نام» برگشت‌پذیر است: بی requester دوباره به نام خود پرکننده
+    draft = c.post(REQUESTS, {"process": process.pk, "data": {}, "submit": False, "requester": people["clerk"].pk}, format="json").json()
+    assert draft["requester"] == people["clerk"].pk
+    assert c.patch(f"{REQUESTS}{draft['id']}/", {"data": {}, "submit": False, "requester": None}, format="json").json()["requester"] == people["secretary"].pk
+    c.delete(f"{REQUESTS}{draft['id']}/")
     sent = c.post(REQUESTS, {"process": process.pk, "data": {"subject": "برای کارشناس"}, "submit": True, "requester": people["clerk"].pk}, format="json").json()
     request = Request.objects.get(pk=sent["id"])
     assert request.requester == people["clerk"] and request.created_by == people["secretary"]
