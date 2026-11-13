@@ -105,18 +105,14 @@ export default function LicensePage() {
             />
           </Section>
           <Section title="ماژول‌ها" description="هسته‌ی سامانه (کاربران، ساختار سازمانی، اعلان‌ها، پشتیبان‌گیری و…) همیشه فعال است؛ ماژول‌ها جداگانه در لایسنس فعال می‌شوند.">
-            {s.modules.length ? (
-              <ul className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-                {s.modules.map((m) => (
-                  <li key={m.code} className="flex items-center gap-2 rounded-md border px-3 py-2 text-xs">
-                    <span className="flex-1 font-medium">{m.title}</span>
-                    <StatusBadge tone={m.enabled ? "success" : "neutral"}>{m.enabled ? "فعال" : "غیرفعال"}</StatusBadge>
-                  </li>
-                ))}
-              </ul>
-            ) : (
-              <p className="text-xs text-muted-foreground">هنوز ماژولی نصب نشده است؛ ماژول‌ها (مثل پرونده‌ی پرسنلی و دبیرخانه) در نسخه‌های بعد اضافه می‌شوند.</p>
-            )}
+            <ul className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
+              {s.modules.map((m) => (
+                <li key={m.code} className="flex items-center gap-2 rounded-md border px-3 py-2 text-xs">
+                  <span className="flex-1 font-medium">{m.title}</span>
+                  <StatusBadge tone={m.enabled ? "success" : "neutral"}>{m.enabled ? "فعال" : "غیرفعال"}</StatusBadge>
+                </li>
+              ))}
+            </ul>
           </Section>
           <Section title="بارگذاری لایسنس" description="فایل ‎.nikyar-license را که صادرکننده فرستاده انتخاب کنید؛ امضای آن بررسی و همان لحظه فعال می‌شود.">
             <div className="flex flex-col gap-3">

@@ -7,6 +7,7 @@ import { useAuth } from "@/app/auth"
 import { useLookupItems } from "@/app/lookups"
 import { FormField, StaticField } from "@/components/form/form-field"
 import { AttachmentList, FileDropzone } from "@/components/files"
+import { RegionInput, type RegionValue } from "@/components/region-input"
 import { SearchPicker, type PickerOption } from "@/components/search-picker"
 import { useUnitOptions, useUserNames } from "./org-options"
 import { SignaturePad } from "@/components/signature-pad"
@@ -203,30 +204,20 @@ export function PositionField(p: FieldProps) {
 /** استان و شهر (یا شهرستان): با انتخاب استان، فقط شهرهای همان استان. */
 export function RegionField(p: FieldProps) {
   const level = p.field.props?.level === "county" ? "counties" : "cities"
-  const regions = useQuery({ queryKey: ["forms", "regions"], queryFn: () => unwrap(api.GET("/api/forms/regions/")), staleTime: Infinity }).data ?? []
-  const provinces = regions.map((r) => ({ value: r.name, label: r.name }))
   return (
     <FormField
       {...common(p)}
-      render={({ field, id, aria }) => {
-        const v = (field.value && typeof field.value === "object" ? field.value : {}) as { province?: string; city?: string }
-        const places = (regions.find((r) => r.name === v.province)?.[level] ?? []).map((c) => ({ value: c, label: c }))
-        return (
-          <div className="grid gap-2 @md:grid-cols-2">
-            <SearchPicker id={id} options={provinces} value={v.province ?? ""} onChange={(x) => field.onChange({ province: String(x) })} onBlur={field.onBlur} placeholder="استان" {...aria} />
-            <SearchPicker
-              options={places}
-              value={v.city ?? ""}
-              onChange={(x) => field.onChange({ ...v, city: String(x) })}
-              onBlur={field.onBlur}
-              disabled={!v.province}
-              placeholder={level === "counties" ? "شهرستان" : "شهر"}
-              aria-label={`${p.field.label} — ${level === "counties" ? "شهرستان" : "شهر"}`}
-              aria-invalid={aria["aria-invalid"]}
-            />
-          </div>
-        )
-      }}
+      render={({ field, id, aria }) => (
+        <RegionInput
+          id={id}
+          value={(field.value && typeof field.value === "object" ? field.value : {}) as RegionValue}
+          onChange={field.onChange}
+          onBlur={field.onBlur}
+          label={p.field.label ?? ""}
+          level={level}
+          {...aria}
+        />
+      )}
     />
   )
 }

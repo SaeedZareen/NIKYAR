@@ -65,6 +65,8 @@ INSTALLED_APPS = [
     "core.licensing",
     "core.forms",
     "core.workflow",
+    # ماژول‌های قابل فروش (backend/modules)؛ هسته به آن‌ها وابسته نیست.
+    "modules.hr",
 ]
 
 AUTH_USER_MODEL = "accounts.User"
@@ -179,6 +181,7 @@ SPECTACULAR_SETTINGS = {
         "NotificationChannelEnum": "core.notifications.views.CHANNEL_CHOICES",
         "FormVersionStatusEnum": "core.forms.models.FormVersion.Status",
         "FormSubmissionStatusEnum": "core.forms.models.Submission.Status",
+        "EmployeeStatusEnum": "modules.hr.models.Employee.Status",
     },
     "POSTPROCESSING_HOOKS": [
         "drf_spectacular.hooks.postprocess_schema_enums",

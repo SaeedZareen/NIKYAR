@@ -26,7 +26,6 @@ from .fieldtypes import (
     COLUMN_TYPES,
     ID_PATTERN,
     OPTION_VALUE_PATTERN,
-    PREFILL,
     REGISTRY,
     UNIQUE_TYPES,
     Ctx,
@@ -36,6 +35,8 @@ from .fieldtypes import (
     is_jalali_date,
     is_jalali_datetime,
     is_uuid,
+    prefill_sources,
+    user_profile,
 )
 
 JSON_SCHEMA_DIALECT = "https://json-schema.org/draft/2020-12/schema"
@@ -288,7 +289,8 @@ def _check_field(field, path: str, seen: set, errors: dict, *, columns: int | No
             errors[f"{path}.{key}"] = f"«{title}» فقط برای فیلدهای دارای مقدار و به شکل بله/خیر است."
     if field.get("unique") and field["type"] not in UNIQUE_TYPES:
         errors[f"{path}.unique"] = f"نوع «{ftype.title}» مقدار یکتا نمی‌پذیرد."
-    if "prefill" in field and (field["prefill"] not in PREFILL or field["type"] not in PREFILL[field["prefill"]][1]):
+    sources = prefill_sources()
+    if "prefill" in field and (field["prefill"] not in sources or field["type"] not in sources[field["prefill"]][1]):
         errors[f"{path}.prefill"] = f"پیش‌پر «{field['prefill']}» برای نوع «{ftype.title}» پذیرفته نیست."
     if columns is not None and "new_row" in field and not isinstance(field["new_row"], bool):
         errors[f"{path}.new_row"] = "«شروع از ردیف تازه» باید بله یا خیر باشد."
@@ -536,8 +538,7 @@ def prefill_value(field: dict, user) -> str | None:
     source = field.get("prefill")
     if source is None or user is None:
         return None
-    value = user.get_full_name() if source == "full_name" else getattr(user, source, "")
-    return (value or "").strip() or None
+    return (user_profile(user).get(source) or "").strip() or None
 
 
 def _normalize(field: dict, value):

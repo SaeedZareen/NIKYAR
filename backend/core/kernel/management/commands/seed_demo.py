@@ -6,8 +6,10 @@
 """
 
 import jdatetime
+from django.apps import apps
 from django.core.management.base import BaseCommand
 from django.db import transaction
+from django.utils.module_loading import import_string
 
 from core.accounts.models import Role, User
 from core.lookups.models import LookupItem, LookupList
@@ -41,8 +43,8 @@ USERS = [
 ROLES = {
     "مدیران": ("مشاهده‌ی کاربران و ساختار سازمانی", ["accounts.users.view", "org.view"]),
     "کارشناس منابع انسانی": (
-        "نگهداری ساختار سازمانی، انتصاب‌ها و جانشینی‌ها",
-        ["accounts.users.view", "org.view", "org.manage", "lookups.manage", "delegation.manage"],
+        "نگهداری ساختار سازمانی، انتصاب‌ها، جانشینی‌ها و پرونده‌های پرسنلی",
+        ["accounts.users.view", "org.view", "org.manage", "lookups.manage", "delegation.manage", "hr.view", "hr.manage"],
     ),
     "راهبر سامانه": (
         "مدیریت کاربران، نقش‌ها، تنظیمات و سوابق",
@@ -102,5 +104,10 @@ class Command(BaseCommand):
         for (code, name), titles in LOOKUPS.items():
             lst = LookupList.objects.create(code=code, name=name)
             LookupItem.objects.bulk_create(LookupItem(list=lst, code=f"{code}-{n + 1}", title=t, order=n) for n, t in enumerate(titles))
+
+        # داده‌ی نمونه‌ی ماژول‌ها (nikyar_demo_seed: مسیر تابع بی‌ورودی) پس از داده‌ی هسته
+        for config in apps.get_app_configs():
+            if seed := getattr(config, "nikyar_demo_seed", None):
+                import_string(seed)()
 
         self.stdout.write(f"Demo data created. Sign in as 'admin' with password '{PASSWORD}'.")

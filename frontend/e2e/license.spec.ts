@@ -11,7 +11,7 @@ test.describe("ماژول‌ها و لایسنس", () => {
     const status = page.getByRole("region", { name: "وضعیت" })
     await expect(status).toContainText("آزمایشی (۳۰ روزه)")
     await expect(status).toContainText(/NK-[0-9A-F]{8}-[0-9A-F]{8}/)
-    await expect(page.getByRole("region", { name: "ماژول‌ها" })).toContainText("هنوز ماژولی نصب نشده است")
+    await expect(page.getByRole("region", { name: "ماژول‌ها" })).toContainText("پرونده‌ی پرسنلی")
     await expectAccessible(page)
 
     const upload = page.getByRole("region", { name: "بارگذاری لایسنس" })
