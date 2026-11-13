@@ -7,7 +7,7 @@ from .service import visible_submissions
 class FormRecords:
     @staticmethod
     def targets():
-        return list(Form.objects.order_by("title").values_list("code", "title"))
+        return list(Form.objects.regular().order_by("title").values_list("code", "title"))
 
     @staticmethod
     def selectable(user, target):

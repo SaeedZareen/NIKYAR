@@ -150,6 +150,17 @@ class ProfileValue:
 
 
 @dataclass(frozen=True)
+class CustomFieldsSpec:
+    """
+    فیلدهای دلخواه یک رکورد ماژول (مثل پرونده‌ی پرسنلی) که سازمان با طراح فرم‌ساز می‌سازد. برای هر spec یک فرم پنهان با
+    کاربرد «فیلدهای سفارشی» و شناسه‌ی code ساخته می‌شود؛ مقدارها را خود ماژول با core.forms.custom_fields.clean روی رکوردش نگه می‌دارد.
+    """
+
+    code: str
+    title: str
+
+
+@dataclass(frozen=True)
 class PermissionGroup:
     app_label: str
     title: str
@@ -217,3 +228,7 @@ def session_flags(user) -> dict[str, bool]:
         for name, path in getattr(config, "nikyar_session_flags", {}).items():
             flags[name] = enabled and bool(import_string(path)(user))
     return flags
+
+
+def custom_field_specs() -> list[CustomFieldsSpec]:
+    return [spec for config in apps.get_app_configs() for spec in getattr(config, "nikyar_custom_fields", [])]

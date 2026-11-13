@@ -1,24 +1,33 @@
 from django.db import transaction
 from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import filters
-from rest_framework.exceptions import PermissionDenied
+from rest_framework.decorators import action
+from rest_framework.exceptions import NotFound, PermissionDenied
+from rest_framework.response import Response
 
-from core.audit.service import AuditedModelViewSet
+from core.audit.models import AuditLog
+from core.audit.service import AuditedModelViewSet, record
 from core.files.service import release
+from core.forms import custom_fields
+from core.forms.engine import compile_schema
 from core.kernel.api import HasPerm, MultiValueFilter
 
 from . import access
 from .models import BankAccount, Dependent, Document, Education, Employee, Insurance, WorkHistory
 from .serializers import (
     BankAccountSerializer,
+    CustomFieldsSerializer,
     DependentSerializer,
     DocumentSerializer,
     EducationSerializer,
     EmployeeDetailSerializer,
+    EmployeeExtraSerializer,
     EmployeeSerializer,
     InsuranceSerializer,
     WorkHistorySerializer,
 )
+
+CUSTOM_FIELDS = "hr-employee"
 
 
 class EmployeeViewSet(AuditedModelViewSet):
@@ -29,7 +38,7 @@ class EmployeeViewSet(AuditedModelViewSet):
 
     queryset = Employee.objects.all()  # نوع شناسه برای سند API؛ داده از get_queryset
     permission_classes = [HasPerm]
-    perms = {"list": None, "retrieve": None, "*": access.MANAGE}
+    perms = {"list": None, "retrieve": None, "custom_fields": None, "me": None, "*": access.MANAGE}
     filter_backends = [MultiValueFilter, filters.SearchFilter]
     filter_fields = {"status": "status", "employment_type": "employment_type_id", "unit": "unit_id"}
     search_fields = ["first_name", "last_name", "personnel_code", "national_code"]
@@ -38,6 +47,42 @@ class EmployeeViewSet(AuditedModelViewSet):
 
     def get_serializer_class(self):
         return EmployeeDetailSerializer if self.action != "list" else EmployeeSerializer
+
+    @extend_schema(responses=CustomFieldsSerializer)
+    @action(detail=False, url_path="custom-fields", pagination_class=None)
+    def custom_fields(self, request):
+        """تعریف و طرح فیلدهای دلخواه پرونده (آخرین نسخه‌ی منتشرشده) برای زبانه‌ی «اطلاعات تکمیلی» و ستون‌های جدول."""
+        if not access.is_viewer(request.user) and not access.has_own_file(request.user):
+            raise PermissionDenied()
+        form = custom_fields.form_of(CUSTOM_FIELDS)
+        version = form.current_version()
+        definition = version.definition if version else {"sections": []}
+        can_design = request.user.is_superuser or "forms.design" in request.user.permission_codes()
+        return Response({"form": form.pk, "definition": definition, "schema": compile_schema(definition), "can_design": can_design})
+
+    @extend_schema(request=EmployeeExtraSerializer, responses=EmployeeDetailSerializer)
+    @action(detail=True, methods=["patch"])
+    def extra(self, request, pk=None):
+        """ذخیره‌ی «اطلاعات تکمیلی» با همان سنجش فرم‌ساز (الزامی‌ها، قاعده‌ها، پیام فارسی هر فیلد)."""
+        employee = self.get_object()
+        body = EmployeeExtraSerializer(data=request.data)
+        body.is_valid(raise_exception=True)
+        before = dict(employee.extra)
+        with transaction.atomic():
+            employee.extra = custom_fields.clean(CUSTOM_FIELDS, body.validated_data["data"], before, request.user)
+            employee.save(update_fields=["extra", "updated_at"])
+            if employee.extra != before:
+                record(request, AuditLog.Action.UPDATE, employee, {"extra": [before, employee.extra]})
+        return Response(EmployeeDetailSerializer(employee, context=self.get_serializer_context()).data)
+
+    @extend_schema(responses=EmployeeDetailSerializer)
+    @action(detail=False)
+    def me(self, request):
+        """«پرونده‌ی من»: پرونده‌ی متصل به حساب کاربر، فقط‌خواندنی."""
+        employee = Employee.objects.filter(user=request.user).select_related("employment_type", "separation_reason", "unit", "user").first()
+        if employee is None:
+            raise NotFound("پرونده‌ای به حساب شما وصل نیست.")
+        return Response(EmployeeDetailSerializer(employee, context={**self.get_serializer_context(), "self_view": True}).data)
 
     def get_queryset(self):
         if self.action in ("list", "retrieve"):
@@ -52,7 +97,8 @@ class EmployeeViewSet(AuditedModelViewSet):
 class RecordViewSet(AuditedModelViewSet):
     """
     سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
-    که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+    که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ و هر کارمند همه‌ی سوابق پرونده‌ی خودش را («پرونده‌ی من»).
+    افزودن، ویرایش و حذف: `hr.manage`.
     """
 
     model = None
@@ -62,16 +108,21 @@ class RecordViewSet(AuditedModelViewSet):
     pagination_class = None
     http_method_names = ["get", "post", "patch", "delete", "head", "options"]
 
-    def _employees(self):
-        user = self.request.user
-        if not access.is_viewer(user) or (self.financial and not access.can_view_all(user)):
-            raise PermissionDenied()
-        return access.visible(user)
-
     def get_queryset(self):
-        records = self.model.objects.filter(employee__in=self._employees())
+        user = self.request.user
+        if self.action in ("list", "retrieve"):
+            employees = access.readable(user, financial=self.financial)
+        elif self.financial and not access.can_view_all(user):
+            employees = Employee.objects.none()
+        else:
+            employees = access.visible(user)
+        records = self.model.objects.filter(employee__in=employees)
         if self.action == "list":
-            records = records.filter(employee_id=self.request.query_params.get("employee") or 0)
+            employee = self.request.query_params.get("employee") or 0
+            # پرونده‌ای که سوابقش (یا سوابق مالی‌اش) برای کاربر دیدنی نیست: ۴۰۳، نه فهرست خالی
+            if not employees.filter(pk=employee).exists():
+                raise PermissionDenied()
+            records = records.filter(employee_id=employee)
         return records
 
     @extend_schema(parameters=[OpenApiParameter("employee", int, required=True, description="شناسه‌ی پرونده")])
@@ -79,7 +130,7 @@ class RecordViewSet(AuditedModelViewSet):
         return super().list(request, *args, **kwargs)
 
     def perform_create(self, serializer):
-        if not self._employees().filter(pk=serializer.validated_data["employee"].pk).exists():
+        if not access.visible(self.request.user).filter(pk=serializer.validated_data["employee"].pk).exists():
             raise PermissionDenied()
         super().perform_create(serializer)
 

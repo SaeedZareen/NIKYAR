@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
-from core.kernel.registry import LookupItemSpec, LookupSpec, ModuleSpec, NumberingSpec, ProfileValue
+from core.kernel.registry import CustomFieldsSpec, LookupItemSpec, LookupSpec, ModuleSpec, NumberingSpec, ProfileValue
 
 
 class HrConfig(AppConfig):
@@ -93,5 +93,6 @@ class HrConfig(AppConfig):
             code="national_code", title="کد ملی (پرونده‌ی پرسنلی)", types=frozenset({"national_code", "text"}), resolve="modules.hr.profile.national_code"
         )
     ]
-    nikyar_session_flags = {"hr_viewer": "modules.hr.access.is_viewer"}
+    nikyar_session_flags = {"hr_viewer": "modules.hr.access.is_viewer", "hr_self": "modules.hr.access.has_own_file"}
+    nikyar_custom_fields = [CustomFieldsSpec(code="hr-employee", title="فیلدهای دلخواه پرونده‌ی پرسنلی")]
     nikyar_demo_seed = "modules.hr.demo.seed"

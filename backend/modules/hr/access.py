@@ -47,6 +47,19 @@ def visible(user) -> QuerySet:
     return employees.filter(Q(unit_id__in=units) | Q(user_id__in=assigned))
 
 
+def readable(user, *, financial: bool = False) -> QuerySet:
+    """پرونده‌هایی که سوابقشان دیده می‌شود: دیدنی‌ها (سوابق مالی فقط با مجوز، نه مدیر واحد) و همیشه پرونده‌ی خود کاربر."""
+    own = Employee.objects.filter(user=user) if user.is_authenticated else Employee.objects.none()
+    if not is_viewer(user) or (financial and not can_view_all(user)):
+        return own
+    return visible(user) | own
+
+
+def has_own_file(user) -> bool:
+    """منوی «پرونده‌ی من»: پرونده‌ای به حساب کاربر وصل است."""
+    return Employee.objects.filter(user=user).exists()
+
+
 def is_viewer(user) -> bool:
     """منوی «منابع انسانی»: مجوز دیدن یا ویرایش، یا مدیر دست‌کم یک واحد."""
     return can_view_all(user) or bool(managed_units(user))

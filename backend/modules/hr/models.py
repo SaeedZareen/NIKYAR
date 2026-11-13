@@ -47,6 +47,8 @@ class Employee(models.Model):
     user = models.OneToOneField(
         settings.AUTH_USER_MODEL, verbose_name="کاربر سامانه", null=True, blank=True, on_delete=models.SET_NULL, related_name="employee"
     )
+    # مقدار فیلدهای دلخواه سازمان (فرم «فیلدهای دلخواه پرونده‌ی پرسنلی»، core.forms.custom_fields)
+    extra = models.JSONField("اطلاعات تکمیلی", default=dict, blank=True)
     created_at = models.DateTimeField("زمان ثبت", auto_now_add=True)
     updated_at = models.DateTimeField("آخرین تغییر", auto_now=True)
 
