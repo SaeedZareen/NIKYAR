@@ -35,7 +35,7 @@ export function EventsSection({ employee }: { employee: Schemas["EmployeeDetail"
         },
       }),
       col.accessor((e) => Number(e.days) || Number(e.hours), {
-        id: "amount",
+        id: "duration",
         header: "مدت",
         meta: { label: "مدت" },
         cell: (c) => {

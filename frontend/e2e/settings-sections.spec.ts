@@ -32,18 +32,21 @@ test.describe("تنظیمات سامانه و منابع انسانی", () => {
     await page.goto("/admin/settings?section=hr-roles")
     const roles = page.getByRole("region", { name: "منابع انسانی: نقش‌ها و سقف مبلغ" })
     await expect(roles.getByLabel("سقف مبلغ بی نیاز به تأیید مدیرعامل", { exact: true })).toHaveValue("1,000,000,000")
-    await expect(roles.getByRole("combobox", { name: "امور مالی" })).toHaveText("تعیین نشده")
+    // داده‌ی نمایشی نقش امور مالی را تعیین کرده است
+    await expect(roles.getByRole("combobox", { name: "امور مالی" })).toHaveText("امور مالی")
     await expectAccessible(page)
     if (info.project.name !== "desktop") return
 
-    await roles.getByRole("combobox", { name: "کارشناس منابع انسانی" }).click()
-    const option = page.getByRole("option").nth(1)
-    const name = (await option.textContent()) ?? ""
-    await option.click()
+    // نقش‌ها گیرنده‌ی فرایندهای آماده‌اند و آزمون‌های دیگر به آن‌ها وابسته‌اند؛ فقط سقف مبلغ تغییر و برگردانده می‌شود
+    const threshold = roles.getByLabel("سقف مبلغ بی نیاز به تأیید مدیرعامل", { exact: true })
+    await threshold.fill("2000000000")
     await roles.getByRole("button", { name: "ذخیره‌ی تغییرات" }).click()
     await expect(page.getByText("نقش‌ها و سقف مبلغ منابع انسانی ذخیره شد.")).toBeVisible()
     await page.reload()
-    await expect(roles.getByRole("combobox", { name: "کارشناس منابع انسانی" })).toHaveText(name)
+    await expect(threshold).toHaveValue("2,000,000,000")
+    await threshold.fill("1000000000")
+    await roles.getByRole("button", { name: "ذخیره‌ی تغییرات" }).click()
+    await expect(roles.getByRole("button", { name: "ذخیره‌ی تغییرات" })).toBeDisabled()
   })
 
   test("منابع انسانی: سهمیه‌ی مرخصی و نوع‌های مرخصی", async ({ page }, info) => {
