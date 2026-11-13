@@ -12,7 +12,6 @@ from .models import Job, ScheduleState
 from .registry import TASKS
 
 log = logging.getLogger("nikyar.jobs")
-KEEP_DAYS = 30
 
 
 def enqueue(name: str, *, user=None, run_after=None, **payload) -> Job:
@@ -97,6 +96,13 @@ def work_once() -> int:
     return count
 
 
+def keep_days() -> int:
+    """مدت نگه‌داری سابقه‌ی کارهای پایان‌یافته (تنظیمات › سامانه و امنیت)."""
+    from core.settings.service import read
+
+    return read("system")["jobs_keep_days"]
+
+
 def cleanup(now=None) -> int:
-    old = Job.objects.filter(finished_at__lt=(now or timezone.now()) - timedelta(days=KEEP_DAYS)).exclude(status__in=[Job.Status.QUEUED, Job.Status.RUNNING])
+    old = Job.objects.filter(finished_at__lt=(now or timezone.now()) - timedelta(days=keep_days())).exclude(status__in=[Job.Status.QUEUED, Job.Status.RUNNING])
     return old.delete()[0]

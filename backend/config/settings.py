@@ -6,8 +6,6 @@ NIKYAR_SECRET_KEY        کلید امنیتی (اگر نباشد، یک‌با�
 NIKYAR_ALLOWED_HOSTS     نام‌ها/نشانی‌های مجاز، جداشده با ویرگول (پیش‌فرض: همه، برای شبکه‌ی داخلی)
 NIKYAR_DB_ENGINE         sqlite (پیش‌فرض) یا postgres
 NIKYAR_DB_NAME/USER/PASSWORD/HOST/PORT   برای PostgreSQL
-NIKYAR_LOGIN_RATE        سقف تلاش ورود از هر IP (پیش‌فرض 10/min)
-NIKYAR_SUBMIT_RATE       سقف ثبت نهایی فرم از هر کاربر در یک دقیقه (پیش‌فرض 10)
 """
 
 import os
@@ -154,17 +152,11 @@ REST_FRAMEWORK = {
     "DEFAULT_PERMISSION_CLASSES": ["rest_framework.permissions.IsAuthenticated"],
     "DEFAULT_PAGINATION_CLASS": "core.kernel.api.Pagination",
     "EXCEPTION_HANDLER": "core.kernel.api.exception_handler_fa",
-    # سقف تلاش ورود از هر نشانی IP (در برابر حدس گذرواژه)
-    "DEFAULT_THROTTLE_RATES": {"login": os.environ.get("NIKYAR_LOGIN_RATE", "10/min")},
     "SEARCH_PARAM": "search",
     "ORDERING_PARAM": "ordering",
 }
 
-# ثبت نهایی پیاپی فرم از یک کاربر (جلوی ثبت انبوه و خودکار؛ forms.acceptance)
-FORMS_SUBMIT_RATE = int(os.environ.get("NIKYAR_SUBMIT_RATE", "10"))
-
-
-SESSION_COOKIE_AGE = 60 * 60 * 10  # یک روز کاری
+# مدت نشست، سقف تلاش ورود و سقف ثبت پیاپی فرم در «تنظیمات › سامانه و امنیت» است (core.settings.sections).
 SESSION_COOKIE_HTTPONLY = True
 CSRF_COOKIE_SAMESITE = SESSION_COOKIE_SAMESITE = "Lax"
 

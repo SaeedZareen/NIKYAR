@@ -5,6 +5,7 @@ from core.accounts.models import Role
 from core.audit.models import AuditLog
 from core.files.models import StoredFile
 from core.forms.models import FormVersion, Submission
+from core.settings.models import SettingsValue
 
 PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 64
 PDF = b"%PDF-1.7\n" + b"x" * 64
@@ -562,8 +563,8 @@ def test_report_and_viewable_forms(designer, make_user, client_for):
 
 
 @pytest.mark.django_db(transaction=True)
-def test_submit_rate_limit(designer, make_user, client_for, settings):
-    settings.FORMS_SUBMIT_RATE = 2
+def test_submit_rate_limit(designer, make_user, client_for):
+    SettingsValue.objects.create(section="system", values={"submit_rate": 2})
     form = _simple_form(designer, "rated")
     c = client_for(make_user("rate_user"))
     assert _submit(c, form).status_code == 201

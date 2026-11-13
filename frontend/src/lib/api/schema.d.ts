@@ -2010,6 +2010,42 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/settings/hr-leave/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description خواندن و ذخیره‌ی یک بخش. برای هر بخش اعلام‌شده یک زیرکلاس با serializer همان بخش ساخته می‌شود (urls.py). */
+        get: operations["settings_hr_leave_retrieve"];
+        /** @description خواندن و ذخیره‌ی یک بخش. برای هر بخش اعلام‌شده یک زیرکلاس با serializer همان بخش ساخته می‌شود (urls.py). */
+        put: operations["settings_hr_leave_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/settings/hr-roles/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description خواندن و ذخیره‌ی یک بخش. برای هر بخش اعلام‌شده یک زیرکلاس با serializer همان بخش ساخته می‌شود (urls.py). */
+        get: operations["settings_hr_roles_retrieve"];
+        /** @description خواندن و ذخیره‌ی یک بخش. برای هر بخش اعلام‌شده یک زیرکلاس با serializer همان بخش ساخته می‌شود (urls.py). */
+        put: operations["settings_hr_roles_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/settings/messaging/": {
         parameters: {
             query?: never;
@@ -2039,6 +2075,24 @@ export interface paths {
         get: operations["settings_org_profile_retrieve"];
         /** @description خواندن و ذخیره‌ی یک بخش. برای هر بخش اعلام‌شده یک زیرکلاس با serializer همان بخش ساخته می‌شود (urls.py). */
         put: operations["settings_org_profile_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/settings/system/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description خواندن و ذخیره‌ی یک بخش. برای هر بخش اعلام‌شده یک زیرکلاس با serializer همان بخش ساخته می‌شود (urls.py). */
+        get: operations["settings_system_retrieve"];
+        /** @description خواندن و ذخیره‌ی یک بخش. برای هر بخش اعلام‌شده یک زیرکلاس با serializer همان بخش ساخته می‌شود (urls.py). */
+        put: operations["settings_system_update"];
         post?: never;
         delete?: never;
         options?: never;
@@ -3981,6 +4035,276 @@ export interface components {
             /** نوع */
             kind?: components["schemas"]["HolidayKindEnum"];
         };
+        HrLeaveSettings: {
+            /**
+             * مرخصی استحقاقی سالانه (روز)
+             * @default 26
+             */
+            annual_days: number;
+            /**
+             * مرخصی سالانه‌ی نوع‌های استخدام
+             * @description کد نوع استخدام ← روز در سال؛ نوعی که نیامده مقدار عمومی را دارد.
+             */
+            annual_days_by_type: {
+                [key: string]: number;
+            };
+            /**
+             * سهمیه‌ی سال اول به نسبت ماه‌های کارکرد
+             * @default true
+             */
+            prorate_first_year: boolean;
+            /**
+             * سقف انتقال مانده به سال بعد (روز)
+             * @default 9
+             */
+            carryover_max: number;
+            /**
+             * مدت هر روز مرخصی
+             * @default 08:00
+             */
+            day_length: string;
+            /**
+             * اجازه‌ی مانده‌ی منفی
+             * @default false
+             */
+            allow_negative: boolean;
+            /**
+             * سقف اضافه‌کار در روز (ساعت)
+             * @default 4
+             */
+            overtime_daily_max: number;
+            /**
+             * سقف اضافه‌کار در ماه (ساعت)
+             * @default 80
+             */
+            overtime_monthly_max: number;
+            /**
+             * مهلت ثبت اصلاح تردد (روز)
+             * @default 3
+             */
+            attendance_fix_days: number;
+            /**
+             * نوع‌های مرخصی
+             * @default [
+             *       {
+             *         "code": "annual",
+             *         "title": "استحقاقی",
+             *         "enabled": true,
+             *         "paid": true,
+             *         "deducts": true,
+             *         "max_per_request": null,
+             *         "max_per_year": null,
+             *         "attachment_over": null,
+             *         "builtin": true
+             *       },
+             *       {
+             *         "code": "sick",
+             *         "title": "استعلاجی",
+             *         "enabled": true,
+             *         "paid": true,
+             *         "deducts": false,
+             *         "max_per_request": null,
+             *         "max_per_year": null,
+             *         "attachment_over": 0,
+             *         "builtin": true
+             *       },
+             *       {
+             *         "code": "unpaid",
+             *         "title": "بدون حقوق",
+             *         "enabled": true,
+             *         "paid": false,
+             *         "deducts": false,
+             *         "max_per_request": 30,
+             *         "max_per_year": null,
+             *         "attachment_over": null,
+             *         "builtin": true
+             *       },
+             *       {
+             *         "code": "marriage",
+             *         "title": "ازدواج",
+             *         "enabled": true,
+             *         "paid": true,
+             *         "deducts": false,
+             *         "max_per_request": 3,
+             *         "max_per_year": null,
+             *         "attachment_over": 0,
+             *         "builtin": true
+             *       },
+             *       {
+             *         "code": "bereavement",
+             *         "title": "فوت بستگان",
+             *         "enabled": true,
+             *         "paid": true,
+             *         "deducts": false,
+             *         "max_per_request": 3,
+             *         "max_per_year": null,
+             *         "attachment_over": null,
+             *         "builtin": true
+             *       },
+             *       {
+             *         "code": "maternity",
+             *         "title": "زایمان",
+             *         "enabled": true,
+             *         "paid": true,
+             *         "deducts": false,
+             *         "max_per_request": 270,
+             *         "max_per_year": null,
+             *         "attachment_over": 0,
+             *         "builtin": true
+             *       }
+             *     ]
+             */
+            leave_types: components["schemas"]["LeaveType"][];
+        };
+        HrLeaveSettingsRequest: {
+            /**
+             * مرخصی استحقاقی سالانه (روز)
+             * @default 26
+             */
+            annual_days: number;
+            /**
+             * مرخصی سالانه‌ی نوع‌های استخدام
+             * @description کد نوع استخدام ← روز در سال؛ نوعی که نیامده مقدار عمومی را دارد.
+             */
+            annual_days_by_type?: {
+                [key: string]: number;
+            };
+            /**
+             * سهمیه‌ی سال اول به نسبت ماه‌های کارکرد
+             * @default true
+             */
+            prorate_first_year: boolean;
+            /**
+             * سقف انتقال مانده به سال بعد (روز)
+             * @default 9
+             */
+            carryover_max: number;
+            /**
+             * مدت هر روز مرخصی
+             * @default 08:00
+             */
+            day_length: string;
+            /**
+             * اجازه‌ی مانده‌ی منفی
+             * @default false
+             */
+            allow_negative: boolean;
+            /**
+             * سقف اضافه‌کار در روز (ساعت)
+             * @default 4
+             */
+            overtime_daily_max: number;
+            /**
+             * سقف اضافه‌کار در ماه (ساعت)
+             * @default 80
+             */
+            overtime_monthly_max: number;
+            /**
+             * مهلت ثبت اصلاح تردد (روز)
+             * @default 3
+             */
+            attendance_fix_days: number;
+            /**
+             * نوع‌های مرخصی
+             * @default [
+             *       {
+             *         "code": "annual",
+             *         "title": "استحقاقی",
+             *         "enabled": true,
+             *         "paid": true,
+             *         "deducts": true,
+             *         "max_per_request": null,
+             *         "max_per_year": null,
+             *         "attachment_over": null,
+             *         "builtin": true
+             *       },
+             *       {
+             *         "code": "sick",
+             *         "title": "استعلاجی",
+             *         "enabled": true,
+             *         "paid": true,
+             *         "deducts": false,
+             *         "max_per_request": null,
+             *         "max_per_year": null,
+             *         "attachment_over": 0,
+             *         "builtin": true
+             *       },
+             *       {
+             *         "code": "unpaid",
+             *         "title": "بدون حقوق",
+             *         "enabled": true,
+             *         "paid": false,
+             *         "deducts": false,
+             *         "max_per_request": 30,
+             *         "max_per_year": null,
+             *         "attachment_over": null,
+             *         "builtin": true
+             *       },
+             *       {
+             *         "code": "marriage",
+             *         "title": "ازدواج",
+             *         "enabled": true,
+             *         "paid": true,
+             *         "deducts": false,
+             *         "max_per_request": 3,
+             *         "max_per_year": null,
+             *         "attachment_over": 0,
+             *         "builtin": true
+             *       },
+             *       {
+             *         "code": "bereavement",
+             *         "title": "فوت بستگان",
+             *         "enabled": true,
+             *         "paid": true,
+             *         "deducts": false,
+             *         "max_per_request": 3,
+             *         "max_per_year": null,
+             *         "attachment_over": null,
+             *         "builtin": true
+             *       },
+             *       {
+             *         "code": "maternity",
+             *         "title": "زایمان",
+             *         "enabled": true,
+             *         "paid": true,
+             *         "deducts": false,
+             *         "max_per_request": 270,
+             *         "max_per_year": null,
+             *         "attachment_over": 0,
+             *         "builtin": true
+             *       }
+             *     ]
+             */
+            leave_types: components["schemas"]["LeaveTypeRequest"][];
+        };
+        HrRolesSettings: {
+            /** نقش کارشناس منابع انسانی */
+            hr_role: number | null;
+            /** نقش امور مالی */
+            finance_role: number | null;
+            /** نقش مدیرعامل */
+            ceo_role: number | null;
+            /**
+             * سقف مبلغ بی نیاز به تأیید مدیرعامل (ریال)
+             * Format: int64
+             * @default 1000000000
+             */
+            ceo_threshold: number;
+        };
+        HrRolesSettingsRequest: {
+            /** نقش کارشناس منابع انسانی */
+            hr_role?: number | null;
+            /** نقش امور مالی */
+            finance_role?: number | null;
+            /** نقش مدیرعامل */
+            ceo_role?: number | null;
+            /**
+             * سقف مبلغ بی نیاز به تأیید مدیرعامل (ریال)
+             * Format: int64
+             * @default 1000000000
+             */
+            ceo_threshold: number;
+        };
         ImportError: {
             line: number;
             message: string;
@@ -4141,6 +4465,61 @@ export interface components {
             readonly is_custom: boolean;
             readonly placeholders: components["schemas"]["Placeholder"][];
             readonly preview: string;
+        };
+        LeaveType: {
+            /** کد */
+            code: string;
+            /** عنوان */
+            title: string;
+            /**
+             * فعال
+             * @default true
+             */
+            enabled: boolean;
+            /**
+             * با حقوق
+             * @default true
+             */
+            paid: boolean;
+            /**
+             * کسر از مانده‌ی مرخصی
+             * @default false
+             */
+            deducts: boolean;
+            /** سقف هر درخواست (روز) */
+            max_per_request: number | null;
+            /** سقف در سال (روز) */
+            max_per_year: number | null;
+            /** پیوست لازم برای بیش از (روز) */
+            attachment_over: number | null;
+            readonly builtin: boolean;
+        };
+        LeaveTypeRequest: {
+            /** کد */
+            code?: string;
+            /** عنوان */
+            title: string;
+            /**
+             * فعال
+             * @default true
+             */
+            enabled: boolean;
+            /**
+             * با حقوق
+             * @default true
+             */
+            paid: boolean;
+            /**
+             * کسر از مانده‌ی مرخصی
+             * @default false
+             */
+            deducts: boolean;
+            /** سقف هر درخواست (روز) */
+            max_per_request?: number | null;
+            /** سقف در سال (روز) */
+            max_per_year?: number | null;
+            /** پیوست لازم برای بیش از (روز) */
+            attachment_over?: number | null;
         };
         LicenseStatus: {
             kind: components["schemas"]["LicenseStatusKindEnum"];
@@ -5810,6 +6189,62 @@ export interface components {
             readonly url: string;
             readonly is_image: boolean;
             readonly previewable: boolean;
+        };
+        /** @description مقدارهایی که پیش از 5.4a ثابت در کد بودند؛ هر کدام را برنامه‌ی مصرف‌کننده‌اش با read("system") می‌خواند. */
+        SystemSettings: {
+            /**
+             * مدت اعتبار ورود (ساعت)
+             * @default 10
+             */
+            session_hours: number;
+            /**
+             * سقف تلاش ورود در دقیقه
+             * @default 10
+             */
+            login_rate: number;
+            /**
+             * سقف ثبت نهایی فرم در دقیقه
+             * @default 10
+             */
+            submit_rate: number;
+            /**
+             * اعتبار پیوند تأیید سریع (روز)
+             * @default 3
+             */
+            quick_link_days: number;
+            /**
+             * نگه‌داری سابقه‌ی کارهای سامانه (روز)
+             * @default 30
+             */
+            jobs_keep_days: number;
+        };
+        /** @description مقدارهایی که پیش از 5.4a ثابت در کد بودند؛ هر کدام را برنامه‌ی مصرف‌کننده‌اش با read("system") می‌خواند. */
+        SystemSettingsRequest: {
+            /**
+             * مدت اعتبار ورود (ساعت)
+             * @default 10
+             */
+            session_hours: number;
+            /**
+             * سقف تلاش ورود در دقیقه
+             * @default 10
+             */
+            login_rate: number;
+            /**
+             * سقف ثبت نهایی فرم در دقیقه
+             * @default 10
+             */
+            submit_rate: number;
+            /**
+             * اعتبار پیوند تأیید سریع (روز)
+             * @default 3
+             */
+            quick_link_days: number;
+            /**
+             * نگه‌داری سابقه‌ی کارهای سامانه (روز)
+             * @default 30
+             */
+            jobs_keep_days: number;
         };
         TargetForm: {
             code: string;
@@ -10288,6 +10723,94 @@ export interface operations {
             };
         };
     };
+    settings_hr_leave_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HrLeaveSettings"];
+                };
+            };
+        };
+    };
+    settings_hr_leave_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["HrLeaveSettingsRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["HrLeaveSettingsRequest"];
+                "multipart/form-data": components["schemas"]["HrLeaveSettingsRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HrLeaveSettings"];
+                };
+            };
+        };
+    };
+    settings_hr_roles_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HrRolesSettings"];
+                };
+            };
+        };
+    };
+    settings_hr_roles_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["HrRolesSettingsRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["HrRolesSettingsRequest"];
+                "multipart/form-data": components["schemas"]["HrRolesSettingsRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HrRolesSettings"];
+                };
+            };
+        };
+    };
     settings_messaging_retrieve: {
         parameters: {
             query?: never;
@@ -10372,6 +10895,50 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["OrgProfileSettings"];
+                };
+            };
+        };
+    };
+    settings_system_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SystemSettings"];
+                };
+            };
+        };
+    };
+    settings_system_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["SystemSettingsRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["SystemSettingsRequest"];
+                "multipart/form-data": components["schemas"]["SystemSettingsRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SystemSettings"];
                 };
             };
         };

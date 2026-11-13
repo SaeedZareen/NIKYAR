@@ -6,6 +6,7 @@
     read("org-profile")["name"]
 """
 
+from django.apps import apps
 from django.db import transaction
 from django.utils.module_loading import import_string
 from rest_framework import fields as drf_fields
@@ -22,6 +23,15 @@ def section(code: str) -> SettingsSection:
         if spec.code == code:
             return spec
     raise KeyError(f"Unknown settings section: {code}")
+
+
+def module_of(code: str) -> str | None:
+    """کد ماژول اعلام‌کننده‌ی بخش (None برای بخش‌های هسته)."""
+    for config in apps.get_app_configs():
+        if any(spec.code == code for spec in getattr(config, "nikyar_settings", [])):
+            module = getattr(config, "nikyar_module", None)
+            return module.code if module else None
+    return None
 
 
 def serializer_class(code: str):
