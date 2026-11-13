@@ -1225,6 +1225,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/hr/events/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description رویدادهای پرونده (`?employee=`) که فرایندهای آماده پس از تأیید ثبت می‌کنند؛ فقط‌خواندنی، برای هر کس پرونده را می‌بیند. */
+        get: operations["hr_events_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/hr/events/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description رویدادهای پرونده (`?employee=`) که فرایندهای آماده پس از تأیید ثبت می‌کنند؛ فقط‌خواندنی، برای هر کس پرونده را می‌بیند. */
+        get: operations["hr_events_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/hr/insurances/": {
         parameters: {
             query?: never;
@@ -2333,6 +2367,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/workflow/processes/role-slots/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description نقش‌هایی که در تنظیمات تعیین می‌شوند (گیرنده‌ی «نقش تعیین‌شده در تنظیمات»). */
+        get: operations["workflow_processes_role_slots_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workflow/processes/target-forms/": {
         parameters: {
             query?: never;
@@ -2362,6 +2413,57 @@ export interface paths {
         put?: never;
         /** @description صفحه‌ی عمومی پیوند ایمیل: GET وضعیت و شرح، POST ثبت تصمیم (بی ورود؛ نشانه‌ی یک‌بارمصرف و زمان‌دار). */
         post: operations["workflow_quick_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workflow/ready/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description فرایندهای آماده: فهرست با وضعیت نصب، فعال‌سازی یا غیرفعال‌سازی هر کدام و «فعال‌سازی همه». */
+        get: operations["workflow_ready_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workflow/ready/{id}/active/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description فرایندهای آماده: فهرست با وضعیت نصب، فعال‌سازی یا غیرفعال‌سازی هر کدام و «فعال‌سازی همه». */
+        post: operations["workflow_ready_active_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/workflow/ready/activate-all/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description فرایندهای آماده: فهرست با وضعیت نصب، فعال‌سازی یا غیرفعال‌سازی هر کدام و «فعال‌سازی همه». */
+        post: operations["workflow_ready_activate_all_create"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2699,6 +2801,10 @@ export interface components {
         ActionType: {
             code: string;
             title: string;
+            /** @description پارامترهای ویرایشگر عمومی اقدام ماژول (خالی برای اقدام‌های هسته) */
+            params: {
+                [key: string]: unknown;
+            }[];
         };
         /**
          * @description * `forms` - بازگشت به «فرم‌ها»
@@ -3409,6 +3515,11 @@ export interface components {
             readonly can_view_financial: boolean;
             /** @description انتصاب‌های جاری کاربر متصل در ساختار سازمانی */
             readonly positions: components["schemas"]["EmployeePosition"][];
+            /**
+             * Format: double
+             * @description مانده‌ی مرخصی استحقاقی امسال (روز، با رویدادهای ثبت‌شده)
+             */
+            readonly leave_balance: number;
         };
         /** @description پرونده‌ی پایه. کد پرسنلی با شماره‌گذاری «کد پرسنلی» صادر می‌شود و تغییر نمی‌کند. */
         EmployeeDetailRequest: {
@@ -3470,6 +3581,52 @@ export interface components {
             /** کاربر سامانه */
             user?: number | null;
         };
+        EmployeeEvent: {
+            readonly id: number;
+            /** نوع */
+            readonly kind: components["schemas"]["EmployeeEventKindEnum"];
+            readonly kind_label: string;
+            /** نوع مرخصی */
+            readonly leave_type: string;
+            /** شرح */
+            readonly title: string;
+            /** @example 1405/08/14 */
+            readonly start_date: string;
+            /** @example 1405/08/14 */
+            readonly end_date: string | null;
+            /** از ساعت */
+            readonly start_time: string;
+            /** تا ساعت */
+            readonly end_time: string;
+            /**
+             * روز
+             * Format: decimal
+             */
+            readonly days: string;
+            /**
+             * ساعت
+             * Format: decimal
+             */
+            readonly hours: string;
+            /** کسر از مانده‌ی مرخصی */
+            readonly deducts: boolean;
+            /** درخواست */
+            readonly request: number | null;
+            /** @default  */
+            readonly request_number: string;
+        };
+        /**
+         * @description * `leave` - مرخصی روزانه
+         *     * `hourly_leave` - مرخصی ساعتی
+         *     * `mission` - مأموریت روزانه
+         *     * `hourly_mission` - مأموریت ساعتی
+         *     * `overtime` - اضافه‌کار
+         *     * `remote` - دورکاری
+         *     * `shift` - تغییر شیفت
+         *     * `attendance_fix` - اصلاح تردد
+         * @enum {string}
+         */
+        EmployeeEventKindEnum: "leave" | "hourly_leave" | "mission" | "hourly_mission" | "overtime" | "remote" | "shift" | "attendance_fix";
         EmployeePosition: {
             title: string;
             unit: string;
@@ -5832,6 +5989,18 @@ export interface components {
          * @enum {string}
          */
         QuickActionStatusEnum: "ready" | "used" | "expired" | "closed" | "invalid";
+        ReadyActiveRequest: {
+            active: boolean;
+        };
+        ReadyProcess: {
+            code: string;
+            title: string;
+            description: string;
+            group: string;
+            /** @description فرایند نصب‌شده (برای ویرایش در فرایندساز) */
+            process: number | null;
+            active: boolean;
+        };
         RecordItem: {
             id: number;
             /** @description شماره‌ی پیگیری (یا خالی) */
@@ -6078,6 +6247,10 @@ export interface components {
             description?: string;
             /** مجوزها */
             permissions?: string[];
+        };
+        RoleSlot: {
+            code: string;
+            title: string;
         };
         SectionInfo: {
             code: string;
@@ -8978,6 +9151,49 @@ export interface operations {
             };
         };
     };
+    hr_events_list: {
+        parameters: {
+            query: {
+                /** @description شناسه‌ی پرونده */
+                employee: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeEvent"][];
+                };
+            };
+        };
+    };
+    hr_events_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeEvent"];
+                };
+            };
+        };
+    };
     hr_insurances_list: {
         parameters: {
             query: {
@@ -11384,6 +11600,30 @@ export interface operations {
             };
         };
     };
+    workflow_processes_role_slots_list: {
+        parameters: {
+            query?: {
+                /** @description چند مقدار با ویرگول جدا می‌شود. */
+                category?: string;
+                /** @description چند مقدار با ویرگول جدا می‌شود. */
+                is_active?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleSlot"][];
+                };
+            };
+        };
+    };
     workflow_processes_target_forms_list: {
         parameters: {
             query?: {
@@ -11446,6 +11686,71 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["QuickAction"];
+                };
+            };
+        };
+    };
+    workflow_ready_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadyProcess"][];
+                };
+            };
+        };
+    };
+    workflow_ready_active_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReadyActiveRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["ReadyActiveRequest"];
+                "multipart/form-data": components["schemas"]["ReadyActiveRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadyProcess"];
+                };
+            };
+        };
+    };
+    workflow_ready_activate_all_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReadyProcess"][];
                 };
             };
         };

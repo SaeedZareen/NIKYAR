@@ -105,6 +105,12 @@ class LeaveTypeList(serializers.ListSerializer):
     def display(self, value) -> str:
         return "، ".join(t["title"] + ("" if t["enabled"] else " (خاموش)") for t in value)
 
+    def on_change(self, before, after) -> None:
+        # فیلد «نوع مرخصی» فرم‌ها از فهرست پایه‌ی هم‌سان با همین جدول می‌خواند
+        from .leave import sync_lookup
+
+        sync_lookup(after)
+
 
 class LeaveTypeSerializer(serializers.Serializer):
     code = serializers.CharField(label="کد", required=False, allow_blank=True, max_length=40)

@@ -337,7 +337,10 @@ def save_request(*, user, data: dict, submit: bool, process: Process | None = No
 
 def _submit(request: Request, definition: dict, behalf: bool) -> None:
     """ارسال نهایی: شماره، امضا و مشخصات درخواست‌دهنده، فیلدهای پنهان از درخواست، و شروع موتور."""
+    from . import ready  # ready خودش از service استفاده می‌کند
+
     process, user = request.process, request.requester
+    ready.check(request)
     if process.number_pattern:
         request.number = numbering.allocate(sequence_code(process))
     request.data.update(form_service.server_values(definition, user, signature=not behalf))

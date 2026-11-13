@@ -40,6 +40,8 @@ class Process(models.Model):
         default="year",
         choices=[("never", "هرگز (ادامه‌دار)"), ("year", "آغاز هر سال شمسی"), ("fiscal", "آغاز هر سال مالی")],
     )
+    # کد فرایند آماده‌ای که این فرایند از آن نصب شده (core.workflow.ready)؛ خالی برای فرایندهای ساخت سازمان
+    ready = models.CharField("فرایند آماده", max_length=40, blank=True, db_index=True, editable=False)
     created_at = models.DateTimeField("زمان ساخت", auto_now_add=True)
 
     class Meta:

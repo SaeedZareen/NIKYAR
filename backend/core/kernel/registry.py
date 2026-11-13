@@ -11,6 +11,8 @@
     nikyar_record_sources = [RecordSource(code="form", title="ثبت‌های فرم", provider="core.forms.records.FormRecords")]
     nikyar_profile_values = [ProfileValue(code="national_code", title="کد ملی", types=frozenset({"national_code"}), resolve="modules.hr.profile.national_code")]
     nikyar_session_flags = {"hr_viewer": "modules.hr.access.is_viewer"}
+    nikyar_role_slots = [RoleSlot(code="hr.hr", title="کارشناس منابع انسانی", resolve="modules.hr.roles.hr_role")]
+    nikyar_ready_processes = [ReadyProcess(code="hr-leave", title="مرخصی روزانه", group="مرخصی و تردد", build="modules.hr.ready.leave")]
 
 فهرست کامل مجوزها از همین‌جا ساخته می‌شود و نقش‌ها فقط مجوزهای ثبت‌شده را می‌پذیرند.
 """
@@ -106,6 +108,10 @@ class WorkflowAction:
     title: str
     check: Callable[[dict, dict], str | None]
     run: Callable[[object, dict], None]
+    # پارامترهای تنظیم اقدام ماژول برای ویرایشگر عمومی فرایندساز (اقدام‌های هسته ویرایشگر خودشان را دارند):
+    # {"name", "label", "type": "choice"|"field", "options": {مقدار: برچسب} (choice), "field_types": [...] (field),
+    #  "required": bool, "when": {"<پارامتر دیگر>": [مقدارها]}}
+    params: tuple = ()
 
 
 @dataclass(frozen=True)
@@ -158,6 +164,41 @@ class CustomFieldsSpec:
 
     code: str
     title: str
+
+
+@dataclass(frozen=True)
+class RoleSlot:
+    """
+    نقشی که سازمان در تنظیمات تعیین می‌کند (مثل «کارشناس منابع انسانی» در تنظیمات منابع انسانی) و گیرنده‌ی مرحله‌های
+    فرایند می‌شود ({"type": "role_slot", "slot": code}). resolve: مسیر تابع () -> شناسه‌ی نقش یا None؛ هنگام رسیدن کار خوانده
+    می‌شود، پس تغییر تنظیمات بی ویرایش فرایندها اثر می‌کند.
+    """
+
+    code: str
+    title: str
+    resolve: str
+
+    def role_id(self) -> int | None:
+        from django.utils.module_loading import import_string
+
+        return import_string(self.resolve)()
+
+
+@dataclass(frozen=True)
+class ReadyProcess:
+    """
+    فرم و فرایند آماده‌ای که برنامه همراه خود می‌آورد و سازمان با یک کلیک نصب و فعال می‌کند (core.workflow.ready).
+    build: مسیر تابع () -> {"form": تعریف فرم، "bpmn": متن BPMN، "description"?, "number_pattern"?}؛
+    check: مسیر تابع اختیاری (request) -> {فیلد: پیام} که پیش از ارسال نهایی هر درخواست قاعده‌های کسب‌وکار را می‌سنجد
+    (مثل مانده‌ی مرخصی). پس از نصب، فرم و فرایند مثل هر فرم و فرایند دیگری با فرم‌ساز و فرایندساز تغییر می‌کنند.
+    """
+
+    code: str
+    title: str
+    group: str
+    build: str
+    description: str = ""
+    check: str = ""
 
 
 @dataclass(frozen=True)
@@ -228,6 +269,30 @@ def session_flags(user) -> dict[str, bool]:
         for name, path in getattr(config, "nikyar_session_flags", {}).items():
             flags[name] = enabled and bool(import_string(path)(user))
     return flags
+
+
+def role_slots() -> dict[str, RoleSlot]:
+    return {slot.code: slot for config in apps.get_app_configs() for slot in getattr(config, "nikyar_role_slots", [])}
+
+
+def slot_modules() -> dict[str, str | None]:
+    """کد جایگاه نقش ← کد ماژول اعلام‌کننده (None برای هسته)."""
+    result = {}
+    for config in apps.get_app_configs():
+        module = getattr(config, "nikyar_module", None)
+        for slot in getattr(config, "nikyar_role_slots", []):
+            result[slot.code] = module.code if module else None
+    return result
+
+
+def ready_processes() -> dict[str, tuple[ReadyProcess, str | None]]:
+    """کد ← (فرایند آماده، کد ماژول اعلام‌کننده یا None برای هسته)."""
+    result = {}
+    for config in apps.get_app_configs():
+        module = getattr(config, "nikyar_module", None)
+        for spec in getattr(config, "nikyar_ready_processes", []):
+            result[spec.code] = (spec, module.code if module else None)
+    return result
 
 
 def custom_field_specs() -> list[CustomFieldsSpec]:

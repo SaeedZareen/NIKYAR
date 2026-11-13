@@ -1,6 +1,20 @@
 from django.apps import AppConfig
+from django.db.models.signals import post_migrate
+from django.utils.module_loading import import_string
 
-from core.kernel.registry import CustomFieldsSpec, LookupItemSpec, LookupSpec, ModuleSpec, NumberingSpec, ProfileValue, SettingsSection
+from core.kernel.registry import (
+    CustomFieldsSpec,
+    LookupItemSpec,
+    LookupSpec,
+    ModuleSpec,
+    NumberingSpec,
+    ProfileValue,
+    ReadyProcess,
+    RoleSlot,
+    SettingsSection,
+    WorkflowAction,
+)
+from modules.hr.leave_params import PARAMS
 
 
 class HrConfig(AppConfig):
@@ -105,8 +119,46 @@ class HrConfig(AppConfig):
     nikyar_profile_values = [
         ProfileValue(
             code="national_code", title="کد ملی (پرونده‌ی پرسنلی)", types=frozenset({"national_code", "text"}), resolve="modules.hr.profile.national_code"
+        ),
+        ProfileValue(code="personnel_code", title="کد پرسنلی", types=frozenset({"text"}), resolve="modules.hr.profile.personnel_code"),
+        ProfileValue(code="hire_date", title="تاریخ استخدام", types=frozenset({"date", "text"}), resolve="modules.hr.profile.hire_date"),
+        ProfileValue(code="employment_type", title="نوع استخدام", types=frozenset({"text"}), resolve="modules.hr.profile.employment_type"),
+        ProfileValue(code="leave_balance", title="مانده‌ی مرخصی استحقاقی (روز)", types=frozenset({"text"}), resolve="modules.hr.profile.leave_balance"),
+    ]
+    nikyar_role_slots = [
+        RoleSlot(code="hr.hr", title="کارشناس منابع انسانی", resolve="modules.hr.roles.hr_role"),
+        RoleSlot(code="hr.finance", title="امور مالی", resolve="modules.hr.roles.finance_role"),
+        RoleSlot(code="hr.ceo", title="مدیرعامل", resolve="modules.hr.roles.ceo_role"),
+    ]
+    nikyar_workflow_actions = [
+        WorkflowAction(
+            code="hr.record",
+            title="ثبت در پرونده‌ی پرسنلی",
+            check=lambda config, definition: import_string("modules.hr.leave.check_action")(config, definition),
+            run=lambda context, config: import_string("modules.hr.leave.run_action")(context, config),
+            params=PARAMS,
         )
+    ]
+    nikyar_ready_processes = [
+        ReadyProcess(
+            code=code, title=title, group="مرخصی و تردد", description=description, build=f"modules.hr.ready.{build}", check="modules.hr.leave.check_request"
+        )
+        for code, title, build, description in [
+            ("hr-leave", "مرخصی روزانه", "leave", "استحقاقی، استعلاجی، بدون حقوق، ازدواج و… با سقف و پیوست هر نوع و کسر از مانده."),
+            ("hr-hourly-leave", "مرخصی ساعتی", "hourly_leave", "چند ساعت از یک روز؛ به نسبت «مدت هر روز مرخصی» از مانده کم می‌شود."),
+            ("hr-mission", "مأموریت روزانه", "mission", "مأموریت یک یا چند روزه با مقصد و هدف."),
+            ("hr-hourly-mission", "مأموریت ساعتی", "hourly_mission", "مأموریت چندساعته در یک روز."),
+            ("hr-overtime", "اضافه‌کار", "overtime", "ثبت ساعت اضافه‌کار با سقف روزانه و ماهانه‌ی تنظیمات."),
+            ("hr-remote", "دورکاری", "remote", "دورکاری یک یا چند روزه با شرح کارها."),
+            ("hr-shift", "تغییر یا جابه‌جایی شیفت", "shift", "تغییر شیفت یک روز، در صورت نیاز با جابه‌جایی با همکار."),
+            ("hr-attendance-fix", "اصلاح تردد", "attendance_fix", "ثبت ورود یا خروجی که ثبت نشده، در مهلت تنظیمات."),
+        ]
     ]
     nikyar_session_flags = {"hr_viewer": "modules.hr.access.is_viewer", "hr_self": "modules.hr.access.has_own_file"}
     nikyar_custom_fields = [CustomFieldsSpec(code="hr-employee", title="فیلدهای دلخواه پرونده‌ی پرسنلی")]
     nikyar_demo_seed = "modules.hr.demo.seed"
+
+    def ready(self):
+        from .leave import sync_lookup
+
+        post_migrate.connect(sync_lookup, sender=self, dispatch_uid="hr-leave-type-lookup")

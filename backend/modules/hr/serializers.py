@@ -12,7 +12,7 @@ from core.lookups.models import LookupItem
 from core.numbering.service import allocate
 from core.org.models import Assignment, OrgUnit
 
-from .models import BankAccount, Dependent, Document, Education, Employee, Insurance, WorkHistory
+from .models import BankAccount, Dependent, Document, Education, Employee, EmployeeEvent, Insurance, WorkHistory
 
 
 def _lookup(list_code: str, label: str, required: bool):
@@ -186,9 +186,16 @@ class EmployeeDetailSerializer(EmployeeSerializer):
     positions = serializers.SerializerMethodField(help_text="انتصاب‌های جاری کاربر متصل در ساختار سازمانی")
 
     class Meta(EmployeeSerializer.Meta):
-        fields = [*EmployeeSerializer.Meta.fields, "can_edit", "can_view_financial", "positions"]
+        fields = [*EmployeeSerializer.Meta.fields, "can_edit", "can_view_financial", "positions", "leave_balance"]
 
     can_view_financial = serializers.SerializerMethodField(help_text="حساب بانکی و بیمه را می‌بیند (مجوز، نه مدیر واحد)")
+
+    leave_balance = serializers.SerializerMethodField(help_text="مانده‌ی مرخصی استحقاقی امسال (روز، با رویدادهای ثبت‌شده)")
+
+    def get_leave_balance(self, obj) -> float:
+        from .leave import balance
+
+        return float(balance(obj))
 
     def get_can_edit(self, obj) -> bool:
         from .access import can_manage
@@ -345,3 +352,30 @@ class CustomFieldsSerializer(serializers.Serializer):
     definition = serializers.JSONField(help_text="تعریف آخرین نسخه‌ی منتشرشده (بی نسخه: بی بخش)")
     schema = serializers.JSONField()
     can_design = serializers.BooleanField(help_text="مجوز «طراحی فرم‌ها»")
+
+
+class EmployeeEventSerializer(serializers.ModelSerializer):
+    kind_label = serializers.CharField(source="get_kind_display", read_only=True)
+    request_number = serializers.CharField(source="request.number", read_only=True, default="")
+    start_date = JalaliDateField(read_only=True)
+    end_date = JalaliDateField(read_only=True, allow_null=True)
+
+    class Meta:
+        model = EmployeeEvent
+        fields = [
+            "id",
+            "kind",
+            "kind_label",
+            "leave_type",
+            "title",
+            "start_date",
+            "end_date",
+            "start_time",
+            "end_time",
+            "days",
+            "hours",
+            "deducts",
+            "request",
+            "request_number",
+        ]
+        read_only_fields = fields

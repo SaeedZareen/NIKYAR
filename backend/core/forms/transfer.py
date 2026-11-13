@@ -111,7 +111,7 @@ def import_form(payload: dict, user) -> Form:
         try:
             with transaction.atomic():
                 form = Form.objects.create(
-                    code=_free_code(str(meta.get("code") or "form")),
+                    code=free_code(str(meta.get("code") or "form")),
                     title=title,
                     description=str(meta.get("description") or "")[:500],
                     category=category,
@@ -148,7 +148,7 @@ def _remap_files(definition: dict, mapping: dict[str, str]) -> dict:
     return definition
 
 
-def _free_code(code: str) -> str:
+def free_code(code: str) -> str:
     base = re.sub(r"[^a-z0-9-]", "-", code.lower()).strip("-")
     if not re.match(r"^[a-z]", base):
         base = f"form-{base}".strip("-")

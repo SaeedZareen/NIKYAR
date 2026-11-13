@@ -7,6 +7,7 @@
     {"type": "unit_manager", "unit": <واحد>}           مدیر یک واحد مشخص
     {"type": "position", "position": <سمت>}            صاحب (صاحبان) یک سمت
     {"type": "role", "role": <نقش>, "same_unit": bool}  دارندگان یک نقش (اختیاری: فقط در واحد درخواست‌دهنده و زیرواحدهایش)
+    {"type": "role_slot", "slot": "<کد>", "same_unit": bool}  دارندگان نقشی که در تنظیمات تعیین شده (nikyar_role_slots، مثل hr.hr)
     {"type": "user", "user": <کاربر>}                   کاربر مشخص
     {"type": "field", "field": "<فیلد کاربر>"}          کاربرانی که در فیلد «کاربر» فرم انتخاب شده‌اند
 
@@ -20,6 +21,7 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 
 from core.accounts.models import Role
+from core.kernel.registry import role_slots, slot_modules
 from core.org import service as org
 from core.org.models import Assignment, OrgUnit, Position
 
@@ -30,6 +32,7 @@ TYPES = {
     "unit_manager": "مدیر یک واحد",
     "position": "صاحب یک سمت",
     "role": "دارندگان یک نقش",
+    "role_slot": "نقش تعیین‌شده در تنظیمات",
     "user": "کاربر مشخص",
     "field": "کاربر انتخاب‌شده در فرم",
 }
@@ -52,7 +55,9 @@ def check(rule, *, tasks: set[str], user_fields: set[str]) -> str | None:
         return "مرحله‌ای که مدیر انجام‌دهنده‌اش گیرنده است، در این فرایند نیست."
     if kind == "field" and rule.get("field") not in user_fields:
         return "فیلد انتخاب گیرنده باید یکی از فیلدهای «کاربر» فرم اصلی باشد."
-    if kind == "role" and not isinstance(rule.get("same_unit", False), bool):
+    if kind == "role_slot" and rule.get("slot") not in role_slots():
+        return "نقش تنظیمات انتخاب‌شده در این نصب وجود ندارد."
+    if kind in ("role", "role_slot") and not isinstance(rule.get("same_unit", False), bool):
         return "گزینه‌ی «فقط در واحد درخواست‌دهنده» نامعتبر است."
     return None
 
@@ -78,6 +83,16 @@ def direct_manager(user, today=None) -> list:
     return []
 
 
+def _slot_role(code: str) -> int | None:
+    """نقش امروزِ یک جایگاه تنظیمات؛ جایگاهی که ماژولش در لایسنس نیست یا نقشش تعیین نشده به کسی نمی‌رسد."""
+    from core.licensing.service import module_enabled
+
+    slot = role_slots().get(code)
+    if slot is None or not module_enabled(slot_modules().get(code)):
+        return None
+    return slot.role_id()
+
+
 def resolve(rule: dict, request, today=None) -> list:
     """کاربران فعال گیرنده؛ فهرست خالی یعنی قاعده به کسی نرسید (کار به مدیران فرایند می‌رسد)."""
     today = today or timezone.localdate()
@@ -94,8 +109,11 @@ def resolve(rule: dict, request, today=None) -> list:
         return _unit_managers(rule["unit"], today)
     if kind == "position":
         return _active(a.user for a in Assignment.objects.current(today).filter(position_id=rule["position"]).select_related("user"))
-    if kind == "role":
-        members = users.filter(roles__pk=rule["role"]).distinct()
+    if kind in ("role", "role_slot"):
+        role = rule["role"] if kind == "role" else _slot_role(rule["slot"])
+        if role is None:
+            return []
+        members = users.filter(roles__pk=role).distinct()
         if rule.get("same_unit"):
             assignment = org.primary_assignment(request.requester, today)
             if assignment is None:

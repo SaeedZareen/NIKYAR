@@ -1,6 +1,8 @@
 from django.conf import settings
 from django.db import models
 
+from .leave_params import KINDS
+
 
 class Employee(models.Model):
     """
@@ -167,3 +169,34 @@ class Document(EmployeeRecord):
 
     def __str__(self):
         return f"{self.kind} {self.number}".strip()
+
+
+class EmployeeEvent(models.Model):
+    """
+    رویداد پرونده که فرایندهای آماده پس از تأیید ثبت می‌کنند (اقدام «ثبت در پرونده»، 5.4b): مرخصی، مأموریت، اضافه‌کار و…
+    مانده‌ی مرخصی از رویدادهای کسرشونده (deducts) حساب می‌شود (leave.py). روزها روز کاری‌اند (تقویم کاری سازمان).
+    """
+
+    employee = models.ForeignKey(Employee, verbose_name="پرونده", on_delete=models.CASCADE, related_name="events")
+    kind = models.CharField("نوع", max_length=20, choices=list(KINDS.items()))
+    # نوع مرخصی (کد جدول «نوع‌های مرخصی» تنظیمات) و عنوانش هنگام ثبت
+    leave_type = models.CharField("نوع مرخصی", max_length=40, blank=True)
+    title = models.CharField("شرح", max_length=200, blank=True)
+    start_date = models.DateField("از تاریخ")
+    end_date = models.DateField("تا تاریخ", null=True, blank=True)
+    start_time = models.CharField("از ساعت", max_length=5, blank=True)
+    end_time = models.CharField("تا ساعت", max_length=5, blank=True)
+    days = models.DecimalField("روز", max_digits=7, decimal_places=2, default=0)
+    hours = models.DecimalField("ساعت", max_digits=7, decimal_places=2, default=0)
+    deducts = models.BooleanField("کسر از مانده‌ی مرخصی", default=False)
+    request = models.ForeignKey("workflow.Request", verbose_name="درخواست", null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    created_at = models.DateTimeField("زمان ثبت", auto_now_add=True)
+
+    class Meta:
+        ordering = ["-start_date", "-id"]
+        verbose_name = "رویداد پرونده"
+        verbose_name_plural = "رویدادهای پرونده"
+        constraints = [models.UniqueConstraint(fields=["request"], name="hr_event_one_per_request")]
+
+    def __str__(self):
+        return f"{self.get_kind_display()} — {self.employee}"

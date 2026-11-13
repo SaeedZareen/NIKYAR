@@ -1,6 +1,6 @@
 from django.db import transaction
 from drf_spectacular.utils import OpenApiParameter, extend_schema
-from rest_framework import filters
+from rest_framework import filters, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.response import Response
@@ -13,7 +13,7 @@ from core.forms.engine import compile_schema
 from core.kernel.api import HasPerm, MultiValueFilter
 
 from . import access
-from .models import BankAccount, Dependent, Document, Education, Employee, Insurance, WorkHistory
+from .models import BankAccount, Dependent, Document, Education, Employee, EmployeeEvent, Insurance, WorkHistory
 from .serializers import (
     BankAccountSerializer,
     CustomFieldsSerializer,
@@ -21,6 +21,7 @@ from .serializers import (
     DocumentSerializer,
     EducationSerializer,
     EmployeeDetailSerializer,
+    EmployeeEventSerializer,
     EmployeeExtraSerializer,
     EmployeeSerializer,
     InsuranceSerializer,
@@ -156,3 +157,24 @@ DependentViewSet = _records(Dependent, DependentSerializer)
 BankAccountViewSet = _records(BankAccount, BankAccountSerializer, financial=True)
 InsuranceViewSet = _records(Insurance, InsuranceSerializer, financial=True)
 DocumentViewSet = _records(Document, DocumentSerializer)
+
+
+class EventViewSet(viewsets.ReadOnlyModelViewSet):
+    """رویدادهای پرونده (`?employee=`) که فرایندهای آماده پس از تأیید ثبت می‌کنند؛ فقط‌خواندنی، برای هر کس پرونده را می‌بیند."""
+
+    serializer_class = EmployeeEventSerializer
+    permission_classes = [HasPerm]
+    perms = {"*": None}
+    pagination_class = None
+
+    def get_queryset(self):
+        employees = access.readable(self.request.user)
+        employee = self.request.query_params.get("employee") or 0
+        if self.action == "list" and not employees.filter(pk=employee).exists():
+            raise PermissionDenied()
+        events = EmployeeEvent.objects.filter(employee__in=employees).select_related("request")
+        return events.filter(employee_id=employee) if self.action == "list" else events
+
+    @extend_schema(parameters=[OpenApiParameter("employee", int, required=True, description="شناسه‌ی پرونده")])
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
