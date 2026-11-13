@@ -55,7 +55,14 @@ class TestSystem:
 @pytest.mark.django_db
 class TestHrRoles:
     def test_roles_and_threshold_with_audit_names(self, api):
-        assert api.get(ROLES).json() == {"hr_role": None, "finance_role": None, "ceo_role": None, "it_role": None, "assets_role": None, "ceo_threshold": 1_000_000_000}
+        assert api.get(ROLES).json() == {
+            "hr_role": None,
+            "finance_role": None,
+            "ceo_role": None,
+            "it_role": None,
+            "assets_role": None,
+            "ceo_threshold": 1_000_000_000,
+        }
         hr = Role.objects.create(name="کارشناس منابع انسانی")
         r = api.put(ROLES, {"hr_role": hr.pk, "finance_role": None, "ceo_role": None, "ceo_threshold": 500_000_000}, format="json")
         assert r.status_code == 200, r.json()

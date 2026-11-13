@@ -34,7 +34,9 @@ def start(code, user, data):
 
 def test_transfer_moves_unit_and_position(fin):  # noqa: F811
     position = Position.objects.create(title="سرپرست خدمات", unit=fin["services"])
-    request = start("hr-transfer", fin["fin_mgr"], {"employee": fin["clerk"].pk, "change_type": "promotion", "position": position.pk, "date": TODAY, "note": "عملکرد خوب"})
+    request = start(
+        "hr-transfer", fin["fin_mgr"], {"employee": fin["clerk"].pk, "change_type": "promotion", "position": position.pk, "date": TODAY, "note": "عملکرد خوب"}
+    )
     assert walk(request) == ["بررسی منابع انسانی", "تأیید مدیرعامل"]
     employee = Employee.objects.get(pk=fin["employee"].pk)
     assert employee.unit == fin["services"]
