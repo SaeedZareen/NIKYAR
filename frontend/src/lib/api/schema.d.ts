@@ -3718,9 +3718,10 @@ export interface components {
          *     * `medical` - بازپرداخت هزینه‌ی درمان
          *     * `allowance` - کمک‌هزینه
          *     * `travel` - هزینه‌ی سفر مأموریت
+         *     * `hire` - استخدام
          * @enum {string}
          */
-        EmployeeEventKindEnum: "leave" | "hourly_leave" | "mission" | "hourly_mission" | "overtime" | "remote" | "shift" | "attendance_fix" | "advance" | "loan" | "medical" | "allowance" | "travel";
+        EmployeeEventKindEnum: "leave" | "hourly_leave" | "mission" | "hourly_mission" | "overtime" | "remote" | "shift" | "attendance_fix" | "advance" | "loan" | "medical" | "allowance" | "travel" | "hire";
         EmployeePosition: {
             title: string;
             unit: string;
