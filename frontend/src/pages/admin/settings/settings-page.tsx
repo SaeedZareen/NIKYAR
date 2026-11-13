@@ -18,6 +18,7 @@ import type { SectionInfo } from "./settings-form"
 import { HrLeaveSection } from "@/pages/hr/settings-leave"
 import { HrLettersSection } from "@/pages/hr/settings-letters"
 import { HrOnboardingSection } from "@/pages/hr/settings-onboarding"
+import { HrServiceSection } from "@/pages/hr/settings-service"
 import { HrWelfareSection } from "@/pages/hr/settings-welfare"
 import { HrRolesSection } from "@/pages/hr/settings-roles"
 
@@ -37,6 +38,7 @@ const SECTION_FORMS: Record<string, (section: SectionInfo) => React.ReactNode> =
   "hr-letters": (s) => <HrLettersSection section={s} />,
   "hr-welfare": (s) => <HrWelfareSection section={s} />,
   "hr-onboarding": (s) => <HrOnboardingSection section={s} />,
+  "hr-service": (s) => <HrServiceSection section={s} />,
 }
 
 export default function SettingsPage() {

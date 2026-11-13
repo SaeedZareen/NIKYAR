@@ -25,7 +25,15 @@ KINDS = {
     "correction": "اصلاح پرونده",
     "resignation": "استعفا",
     "separation": "پایان همکاری",
+    "evaluation": "ارزیابی عملکرد",
+    "contract": "تمدید قرارداد",
+    "training": "آموزش",
+    "suggestion": "پیشنهاد و انتقاد",
+    "accident": "حادثه‌ی کار",
+    "exit_interview": "مصاحبه‌ی خروج",
 }
+# دوران خدمت ۲ (5.8b): نتیجه‌ی کلی ارزیابی عملکرد سالانه
+EVALUATION_RESULTS = {"excellent": "عالی", "good": "خوب", "fair": "متوسط", "weak": "نیازمند بهبود"}
 # رویدادهای ورود کارمند (5.7b): تاریخشان روز ثبت است و معمولاً برای کارمندی جز درخواست‌دهنده‌اند (پارامتر employee)
 ONBOARDING = ["equipment", "orientation", "probation"]
 PROBATION_RESULTS = {"confirm": "تأیید و ادامه‌ی همکاری", "extend": "تمدید دوره‌ی آزمایشی", "end": "پایان همکاری"}
@@ -37,8 +45,8 @@ ALLOWANCES = {"marriage": ("ازدواج", "marriage_allowance"), "birth": ("ت�
 # فیلد فرم هر نقش: نام پارامتر ← (عنوان، نوع‌های فیلد، نوع‌های رویدادی که لازمش دارند)
 ROLES = {
     "leave_type": ("نوع مرخصی", ["lookup"], ["leave"]),
-    "period": ("بازه‌ی تاریخ", ["date_range"], ["leave", "mission", "remote"]),
-    "date": ("تاریخ", ["date"], ["hourly_leave", "hourly_mission", "overtime", "shift", "attendance_fix", "resignation"]),
+    "period": ("بازه‌ی تاریخ", ["date_range"], ["leave", "mission", "remote", "contract", "training"]),
+    "date": ("تاریخ", ["date"], ["hourly_leave", "hourly_mission", "overtime", "shift", "attendance_fix", "resignation", "accident"]),
     "time": ("بازه‌ی ساعت", ["time_range"], ["hourly_leave", "hourly_mission"]),
     "clock": ("ساعت", ["time"], ["attendance_fix"]),
     "hours": ("شمار ساعت", ["number"], ["overtime"]),
@@ -47,7 +55,8 @@ ROLES = {
     "allowance_type": ("نوع کمک‌هزینه", ["choice"], ["allowance"]),
     "items": ("فهرست تجهیزات", ["table"], ["equipment"]),
     "topics": ("مبحث‌های آموزش", ["multi_choice"], ["orientation"]),
-    "result": ("نتیجه‌ی ارزیابی", ["choice"], ["probation"]),
+    "result": ("نتیجه‌ی ارزیابی", ["choice"], ["probation", "evaluation"]),
+    "subject": ("موضوع", ["text"], ["training", "suggestion", "accident"]),
 }
 NOTE_TYPES = ["text", "textarea"]
 

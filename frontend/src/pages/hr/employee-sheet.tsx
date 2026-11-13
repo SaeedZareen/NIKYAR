@@ -44,6 +44,7 @@ const LABELS = {
   unit: "واحد",
   user: "کاربر سامانه",
   status: "وضعیت",
+  contract_end: "پایان قرارداد",
   separation_date: "تاریخ پایان همکاری",
   separation_reason: "علت پایان همکاری",
 }
@@ -69,6 +70,7 @@ const schema = z
     unit: z.string(),
     user: z.object({ id: z.number(), name: z.string() }).nullable(),
     status: z.enum(["active", "separated"]),
+    contract_end: schemas.jalaliDate,
     separation_date: schemas.jalaliDate,
     separation_reason: z.string(),
   })
@@ -104,6 +106,7 @@ export function EmployeeSheet({ employee, open, onOpenChange }: Props) {
     unit: employee?.unit ? String(employee.unit) : "",
     user: employee?.user ? { id: employee.user, name: employee.user_name } : null,
     status: (employee?.status ?? "active") as "active" | "separated",
+    contract_end: employee?.contract_end ?? "",
     separation_date: employee?.separation_date ?? "",
     separation_reason: employee?.separation_reason ? String(employee.separation_reason) : "",
   })
@@ -122,7 +125,7 @@ export function EmployeeSheet({ employee, open, onOpenChange }: Props) {
     },
   })
 
-  const onSubmit = form.handleSubmit(async ({ region, user, unit, employment_type, separation_reason, birth_date, separation_date, gender, marital_status, ...values }) => {
+  const onSubmit = form.handleSubmit(async ({ region, user, unit, employment_type, separation_reason, birth_date, separation_date, contract_end, gender, marital_status, ...values }) => {
     try {
       await save.mutateAsync({
         ...values,
@@ -131,6 +134,7 @@ export function EmployeeSheet({ employee, open, onOpenChange }: Props) {
         province: region.province ?? "",
         city: region.city ?? "",
         birth_date: birth_date || null,
+        contract_end: contract_end || null,
         separation_date: separated ? separation_date || null : null,
         separation_reason: separated && separation_reason ? Number(separation_reason) : null,
         employment_type: Number(employment_type),
@@ -167,7 +171,7 @@ export function EmployeeSheet({ employee, open, onOpenChange }: Props) {
       )}
     />
   )
-  const date = (name: "birth_date" | "hire_date" | "separation_date", required = false) => (
+  const date = (name: "birth_date" | "hire_date" | "separation_date" | "contract_end", required = false) => (
     <FormField
       control={form.control}
       name={name}
@@ -260,6 +264,7 @@ export function EmployeeSheet({ employee, open, onOpenChange }: Props) {
           description="اگر کارمند حساب کاربری دارد، سمت‌هایش از ساختار سازمانی خوانده می‌شود."
           render={({ field, id, aria }) => <UserPicker id={id} value={field.value} onChange={field.onChange} {...aria} />}
         />
+        {date("contract_end")}
         {select("status", [
           { value: "active", label: "شاغل" },
           { value: "separated", label: "پایان همکاری" },

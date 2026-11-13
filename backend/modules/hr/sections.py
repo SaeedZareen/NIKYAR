@@ -243,3 +243,7 @@ class HrWelfareSettings(serializers.Serializer):
 class HrOnboardingSettings(serializers.Serializer):
     probation_days = count_field("طول دوره‌ی آزمایشی (روز)", 90, 1, 365, "روز")
     reminder_days = count_field("یادآوری ارزیابی پیش از پایان دوره (روز)", 7, 1, 60, "روز")
+
+
+class HrServiceSettings(serializers.Serializer):
+    contract_reminder_days = count_field("یادآوری پیش از پایان قرارداد (روز)", 30, 1, 180, "روز")

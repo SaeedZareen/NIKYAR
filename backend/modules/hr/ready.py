@@ -8,7 +8,7 @@ leave.check_request از روی همان اقدام «ثبت در پرونده»
 from __future__ import annotations
 
 from core.workflow.builder import Action, Step, chain, sequence
-from modules.hr.leave_params import ALLOWANCES, CORRECTABLE, HIRE_FIELDS, PROBATION_RESULTS
+from modules.hr.leave_params import ALLOWANCES, CORRECTABLE, EVALUATION_RESULTS, HIRE_FIELDS, PROBATION_RESULTS
 
 HR = {"type": "role_slot", "slot": "hr.hr"}
 IT = {"type": "role_slot", "slot": "hr.it"}
@@ -489,3 +489,152 @@ def clearance() -> dict:
     ]
     sections = [_requester_section(), _section(fields)]
     return {"form": {"sections": sections}, "bpmn": sequence("hr-clearance", items), "category": "hr", "number_pattern": "{year}/{seq:4}", "starters": "hr.hr"}
+
+
+# ─── دوران خدمت ۲ (5.8b) ────────────────────────────────────────────────
+
+
+def _subject(label: str) -> dict:
+    return {"id": "subject", "type": "text", "label": label, "required": True, "span": 2, "props": {"max_length": 200}}
+
+
+def _record(kind: str, mapping: dict) -> Action:
+    return Action("record", "ثبت در پرونده‌ی پرسنلی", {"type": "hr.record", "kind": kind, "fields": {**mapping, "note": "note"}})
+
+
+def _process(code: str, sections: list[dict], items: list, starters: str | None = None) -> dict:
+    built = {"form": {"sections": sections}, "bpmn": sequence(code, items), "category": "hr", "number_pattern": "{year}/{seq:4}"}
+    return {**built, "starters": starters} if starters else built
+
+
+def evaluation() -> dict:
+    """مدیر ← منابع انسانی ← ثبت نتیجه در پرونده‌ی کارمند."""
+    scale = {"min": 1, "max": 5, "min_label": "ضعیف", "max_label": "عالی"}
+    criteria = [
+        ("quality", "کیفیت کار"),
+        ("productivity", "بهره‌وری و سرعت"),
+        ("discipline", "نظم و تعهد"),
+        ("teamwork", "همکاری"),
+        ("initiative", "ابتکار و یادگیری"),
+    ]
+    fields = [
+        _colleague(),
+        {"id": "year", "type": "number", "label": "سال ارزیابی", "required": True, "props": {"min": 1390, "max": 1500}},
+        *({"id": key, "type": "scale", "label": label, "required": True, "props": scale} for key, label in criteria),
+        {
+            "id": "result",
+            "type": "choice",
+            "label": "نتیجه‌ی کلی",
+            "required": True,
+            "span": 2,
+            "props": {"options": [{"value": code, "label": label} for code, label in EVALUATION_RESULTS.items()]},
+        },
+        _note("نقاط قوت و پیشنهادهای بهبود", required=True),
+    ]
+    items = [Step("hr", "بررسی منابع انسانی", HR), _record("evaluation", {"employee": "employee", "result": "result"})]
+    return _process("hr-evaluation", [_requester_section(), _section(fields)], items)
+
+
+def contract() -> dict:
+    """منابع انسانی ← مدیرعامل ← ثبت و جلو بردن پایان قرارداد پرونده."""
+    fields = [
+        _colleague(),
+        {"id": "period", "type": "date_range", "label": "دوره‌ی قرارداد تازه", "required": True},
+        {"id": "attachment", "type": "attachment", "label": "قرارداد امضاشده", "span": 2},
+        _note("توضیح (تغییر شرایط، حقوق و…)"),
+    ]
+    items = [Step("ceo", "تأیید مدیرعامل", CEO), _record("contract", {"employee": "employee", "period": "period"})]
+    return _process("hr-contract", [_requester_section(), _section(fields)], items, starters="hr.hr")
+
+
+def training() -> dict:
+    fields = [
+        _subject("عنوان دوره"),
+        {"id": "provider", "type": "text", "label": "برگزارکننده", "props": {"max_length": 150}},
+        {"id": "period", "type": "date_range", "label": "بازه‌ی دوره", "required": True},
+        {"id": "cost", "type": "amount", "label": "هزینه"},
+        _note("ارتباط دوره با کار", required=True),
+    ]
+    items = [
+        Step("manager", "تأیید مدیر مستقیم", MANAGER),
+        Step("hr", "بررسی منابع انسانی", HR),
+        _record("training", {"subject": "subject", "period": "period"}),
+    ]
+    return _process("hr-training", [_employee_section(), _section(fields)], items)
+
+
+def suggestion() -> dict:
+    fields = [_subject("موضوع"), _note("شرح پیشنهاد یا انتقاد", required=True)]
+    items = [Step("hr", "بررسی منابع انسانی", HR), _record("suggestion", {"subject": "subject"})]
+    return _process("hr-suggestion", [_employee_section(), _section(fields)], items)
+
+
+def complaint() -> dict:
+    fields = [
+        _subject("موضوع شکایت"),
+        {"id": "against", "type": "user", "label": "از چه کسی (اختیاری)"},
+        {"id": "attachment", "type": "attachment", "label": "مدرک", "span": 2},
+        _note("شرح شکایت", required=True),
+    ]
+    # محرمانه: در پرونده ثبت نمی‌شود (مدیر واحد پرونده را می‌بیند و ممکن است طرف شکایت باشد)؛ فقط منابع انسانی می‌بیند
+    items = [Step("hr", "بررسی منابع انسانی", HR)]
+    return _process("hr-complaint", [_employee_section(), _section(fields)], items)
+
+
+def accident() -> dict:
+    """گزارش‌دهنده ← منابع انسانی ← ثبت در پرونده‌ی آسیب‌دیده."""
+    fields = [
+        _colleague("آسیب‌دیده"),
+        {"id": "date", "type": "date", "label": "تاریخ حادثه", "required": True, "props": {"default_now": True}},
+        {"id": "time", "type": "time", "label": "ساعت حادثه"},
+        _subject("محل و شرح کوتاه حادثه"),
+        {
+            "id": "severity",
+            "type": "choice",
+            "label": "شدت آسیب",
+            "required": True,
+            "props": {
+                "options": [
+                    {"value": "none", "label": "بی آسیب"},
+                    {"value": "minor", "label": "سطحی"},
+                    {"value": "treatment", "label": "نیازمند درمان"},
+                    {"value": "serious", "label": "شدید"},
+                ]
+            },
+        },
+        {"id": "attachment", "type": "attachment", "label": "عکس یا گزارش پزشکی", "span": 2, "props": {"multiple": True}},
+        _note("شرح کامل و اقدام‌های انجام‌شده", required=True),
+    ]
+    items = [Step("hr", "بررسی منابع انسانی", HR), _record("accident", {"employee": "employee", "date": "date", "subject": "subject"})]
+    return _process("hr-accident", [_requester_section(), _section(fields)], items)
+
+
+def exit_interview() -> dict:
+    """منابع انسانی ثبت می‌کند ← ثبت در پرونده‌ی کارمند در حال خروج."""
+    reasons = [
+        "حقوق و مزایا",
+        "فرصت شغلی بهتر",
+        "رابطه با مدیر",
+        "حجم یا نوع کار",
+        "محیط و فرهنگ کار",
+        "جابه‌جایی محل زندگی",
+        "ادامه‌ی تحصیل",
+        "دلیل شخصی یا خانوادگی",
+    ]
+    scale = {"min": 1, "max": 5, "min_label": "ناراضی", "max_label": "راضی"}
+    fields = [
+        _colleague(),
+        {
+            "id": "reasons",
+            "type": "multi_choice",
+            "label": "دلیل‌های خروج",
+            "required": True,
+            "span": 2,
+            "props": {"options": [{"value": f"r{i + 1}", "label": r} for i, r in enumerate(reasons)]},
+        },
+        {"id": "satisfaction", "type": "scale", "label": "رضایت کلی از دوران همکاری", "required": True, "props": scale},
+        {"id": "return", "type": "boolean", "label": "در آینده دوباره همکاری می‌کند"},
+        _note("پیشنهادها و نکته‌های مصاحبه", required=True),
+    ]
+    items = [Step("review", "بازبینی منابع انسانی", HR), _record("exit_interview", {"employee": "employee"})]
+    return _process("hr-exit-interview", [_requester_section(), _section(fields)], items, starters="hr.hr")
