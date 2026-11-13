@@ -2,10 +2,11 @@
 
 import jdatetime
 
-from core.accounts.models import User
+from core.accounts.models import Role, User
 from core.lookups.models import LookupItem
 from core.numbering.service import allocate
 from core.org.service import primary_assignment
+from core.settings.models import SettingsValue
 
 from .models import Employee
 
@@ -44,3 +45,7 @@ def seed():
             unit=assignment.position.unit if assignment else None,
             user=user,
         )
+    # نقش «کارشناس منابع انسانی» نمونه، گیرنده‌ی مرحله‌ی منابع انسانی فرایندهای آماده
+    role = Role.objects.filter(name="کارشناس منابع انسانی").first()
+    if role:
+        SettingsValue.objects.update_or_create(section="hr-roles", defaults={"values": {"hr_role": role.pk}})

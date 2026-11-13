@@ -116,8 +116,14 @@ def chain(code: str, steps: list[Step], actions: list[Action] = ()) -> str:
         waypoints = "".join(f'<di:waypoint x="{px}" y="{py}"/>' for px, py in points)
         return f'<bpmndi:BPMNEdge id="{fid}_di" bpmnElement="{fid}">{waypoints}</bpmndi:BPMNEdge>'
 
+    def label(nid: str, sx: int, sy: int, w: int) -> str:
+        # برچسب پایان «رد شد» کنار دایره، نه زیر آن (مسیر دروازه از پایین به آن می‌رسد)
+        if not nid.startswith("End_rejected_"):
+            return ""
+        return f'<bpmndi:BPMNLabel><dc:Bounds x="{sx + w + 6}" y="{sy + 11}" width="36" height="14"/></bpmndi:BPMNLabel>'
+
     diagram = "".join(
-        f'<bpmndi:BPMNShape id="{nid}_di" bpmnElement="{nid}"><dc:Bounds x="{sx}" y="{sy}" width="{w}" height="{h}"/></bpmndi:BPMNShape>'
+        f'<bpmndi:BPMNShape id="{nid}_di" bpmnElement="{nid}"><dc:Bounds x="{sx}" y="{sy}" width="{w}" height="{h}"/>{label(nid, sx, sy, w)}</bpmndi:BPMNShape>'
         for nid, sx, sy, w, h in shapes
     )
     diagram += "".join(edge(f, s, t) for f, s, t, _x in flows)

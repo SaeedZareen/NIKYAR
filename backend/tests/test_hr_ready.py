@@ -158,5 +158,5 @@ def test_events_api_and_detail_balance(setup, client_for, make_user):
     pk = setup["employee"].pk
     rows = own.get(f"/api/hr/events/?employee={pk}").json()
     assert rows[0]["kind_label"] == "اضافه‌کار" and rows[0]["request"] == request.pk and rows[0]["start_date"] == jal(date.today())
-    assert own.get(f"/api/hr/employees/me/").json()["leave_balance"] > 0
+    assert own.get("/api/hr/employees/me/").json()["leave_balance"] > 0
     assert client_for(make_user("stranger")).get(f"/api/hr/events/?employee={pk}").status_code == 403
