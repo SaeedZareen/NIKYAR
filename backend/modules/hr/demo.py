@@ -46,6 +46,11 @@ def seed():
             user=user,
         )
     # نقش «کارشناس منابع انسانی» نمونه، گیرنده‌ی مرحله‌ی منابع انسانی فرایندهای آماده
-    role = Role.objects.filter(name="کارشناس منابع انسانی").first()
-    if role:
-        SettingsValue.objects.update_or_create(section="hr-roles", defaults={"values": {"hr_role": role.pk}})
+    # نقش‌های نمونه‌ی مرحله‌های فرایندهای آماده: منابع انسانی، امور مالی (حسابدار) و مدیرعامل
+    roles = {"hr_role": Role.objects.filter(name="کارشناس منابع انسانی").first()}
+    for key, name, username in (("finance_role", "امور مالی", "accountant"), ("ceo_role", "مدیرعامل", "ceo")):
+        roles[key] = Role.objects.create(name=name, description="گیرنده‌ی مرحله‌ی فرایندهای آماده‌ی مالی")
+        user = User.objects.filter(username=username).first()
+        if user:
+            user.roles.add(roles[key])
+    SettingsValue.objects.update_or_create(section="hr-roles", defaults={"values": {k: r.pk for k, r in roles.items() if r}})

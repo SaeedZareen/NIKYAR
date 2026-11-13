@@ -7,9 +7,12 @@ leave.check_request از روی همان اقدام «ثبت در پرونده»
 
 from __future__ import annotations
 
-from core.workflow.builder import Action, Step, chain
+from core.workflow.builder import Action, Step, chain, sequence
+from modules.hr.leave_params import ALLOWANCES
 
 HR = {"type": "role_slot", "slot": "hr.hr"}
+FINANCE = {"type": "role_slot", "slot": "hr.finance"}
+CEO = {"type": "role_slot", "slot": "hr.ceo"}
 MANAGER = {"type": "requester_manager"}
 
 
@@ -165,3 +168,71 @@ def attendance_fix() -> dict:
         _note("دلیل ثبت‌نشدن تردد", required=True),
     ]
     return _build("hr-attendance-fix", "attendance_fix", [_employee_section(), _section(fields)], {"date": "date", "clock": "clock"})
+
+
+# ─── مالی و رفاه (5.6) ──────────────────────────────────────────────────
+
+NEEDS_CEO = {"id": "needs_ceo", "type": "hidden", "label": "نیاز به تأیید مدیرعامل"}
+
+
+def _finance(code: str, kind: str, fields: list[dict], mapping: dict, ceo: bool = True) -> dict:
+    """مدیر مستقیم ← منابع انسانی ← امور مالی ← (بالای سقف) مدیرعامل ← ثبت در پرونده."""
+    items: list = [Step("manager", "تأیید مدیر مستقیم", MANAGER), Step("hr", "بررسی منابع انسانی", HR), Step("finance", "بررسی امور مالی", FINANCE)]
+    if ceo:
+        items += [
+            Action("threshold", "بررسی سقف تأیید مدیرعامل", {"type": "hr.threshold", "fields": {"amount": "amount", "flag": "needs_ceo"}}),
+            Step("ceo", "تأیید مدیرعامل", CEO, when=("needs_ceo", "yes"), when_label="بالای سقف مبلغ؟"),
+        ]
+        fields = [*fields, NEEDS_CEO]
+    items.append(Action("record", "ثبت در پرونده‌ی پرسنلی", {"type": "hr.record", "kind": kind, "fields": {**mapping, "note": "note"}}))
+    sections = [_employee_section(), _section(fields)]
+    return {"form": {"sections": sections}, "bpmn": sequence(code, items), "category": "finance", "number_pattern": "{year}/{seq:4}"}
+
+
+def _amount(label: str) -> dict:
+    return {"id": "amount", "type": "amount", "label": label, "required": True, "props": {"min": 1}}
+
+
+def _receipts(label: str) -> dict:
+    return {"id": "attachment", "type": "attachment", "label": label, "required": True, "span": 2, "props": {"multiple": True}}
+
+
+def advance() -> dict:
+    return _finance("hr-advance", "advance", [_amount("مبلغ مساعده"), _note("دلیل")], {"amount": "amount"})
+
+
+def loan() -> dict:
+    fields = [
+        _amount("مبلغ وام"),
+        {"id": "installments", "type": "number", "label": "شمار اقساط", "required": True, "props": {"min": 1, "max": 120, "unit": "قسط"}},
+        {"id": "guarantor", "type": "user", "label": "ضامن", "help": "همکاری که ضمانت بازپرداخت را می‌پذیرد."},
+        _note("دلیل"),
+    ]
+    return _finance("hr-loan", "loan", fields, {"amount": "amount", "installments": "installments", "guarantor": "guarantor"})
+
+
+def medical() -> dict:
+    fields = [_amount("مبلغ هزینه"), _receipts("فاکتور یا نسخه‌ی پزشک"), _note("شرح درمان")]
+    return _finance("hr-medical", "medical", fields, {"amount": "amount", "attachment": "attachment"})
+
+
+def allowance() -> dict:
+    options = [{"value": code, "label": title} for code, (title, _setting) in ALLOWANCES.items()]
+    fields = [
+        {
+            "id": "allowance_type",
+            "type": "choice",
+            "label": "نوع کمک‌هزینه",
+            "required": True,
+            "props": {"options": options},
+            "help": "مبلغ هر نوع در تنظیمات منابع انسانی است.",
+        },
+        {"id": "attachment", "type": "attachment", "label": "مدرک (مثل عقدنامه یا شناسنامه‌ی فرزند)", "required": True, "span": 2},
+        _note(),
+    ]
+    return _finance("hr-allowance", "allowance", fields, {"allowance_type": "allowance_type", "attachment": "attachment"}, ceo=False)
+
+
+def travel() -> dict:
+    fields = [_amount("مبلغ هزینه"), _receipts("فاکتورها و رسیدها"), _note("مأموریت و شرح هزینه‌ها", required=True)]
+    return _finance("hr-travel", "travel", fields, {"amount": "amount", "attachment": "attachment"})

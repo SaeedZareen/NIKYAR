@@ -375,6 +375,7 @@ class EmployeeEventSerializer(serializers.ModelSerializer):
             "days",
             "hours",
             "deducts",
+            "amount",
             "request",
             "request_number",
         ]

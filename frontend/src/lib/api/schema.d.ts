@@ -2149,6 +2149,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/settings/hr-welfare/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description خواندن و ذخیره‌ی یک بخش. برای هر بخش اعلام‌شده یک زیرکلاس با serializer همان بخش ساخته می‌شود (urls.py). */
+        get: operations["settings_hr_welfare_retrieve"];
+        /** @description خواندن و ذخیره‌ی یک بخش. برای هر بخش اعلام‌شده یک زیرکلاس با serializer همان بخش ساخته می‌شود (urls.py). */
+        put: operations["settings_hr_welfare_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/settings/messaging/": {
         parameters: {
             query?: never;
@@ -3679,6 +3697,8 @@ export interface components {
             readonly hours: string;
             /** کسر از مانده‌ی مرخصی */
             readonly deducts: boolean;
+            /** مبلغ (ریال) */
+            readonly amount: number;
             /** درخواست */
             readonly request: number | null;
             /** @default  */
@@ -3693,9 +3713,14 @@ export interface components {
          *     * `remote` - دورکاری
          *     * `shift` - تغییر شیفت
          *     * `attendance_fix` - اصلاح تردد
+         *     * `advance` - مساعده
+         *     * `loan` - وام
+         *     * `medical` - بازپرداخت هزینه‌ی درمان
+         *     * `allowance` - کمک‌هزینه
+         *     * `travel` - هزینه‌ی سفر مأموریت
          * @enum {string}
          */
-        EmployeeEventKindEnum: "leave" | "hourly_leave" | "mission" | "hourly_mission" | "overtime" | "remote" | "shift" | "attendance_fix";
+        EmployeeEventKindEnum: "leave" | "hourly_leave" | "mission" | "hourly_mission" | "overtime" | "remote" | "shift" | "attendance_fix" | "advance" | "loan" | "medical" | "allowance" | "travel";
         EmployeePosition: {
             title: string;
             unit: string;
@@ -4588,6 +4613,114 @@ export interface components {
              * @default 1000000000
              */
             ceo_threshold: number;
+        };
+        /** @description سقف‌ها و مبلغ‌های فرایندهای مالی و رفاه کارکنان (5.6)؛ همه‌ی مبلغ‌ها به ریال، مثل مبلغ‌های فرم‌ها. */
+        HrWelfareSettings: {
+            /**
+             * سقف هر مساعده (ریال)
+             * Format: int64
+             * @default 100000000
+             */
+            advance_max: number;
+            /**
+             * شمار مساعده در سال
+             * @default 3
+             */
+            advance_per_year: number;
+            /**
+             * سقف وام (ریال)
+             * Format: int64
+             * @default 1000000000
+             */
+            loan_max: number;
+            /**
+             * بیشترین شمار اقساط وام
+             * @default 24
+             */
+            loan_max_installments: number;
+            /**
+             * وام ضامن لازم دارد
+             * @default true
+             */
+            loan_needs_guarantor: boolean;
+            /**
+             * سقف بازپرداخت درمان در سال (ریال)
+             * Format: int64
+             * @default 200000000
+             */
+            medical_yearly_max: number;
+            /**
+             * کمک‌هزینه‌ی ازدواج (ریال)
+             * Format: int64
+             * @default 50000000
+             */
+            marriage_allowance: number;
+            /**
+             * کمک‌هزینه‌ی تولد فرزند (ریال)
+             * Format: int64
+             * @default 30000000
+             */
+            birth_allowance: number;
+            /**
+             * کمک‌هزینه‌ی فوت بستگان (ریال)
+             * Format: int64
+             * @default 30000000
+             */
+            death_allowance: number;
+        };
+        /** @description سقف‌ها و مبلغ‌های فرایندهای مالی و رفاه کارکنان (5.6)؛ همه‌ی مبلغ‌ها به ریال، مثل مبلغ‌های فرم‌ها. */
+        HrWelfareSettingsRequest: {
+            /**
+             * سقف هر مساعده (ریال)
+             * Format: int64
+             * @default 100000000
+             */
+            advance_max: number;
+            /**
+             * شمار مساعده در سال
+             * @default 3
+             */
+            advance_per_year: number;
+            /**
+             * سقف وام (ریال)
+             * Format: int64
+             * @default 1000000000
+             */
+            loan_max: number;
+            /**
+             * بیشترین شمار اقساط وام
+             * @default 24
+             */
+            loan_max_installments: number;
+            /**
+             * وام ضامن لازم دارد
+             * @default true
+             */
+            loan_needs_guarantor: boolean;
+            /**
+             * سقف بازپرداخت درمان در سال (ریال)
+             * Format: int64
+             * @default 200000000
+             */
+            medical_yearly_max: number;
+            /**
+             * کمک‌هزینه‌ی ازدواج (ریال)
+             * Format: int64
+             * @default 50000000
+             */
+            marriage_allowance: number;
+            /**
+             * کمک‌هزینه‌ی تولد فرزند (ریال)
+             * Format: int64
+             * @default 30000000
+             */
+            birth_allowance: number;
+            /**
+             * کمک‌هزینه‌ی فوت بستگان (ریال)
+             * Format: int64
+             * @default 30000000
+             */
+            death_allowance: number;
         };
         ImportError: {
             line: number;
@@ -11292,6 +11425,50 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HrRolesSettings"];
+                };
+            };
+        };
+    };
+    settings_hr_welfare_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HrWelfareSettings"];
+                };
+            };
+        };
+    };
+    settings_hr_welfare_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["HrWelfareSettingsRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["HrWelfareSettingsRequest"];
+                "multipart/form-data": components["schemas"]["HrWelfareSettingsRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HrWelfareSettings"];
                 };
             };
         };

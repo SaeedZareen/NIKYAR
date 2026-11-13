@@ -189,6 +189,7 @@ class EmployeeEvent(models.Model):
     days = models.DecimalField("روز", max_digits=7, decimal_places=2, default=0)
     hours = models.DecimalField("ساعت", max_digits=7, decimal_places=2, default=0)
     deducts = models.BooleanField("کسر از مانده‌ی مرخصی", default=False)
+    amount = models.BigIntegerField("مبلغ (ریال)", default=0)
     request = models.ForeignKey("workflow.Request", verbose_name="درخواست", null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
     created_at = models.DateTimeField("زمان ثبت", auto_now_add=True)
 

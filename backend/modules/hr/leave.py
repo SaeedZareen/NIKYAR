@@ -23,7 +23,7 @@ from core.lookups.models import LookupItem, LookupList
 from core.settings.service import read
 from core.workcalendar.service import WorkCalendar
 
-from .leave_params import KINDS, NOTE_TYPES, ROLES
+from .leave_params import FINANCE, KINDS, NOTE_TYPES, ROLES
 from .models import Employee, EmployeeEvent
 
 ANNUAL = "annual"
@@ -118,6 +118,10 @@ def event_values(kind: str, fields: dict, data: dict, cfg: dict) -> dict:
         return v
 
     result = {"title": str(data.get(fields.get("note") or "", "") or "")[:200], "deducts": False, "days": Decimal(0), "hours": Decimal(0)}
+    if kind in FINANCE:
+        from . import finance
+
+        return {**result, **finance.event_values(kind, fields, data, value)}
     if kind in ROLES["period"][2]:
         period = value("period")
         result["start_date"], result["end_date"] = to_date(period["start"]), to_date(period["end"])
@@ -219,6 +223,10 @@ def check_request(request) -> dict[str, str]:
 
 
 def _rules(kind: str, fields: dict, event: dict, employee: Employee, data: dict, cfg: dict) -> dict[str, str]:
+    if kind in FINANCE:
+        from . import finance
+
+        return finance.rules(kind, fields, event, employee, data)
     where = fields.get("period") or fields.get("date") or "__form__"
     if kind in ("leave", "mission", "remote") and event["days"] == 0:
         return {where: "در این بازه روز کاری نیست."}
