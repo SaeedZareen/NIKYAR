@@ -47,7 +47,7 @@ test.describe("پرونده‌ی پرسنلی", () => {
     await sheet.getByRole("button", { name: "ذخیره" }).click()
 
     await expect(page.getByRole("heading", { level: 1, name: `نرگس ${last}` })).toBeVisible()
-    await expect(page.getByText(/کد پرسنلی [۰-۹]{5}/)).toBeVisible()
+    await expect(page.getByText(/^کد پرسنلی [۰-۹]{5}$/)).toBeVisible()
     await expect(page.getByRole("region", { name: "مشخصات فردی" })).toContainText(code.replace(/\d/g, (d) => "۰۱۲۳۴۵۶۷۸۹"[Number(d)]))
     await page.getByRole("tab", { name: "استخدام" }).click()
     await expect(page.getByRole("region", { name: "استخدام" })).toContainText("قراردادی")
