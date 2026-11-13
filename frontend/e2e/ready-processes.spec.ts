@@ -41,7 +41,7 @@ test.describe("فرایندهای آماده", () => {
     await page.goto("/workflow/ready")
     await page.getByRole("button", { name: "فعال‌سازی همه" }).click()
     await expect(page.getByText("همه‌ی فرایندهای آماده فعال شدند.")).toBeVisible()
-    await expect(page.getByText("۸ از ۸ فعال")).toBeVisible()
+    await expect(page.getByText("۱۲ از ۱۲ فعال")).toBeVisible()
 
     // کارمند (برنامه‌نویس): کد پرسنلی و مانده از پرونده، فقط‌خواندنی
     const employee = await signIn(browser, info, "developer")
@@ -88,7 +88,7 @@ test.describe("فرایندهای آماده", () => {
     // ثبت خودکار در پرونده‌ی کارمند
     await hr.goto("/hr/employees")
     await hr.getByRole("main").getByText("نوری").first().click()
-    await hr.getByRole("tab", { name: "درخواست‌ها و رویدادها" }).click()
+    await hr.getByRole("tab", { name: "درخواست‌ها و نامه‌ها" }).click()
     const events = hr.getByRole("region", { name: "درخواست‌ها و رویدادها" })
     await expect(events).toContainText("مرخصی ساعتی")
     await expect(events).toContainText("۲ ساعت")
