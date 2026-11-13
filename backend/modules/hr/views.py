@@ -93,7 +93,9 @@ class RecordViewSet(AuditedModelViewSet):
 
 def _records(model, serializer, *, financial=False):
     return type(
-        f"{model.__name__}ViewSet", (RecordViewSet,), {"model": model, "queryset": model.objects.all(), "serializer_class": serializer, "financial": financial, "__doc__": RecordViewSet.__doc__}
+        f"{model.__name__}ViewSet",
+        (RecordViewSet,),
+        {"model": model, "queryset": model.objects.all(), "serializer_class": serializer, "financial": financial, "__doc__": RecordViewSet.__doc__},
     )
 
 
