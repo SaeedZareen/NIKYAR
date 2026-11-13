@@ -7,12 +7,12 @@ from core.accounts.models import User
 from core.files.fields import FileRefField
 from core.files.types import IMAGE_EXTENSIONS
 from core.kernel.fields import JalaliDateField
-from core.kernel.validators import is_national_code, normalize_mobile, only_digits, validate_mobile
+from core.kernel.validators import is_card_number, is_iban, is_national_code, normalize_mobile, only_digits, validate_mobile
 from core.lookups.models import LookupItem
 from core.numbering.service import allocate
 from core.org.models import Assignment, OrgUnit
 
-from .models import Employee
+from .models import BankAccount, Dependent, Document, Education, Employee, Insurance, WorkHistory
 
 
 def _lookup(list_code: str, label: str, required: bool):
@@ -25,6 +25,39 @@ def _lookup(list_code: str, label: str, required: bool):
     )
 
 
+class FileFieldsMixin:
+    """
+    فیلدهای فایل مدل (ForeignKey به StoredFile) با FileRefField: تصاحب فایل تازه، حذف فایل قبلی پس از ثبت قطعی،
+    و شناسه‌ی رشته‌ای در خروجی. file_fields: نام فیلدهای فایل.
+    """
+
+    file_fields: tuple[str, ...] = ()
+
+    def _apply_files(self, instance, validated):
+        for name in self.file_fields:
+            if name not in validated:
+                continue
+            old = str(getattr(instance, f"{name}_id") or "") if instance else ""
+            new = validated.pop(name)
+            if new != old:
+                self.fields[name].on_change(old, new)
+            validated[f"{name}_id"] = new or None
+
+    def create(self, validated):
+        self._apply_files(None, validated)
+        return super().create(validated)
+
+    def update(self, instance, validated):
+        self._apply_files(instance, validated)
+        return super().update(instance, validated)
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        for name in self.file_fields:
+            data[name] = str(getattr(instance, f"{name}_id") or "")
+        return data
+
+
 class EmployeePositionSerializer(serializers.Serializer):
     title = serializers.CharField()
     unit = serializers.CharField()
@@ -33,8 +66,10 @@ class EmployeePositionSerializer(serializers.Serializer):
     start_date = JalaliDateField()
 
 
-class EmployeeSerializer(serializers.ModelSerializer):
+class EmployeeSerializer(FileFieldsMixin, serializers.ModelSerializer):
     """پرونده‌ی پایه. کد پرسنلی با شماره‌گذاری «کد پرسنلی» صادر می‌شود و تغییر نمی‌کند."""
+
+    file_fields = ("photo",)
 
     birth_date = JalaliDateField(label="تاریخ تولد", required=False, allow_null=True)
     hire_date = JalaliDateField(label="تاریخ استخدام")
@@ -140,26 +175,9 @@ class EmployeeSerializer(serializers.ModelSerializer):
         return attrs
 
     def create(self, validated):
-        photo = validated.pop("photo", "")
         with transaction.atomic():
             validated["personnel_code"] = allocate("hr-personnel")
-            if photo:
-                self.fields["photo"].on_change("", photo)
-                validated["photo_id"] = photo
             return super().create(validated)
-
-    def update(self, instance, validated):
-        old = str(instance.photo_id) if instance.photo_id else ""
-        new = validated.pop("photo", old)
-        if new != old:
-            self.fields["photo"].on_change(old, new)
-            instance.photo_id = new or None
-        return super().update(instance, validated)
-
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        data["photo"] = str(instance.photo_id) if instance.photo_id else ""
-        return data
 
 
 class EmployeeDetailSerializer(EmployeeSerializer):
@@ -167,12 +185,19 @@ class EmployeeDetailSerializer(EmployeeSerializer):
     positions = serializers.SerializerMethodField(help_text="انتصاب‌های جاری کاربر متصل در ساختار سازمانی")
 
     class Meta(EmployeeSerializer.Meta):
-        fields = [*EmployeeSerializer.Meta.fields, "can_edit", "positions"]
+        fields = [*EmployeeSerializer.Meta.fields, "can_edit", "can_view_financial", "positions"]
+
+    can_view_financial = serializers.SerializerMethodField(help_text="حساب بانکی و بیمه را می‌بیند (مجوز، نه مدیر واحد)")
 
     def get_can_edit(self, obj) -> bool:
         from .access import can_manage
 
         return can_manage(self.context["request"].user)
+
+    def get_can_view_financial(self, obj) -> bool:
+        from .access import can_view_all
+
+        return can_view_all(self.context["request"].user)
 
     @staticmethod
     def _positions(obj):
@@ -193,3 +218,118 @@ class EmployeeDetailSerializer(EmployeeSerializer):
     @extend_schema_field(EmployeePositionSerializer(many=True))
     def get_positions(self, obj):
         return EmployeePositionSerializer(self._positions(obj), many=True).data
+
+
+# ─── سوابق پرونده ─────────────────────────────────────────────────────────
+
+
+class RecordSerializer(FileFieldsMixin, serializers.ModelSerializer):
+    """پایه‌ی سوابق: پرونده (فقط هنگام ساخت) و عنوان‌های فهرست‌های پایه برای نمایش."""
+
+    employee = serializers.PrimaryKeyRelatedField(queryset=Employee.objects.all(), label="پرونده")
+
+    def update(self, instance, validated):
+        validated.pop("employee", None)
+        return super().update(instance, validated)
+
+
+def _title(source: str):
+    return serializers.CharField(source=f"{source}.title", read_only=True)
+
+
+class EducationSerializer(RecordSerializer):
+    file_fields = ("certificate",)
+    level = _lookup("education-level", "مقطع", True)
+    level_title = _title("level")
+    certificate = FileRefField(label="تصویر مدرک")
+
+    class Meta:
+        model = Education
+        fields = ["id", "employee", "level", "level_title", "field", "institution", "graduation_year", "gpa", "certificate"]
+        extra_kwargs = {"graduation_year": {"min_value": 1300, "max_value": 1500}, "gpa": {"min_value": 0, "max_value": 20}}
+
+
+class WorkHistorySerializer(RecordSerializer):
+    start_date = JalaliDateField(label="از تاریخ")
+    end_date = JalaliDateField(label="تا تاریخ", required=False, allow_null=True)
+
+    class Meta:
+        model = WorkHistory
+        fields = ["id", "employee", "employer", "title", "start_date", "end_date", "leave_reason"]
+
+    def validate(self, attrs):
+        start = attrs.get("start_date", getattr(self.instance, "start_date", None))
+        end = attrs.get("end_date", getattr(self.instance, "end_date", None))
+        if start and end and end < start:
+            raise serializers.ValidationError({"end_date": "«تا تاریخ» پیش از «از تاریخ» است."})
+        return attrs
+
+
+class DependentSerializer(RecordSerializer):
+    relation = _lookup("dependent-relation", "نسبت", True)
+    relation_title = _title("relation")
+    birth_date = JalaliDateField(label="تاریخ تولد", required=False, allow_null=True)
+
+    class Meta:
+        model = Dependent
+        fields = ["id", "employee", "first_name", "last_name", "relation", "relation_title", "national_code", "birth_date", "insured"]
+
+    def validate_national_code(self, value):
+        value = only_digits(value or "")
+        if value and not is_national_code(value):
+            raise serializers.ValidationError("کد ملی معتبر نیست.")
+        return value
+
+
+class BankAccountSerializer(RecordSerializer):
+    class Meta:
+        model = BankAccount
+        fields = ["id", "employee", "iban", "account_number", "card_number", "is_salary"]
+
+    def validate_iban(self, value):
+        value = "IR" + only_digits(value)
+        if not is_iban(value):
+            raise serializers.ValidationError("شماره‌ی شبا معتبر نیست.")
+        return value
+
+    def validate_card_number(self, value):
+        value = only_digits(value or "")
+        if value and not is_card_number(value):
+            raise serializers.ValidationError("شماره‌ی کارت معتبر نیست.")
+        return value
+
+    def save(self, **kwargs):
+        # فقط یک حساب حقوق در هر پرونده: انتخاب حساب تازه، قبلی را برمی‌دارد
+        with transaction.atomic():
+            account = super().save(**kwargs)
+            if account.is_salary:
+                BankAccount.objects.filter(employee=account.employee, is_salary=True).exclude(pk=account.pk).update(is_salary=False)
+        return account
+
+
+class InsuranceSerializer(RecordSerializer):
+    kind = _lookup("insurance-type", "نوع بیمه", True)
+    kind_title = _title("kind")
+    start_date = JalaliDateField(label="از تاریخ", required=False, allow_null=True)
+    end_date = JalaliDateField(label="تا تاریخ", required=False, allow_null=True)
+
+    class Meta:
+        model = Insurance
+        fields = ["id", "employee", "kind", "kind_title", "number", "start_date", "end_date", "prior_months"]
+
+
+class DocumentSerializer(RecordSerializer):
+    file_fields = ("file",)
+    kind = _lookup("document-type", "نوع مدرک", True)
+    kind_title = _title("kind")
+    issue_date = JalaliDateField(label="تاریخ صدور", required=False, allow_null=True)
+    expiry_date = JalaliDateField(label="تاریخ اعتبار", required=False, allow_null=True)
+    file = FileRefField(label="فایل")
+    expired = serializers.SerializerMethodField(help_text="تاریخ اعتبار گذشته است")
+
+    class Meta:
+        model = Document
+        fields = ["id", "employee", "kind", "kind_title", "number", "issue_date", "expiry_date", "file", "note", "expired"]
+
+    def get_expired(self, obj) -> bool:
+        return bool(obj.expiry_date and obj.expiry_date < timezone.localdate())

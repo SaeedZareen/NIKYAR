@@ -113,7 +113,7 @@ export function EmployeeSheet({ employee, open, onOpenChange }: Props) {
     mutationFn: (body: Schemas["PatchedEmployeeDetailRequest"]) =>
       isNew
         ? unwrap(api.POST("/api/hr/employees/", { body: body as Schemas["EmployeeDetailRequest"] }))
-        : unwrap(api.PATCH("/api/hr/employees/{id}/", { params: { path: { id: String(employee.id) } }, body })),
+        : unwrap(api.PATCH("/api/hr/employees/{id}/", { params: { path: { id: employee.id } }, body })),
     onSuccess: (saved) => {
       qc.invalidateQueries({ queryKey: EMPLOYEES_KEY })
       toast.success(isNew ? `پرونده‌ی «${saved.full_name}» با کد پرسنلی ${toFaDigits(saved.personnel_code)} ثبت شد.` : `تغییرات پرونده‌ی «${saved.full_name}» ذخیره شد.`)

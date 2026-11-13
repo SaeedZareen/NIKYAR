@@ -14,6 +14,8 @@ import { api, unwrap, type Schemas } from "@/lib/api/client"
 import { formatDate, toFaDigits } from "@/lib/format"
 import { fileUrl } from "@/lib/files"
 import { EmployeeSheet } from "./employee-sheet"
+import { BANK, DEPENDENTS, DOCUMENTS, EDUCATION, INSURANCE, WORK } from "./record-kinds"
+import { RecordSection } from "./record-section"
 import { EMPLOYEES_KEY, STATUS_TONES } from "./employees"
 
 type Employee = Schemas["EmployeeDetail"]
@@ -21,13 +23,16 @@ type Position = Schemas["EmployeePosition"]
 const TABS = [
   { value: "profile", label: "مشخصات" },
   { value: "employment", label: "استخدام" },
-  { value: "positions", label: "سمت‌ها" },
+  { value: "history", label: "تحصیلات و سوابق کاری" },
+  { value: "family", label: "خانواده" },
+  { value: "financial", label: "بانک و بیمه", financial: true },
+  { value: "documents", label: "مدارک" },
 ] as const
 
 /** صفحه‌ی پرونده‌ی پرسنلی با زبانه‌ها؛ ویرایش فقط برای `hr.manage` (مدیر واحد فقط می‌بیند). */
 export default function EmployeePage() {
   const { employeeId = "" } = useParams()
-  const employee = useQuery({ queryKey: [...EMPLOYEES_KEY, employeeId], queryFn: () => unwrap(api.GET("/api/hr/employees/{id}/", { params: { path: { id: employeeId } } })) })
+  const employee = useQuery({ queryKey: [...EMPLOYEES_KEY, employeeId], queryFn: () => unwrap(api.GET("/api/hr/employees/{id}/", { params: { path: { id: Number(employeeId) } } })) })
   if (employee.isPending) return <PageFallback />
   if (employee.error) return <PageError error={employee.error} onRetry={() => employee.refetch()} />
   return <EmployeeView data={employee.data} />
@@ -35,7 +40,9 @@ export default function EmployeePage() {
 
 function EmployeeView({ data }: { data: Employee }) {
   const [params, setParams] = useSearchParams()
-  const tab = TABS.some((t) => t.value === params.get("tab")) ? (params.get("tab") as string) : "profile"
+  // حساب بانکی و بیمه برای مدیر واحد (بی مجوز پرونده‌ها) دیده نمی‌شود
+  const tabs = TABS.filter((t) => !("financial" in t) || data.can_view_financial)
+  const tab = tabs.some((t) => t.value === params.get("tab")) ? (params.get("tab") as string) : "profile"
   const [editing, setEditing] = React.useState(false)
   const digits = (value: string) => (value ? <span className="tabular-nums">{toFaDigits(value)}</span> : undefined)
   const text = (value: string) => value || undefined
@@ -61,7 +68,7 @@ function EmployeeView({ data }: { data: Employee }) {
       />
       <Tabs value={tab} onValueChange={(t) => setParams(t === "profile" ? {} : { tab: t }, { replace: true })} className="gap-4">
         <TabsList>
-          {TABS.map((t) => (
+          {tabs.map((t) => (
             <TabsTrigger key={t.value} value={t.value}>
               {t.label}
             </TabsTrigger>
@@ -104,7 +111,7 @@ function EmployeeView({ data }: { data: Employee }) {
             />
           </Section>
         </TabsContent>
-        <TabsContent value="employment">
+        <TabsContent value="employment" className="flex flex-col gap-4">
           <Section title="استخدام">
             <DescriptionList
               items={[
@@ -122,9 +129,23 @@ function EmployeeView({ data }: { data: Employee }) {
               ]}
             />
           </Section>
-        </TabsContent>
-        <TabsContent value="positions">
           <Positions data={data} />
+        </TabsContent>
+        <TabsContent value="history" className="flex flex-col gap-4">
+          <RecordSection config={EDUCATION} employee={data} />
+          <RecordSection config={WORK} employee={data} />
+        </TabsContent>
+        <TabsContent value="family">
+          <RecordSection config={DEPENDENTS} employee={data} />
+        </TabsContent>
+        {data.can_view_financial && (
+          <TabsContent value="financial" className="flex flex-col gap-4">
+            <RecordSection config={BANK} employee={data} />
+            <RecordSection config={INSURANCE} employee={data} />
+          </TabsContent>
+        )}
+        <TabsContent value="documents">
+          <RecordSection config={DOCUMENTS} employee={data} />
         </TabsContent>
       </Tabs>
       {editing && <EmployeeSheet employee={data} open onOpenChange={setEditing} />}

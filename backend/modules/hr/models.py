@@ -57,3 +57,111 @@ class Employee(models.Model):
 
     def __str__(self):
         return f"{self.first_name} {self.last_name}"
+
+
+class EmployeeRecord(models.Model):
+    """پایه‌ی سوابق پرونده (هر زبانه‌ی سوابق یک جدول)؛ هر سابقه به یک پرونده بسته است و جدا افزوده، ویرایش یا حذف می‌شود."""
+
+    employee = models.ForeignKey(Employee, verbose_name="پرونده", on_delete=models.CASCADE, related_name="+")
+    created_at = models.DateTimeField("زمان ثبت", auto_now_add=True)
+
+    class Meta:
+        abstract = True
+
+
+class Education(EmployeeRecord):
+    level = models.ForeignKey("lookups.LookupItem", verbose_name="مقطع", on_delete=models.PROTECT, related_name="+")
+    field = models.CharField("رشته", max_length=150, blank=True)
+    institution = models.CharField("دانشگاه یا مؤسسه", max_length=200, blank=True)
+    graduation_year = models.PositiveSmallIntegerField("سال دانش‌آموختگی", null=True, blank=True)
+    gpa = models.DecimalField("معدل", max_digits=4, decimal_places=2, null=True, blank=True)
+    certificate = models.ForeignKey("files.StoredFile", verbose_name="تصویر مدرک", null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+
+    class Meta:
+        ordering = ["-graduation_year", "-id"]
+        verbose_name = "سابقه‌ی تحصیلی"
+        verbose_name_plural = "سوابق تحصیلی"
+
+    def __str__(self):
+        return f"{self.level} {self.field}".strip()
+
+
+class WorkHistory(EmployeeRecord):
+    employer = models.CharField("محل کار", max_length=200)
+    title = models.CharField("سمت", max_length=150, blank=True)
+    start_date = models.DateField("از تاریخ")
+    end_date = models.DateField("تا تاریخ", null=True, blank=True)
+    leave_reason = models.CharField("علت ترک کار", max_length=200, blank=True)
+
+    class Meta:
+        ordering = ["-start_date", "-id"]
+        verbose_name = "سابقه‌ی کاری"
+        verbose_name_plural = "سوابق کاری"
+
+    def __str__(self):
+        return self.employer
+
+
+class Dependent(EmployeeRecord):
+    first_name = models.CharField("نام", max_length=100)
+    last_name = models.CharField("نام خانوادگی", max_length=100)
+    relation = models.ForeignKey("lookups.LookupItem", verbose_name="نسبت", on_delete=models.PROTECT, related_name="+")
+    national_code = models.CharField("کد ملی", max_length=10, blank=True)
+    birth_date = models.DateField("تاریخ تولد", null=True, blank=True)
+    insured = models.BooleanField("تحت پوشش بیمه", default=False)
+
+    class Meta:
+        ordering = ["id"]
+        verbose_name = "فرد تحت تکفل"
+        verbose_name_plural = "افراد تحت تکفل"
+
+    def __str__(self):
+        return f"{self.first_name} {self.last_name}"
+
+
+class BankAccount(EmployeeRecord):
+    iban = models.CharField("شماره‌ی شبا", max_length=26)
+    account_number = models.CharField("شماره‌ی حساب", max_length=30, blank=True)
+    card_number = models.CharField("شماره‌ی کارت", max_length=16, blank=True)
+    is_salary = models.BooleanField("حساب حقوق", default=False)
+
+    class Meta:
+        ordering = ["-is_salary", "id"]
+        verbose_name = "حساب بانکی"
+        verbose_name_plural = "حساب‌های بانکی"
+
+    def __str__(self):
+        return self.iban
+
+
+class Insurance(EmployeeRecord):
+    kind = models.ForeignKey("lookups.LookupItem", verbose_name="نوع بیمه", on_delete=models.PROTECT, related_name="+")
+    number = models.CharField("شماره‌ی بیمه", max_length=30, blank=True)
+    start_date = models.DateField("از تاریخ", null=True, blank=True)
+    end_date = models.DateField("تا تاریخ", null=True, blank=True)
+    prior_months = models.PositiveSmallIntegerField("سابقه‌ی پیشین (ماه)", null=True, blank=True)
+
+    class Meta:
+        ordering = ["-start_date", "-id"]
+        verbose_name = "بیمه"
+        verbose_name_plural = "بیمه‌ها"
+
+    def __str__(self):
+        return f"{self.kind} {self.number}".strip()
+
+
+class Document(EmployeeRecord):
+    kind = models.ForeignKey("lookups.LookupItem", verbose_name="نوع مدرک", on_delete=models.PROTECT, related_name="+")
+    number = models.CharField("شماره", max_length=50, blank=True)
+    issue_date = models.DateField("تاریخ صدور", null=True, blank=True)
+    expiry_date = models.DateField("تاریخ اعتبار", null=True, blank=True)
+    file = models.ForeignKey("files.StoredFile", verbose_name="فایل", null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    note = models.CharField("توضیح", max_length=200, blank=True)
+
+    class Meta:
+        ordering = ["expiry_date", "id"]
+        verbose_name = "مدرک"
+        verbose_name_plural = "مدارک"
+
+    def __str__(self):
+        return f"{self.kind} {self.number}".strip()
