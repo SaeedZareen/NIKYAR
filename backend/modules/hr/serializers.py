@@ -186,11 +186,20 @@ class EmployeeDetailSerializer(EmployeeSerializer):
     positions = serializers.SerializerMethodField(help_text="انتصاب‌های جاری کاربر متصل در ساختار سازمانی")
 
     class Meta(EmployeeSerializer.Meta):
-        fields = [*EmployeeSerializer.Meta.fields, "can_edit", "can_view_financial", "positions", "leave_balance"]
+        fields = [*EmployeeSerializer.Meta.fields, "can_edit", "can_view_financial", "positions", "leave_balance", "probation_end"]
 
     can_view_financial = serializers.SerializerMethodField(help_text="حساب بانکی و بیمه را می‌بیند (مجوز، نه مدیر واحد)")
 
     leave_balance = serializers.SerializerMethodField(help_text="مانده‌ی مرخصی استحقاقی امسال (روز، با رویدادهای ثبت‌شده)")
+
+    probation_end = serializers.SerializerMethodField(help_text="پایان دوره‌ی آزمایشی (تنظیمات «ورود کارمند»)، شمسی")
+
+    def get_probation_end(self, obj) -> str:
+        import jdatetime
+
+        from .onboarding import probation_end
+
+        return jdatetime.date.fromgregorian(date=probation_end(obj)).strftime("%Y/%m/%d")
 
     def get_leave_balance(self, obj) -> float:
         from .leave import balance

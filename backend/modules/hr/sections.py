@@ -236,3 +236,8 @@ class HrWelfareSettings(serializers.Serializer):
     marriage_allowance = _rial("کمک‌هزینه‌ی ازدواج (ریال)", 50_000_000)
     birth_allowance = _rial("کمک‌هزینه‌ی تولد فرزند (ریال)", 30_000_000)
     death_allowance = _rial("کمک‌هزینه‌ی فوت بستگان (ریال)", 30_000_000)
+
+
+class HrOnboardingSettings(serializers.Serializer):
+    probation_days = count_field("طول دوره‌ی آزمایشی (روز)", 90, 1, 365, "روز")
+    reminder_days = count_field("یادآوری ارزیابی پیش از پایان دوره (روز)", 7, 1, 60, "روز")
