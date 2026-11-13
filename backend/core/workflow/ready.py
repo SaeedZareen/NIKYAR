@@ -15,7 +15,7 @@ from core.forms import service as form_service
 from core.forms.models import Form
 from core.forms.transfer import free_code as free_form_code
 from core.kernel.api import BusinessError
-from core.kernel.registry import ReadyProcess, ready_processes
+from core.kernel.registry import ReadyProcess, ready_processes, role_slots
 from core.licensing.service import module_enabled
 from core.lookups.models import LookupItem
 
@@ -64,6 +64,7 @@ def install(code: str, user) -> Process:
             existing.save(update_fields=["is_active"])
         return existing
     built = import_string(spec.build)()
+    starters = _starter_role(built.get("starters"), spec)
     category = built.get("category")
     form = Form.objects.create(
         code=free_form_code(code),
@@ -79,13 +80,26 @@ def install(code: str, user) -> Process:
         description=spec.description,
         category=LookupItem.objects.filter(list__code="process-category", code=category).first() if category else None,
         form=form,
-        start_by_everyone=True,
+        start_by_everyone=starters is None,
         number_pattern=built.get("number_pattern", ""),
         ready=code,
     )
+    if starters is not None:
+        process.start_roles.set([starters])
     version = ProcessVersion.objects.create(process=process, number=1, bpmn=built["bpmn"])
     service.publish(version, user)
     return process
+
+
+def _starter_role(slot_code: str | None, spec: ReadyProcess) -> int | None:
+    """فرایندی که فقط دارندگان یک نقش تنظیمات شروعش می‌کنند (مثل «استخدام» برای منابع انسانی)؛ None یعنی همه."""
+    if not slot_code:
+        return None
+    slot = role_slots()[slot_code]
+    role = slot.role_id()
+    if role is None:
+        raise BusinessError(f"پیش از فعال‌سازی «{spec.title}»، نقش «{slot.title}» را در تنظیمات تعیین کنید؛ فقط دارندگان آن نقش این درخواست را ثبت می‌کنند.")
+    return role
 
 
 def set_active(code: str, active: bool, user) -> Process | None:

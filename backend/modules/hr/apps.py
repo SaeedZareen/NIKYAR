@@ -15,7 +15,7 @@ from core.kernel.registry import (
     SettingsSection,
     WorkflowAction,
 )
-from modules.hr.leave_params import LETTER_PARAMS, PARAMS, THRESHOLD_PARAMS
+from modules.hr.leave_params import HIRE_PARAMS, LETTER_PARAMS, PARAMS, THRESHOLD_PARAMS
 
 
 class HrConfig(AppConfig):
@@ -176,6 +176,13 @@ class HrConfig(AppConfig):
             run=lambda context, config: import_string("modules.hr.finance.run_threshold")(context, config),
             params=THRESHOLD_PARAMS,
         ),
+        WorkflowAction(
+            code="hr.hire",
+            title="استخدام: ساخت پرونده‌ی پرسنلی",
+            check=lambda config, definition: import_string("modules.hr.hiring.check_action")(config, definition),
+            run=lambda context, config: import_string("modules.hr.hiring.run_action")(context, config),
+            params=HIRE_PARAMS,
+        ),
     ]
     nikyar_ready_processes = (
         [
@@ -219,6 +226,20 @@ class HrConfig(AppConfig):
                 ("hr-medical", "بازپرداخت هزینه‌ی درمان", "medical", "بازپرداخت هزینه‌ی درمان با فاکتور، تا سقف سالانه."),
                 ("hr-allowance", "کمک‌هزینه", "allowance", "کمک‌هزینه‌ی ازدواج، تولد فرزند یا فوت بستگان با مبلغ تنظیمات."),
                 ("hr-travel", "هزینه‌ی سفر مأموریت", "travel", "تنخواه یا هزینه‌ی سفر مأموریت با فاکتور."),
+            ]
+        ]
+        + [
+            ReadyProcess(
+                code=code, title=title, group="ورود کارمند", description=description, build=f"modules.hr.ready.{build}", check="modules.hr.leave.check_request"
+            )
+            for code, title, build, description in [
+                (
+                    "hr-recruitment",
+                    "درخواست نیروی انسانی",
+                    "recruitment",
+                    "درخواست جذب نیرو برای یک واحد با شرح شغل و شرایط؛ بررسی منابع انسانی و تأیید مدیرعامل.",
+                ),
+                ("hr-hire", "استخدام", "hire", "مشخصات کارمند تازه به دست منابع انسانی؛ پس از تأیید مدیرعامل پرونده و در صورت انتخاب حساب کاربری ساخته می‌شود."),
             ]
         ]
     )

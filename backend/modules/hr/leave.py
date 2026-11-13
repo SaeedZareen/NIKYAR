@@ -192,7 +192,7 @@ def _module_actions(request) -> list[dict]:
     from core.workflow.service import _compiled
 
     _, definition = _compiled(request.version)
-    return [a for a in definition.actions.values() if isinstance(a, dict) and a.get("type") in ("hr.record", "hr.letter")]
+    return [a for a in definition.actions.values() if isinstance(a, dict) and a.get("type") in ("hr.record", "hr.letter", "hr.hire")]
 
 
 def check_request(request) -> dict[str, str]:
@@ -200,9 +200,14 @@ def check_request(request) -> dict[str, str]:
     قاعده‌های پیش از ارسال فرایندهای آماده‌ی پرسنلی (مرخصی، مأموریت، تردد و نامه‌ها): پیام‌های خطا (فیلد ← پیام، «__form__»
     برای پیام کلی). از تنظیمات اقدام‌های «ثبت در پرونده» و «صدور نامه» نسخه‌ی منتشرشده‌ی فرایند خوانده می‌شود.
     """
-    from . import letters
+    from . import hiring, letters
 
     actions = _module_actions(request)
+    hires = [a for a in actions if a["type"] == "hr.hire"]
+    if hires and (errors := hiring.check_request(hires, request.data)):
+        return errors
+    # استخدام برای کارمند تازه است؛ پرونده‌ی خود درخواست‌دهنده فقط برای بقیه‌ی اقدام‌ها لازم است
+    actions = [a for a in actions if a["type"] != "hr.hire"]
     if not actions:
         return {}
     employee = employee_of(request.requester)

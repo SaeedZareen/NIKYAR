@@ -71,7 +71,7 @@ def approve_all(request: Request, setup) -> None:
 
 def test_catalogue_installs_once_and_deactivates(setup, admin):
     rows = {r["code"]: r for r in ready.catalogue()}
-    assert len(rows) == 17 and all(r["active"] for r in rows.values())
+    assert len(rows) == 19 and all(r["active"] for r in rows.values())
     process = Process.objects.get(ready="hr-leave")
     assert process.category.code == "hr" and process.current_version() is not None
     ready.set_active("hr-leave", False, admin)
@@ -143,7 +143,7 @@ def test_profile_values_and_lookup_sync(setup, client_for, api):
 
 def test_ready_api_and_role_slots(setup, api):
     rows = api.get("/api/workflow/ready/").json()
-    assert {r["group"] for r in rows} == {"مرخصی و تردد", "نامه‌ها و گواهی‌ها", "مالی و رفاه"}
+    assert {r["group"] for r in rows} == {"مرخصی و تردد", "نامه‌ها و گواهی‌ها", "مالی و رفاه", "ورود کارمند"}
     r = api.post("/api/workflow/ready/hr-shift/active/", {"active": False}, format="json")
     assert r.status_code == 200 and r.json()["active"] is False
     assert {s["code"] for s in api.get("/api/workflow/processes/role-slots/").json()} == {"hr.hr", "hr.finance", "hr.ceo"}

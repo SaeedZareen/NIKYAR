@@ -8,7 +8,7 @@ leave.check_request از روی همان اقدام «ثبت در پرونده»
 from __future__ import annotations
 
 from core.workflow.builder import Action, Step, chain, sequence
-from modules.hr.leave_params import ALLOWANCES
+from modules.hr.leave_params import ALLOWANCES, HIRE_FIELDS
 
 HR = {"type": "role_slot", "slot": "hr.hr"}
 FINANCE = {"type": "role_slot", "slot": "hr.finance"}
@@ -236,3 +236,70 @@ def allowance() -> dict:
 def travel() -> dict:
     fields = [_amount("مبلغ هزینه"), _receipts("فاکتورها و رسیدها"), _note("مأموریت و شرح هزینه‌ها", required=True)]
     return _finance("hr-travel", "travel", fields, {"amount": "amount", "attachment": "attachment"})
+
+
+# ─── ورود کارمند (5.7a) ─────────────────────────────────────────────────
+
+
+def _requester() -> dict:
+    return {"id": "requester", "type": "submitter", "label": "درخواست‌کننده", "span": 2, "props": {"items": ["name", "unit", "position"]}}
+
+
+def recruitment() -> dict:
+    """درخواست جذب نیرو (معمولاً مدیر واحد) ← منابع انسانی ← مدیرعامل."""
+    fields = [
+        {"id": "job_title", "type": "text", "label": "عنوان شغل", "required": True, "props": {"max_length": 150}},
+        {"id": "unit", "type": "org_unit", "label": "واحد", "required": True},
+        {"id": "headcount", "type": "number", "label": "شمار نیرو", "required": True, "default": 1, "props": {"min": 1, "max": 100, "unit": "نفر"}},
+        {"id": "employment_type", "type": "lookup", "label": "نوع استخدام", "required": True, "props": {"list": "employment-type"}},
+        {"id": "start_date", "type": "date", "label": "تاریخ نیاز"},
+        {"id": "education", "type": "text", "label": "تحصیلات لازم", "props": {"max_length": 200}},
+        {"id": "experience", "type": "text", "label": "سابقه‌ی کار لازم", "props": {"max_length": 200}},
+        {"id": "note", "type": "textarea", "label": "شرح وظایف و دلیل نیاز", "required": True, "span": 2, "props": {"max_length": 2000, "rows": 4}},
+    ]
+    steps = [Step("hr", "بررسی منابع انسانی", HR), Step("ceo", "تأیید مدیرعامل", CEO)]
+    sections = [{"id": "requester_section", "title": "درخواست‌کننده", "columns": 2, "fields": [_requester()]}, _section(fields, "نیاز")]
+    return {"form": {"sections": sections}, "bpmn": chain("hr-recruitment", steps), "category": "hr", "number_pattern": "{year}/{seq:4}"}
+
+
+def hire() -> dict:
+    """منابع انسانی مشخصات کارمند تازه را ثبت می‌کند ← مدیرعامل ← ساخت پرونده (و حساب کاربری)."""
+    person = [
+        {"id": "first_name", "type": "text", "label": "نام", "required": True, "props": {"max_length": 100}},
+        {"id": "last_name", "type": "text", "label": "نام خانوادگی", "required": True, "props": {"max_length": 100}},
+        {"id": "national_code", "type": "national_code", "label": "کد ملی", "required": True},
+        {"id": "father_name", "type": "text", "label": "نام پدر", "props": {"max_length": 100}},
+        {"id": "birth_date", "type": "date", "label": "تاریخ تولد"},
+        {
+            "id": "gender",
+            "type": "choice",
+            "label": "جنسیت",
+            "required": True,
+            "props": {"options": [{"value": "male", "label": "مرد"}, {"value": "female", "label": "زن"}]},
+        },
+        {"id": "mobile", "type": "mobile", "label": "موبایل"},
+        {"id": "email", "type": "email", "label": "ایمیل"},
+    ]
+    job = [
+        {"id": "hire_date", "type": "date", "label": "تاریخ استخدام", "required": True},
+        {"id": "employment_type", "type": "lookup", "label": "نوع استخدام", "required": True, "props": {"list": "employment-type"}},
+        {"id": "unit", "type": "org_unit", "label": "واحد"},
+        {"id": "position", "type": "position", "label": "سمت سازمانی", "help": "اگر حساب کاربری ساخته شود، کارمند از تاریخ استخدام در این سمت منصوب می‌شود."},
+        {"id": "create_account", "type": "boolean", "label": "ساخت حساب کاربری", "default": True},
+        {
+            "id": "username",
+            "type": "text",
+            "label": "نام کاربری",
+            "help": "حرف و رقم لاتین؛ گذرواژه را پس از ساخت در «کاربران» تعیین کنید.",
+            "visible_if": {"==": [{"var": "create_account"}, True]},
+            "required_if": {"==": [{"var": "create_account"}, True]},
+            "props": {"max_length": 150},
+        },
+        _note("توضیح"),
+    ]
+    items = [Step("ceo", "تأیید مدیرعامل", CEO), Action("hire", "ساخت پرونده‌ی پرسنلی", {"type": "hr.hire", "fields": {name: name for name in HIRE_FIELDS}})]
+    sections = [
+        {"id": "person_section", "title": "مشخصات کارمند تازه", "columns": 2, "fields": person},
+        {"id": "job_section", "title": "استخدام", "columns": 2, "fields": job},
+    ]
+    return {"form": {"sections": sections}, "bpmn": sequence("hr-hire", items), "category": "hr", "number_pattern": "{year}/{seq:4}", "starters": "hr.hr"}
