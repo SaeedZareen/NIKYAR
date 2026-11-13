@@ -204,7 +204,11 @@ def _module_actions(request) -> list[dict]:
     from core.workflow.service import _compiled
 
     _, definition = _compiled(request.version)
-    return [a for a in definition.actions.values() if isinstance(a, dict) and a.get("type") in ("hr.record", "hr.letter", "hr.hire")]
+    return [
+        a
+        for a in definition.actions.values()
+        if isinstance(a, dict) and a.get("type") in ("hr.record", "hr.letter", "hr.hire", "hr.transfer", "hr.correct", "hr.separate")
+    ]
 
 
 def check_request(request) -> dict[str, str]:
@@ -212,14 +216,17 @@ def check_request(request) -> dict[str, str]:
     قاعده‌های پیش از ارسال فرایندهای آماده‌ی پرسنلی (مرخصی، مأموریت، تردد و نامه‌ها): پیام‌های خطا (فیلد ← پیام، «__form__»
     برای پیام کلی). از تنظیمات اقدام‌های «ثبت در پرونده» و «صدور نامه» نسخه‌ی منتشرشده‌ی فرایند خوانده می‌شود.
     """
-    from . import hiring, letters
+    from . import career, hiring, letters
 
     actions = _module_actions(request)
     hires = [a for a in actions if a["type"] == "hr.hire"]
     if hires and (errors := hiring.check_request(hires, request.data)):
         return errors
-    # استخدام برای کارمند تازه است؛ پرونده‌ی خود درخواست‌دهنده فقط برای بقیه‌ی اقدام‌ها لازم است
-    actions = [a for a in actions if a["type"] != "hr.hire"]
+    changes = [a for a in actions if a["type"] in ("hr.transfer", "hr.correct", "hr.separate")]
+    if changes and (errors := career.check_request(changes, request.data)):
+        return errors
+    # استخدام برای کارمند تازه و جابه‌جایی و پایان همکاری برای کارمند فیلد فرم است؛ پرونده‌ی خود درخواست‌دهنده فقط برای بقیه لازم است
+    actions = [a for a in actions if a["type"] not in ("hr.hire", "hr.transfer", "hr.separate")]
     if not actions:
         return {}
     errors: dict[str, str] = {}
@@ -231,6 +238,8 @@ def check_request(request) -> dict[str, str]:
             if fields.get("employee"):
                 return {fields["employee"]: "این همکار پرونده‌ی پرسنلی متصل به حساب کاربری ندارد."}
             return {"__form__": "پرونده‌ی پرسنلی شما در سامانه ثبت یا به حساب کاربری‌تان وصل نشده است؛ با منابع انسانی تماس بگیرید."}
+        if action["type"] == "hr.correct":
+            continue
         if action["type"] == "hr.letter":
             if errors := letters.check_request(request, [action], employee):
                 return errors

@@ -15,7 +15,12 @@ from core.kernel.registry import (
     SettingsSection,
     WorkflowAction,
 )
-from modules.hr.leave_params import HIRE_PARAMS, LETTER_PARAMS, PARAMS, THRESHOLD_PARAMS
+from modules.hr.leave_params import CORRECT_PARAMS, HIRE_PARAMS, LETTER_PARAMS, PARAMS, SEPARATE_PARAMS, THRESHOLD_PARAMS, TRANSFER_PARAMS
+
+
+def _lazy(path: str):
+    """تابع اقدام که هنگام اجرا بارگذاری می‌شود (ماژول‌های اقدام به مدل‌ها وابسته‌اند و پیش از آماده شدن برنامه‌ها بارگذاری نمی‌شوند)."""
+    return lambda *args: import_string(path)(*args)
 
 
 class HrConfig(AppConfig):
@@ -165,6 +170,8 @@ class HrConfig(AppConfig):
         RoleSlot(code="hr.hr", title="کارشناس منابع انسانی", resolve="modules.hr.roles.hr_role"),
         RoleSlot(code="hr.finance", title="امور مالی", resolve="modules.hr.roles.finance_role"),
         RoleSlot(code="hr.ceo", title="مدیرعامل", resolve="modules.hr.roles.ceo_role"),
+        RoleSlot(code="hr.it", title="فناوری اطلاعات", resolve="modules.hr.roles.it_role"),
+        RoleSlot(code="hr.assets", title="اموال و تدارکات", resolve="modules.hr.roles.assets_role"),
     ]
     nikyar_workflow_actions = [
         WorkflowAction(
@@ -194,6 +201,20 @@ class HrConfig(AppConfig):
             check=lambda config, definition: import_string("modules.hr.hiring.check_action")(config, definition),
             run=lambda context, config: import_string("modules.hr.hiring.run_action")(context, config),
             params=HIRE_PARAMS,
+        ),
+        *(
+            WorkflowAction(
+                code=f"hr.{name}",
+                title=title,
+                check=_lazy(f"modules.hr.career.check_{name}"),
+                run=_lazy(f"modules.hr.career.run_{name}"),
+                params=params,
+            )
+            for name, title, params in (
+                ("transfer", "تغییر سمت یا واحد در پرونده", TRANSFER_PARAMS),
+                ("correct", "اصلاح اطلاعات پرونده", CORRECT_PARAMS),
+                ("separate", "پایان همکاری در پرونده", SEPARATE_PARAMS),
+            )
         ),
     ]
     nikyar_ready_processes = (
@@ -259,6 +280,37 @@ class HrConfig(AppConfig):
                     "ارزیابی دوره‌ی آزمایشی",
                     "probation",
                     "ارزیابی مدیر از کارمند تازه و نتیجه (ادامه، تمدید یا پایان همکاری) با بررسی منابع انسانی.",
+                ),
+            ]
+        ]
+        + [
+            ReadyProcess(
+                code=code,
+                title=title,
+                group="دوران خدمت و خروج",
+                description=description,
+                build=f"modules.hr.ready.{build}",
+                check="modules.hr.leave.check_request",
+            )
+            for code, title, build, description in [
+                (
+                    "hr-transfer",
+                    "ترفیع، تغییر سمت یا انتقال",
+                    "transfer",
+                    "پیشنهاد سمت یا واحد تازه؛ پس از تأیید منابع انسانی و مدیرعامل، پرونده و ساختار سازمانی خودکار به‌روز می‌شوند.",
+                ),
+                (
+                    "hr-correction",
+                    "اصلاح اطلاعات پرونده",
+                    "correction",
+                    "درخواست کارمند برای اصلاح موبایل، نشانی، وضعیت تأهل و… در پرونده‌اش؛ پس از تأیید منابع انسانی خودکار اعمال می‌شود.",
+                ),
+                ("hr-resignation", "استعفا", "resignation", "درخواست استعفا با آخرین روز کار؛ تأیید مدیر و منابع انسانی و ثبت در پرونده."),
+                (
+                    "hr-clearance",
+                    "تسویه‌حساب و پایان همکاری",
+                    "clearance",
+                    "تأیید فناوری، اموال، امور مالی و منابع انسانی؛ سپس پایان همکاری خودکار با تاریخ و علت.",
                 ),
             ]
         ]

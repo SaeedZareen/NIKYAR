@@ -88,6 +88,8 @@ class HrRolesSettings(serializers.Serializer):
     hr_role = RoleField(label="نقش کارشناس منابع انسانی", default=None, allow_null=True)
     finance_role = RoleField(label="نقش امور مالی", default=None, allow_null=True)
     ceo_role = RoleField(label="نقش مدیرعامل", default=None, allow_null=True)
+    it_role = RoleField(label="نقش فناوری اطلاعات (تسویه‌حساب)", default=None, allow_null=True)
+    assets_role = RoleField(label="نقش اموال و تدارکات (تسویه‌حساب)", default=None, allow_null=True)
     ceo_threshold = serializers.IntegerField(
         label="سقف مبلغ بی نیاز به تأیید مدیرعامل (ریال)",
         default=1_000_000_000,

@@ -13,3 +13,11 @@ def finance_role() -> int | None:
 
 def ceo_role() -> int | None:
     return read("hr-roles")["ceo_role"]
+
+
+def it_role() -> int | None:
+    return read("hr-roles")["it_role"]
+
+
+def assets_role() -> int | None:
+    return read("hr-roles")["assets_role"]

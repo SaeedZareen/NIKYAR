@@ -8,9 +8,11 @@ leave.check_request از روی همان اقدام «ثبت در پرونده»
 from __future__ import annotations
 
 from core.workflow.builder import Action, Step, chain, sequence
-from modules.hr.leave_params import ALLOWANCES, HIRE_FIELDS, PROBATION_RESULTS
+from modules.hr.leave_params import ALLOWANCES, CORRECTABLE, HIRE_FIELDS, PROBATION_RESULTS
 
 HR = {"type": "role_slot", "slot": "hr.hr"}
+IT = {"type": "role_slot", "slot": "hr.it"}
+ASSETS = {"type": "role_slot", "slot": "hr.assets"}
 FINANCE = {"type": "role_slot", "slot": "hr.finance"}
 CEO = {"type": "role_slot", "slot": "hr.ceo"}
 MANAGER = {"type": "requester_manager"}
@@ -389,3 +391,101 @@ def probation() -> dict:
         _note("نظر و دلیل", required=True),
     ]
     return _onboarding("hr-probation", "probation", fields, {"result": "result"}, Step("hr", "بررسی منابع انسانی", HR))
+
+
+# ─── دوران خدمت ۱ (5.8a) ────────────────────────────────────────────────
+
+
+def _requester_section() -> dict:
+    return {"id": "requester_section", "title": "ثبت‌کننده", "columns": 2, "fields": [_requester()]}
+
+
+def transfer() -> dict:
+    """پیشنهاد مدیر یا منابع انسانی ← منابع انسانی ← مدیرعامل ← تغییر واحد و سمت در پرونده و ساختار سازمانی."""
+    fields = [
+        _colleague(),
+        {
+            "id": "change_type",
+            "type": "choice",
+            "label": "نوع تغییر",
+            "required": True,
+            "props": {
+                "options": [
+                    {"value": "promotion", "label": "ترفیع"},
+                    {"value": "position", "label": "تغییر سمت"},
+                    {"value": "transfer", "label": "انتقال به واحد دیگر"},
+                ]
+            },
+        },
+        {"id": "unit", "type": "org_unit", "label": "واحد تازه"},
+        {"id": "position", "type": "position", "label": "سمت تازه"},
+        {"id": "date", "type": "date", "label": "تاریخ اجرا", "required": True},
+        _note("دلیل", required=True),
+    ]
+    items = [
+        Step("hr", "بررسی منابع انسانی", HR),
+        Step("ceo", "تأیید مدیرعامل", CEO),
+        Action(
+            "transfer",
+            "تغییر سمت یا واحد در پرونده",
+            {"type": "hr.transfer", "fields": {"employee": "employee", "date": "date", "unit": "unit", "position": "position"}},
+        ),
+    ]
+    sections = [_requester_section(), _section(fields)]
+    return {"form": {"sections": sections}, "bpmn": sequence("hr-transfer", items), "category": "hr", "number_pattern": "{year}/{seq:4}"}
+
+
+def correction() -> dict:
+    """کارمند ← منابع انسانی ← اصلاح خودکار پرونده‌ی خودش."""
+    fields = [
+        {
+            "id": "item",
+            "type": "choice",
+            "label": "چه چیزی اصلاح شود",
+            "required": True,
+            "props": {"options": [{"value": k, "label": v} for k, v in CORRECTABLE.items()]},
+        },
+        {"id": "value", "type": "text", "label": "مقدار درست", "required": True, "props": {"max_length": 300}},
+        _note("توضیح یا مدرک"),
+    ]
+    items = [
+        Step("hr", "بررسی منابع انسانی", HR),
+        Action("correct", "اصلاح اطلاعات پرونده", {"type": "hr.correct", "fields": {"item": "item", "value": "value"}}),
+    ]
+    sections = [_employee_section(), _section(fields)]
+    return {"form": {"sections": sections}, "bpmn": sequence("hr-correction", items), "category": "hr", "number_pattern": "{year}/{seq:4}"}
+
+
+def resignation() -> dict:
+    fields = [{"id": "date", "type": "date", "label": "آخرین روز کار", "required": True}, _note("دلیل استعفا", required=True)]
+    return _build("hr-resignation", "resignation", [_employee_section(), _section(fields)], {"date": "date"})
+
+
+def clearance() -> dict:
+    """منابع انسانی آغاز می‌کند ← فناوری ← اموال ← امور مالی ← منابع انسانی ← پایان همکاری خودکار."""
+    fields = [
+        _colleague(),
+        {"id": "date", "type": "date", "label": "تاریخ پایان همکاری", "required": True},
+        {"id": "reason", "type": "lookup", "label": "علت پایان همکاری", "required": True, "props": {"list": "separation-reason"}},
+        {
+            "id": "deactivate",
+            "type": "boolean",
+            "label": "غیرفعال کردن حساب کاربری",
+            "default": True,
+            "help": "کارمند پس از پایان همکاری دیگر وارد سامانه نمی‌شود.",
+        },
+        _note("توضیح هر واحد", required=False),
+    ]
+    items = [
+        Step("it", "تسویه‌ی فناوری اطلاعات", IT),
+        Step("assets", "تسویه‌ی اموال و تدارکات", ASSETS),
+        Step("finance", "تسویه‌ی امور مالی", FINANCE),
+        Step("hr", "تأیید نهایی منابع انسانی", HR),
+        Action(
+            "separate",
+            "پایان همکاری در پرونده",
+            {"type": "hr.separate", "fields": {"employee": "employee", "date": "date", "reason": "reason", "deactivate": "deactivate"}},
+        ),
+    ]
+    sections = [_requester_section(), _section(fields)]
+    return {"form": {"sections": sections}, "bpmn": sequence("hr-clearance", items), "category": "hr", "number_pattern": "{year}/{seq:4}", "starters": "hr.hr"}
