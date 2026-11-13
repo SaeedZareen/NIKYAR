@@ -4,7 +4,7 @@ import { useQuery } from "@tanstack/react-query"
 import { columnHelper, DataTable, useDataTable, useTableView, type DataTableColumn } from "@/components/data-table"
 import { Section } from "@/components/layout/section"
 import { api, unwrap, type Schemas } from "@/lib/api/client"
-import { toFaDigits } from "@/lib/format"
+import { formatNumber, toFaDigits } from "@/lib/format"
 import { EMPLOYEES_KEY } from "./employees"
 
 type Event = Schemas["EmployeeEvent"]
@@ -43,6 +43,11 @@ export function EventsSection({ employee }: { employee: Schemas["EmployeeDetail"
           return <span className="tabular-nums">{[amount(e.days, "روز"), e.kind !== "leave" ? amount(e.hours, "ساعت") : ""].filter(Boolean).join("، ") || "—"}</span>
         },
       }),
+      col.accessor("amount", {
+        header: "مبلغ",
+        meta: { label: "مبلغ" },
+        cell: (c) => <span className="tabular-nums">{c.getValue() ? `${formatNumber(c.getValue())} ریال` : "—"}</span>,
+      }),
       col.accessor("deducts", { header: "از مانده", meta: { label: "از مانده" }, cell: (c) => (c.getValue() ? "کسر شد" : "—") }),
       col.accessor("request_number", {
         header: "درخواست",
@@ -64,7 +69,7 @@ export function EventsSection({ employee }: { employee: Schemas["EmployeeDetail"
   return (
     <Section
       title="درخواست‌ها و رویدادها"
-      description="مرخصی، مأموریت، اضافه‌کار، دورکاری، تغییر شیفت و اصلاح تردد که پس از تأیید فرایندهای آماده خودکار در پرونده ثبت شده‌اند."
+      description="مرخصی، مأموریت، اضافه‌کار، دورکاری، تغییر شیفت، اصلاح تردد و درخواست‌های مالی (مساعده، وام، درمان، کمک‌هزینه و هزینه‌ی سفر) که پس از تأیید فرایندهای آماده خودکار در پرونده ثبت شده‌اند."
       meta={`مانده‌ی مرخصی استحقاقی امسال: ${toFaDigits(String(employee.leave_balance))} روز`}
     >
       <DataTable
