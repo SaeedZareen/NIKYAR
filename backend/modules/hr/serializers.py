@@ -186,7 +186,7 @@ class EmployeeDetailSerializer(EmployeeSerializer):
     positions = serializers.SerializerMethodField(help_text="انتصاب‌های جاری کاربر متصل در ساختار سازمانی")
 
     class Meta(EmployeeSerializer.Meta):
-        fields = [*EmployeeSerializer.Meta.fields, "can_edit", "can_view_financial", "positions", "leave_balance", "probation_end"]
+        fields = [*EmployeeSerializer.Meta.fields, "can_edit", "can_view_financial", "positions", "leave_balance", "probation_end", "correction_process"]
 
     can_view_financial = serializers.SerializerMethodField(help_text="حساب بانکی و بیمه را می‌بیند (مجوز، نه مدیر واحد)")
 
@@ -200,6 +200,17 @@ class EmployeeDetailSerializer(EmployeeSerializer):
         from .onboarding import probation_end
 
         return jdatetime.date.fromgregorian(date=probation_end(obj)).strftime("%Y/%m/%d")
+
+    correction_process = serializers.SerializerMethodField(help_text="فرایند «اصلاح اطلاعات پرونده» برای دکمه‌ی «درخواست اصلاح» در «پرونده‌ی من» (یا null)")
+
+    def get_correction_process(self, obj) -> int | None:
+        if not self.context.get("self_view"):
+            return None
+        from core.workflow.models import Process
+        from core.workflow.service import can_start
+
+        process = Process.objects.filter(ready="hr-correction", is_active=True).first()
+        return process.pk if process and can_start(self.context["request"].user, process) else None
 
     def get_leave_balance(self, obj) -> float:
         from .leave import balance

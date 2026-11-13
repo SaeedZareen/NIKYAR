@@ -48,7 +48,13 @@ def seed():
     # نقش «کارشناس منابع انسانی» نمونه، گیرنده‌ی مرحله‌ی منابع انسانی فرایندهای آماده
     # نقش‌های نمونه‌ی مرحله‌های فرایندهای آماده: منابع انسانی، امور مالی (حسابدار) و مدیرعامل
     roles = {"hr_role": Role.objects.filter(name="کارشناس منابع انسانی").first()}
-    for key, name, username in (("finance_role", "امور مالی", "accountant"), ("ceo_role", "مدیرعامل", "ceo")):
+    people = (
+        ("finance_role", "امور مالی", "accountant"),
+        ("ceo_role", "مدیرعامل", "ceo"),
+        ("it_role", "فناوری اطلاعات", "it_manager"),
+        ("assets_role", "اموال و تدارکات", "fin_manager"),
+    )
+    for key, name, username in people:
         roles[key] = Role.objects.create(name=name, description="گیرنده‌ی مرحله‌ی فرایندهای آماده‌ی مالی")
         user = User.objects.filter(username=username).first()
         if user:

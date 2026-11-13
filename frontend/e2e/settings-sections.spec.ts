@@ -32,7 +32,7 @@ test.describe("تنظیمات سامانه و منابع انسانی", () => {
     await page.goto("/admin/settings?section=hr-roles")
     const roles = page.getByRole("region", { name: "منابع انسانی: نقش‌ها و سقف مبلغ" })
     await expect(roles.getByLabel("سقف مبلغ بی نیاز به تأیید مدیرعامل", { exact: true })).toHaveValue("1,000,000,000")
-    // داده‌ی نمایشی نقش امور مالی را تعیین کرده است
+    // داده‌ی نمایشی نقش‌های امور مالی، مدیرعامل، فناوری و اموال را تعیین کرده است
     await expect(roles.getByRole("combobox", { name: "امور مالی" })).toHaveText("امور مالی")
     await expectAccessible(page)
     if (info.project.name !== "desktop") return

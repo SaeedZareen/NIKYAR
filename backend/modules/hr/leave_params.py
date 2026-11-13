@@ -21,6 +21,10 @@ KINDS = {
     "equipment": "تحویل تجهیزات",
     "orientation": "آموزش بدو ورود",
     "probation": "ارزیابی دوره‌ی آزمایشی",
+    "transfer": "تغییر سمت یا واحد",
+    "correction": "اصلاح پرونده",
+    "resignation": "استعفا",
+    "separation": "پایان همکاری",
 }
 # رویدادهای ورود کارمند (5.7b): تاریخشان روز ثبت است و معمولاً برای کارمندی جز درخواست‌دهنده‌اند (پارامتر employee)
 ONBOARDING = ["equipment", "orientation", "probation"]
@@ -34,7 +38,7 @@ ALLOWANCES = {"marriage": ("ازدواج", "marriage_allowance"), "birth": ("ت�
 ROLES = {
     "leave_type": ("نوع مرخصی", ["lookup"], ["leave"]),
     "period": ("بازه‌ی تاریخ", ["date_range"], ["leave", "mission", "remote"]),
-    "date": ("تاریخ", ["date"], ["hourly_leave", "hourly_mission", "overtime", "shift", "attendance_fix"]),
+    "date": ("تاریخ", ["date"], ["hourly_leave", "hourly_mission", "overtime", "shift", "attendance_fix", "resignation"]),
     "time": ("بازه‌ی ساعت", ["time_range"], ["hourly_leave", "hourly_mission"]),
     "clock": ("ساعت", ["time"], ["attendance_fix"]),
     "hours": ("شمار ساعت", ["number"], ["overtime"]),
@@ -104,3 +108,31 @@ HIRE_FIELDS = {
     "username": ("نام کاربری", ["text"], False),
 }
 HIRE_PARAMS = tuple({"name": n, "label": label, "type": "field", "field_types": types, "required": req} for n, (label, types, req) in HIRE_FIELDS.items())
+
+# دوران خدمت ۱ (5.8a): اقدام‌هایی که خود پرونده را تغییر می‌دهند (career.py)
+# فیلدهای پرونده که کارمند با «اصلاح اطلاعات پرونده» درخواست تغییرشان را می‌دهد: کد ← عنوان
+CORRECTABLE = {
+    "mobile": "موبایل",
+    "email": "ایمیل",
+    "address": "نشانی",
+    "marital_status": "وضعیت تأهل",
+    "father_name": "نام پدر",
+    "id_number": "شماره‌ی شناسنامه",
+    "birth_place": "محل تولد",
+}
+TRANSFER_PARAMS = (
+    {"name": "employee", "label": "کارمند", "type": "field", "field_types": ["user"], "required": True},
+    {"name": "date", "label": "تاریخ اجرا", "type": "field", "field_types": ["date"], "required": True},
+    {"name": "unit", "label": "واحد تازه", "type": "field", "field_types": ["org_unit"], "required": False},
+    {"name": "position", "label": "سمت تازه", "type": "field", "field_types": ["position"], "required": False},
+)
+CORRECT_PARAMS = (
+    {"name": "item", "label": "مورد اصلاح (گزینه‌های فیلد پرونده)", "type": "field", "field_types": ["choice"], "required": True},
+    {"name": "value", "label": "مقدار درست", "type": "field", "field_types": ["text"], "required": True},
+)
+SEPARATE_PARAMS = (
+    {"name": "employee", "label": "کارمند", "type": "field", "field_types": ["user"], "required": True},
+    {"name": "date", "label": "تاریخ پایان همکاری", "type": "field", "field_types": ["date"], "required": True},
+    {"name": "reason", "label": "علت پایان همکاری", "type": "field", "field_types": ["lookup"], "required": True},
+    {"name": "deactivate", "label": "غیرفعال کردن حساب کاربری", "type": "field", "field_types": ["boolean"], "required": False},
+)
