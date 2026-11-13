@@ -39,7 +39,9 @@ def walk(request: Request):
 
 def test_only_hr_starts_hire(fin):  # noqa: F811
     process = Process.objects.get(ready="hr-hire")
-    assert not process.start_by_everyone and list(process.start_roles.values_list("pk", flat=True)) == [SettingsValue.objects.get(section="hr-roles").values["hr_role"]]
+    assert not process.start_by_everyone and list(process.start_roles.values_list("pk", flat=True)) == [
+        SettingsValue.objects.get(section="hr-roles").values["hr_role"]
+    ]
     assert service.can_start(fin["auditor"], process) and not service.can_start(fin["clerk"], process)
     assert Process.objects.get(ready="hr-recruitment").start_by_everyone
 
