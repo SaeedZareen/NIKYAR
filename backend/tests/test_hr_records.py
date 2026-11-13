@@ -84,4 +84,4 @@ def test_access(client_for, hr_admin, employee, org):  # noqa: F811
     other = client_for(org["ceo"])
     assert len(other.get("/api/hr/work-history/", {"employee": employee}).json()) == 1
     services = client_for(hr_admin).post(URL, payload(national_code="0010350829", unit=org["services"].pk), format="json").json()["id"]
-    assert manager.get("/api/hr/work-history/", {"employee": services}).json() == []
+    assert manager.get("/api/hr/work-history/", {"employee": services}).status_code == 403

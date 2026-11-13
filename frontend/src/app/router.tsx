@@ -25,6 +25,7 @@ const ManageRequestsPage = lazy(() => import("@/pages/workflow/manage/manage-req
 const PerformancePage = lazy(() => import("@/pages/workflow/manage/performance-page"))
 const EmployeesPage = lazy(() => import("@/pages/hr/employees-page"))
 const EmployeeFilePage = lazy(() => import("@/pages/hr/employee-page"))
+const MyFilePage = lazy(() => import("@/pages/hr/my-file-page"))
 const NewRequestPage = lazy(() => import("@/pages/workflow/requests/new-request-page"))
 const RequestFillPage = lazy(() => import("@/pages/workflow/requests/request-fill-page"))
 const ProcessDesignPage = lazy(() => import("@/pages/workflow/design/process-design-page"))
@@ -92,6 +93,7 @@ export const router = createBrowserRouter([
           { path: "workflow/performance", element: page(<PerformancePage />, "workflow-manager") },
           { path: "hr/employees", element: page(<EmployeesPage />, "flag:hr_viewer") },
           { path: "hr/employees/:employeeId", element: page(<EmployeeFilePage />, "flag:hr_viewer") },
+          { path: "hr/me", element: page(<MyFilePage />, "flag:hr_self") },
           { path: "workflow/design", element: page(<ProcessDesignPage />, "workflow.design") },
           { path: "workflow/design/:processId", element: page(<ProcessDesignerPage />, "workflow.design") },
           { path: "account", element: page(<AccountPage />) },

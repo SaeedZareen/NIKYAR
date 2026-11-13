@@ -46,6 +46,7 @@ class FormSerializer(serializers.ModelSerializer):
             "id",
             "code",
             "title",
+            "purpose",
             "description",
             "category",
             "category_title",
@@ -402,8 +403,10 @@ class FormViewSet(AuditedModelViewSet):
     def get_queryset(self):
         published = Q(versions__status=FormVersion.Status.PUBLISHED)
         drafts = FormVersion.objects.filter(form=OuterRef("pk"), status=FormVersion.Status.DRAFT)
+        # فرم «فیلدهای سفارشی» ماژول‌ها در فهرست نمی‌آید، ولی طراح آن را با شناسه باز می‌کند
+        forms = Form.objects.regular() if self.action == "list" else Form.objects.all()
         return (
-            Form.objects.select_related("category")
+            forms.select_related("category")
             .prefetch_related("fill_roles", "view_roles")
             .annotate(
                 published_version=Max("versions__number", filter=published),
@@ -427,6 +430,8 @@ class FormViewSet(AuditedModelViewSet):
         serializer.instance = self.get_queryset().get(pk=serializer.instance.pk)
 
     def perform_destroy(self, instance):
+        if instance.purpose == Form.Purpose.FIELDS:
+            raise BusinessError("فیلدهای سفارشی ماژول حذف نمی‌شوند؛ فیلدها را در طراح بردارید و منتشر کنید.")
         if instance.submissions.exists():
             raise BusinessError("این فرم ثبت دارد و حذف نمی‌شود؛ آن را غیرفعال کنید.")
         with transaction.atomic():

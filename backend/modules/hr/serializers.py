@@ -125,8 +125,9 @@ class EmployeeSerializer(FileFieldsMixin, serializers.ModelSerializer):
             "separation_reason_title",
             "user",
             "user_name",
+            "extra",
         ]
-        read_only_fields = ["personnel_code"]
+        read_only_fields = ["personnel_code", "extra"]
         extra_kwargs = {
             "email": {"error_messages": {"invalid": "نشانی ایمیل معتبر نیست."}},
         }
@@ -192,12 +193,12 @@ class EmployeeDetailSerializer(EmployeeSerializer):
     def get_can_edit(self, obj) -> bool:
         from .access import can_manage
 
-        return can_manage(self.context["request"].user)
+        return not self.context.get("self_view") and can_manage(self.context["request"].user)
 
     def get_can_view_financial(self, obj) -> bool:
         from .access import can_view_all
 
-        return can_view_all(self.context["request"].user)
+        return bool(self.context.get("self_view")) or can_view_all(self.context["request"].user)
 
     @staticmethod
     def _positions(obj):
@@ -333,3 +334,14 @@ class DocumentSerializer(RecordSerializer):
 
     def get_expired(self, obj) -> bool:
         return bool(obj.expiry_date and obj.expiry_date < timezone.localdate())
+
+
+class EmployeeExtraSerializer(serializers.Serializer):
+    data = serializers.DictField(label="اطلاعات تکمیلی")
+
+
+class CustomFieldsSerializer(serializers.Serializer):
+    form = serializers.IntegerField(help_text="شناسه‌ی فرم «فیلدهای دلخواه» برای طراح فرم‌ساز")
+    definition = serializers.JSONField(help_text="تعریف آخرین نسخه‌ی منتشرشده (بی نسخه: بی بخش)")
+    schema = serializers.JSONField()
+    can_design = serializers.BooleanField(help_text="مجوز «طراحی فرم‌ها»")

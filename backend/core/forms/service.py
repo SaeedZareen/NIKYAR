@@ -34,7 +34,7 @@ def can_fill(user, form: Form) -> bool:
 
 def fillable_forms(user):
     """فرم‌های فعال و منتشرشده‌ای که کاربر اجازه‌ی پر کردنشان را دارد."""
-    forms = Form.objects.filter(is_active=True, versions__status=FormVersion.Status.PUBLISHED)
+    forms = Form.objects.regular().filter(is_active=True, versions__status=FormVersion.Status.PUBLISHED)
     if not user.is_superuser:
         forms = forms.filter(Q(fill_by_everyone=True) | Q(fill_roles__users=user))
     return forms.distinct()
@@ -47,7 +47,7 @@ def can_view(user, form: Form) -> bool:
 
 def viewable_forms(user):
     """فرم‌هایی که کاربر ثبت‌های نهایی‌شان را می‌بیند (برای «ثبت‌های فرم‌ها»)."""
-    forms = Form.objects.all() if can_design(user) else Form.objects.filter(view_roles__users=user).distinct()
+    forms = Form.objects.regular() if can_design(user) else Form.objects.regular().filter(view_roles__users=user).distinct()
     return forms
 
 

@@ -907,13 +907,15 @@ export interface paths {
         };
         /**
          * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
-         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ و هر کارمند همه‌ی سوابق پرونده‌ی خودش را («پرونده‌ی من»).
+         *     افزودن، ویرایش و حذف: `hr.manage`.
          */
         get: operations["hr_bank_accounts_list"];
         put?: never;
         /**
          * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
-         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ و هر کارمند همه‌ی سوابق پرونده‌ی خودش را («پرونده‌ی من»).
+         *     افزودن، ویرایش و حذف: `hr.manage`.
          */
         post: operations["hr_bank_accounts_create"];
         delete?: never;
@@ -931,21 +933,24 @@ export interface paths {
         };
         /**
          * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
-         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ و هر کارمند همه‌ی سوابق پرونده‌ی خودش را («پرونده‌ی من»).
+         *     افزودن، ویرایش و حذف: `hr.manage`.
          */
         get: operations["hr_bank_accounts_retrieve"];
         put?: never;
         post?: never;
         /**
          * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
-         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ و هر کارمند همه‌ی سوابق پرونده‌ی خودش را («پرونده‌ی من»).
+         *     افزودن، ویرایش و حذف: `hr.manage`.
          */
         delete: operations["hr_bank_accounts_destroy"];
         options?: never;
         head?: never;
         /**
          * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
-         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ و هر کارمند همه‌ی سوابق پرونده‌ی خودش را («پرونده‌ی من»).
+         *     افزودن، ویرایش و حذف: `hr.manage`.
          */
         patch: operations["hr_bank_accounts_partial_update"];
         trace?: never;
@@ -959,13 +964,15 @@ export interface paths {
         };
         /**
          * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
-         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ و هر کارمند همه‌ی سوابق پرونده‌ی خودش را («پرونده‌ی من»).
+         *     افزودن، ویرایش و حذف: `hr.manage`.
          */
         get: operations["hr_dependents_list"];
         put?: never;
         /**
          * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
-         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ و هر کارمند همه‌ی سوابق پرونده‌ی خودش را («پرونده‌ی من»).
+         *     افزودن، ویرایش و حذف: `hr.manage`.
          */
         post: operations["hr_dependents_create"];
         delete?: never;
@@ -983,21 +990,24 @@ export interface paths {
         };
         /**
          * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
-         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ و هر کارمند همه‌ی سوابق پرونده‌ی خودش را («پرونده‌ی من»).
+         *     افزودن، ویرایش و حذف: `hr.manage`.
          */
         get: operations["hr_dependents_retrieve"];
         put?: never;
         post?: never;
         /**
          * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
-         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ و هر کارمند همه‌ی سوابق پرونده‌ی خودش را («پرونده‌ی من»).
+         *     افزودن، ویرایش و حذف: `hr.manage`.
          */
         delete: operations["hr_dependents_destroy"];
         options?: never;
         head?: never;
         /**
          * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
-         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ و هر کارمند همه‌ی سوابق پرونده‌ی خودش را («پرونده‌ی من»).
+         *     افزودن، ویرایش و حذف: `hr.manage`.
          */
         patch: operations["hr_dependents_partial_update"];
         trace?: never;
@@ -1011,13 +1021,15 @@ export interface paths {
         };
         /**
          * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
-         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ و هر کارمند همه‌ی سوابق پرونده‌ی خودش را («پرونده‌ی من»).
+         *     افزودن، ویرایش و حذف: `hr.manage`.
          */
         get: operations["hr_documents_list"];
         put?: never;
         /**
          * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
-         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ و هر کارمند همه‌ی سوابق پرونده‌ی خودش را («پرونده‌ی من»).
+         *     افزودن، ویرایش و حذف: `hr.manage`.
          */
         post: operations["hr_documents_create"];
         delete?: never;
@@ -1035,21 +1047,24 @@ export interface paths {
         };
         /**
          * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
-         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ و هر کارمند همه‌ی سوابق پرونده‌ی خودش را («پرونده‌ی من»).
+         *     افزودن، ویرایش و حذف: `hr.manage`.
          */
         get: operations["hr_documents_retrieve"];
         put?: never;
         post?: never;
         /**
          * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
-         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ و هر کارمند همه‌ی سوابق پرونده‌ی خودش را («پرونده‌ی من»).
+         *     افزودن، ویرایش و حذف: `hr.manage`.
          */
         delete: operations["hr_documents_destroy"];
         options?: never;
         head?: never;
         /**
          * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
-         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ و هر کارمند همه‌ی سوابق پرونده‌ی خودش را («پرونده‌ی من»).
+         *     افزودن، ویرایش و حذف: `hr.manage`.
          */
         patch: operations["hr_documents_partial_update"];
         trace?: never;
@@ -1063,13 +1078,15 @@ export interface paths {
         };
         /**
          * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
-         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ و هر کارمند همه‌ی سوابق پرونده‌ی خودش را («پرونده‌ی من»).
+         *     افزودن، ویرایش و حذف: `hr.manage`.
          */
         get: operations["hr_educations_list"];
         put?: never;
         /**
          * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
-         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ و هر کارمند همه‌ی سوابق پرونده‌ی خودش را («پرونده‌ی من»).
+         *     افزودن، ویرایش و حذف: `hr.manage`.
          */
         post: operations["hr_educations_create"];
         delete?: never;
@@ -1087,21 +1104,24 @@ export interface paths {
         };
         /**
          * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
-         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ و هر کارمند همه‌ی سوابق پرونده‌ی خودش را («پرونده‌ی من»).
+         *     افزودن، ویرایش و حذف: `hr.manage`.
          */
         get: operations["hr_educations_retrieve"];
         put?: never;
         post?: never;
         /**
          * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
-         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ و هر کارمند همه‌ی سوابق پرونده‌ی خودش را («پرونده‌ی من»).
+         *     افزودن، ویرایش و حذف: `hr.manage`.
          */
         delete: operations["hr_educations_destroy"];
         options?: never;
         head?: never;
         /**
          * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
-         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ و هر کارمند همه‌ی سوابق پرونده‌ی خودش را («پرونده‌ی من»).
+         *     افزودن، ویرایش و حذف: `hr.manage`.
          */
         patch: operations["hr_educations_partial_update"];
         trace?: never;
@@ -1154,6 +1174,57 @@ export interface paths {
         patch: operations["hr_employees_partial_update"];
         trace?: never;
     };
+    "/api/hr/employees/{id}/extra/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** @description ذخیره‌ی «اطلاعات تکمیلی» با همان سنجش فرم‌ساز (الزامی‌ها، قاعده‌ها، پیام فارسی هر فیلد). */
+        patch: operations["hr_employees_extra_partial_update"];
+        trace?: never;
+    };
+    "/api/hr/employees/custom-fields/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description تعریف و طرح فیلدهای دلخواه پرونده (آخرین نسخه‌ی منتشرشده) برای زبانه‌ی «اطلاعات تکمیلی» و ستون‌های جدول. */
+        get: operations["hr_employees_custom_fields_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/hr/employees/me/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description «پرونده‌ی من»: پرونده‌ی متصل به حساب کاربر، فقط‌خواندنی. */
+        get: operations["hr_employees_me_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/hr/insurances/": {
         parameters: {
             query?: never;
@@ -1163,13 +1234,15 @@ export interface paths {
         };
         /**
          * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
-         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ و هر کارمند همه‌ی سوابق پرونده‌ی خودش را («پرونده‌ی من»).
+         *     افزودن، ویرایش و حذف: `hr.manage`.
          */
         get: operations["hr_insurances_list"];
         put?: never;
         /**
          * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
-         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ و هر کارمند همه‌ی سوابق پرونده‌ی خودش را («پرونده‌ی من»).
+         *     افزودن، ویرایش و حذف: `hr.manage`.
          */
         post: operations["hr_insurances_create"];
         delete?: never;
@@ -1187,21 +1260,24 @@ export interface paths {
         };
         /**
          * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
-         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ و هر کارمند همه‌ی سوابق پرونده‌ی خودش را («پرونده‌ی من»).
+         *     افزودن، ویرایش و حذف: `hr.manage`.
          */
         get: operations["hr_insurances_retrieve"];
         put?: never;
         post?: never;
         /**
          * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
-         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ و هر کارمند همه‌ی سوابق پرونده‌ی خودش را («پرونده‌ی من»).
+         *     افزودن، ویرایش و حذف: `hr.manage`.
          */
         delete: operations["hr_insurances_destroy"];
         options?: never;
         head?: never;
         /**
          * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
-         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ و هر کارمند همه‌ی سوابق پرونده‌ی خودش را («پرونده‌ی من»).
+         *     افزودن، ویرایش و حذف: `hr.manage`.
          */
         patch: operations["hr_insurances_partial_update"];
         trace?: never;
@@ -1215,13 +1291,15 @@ export interface paths {
         };
         /**
          * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
-         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ و هر کارمند همه‌ی سوابق پرونده‌ی خودش را («پرونده‌ی من»).
+         *     افزودن، ویرایش و حذف: `hr.manage`.
          */
         get: operations["hr_work_history_list"];
         put?: never;
         /**
          * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
-         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ و هر کارمند همه‌ی سوابق پرونده‌ی خودش را («پرونده‌ی من»).
+         *     افزودن، ویرایش و حذف: `hr.manage`.
          */
         post: operations["hr_work_history_create"];
         delete?: never;
@@ -1239,21 +1317,24 @@ export interface paths {
         };
         /**
          * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
-         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ و هر کارمند همه‌ی سوابق پرونده‌ی خودش را («پرونده‌ی من»).
+         *     افزودن، ویرایش و حذف: `hr.manage`.
          */
         get: operations["hr_work_history_retrieve"];
         put?: never;
         post?: never;
         /**
          * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
-         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ و هر کارمند همه‌ی سوابق پرونده‌ی خودش را («پرونده‌ی من»).
+         *     افزودن، ویرایش و حذف: `hr.manage`.
          */
         delete: operations["hr_work_history_destroy"];
         options?: never;
         head?: never;
         /**
          * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
-         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ و هر کارمند همه‌ی سوابق پرونده‌ی خودش را («پرونده‌ی من»).
+         *     افزودن، ویرایش و حذف: `hr.manage`.
          */
         patch: operations["hr_work_history_partial_update"];
         trace?: never;
@@ -2863,6 +2944,15 @@ export interface components {
          * @enum {string}
          */
         CompletionEnum: "any" | "all";
+        CustomFields: {
+            /** @description شناسه‌ی فرم «فیلدهای دلخواه» برای طراح فرم‌ساز */
+            form: number;
+            /** @description تعریف آخرین نسخه‌ی منتشرشده (بی نسخه: بی بخش) */
+            definition: unknown;
+            schema: unknown;
+            /** @description مجوز «طراحی فرم‌ها» */
+            can_design: boolean;
+        };
         Delegation: {
             readonly id: number;
             /** اصیل */
@@ -3181,6 +3271,8 @@ export interface components {
             /** کاربر سامانه */
             user: number | null;
             readonly user_name: string;
+            /** اطلاعات تکمیلی */
+            readonly extra: unknown;
         };
         /** @description پرونده‌ی پایه. کد پرسنلی با شماره‌گذاری «کد پرسنلی» صادر می‌شود و تغییر نمی‌کند. */
         EmployeeDetail: {
@@ -3256,6 +3348,8 @@ export interface components {
             /** کاربر سامانه */
             user: number | null;
             readonly user_name: string;
+            /** اطلاعات تکمیلی */
+            readonly extra: unknown;
             readonly can_edit: boolean;
             /** @description حساب بانکی و بیمه را می‌بیند (مجوز، نه مدیر واحد) */
             readonly can_view_financial: boolean;
@@ -3489,6 +3583,8 @@ export interface components {
             code: string;
             /** عنوان */
             title: string;
+            /** کاربرد */
+            readonly purpose: components["schemas"]["PurposeEnum"];
             /** توضیح */
             description: string;
             /** دسته */
@@ -4735,6 +4831,12 @@ export interface components {
             /** کاربر سامانه */
             user?: number | null;
         };
+        PatchedEmployeeExtraRequest: {
+            /** اطلاعات تکمیلی */
+            data?: {
+                [key: string]: unknown;
+            };
+        };
         PatchedFormRequest: {
             /**
              * شناسه
@@ -5325,6 +5427,12 @@ export interface components {
                 [key: string]: string;
             };
         };
+        /**
+         * @description * `form` - فرم
+         *     * `fields` - فیلدهای سفارشی
+         * @enum {string}
+         */
+        PurposeEnum: "form" | "fields";
         QuickAction: {
             status: components["schemas"]["QuickActionStatusEnum"];
             message: string;
@@ -8358,6 +8466,72 @@ export interface operations {
                 "multipart/form-data": components["schemas"]["PatchedEmployeeDetailRequest"];
             };
         };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeDetail"];
+                };
+            };
+        };
+    };
+    hr_employees_extra_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description یک مقداد عدد یکتا که این پرونده‌ی پرسنلی را شناسایی میکند. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedEmployeeExtraRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedEmployeeExtraRequest"];
+                "multipart/form-data": components["schemas"]["PatchedEmployeeExtraRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeDetail"];
+                };
+            };
+        };
+    };
+    hr_employees_custom_fields_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CustomFields"];
+                };
+            };
+        };
+    };
+    hr_employees_me_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
         responses: {
             200: {
                 headers: {

@@ -4,14 +4,17 @@ import { UserPlus } from "lucide-react"
 import { useAuth } from "@/app/auth"
 import { useLookupItems } from "@/app/lookups"
 import { columnHelper, DataTable, useDataTable, useTableView, type DataTableColumn } from "@/components/data-table"
+import type { FormDefinition } from "@/components/form-renderer/definition"
+import { fieldColumn, fieldColumnId, valueFields } from "@/components/form-renderer/field-columns"
 import { useUnitOptions } from "@/components/form-renderer/org-options"
+import { useNames } from "@/components/form-renderer/value-text"
 import { PageHeader } from "@/components/layout/page-header"
 import { StatusBadge } from "@/components/status-badge"
 import { Button } from "@/components/ui/button"
 import { api, unwrap, type Schemas } from "@/lib/api/client"
 import { formatDate, toFaDigits } from "@/lib/format"
 import { EmployeeSheet } from "./employee-sheet"
-import { EMPLOYEES_KEY, STATUS_TONES } from "./employees"
+import { EMPLOYEES_KEY, STATUS_TONES, useCustomFields } from "./employees"
 
 type Employee = Schemas["Employee"]
 const EMPTY: Employee[] = []
@@ -25,6 +28,11 @@ export default function EmployeesPage() {
   const employees = useQuery({ queryKey: EMPLOYEES_KEY, queryFn: () => unwrap(api.GET("/api/hr/employees/")) })
   const kinds = useLookupItems("employment-type").data
   const units = useUnitOptions()
+  // فیلدهای دلخواه پرونده هم ستون می‌شوند (سه تای نخست نمایان، بقیه از «نما»)
+  const definition = useCustomFields().data?.definition as FormDefinition | undefined
+  const extraFields = React.useMemo(() => (definition ? valueFields(definition) : []), [definition])
+  const extras = React.useMemo(() => (employees.data ?? EMPTY).map((e) => e.extra as Record<string, unknown>), [employees.data])
+  const names = useNames(definition, extras)
 
   const columns = React.useMemo<DataTableColumn<Employee>[]>(
     () => [
@@ -61,10 +69,12 @@ export default function EmployeesPage() {
         },
         cell: (c) => <StatusBadge tone={STATUS_TONES[c.row.original.status]}>{c.row.original.status_label}</StatusBadge>,
       }),
+      ...extraFields.map((f) => fieldColumn<Employee>(f, names, (e) => e.extra as Record<string, unknown>)),
     ],
-    [kinds, units]
+    [kinds, units, extraFields, names]
   )
-  const view = useTableView("hr-employees", { defaultSort: "full_name" })
+  const defaultHidden = React.useMemo(() => extraFields.slice(3).map(fieldColumnId), [extraFields])
+  const view = useTableView("hr-employees", { defaultSort: "full_name", defaultHidden })
   const table = useDataTable({ view, columns, data: employees.data ?? EMPTY, getRowId: (e) => String(e.id) })
 
   return (

@@ -1,4 +1,5 @@
 from django.apps import AppConfig
+from django.db.models.signals import post_migrate
 
 from core.kernel.registry import LookupItemSpec, LookupSpec, NotificationKind, RecordSource
 
@@ -40,3 +41,9 @@ class FormsConfig(AppConfig):
             },
         ),
     ]
+
+    def ready(self):
+        from .custom_fields import sync
+
+        # پس از migrate همه‌ی برنامه‌ها (ماژول‌ها spec خودشان را اعلام کرده‌اند)
+        post_migrate.connect(sync, dispatch_uid="forms-custom-fields")

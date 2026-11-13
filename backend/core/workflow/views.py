@@ -31,7 +31,7 @@ class ProcessSerializer(serializers.ModelSerializer):
     category = serializers.PrimaryKeyRelatedField(queryset=LookupItem.objects.filter(list__code=CATEGORY_LIST), allow_null=True, required=False, label="دسته")
     category_title = serializers.CharField(source="category.title", read_only=True, default="")
     form = serializers.PrimaryKeyRelatedField(
-        queryset=Form.objects.all(), label="فرم اصلی", error_messages={"null": "فرم اصلی را انتخاب کنید.", "required": "فرم اصلی را انتخاب کنید."}
+        queryset=Form.objects.regular(), label="فرم اصلی", error_messages={"null": "فرم اصلی را انتخاب کنید.", "required": "فرم اصلی را انتخاب کنید."}
     )
     form_title = serializers.CharField(source="form.title", read_only=True)
     published_version = serializers.IntegerField(read_only=True, allow_null=True, help_text="شماره‌ی آخرین نسخه‌ی منتشرشده؛ null یعنی هنوز منتشر نشده.")
@@ -192,7 +192,7 @@ class ProcessViewSet(AuditedModelViewSet):
     @action(detail=False, url_path="form-options")
     def form_options(self, request):
         """فرم‌های منتشرشده برای انتخاب «فرم اصلی»."""
-        forms = Form.objects.filter(versions__status=FormVersion.Status.PUBLISHED).distinct().order_by("title")
+        forms = Form.objects.regular().filter(versions__status=FormVersion.Status.PUBLISHED).distinct().order_by("title")
         return Response([{"id": f.pk, "title": f.title} for f in forms])
 
     @extend_schema(responses=TargetFormSerializer(many=True))
@@ -202,7 +202,7 @@ class ProcessViewSet(AuditedModelViewSet):
         from core.forms import engine as form_engine
 
         rows = []
-        for form in Form.objects.filter(versions__status=FormVersion.Status.PUBLISHED).distinct().order_by("title"):
+        for form in Form.objects.regular().filter(versions__status=FormVersion.Status.PUBLISHED).distinct().order_by("title"):
             definition = form.current_version().definition
             fields = [
                 {"id": f["id"], "label": f.get("label", f["id"]), "type": f["type"], "required": bool(f.get("required"))}

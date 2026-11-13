@@ -8,8 +8,19 @@ def empty_definition():
     return {"sections": []}
 
 
+class FormQuerySet(models.QuerySet):
+    def regular(self):
+        """فرم‌های معمولی (نه «فیلدهای سفارشی» ماژول‌ها)؛ برای فهرست‌های فرم‌ها، پر کردن، ثبت‌ها و فرایندها."""
+        return self.filter(purpose=Form.Purpose.FORM)
+
+
 class Form(models.Model):
     """فرمی که سازمان با فرم‌ساز می‌سازد. تعریف فیلدها در نسخه‌هاست؛ آخرین نسخه‌ی منتشرشده پر می‌شود."""
+
+    class Purpose(models.TextChoices):
+        FORM = "form", "فرم"
+        # فیلدهای دلخواه یک رکورد ماژول (nikyar_custom_fields، مثل پرونده‌ی پرسنلی): فقط طراحی می‌شود و ثبت ندارد
+        FIELDS = "fields", "فیلدهای سفارشی"
 
     code = models.CharField(
         "شناسه",
@@ -20,6 +31,7 @@ class Form(models.Model):
         help_text="شناسه‌ی لاتین و پایدار فرم (مثلاً purchase-request)؛ پس از ساخت تغییر نمی‌کند.",
     )
     title = models.CharField("عنوان", max_length=150)
+    purpose = models.CharField("کاربرد", max_length=10, choices=Purpose.choices, default=Purpose.FORM, editable=False)
     description = models.CharField("توضیح", max_length=500, blank=True)
     category = models.ForeignKey("lookups.LookupItem", verbose_name="دسته", null=True, blank=True, on_delete=models.PROTECT, related_name="+")
     is_active = models.BooleanField("فعال", default=True)
@@ -58,6 +70,8 @@ class Form(models.Model):
     notify_roles = models.ManyToManyField("accounts.Role", verbose_name="اطلاع به نقش‌ها", blank=True, related_name="+")
     anonymous = models.BooleanField("بی‌نام", default=False)
     created_at = models.DateTimeField("زمان ساخت", auto_now_add=True)
+
+    objects = FormQuerySet.as_manager()
 
     class Meta:
         ordering = ["title"]
