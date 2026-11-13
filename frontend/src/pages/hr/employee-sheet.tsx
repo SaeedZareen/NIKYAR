@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { UserPicker } from "@/components/user-picker"
 import { api, unwrap, type Schemas } from "@/lib/api/client"
+import { toFaDigits } from "@/lib/format"
 import { schemas } from "@/lib/validators"
 import { EMPLOYEES_KEY } from "./employees"
 
@@ -115,7 +116,7 @@ export function EmployeeSheet({ employee, open, onOpenChange }: Props) {
         : unwrap(api.PATCH("/api/hr/employees/{id}/", { params: { path: { id: String(employee.id) } }, body })),
     onSuccess: (saved) => {
       qc.invalidateQueries({ queryKey: EMPLOYEES_KEY })
-      toast.success(isNew ? `پرونده‌ی «${saved.full_name}» با کد پرسنلی ${saved.personnel_code} ثبت شد.` : `تغییرات پرونده‌ی «${saved.full_name}» ذخیره شد.`)
+      toast.success(isNew ? `پرونده‌ی «${saved.full_name}» با کد پرسنلی ${toFaDigits(saved.personnel_code)} ثبت شد.` : `تغییرات پرونده‌ی «${saved.full_name}» ذخیره شد.`)
       onOpenChange(false)
       if (isNew) navigate(`/hr/employees/${saved.id}`)
     },
@@ -183,7 +184,7 @@ export function EmployeeSheet({ employee, open, onOpenChange }: Props) {
       onOpenChange={onOpenChange}
       size="wide"
       title={isNew ? "پرونده‌ی تازه" : `ویرایش پرونده‌ی ${employee.full_name}`}
-      description={isNew ? "کد پرسنلی پس از ثبت خودکار صادر می‌شود." : `کد پرسنلی: ${employee.personnel_code}`}
+      description={isNew ? "کد پرسنلی پس از ثبت خودکار صادر می‌شود." : `کد پرسنلی: ${toFaDigits(employee.personnel_code)}`}
       onSubmit={onSubmit}
       submitting={save.isPending}
     >
