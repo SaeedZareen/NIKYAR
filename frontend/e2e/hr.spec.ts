@@ -19,6 +19,17 @@ async function signIn(browser: Browser, info: TestInfo, username: string) {
   return page
 }
 
+async function call(page: Page, method: string, url: string, body?: unknown) {
+  return page.evaluate(
+    async ({ method, url, body }) => {
+      const token = decodeURIComponent(document.cookie.match(/csrftoken=([^;]+)/)?.[1] ?? "")
+      const r = await fetch(url, { method, headers: { "Content-Type": "application/json", "X-CSRFToken": token }, body: body ? JSON.stringify(body) : undefined })
+      return r.json()
+    },
+    { method, url, body }
+  )
+}
+
 async function choose(page: Page, label: string, option: string) {
   await page.getByRole("combobox", { name: label, exact: true }).click()
   await page.getByRole("option", { name: option, exact: true }).click()
@@ -153,5 +164,74 @@ test.describe("پرونده‌ی پرسنلی", () => {
     await expectAccessible(page)
     expect(errors).toEqual([])
     await page.context().close()
+  })
+
+  test("فیلدهای دلخواه پرونده: طراحی، ویرایش در زبانه‌ی اطلاعات تکمیلی و ستون جدول", async ({ page }, info) => {
+    test.skip(info.project.name !== "desktop", "تعریف فیلدهای دلخواه سراسری است؛ فقط در پروژه‌ی desktop")
+    const errors = collectErrors(page)
+    await page.goto("/hr/employees")
+    const custom = await call(page, "GET", "/api/hr/employees/custom-fields/")
+    const form = await call(page, "GET", `/api/forms/${custom.form}/`)
+    const fields = [
+      { id: "shirt", type: "choice", label: "سایز لباس کار", required: true, props: { options: [{ value: "m", label: "متوسط" }, { value: "l", label: "بزرگ" }] } },
+      { id: "locker", type: "number", label: "شماره‌ی کمد" },
+    ]
+    await call(page, "PATCH", `/api/forms/versions/${form.draft_version}/`, { definition: { sections: [{ id: "s", title: "تجهیزات", fields }] } })
+    await call(page, "POST", `/api/forms/versions/${form.draft_version}/publish/`)
+
+    await page.reload()
+    await page.getByRole("main").getByText("علی رضایی").first().click()
+    await page.getByRole("tab", { name: "اطلاعات تکمیلی" }).click()
+    await expect(page.getByRole("link", { name: "طراحی فیلدها" })).toHaveAttribute("href", `/forms/design/${custom.form}`)
+    await page.getByRole("button", { name: "ویرایش اطلاعات تکمیلی" }).click()
+    await page.getByRole("button", { name: "ذخیره" }).click()
+    await expect(page.getByText("تکمیل «سایز لباس کار» الزامی است.").first()).toBeVisible()
+    await page.getByRole("radio", { name: "بزرگ" }).click()
+    await page.getByLabel("شماره‌ی کمد", { exact: true }).fill("42")
+    await page.getByRole("button", { name: "ذخیره" }).click()
+    await expect(page.getByText("اطلاعات تکمیلی ذخیره شد.")).toBeVisible()
+    const summary = page.getByRole("tabpanel")
+    await expect(summary).toContainText("بزرگ")
+    await expect(summary).toContainText("۴۲")
+    await expectAccessible(page)
+
+    await page.goto("/hr/employees")
+    await expect(page.getByRole("row").filter({ hasText: "علی رضایی" })).toContainText("بزرگ")
+    expect(errors).toEqual([])
+  })
+
+  test("پرونده‌ی من: پرونده‌ی خود، فقط‌خواندنی با سوابق مالی", async ({ page, browser }, info) => {
+    await page.goto("/hr/employees")
+    const username = `me-${info.project.name}-${Date.now().toString(36)}`
+    const user = await call(page, "POST", "/api/auth/users/", { username, first_name: "پریسا", last_name: `خودی ${info.project.name}`, gender: "female", password: "First-Pass-123" })
+    const kinds = await call(page, "GET", "/api/lookups/items/?list=employment-type")
+    const employee = await call(page, "POST", "/api/hr/employees/", {
+      first_name: "پریسا",
+      last_name: `خودی ${info.project.name}`,
+      national_code: nationalCode(),
+      gender: "female",
+      hire_date: "1402/05/01",
+      employment_type: kinds[0].id,
+      user: user.id,
+    })
+    await call(page, "POST", "/api/hr/bank-accounts/", { employee: employee.id, iban: "IR160120000000001234567890", is_salary: true })
+
+    const context = await browser.newContext({ storageState: { cookies: [], origins: [] }, ...(info.project.use.viewport ? { viewport: info.project.use.viewport } : {}) })
+    const own = await context.newPage()
+    const errors = collectErrors(own)
+    await own.goto("/login")
+    await own.getByLabel("نام کاربری", { exact: true }).fill(username)
+    await own.getByLabel("گذرواژه", { exact: true }).fill("First-Pass-123")
+    await own.getByRole("button", { name: "ورود" }).click()
+    await own.getByRole("main").getByRole("link", { name: "پرونده‌ی من" }).click()
+    await expect(own.getByRole("heading", { level: 1, name: `پریسا خودی ${info.project.name}` })).toBeVisible()
+    await expect(own.getByRole("button", { name: "ویرایش پرونده" })).toHaveCount(0)
+    await expect(own.getByRole("main").getByRole("link", { name: "پرونده‌های پرسنلی" })).toHaveCount(0)
+    await own.getByRole("tab", { name: "بانک و بیمه" }).click()
+    await expect(own.getByRole("region", { name: "حساب‌های بانکی" })).toContainText("ملت")
+    await expect(own.getByRole("button", { name: /افزودن/ })).toHaveCount(0)
+    await expectAccessible(own)
+    expect(errors).toEqual([])
+    await context.close()
   })
 })

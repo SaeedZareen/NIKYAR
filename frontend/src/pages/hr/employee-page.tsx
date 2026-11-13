@@ -9,6 +9,7 @@ import { PageHeader } from "@/components/layout/page-header"
 import { Section } from "@/components/layout/section"
 import { StatusBadge } from "@/components/status-badge"
 import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { api, unwrap, type Schemas } from "@/lib/api/client"
 import { formatDate, toFaDigits } from "@/lib/format"
@@ -16,13 +17,15 @@ import { fileUrl } from "@/lib/files"
 import { EmployeeSheet } from "./employee-sheet"
 import { BANK, DEPENDENTS, DOCUMENTS, EDUCATION, INSURANCE, WORK } from "./record-kinds"
 import { RecordSection } from "./record-section"
-import { EMPLOYEES_KEY, STATUS_TONES } from "./employees"
+import { EMPLOYEES_KEY, STATUS_TONES, useCustomFields } from "./employees"
+import { ExtraInfo } from "./extra-info"
 
 type Employee = Schemas["EmployeeDetail"]
 type Position = Schemas["EmployeePosition"]
 const TABS = [
   { value: "profile", label: "مشخصات" },
   { value: "employment", label: "استخدام" },
+  { value: "extra", label: "اطلاعات تکمیلی" },
   { value: "history", label: "تحصیلات و سوابق کاری" },
   { value: "family", label: "خانواده" },
   { value: "financial", label: "بانک و بیمه", financial: true },
@@ -38,7 +41,9 @@ export default function EmployeePage() {
   return <EmployeeView data={employee.data} />
 }
 
-function EmployeeView({ data }: { data: Employee }) {
+/** پرونده با زبانه‌ها؛ با own («پرونده‌ی من») بی مسیر بازگشت به فهرست و همیشه فقط‌خواندنی. */
+export function EmployeeView({ data, own = false }: { data: Employee; own?: boolean }) {
+  const custom = useCustomFields().data
   const [params, setParams] = useSearchParams()
   // حساب بانکی و بیمه برای مدیر واحد (بی مجوز پرونده‌ها) دیده نمی‌شود
   const tabs = TABS.filter((t) => !("financial" in t) || data.can_view_financial)
@@ -51,7 +56,7 @@ function EmployeeView({ data }: { data: Employee }) {
     <>
       <PageHeader
         title={data.full_name}
-        breadcrumbs={[{ label: "پرونده‌های پرسنلی", to: "/hr/employees" }]}
+        breadcrumbs={own ? undefined : [{ label: "پرونده‌های پرسنلی", to: "/hr/employees" }]}
         meta={
           <span className="inline-flex flex-wrap items-center gap-2">
             <span className="tabular-nums">کد پرسنلی {toFaDigits(data.personnel_code)}</span>
@@ -131,6 +136,7 @@ function EmployeeView({ data }: { data: Employee }) {
           </Section>
           <Positions data={data} />
         </TabsContent>
+        <TabsContent value="extra">{custom ? <ExtraInfo employee={data} custom={custom} /> : <Skeleton className="h-40 w-full" />}</TabsContent>
         <TabsContent value="history" className="flex flex-col gap-4">
           <RecordSection config={EDUCATION} employee={data} />
           <RecordSection config={WORK} employee={data} />

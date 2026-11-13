@@ -4,8 +4,9 @@ import { useQuery } from "@tanstack/react-query"
 import { Eye, Printer } from "lucide-react"
 import { actionsColumn, columnHelper, DataTable, useDataTable, useTableView, type DataTableColumn } from "@/components/data-table"
 import { PageHeader } from "@/components/layout/page-header"
-import { isDisplay, type FieldDef, type FormDefinition } from "@/components/form-renderer/definition"
-import { fieldText, useNames, type Names } from "@/components/form-renderer/value-text"
+import type { FormDefinition } from "@/components/form-renderer/definition"
+import { fieldColumn, fieldColumnId, valueFields } from "@/components/form-renderer/field-columns"
+import { useNames } from "@/components/form-renderer/value-text"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { Skeleton } from "@/components/ui/skeleton"
 import { api, unwrap, type Schemas } from "@/lib/api/client"
@@ -19,56 +20,6 @@ const EMPTY: Submission[] = []
 
 /** ستون‌های فیلد پس از این تعداد پنهان‌اند تا کاربر از «ستون‌ها» نمایانشان کند. */
 const VISIBLE_FIELDS = 6
-/** مقدارهای عددی و تاریخی خام می‌مانند تا درست مرتب شوند و در اکسل عدد باشند. */
-const NUMERIC = new Set(["number", "amount", "scale"])
-const RAW_TEXT = new Set(["date", "time", "datetime"])
-
-const fieldColumnId = (field: FieldDef) => `v_${field.id}`
-
-/** فیلدهای ستون‌شدنی: فیلدهای مقدارپذیر سطح بخش (گروه تکرارشونده با شمار ردیف‌ها). */
-function reportFields(definition: FormDefinition): FieldDef[] {
-  return definition.sections.flatMap((s) => s.fields).filter((f) => !isDisplay(f))
-}
-
-function fieldColumn(field: FieldDef, names: Names): DataTableColumn<Submission> {
-  const label = field.label || field.id
-  const text = (s: Submission) => fieldText(field, s.data[field.id], names)
-  if (NUMERIC.has(field.type)) {
-    return col.accessor((s) => (typeof s.data[field.id] === "number" ? (s.data[field.id] as number) : undefined), {
-      id: fieldColumnId(field),
-      header: label,
-      sortFn: "basic",
-      sortUndefined: "last",
-      meta: { label, align: "end" },
-      cell: (c) => <span className="tabular-nums">{text(c.row.original) || <span className="text-muted-foreground">—</span>}</span>,
-    })
-  }
-  if (RAW_TEXT.has(field.type)) {
-    return col.accessor((s) => String(s.data[field.id] ?? ""), {
-      id: fieldColumnId(field),
-      header: label,
-      meta: { label },
-      cell: (c) => (c.getValue() ? <span className="tabular-nums">{toFaDigits(c.getValue())}</span> : <span className="text-muted-foreground">—</span>),
-    })
-  }
-  const options =
-    field.type === "choice"
-      ? ((field.props?.options ?? []) as { label: string }[]).map((o) => ({ value: o.label, label: o.label }))
-      : field.type === "boolean"
-        ? [
-            { value: "بله", label: "بله" },
-            { value: "خیر", label: "خیر" },
-          ]
-        : undefined
-  return col.accessor(text, {
-    id: fieldColumnId(field),
-    header: label,
-    enableSorting: field.type !== "table",
-    meta: { label, wrap: true, filterOptions: options },
-    cell: (c) => c.getValue() || <span className="text-muted-foreground">—</span>,
-  })
-}
-
 /** ثبت‌های نهایی یک فرم با ستون‌هایی از فیلدهای همان فرم؛ جست‌وجو، فیلتر و خروجی اکسل در مرورگر. */
 export default function FormReportPage() {
   const formId = useParams().formId ?? ""
@@ -87,7 +38,7 @@ export default function FormReportPage() {
 function ReportTable({ report, error, onRetry, loading }: { report: Report | null; error?: unknown; onRetry: () => void; loading?: boolean }) {
   const definition = report?.definition as FormDefinition | undefined
   const rows = report?.submissions ?? EMPTY
-  const fields = React.useMemo(() => (definition ? reportFields(definition) : []), [definition])
+  const fields = React.useMemo(() => (definition ? valueFields(definition) : []), [definition])
   const data = React.useMemo(() => rows.map((s) => s.data), [rows])
   const names = useNames(definition, data)
   const columns = React.useMemo<DataTableColumn<Submission>[]>(
@@ -112,7 +63,7 @@ function ReportTable({ report, error, onRetry, loading }: { report: Report | nul
         meta: { label: "نسخه‌ی فرم", align: "end" },
         cell: (c) => <span className="tabular-nums">{toFaDigits(c.getValue())}</span>,
       }),
-      ...fields.map((f) => fieldColumn(f, names)),
+      ...fields.map((f) => fieldColumn<Submission>(f, names, (s) => s.data)),
       actionsColumn<Submission>((s) => (
         <>
           <DropdownMenuItem asChild>

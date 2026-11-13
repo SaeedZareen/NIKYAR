@@ -309,11 +309,13 @@ function Editor({ form, version, specs, onReload }: { form: DesignForm; version:
     />
   )
 
+  const fieldsForm = form.purpose === "fields"
   return (
     <>
       <PageHeader
         title={form.title}
-        breadcrumbs={[{ label: "طراحی فرم‌ها", to: "/forms/design" }]}
+        // «فیلدهای سفارشی» ماژول‌ها (مثل پرونده‌ی پرسنلی) در فهرست فرم‌ها نیستند و تنظیمات فرم (پرکنندگان، پذیرش…) ندارند
+        breadcrumbs={[fieldsForm ? { label: "فیلدهای سفارشی" } : { label: "طراحی فرم‌ها", to: "/forms/design" }]}
         meta={<span aria-live="polite">{status}</span>}
         actions={
           <>
@@ -334,9 +336,11 @@ function Editor({ form, version, specs, onReload }: { form: DesignForm; version:
             <Button variant="outline" disabled={!readOnly && (changed || save.kind !== "saved")} onClick={() => setPreviewing(true)}>
               <Eye /> پیش‌نمایش
             </Button>
-            <Button variant="outline" onClick={() => setSettings(true)}>
-              <Settings2 /> تنظیمات
-            </Button>
+            {!fieldsForm && (
+              <Button variant="outline" onClick={() => setSettings(true)}>
+                <Settings2 /> تنظیمات
+              </Button>
+            )}
             {readOnly ? (
               <Button disabled={newDraft.isPending} onClick={() => newDraft.mutate()}>
                 {newDraft.isPending ? <Spinner /> : <PencilLine />} ویرایش فرم
