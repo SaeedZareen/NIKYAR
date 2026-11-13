@@ -3627,6 +3627,8 @@ export interface components {
             readonly leave_balance: number;
             /** @description پایان دوره‌ی آزمایشی (تنظیمات «ورود کارمند»)، شمسی */
             readonly probation_end: string;
+            /** @description فرایند «اصلاح اطلاعات پرونده» برای دکمه‌ی «درخواست اصلاح» در «پرونده‌ی من» (یا null) */
+            readonly correction_process: number | null;
         };
         /** @description پرونده‌ی پایه. کد پرسنلی با شماره‌گذاری «کد پرسنلی» صادر می‌شود و تغییر نمی‌کند. */
         EmployeeDetailRequest: {
@@ -3742,9 +3744,13 @@ export interface components {
          *     * `equipment` - تحویل تجهیزات
          *     * `orientation` - آموزش بدو ورود
          *     * `probation` - ارزیابی دوره‌ی آزمایشی
+         *     * `transfer` - تغییر سمت یا واحد
+         *     * `correction` - اصلاح پرونده
+         *     * `resignation` - استعفا
+         *     * `separation` - پایان همکاری
          * @enum {string}
          */
-        EmployeeEventKindEnum: "leave" | "hourly_leave" | "mission" | "hourly_mission" | "overtime" | "remote" | "shift" | "attendance_fix" | "advance" | "loan" | "medical" | "allowance" | "travel" | "hire" | "equipment" | "orientation" | "probation";
+        EmployeeEventKindEnum: "leave" | "hourly_leave" | "mission" | "hourly_mission" | "overtime" | "remote" | "shift" | "attendance_fix" | "advance" | "loan" | "medical" | "allowance" | "travel" | "hire" | "equipment" | "orientation" | "probation" | "transfer" | "correction" | "resignation" | "separation";
         EmployeePosition: {
             title: string;
             unit: string;
@@ -4641,6 +4647,10 @@ export interface components {
             finance_role: number | null;
             /** نقش مدیرعامل */
             ceo_role: number | null;
+            /** نقش فناوری اطلاعات (تسویه‌حساب) */
+            it_role: number | null;
+            /** نقش اموال و تدارکات (تسویه‌حساب) */
+            assets_role: number | null;
             /**
              * سقف مبلغ بی نیاز به تأیید مدیرعامل (ریال)
              * Format: int64
@@ -4655,6 +4665,10 @@ export interface components {
             finance_role?: number | null;
             /** نقش مدیرعامل */
             ceo_role?: number | null;
+            /** نقش فناوری اطلاعات (تسویه‌حساب) */
+            it_role?: number | null;
+            /** نقش اموال و تدارکات (تسویه‌حساب) */
+            assets_role?: number | null;
             /**
              * سقف مبلغ بی نیاز به تأیید مدیرعامل (ریال)
              * Format: int64

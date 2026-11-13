@@ -1,7 +1,7 @@
 import * as React from "react"
-import { useParams, useSearchParams } from "react-router"
+import { Link, useParams, useSearchParams } from "react-router"
 import { useQuery } from "@tanstack/react-query"
-import { Pencil, UserRound } from "lucide-react"
+import { FilePen, Pencil, UserRound } from "lucide-react"
 import { PageError, PageFallback } from "@/app/route-states"
 import { columnHelper, DataTable, useDataTable, useTableView, type DataTableColumn } from "@/components/data-table"
 import { DescriptionList } from "@/components/description-list"
@@ -67,10 +67,19 @@ export function EmployeeView({ data, own = false }: { data: Employee; own?: bool
           </span>
         }
         actions={
-          data.can_edit && (
+          data.can_edit ? (
             <Button variant="outline" onClick={() => setEditing(true)}>
               <Pencil /> ویرایش پرونده
             </Button>
+          ) : (
+            own &&
+            data.correction_process && (
+              <Button asChild variant="outline">
+                <Link to={`/requests/new/${data.correction_process}`}>
+                  <FilePen /> درخواست اصلاح
+                </Link>
+              </Button>
+            )
           )
         }
       />
