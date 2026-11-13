@@ -55,7 +55,7 @@ function Preview({ version }: { version: Schemas["FormVersionDetail"] }) {
       toFormValues(
         definition,
         undefined,
-        user ? { id: user.id, unitId: user.assignment?.unit_id, profile: { full_name: user.full_name, first_name: user.first_name, last_name: user.last_name, username: user.username, mobile: user.mobile, email: user.email } } : undefined
+        user ? { id: user.id, unitId: user.assignment?.unit_id, profile: user.profile } : undefined
       ),
     [definition, user]
   )

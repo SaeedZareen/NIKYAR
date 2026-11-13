@@ -2678,7 +2678,7 @@ export interface components {
             /** @description سمت اصلی جاری کاربر متصل */
             readonly position: string;
             /** وضعیت */
-            status: components["schemas"]["Status2a7Enum"];
+            status: components["schemas"]["EmployeeStatusEnum"];
             readonly status_label: string;
             /**
              * تاریخ پایان همکاری
@@ -2753,7 +2753,7 @@ export interface components {
             /** @description سمت اصلی جاری کاربر متصل */
             readonly position: string;
             /** وضعیت */
-            status: components["schemas"]["Status2a7Enum"];
+            status: components["schemas"]["EmployeeStatusEnum"];
             readonly status_label: string;
             /**
              * تاریخ پایان همکاری
@@ -2769,9 +2769,7 @@ export interface components {
             readonly user_name: string;
             readonly can_edit: boolean;
             /** @description انتصاب‌های جاری کاربر متصل در ساختار سازمانی */
-            readonly positions: {
-                [key: string]: unknown;
-            }[];
+            readonly positions: components["schemas"]["EmployeePosition"][];
         };
         /** @description پرونده‌ی پایه. کد پرسنلی با شماره‌گذاری «کد پرسنلی» صادر می‌شود و تغییر نمی‌کند. */
         EmployeeDetailRequest: {
@@ -2822,7 +2820,7 @@ export interface components {
             /** واحد */
             unit?: number | null;
             /** وضعیت */
-            status?: components["schemas"]["Status2a7Enum"];
+            status?: components["schemas"]["EmployeeStatusEnum"];
             /**
              * تاریخ پایان همکاری
              * @example 1405/08/14
@@ -2833,6 +2831,20 @@ export interface components {
             /** کاربر سامانه */
             user?: number | null;
         };
+        EmployeePosition: {
+            title: string;
+            unit: string;
+            is_manager: boolean;
+            is_primary: boolean;
+            /** @example 1405/08/14 */
+            start_date: string;
+        };
+        /**
+         * @description * `active` - شاغل
+         *     * `separated` - پایان همکاری
+         * @enum {string}
+         */
+        EmployeeStatusEnum: "active" | "separated";
         FieldPropSpec: {
             name: string;
             /** @description int، number، bool، text، date، choice، choice_list، options، lookup_list، org_unit، role، record_source، extensions، columns، logic */
@@ -4087,7 +4099,7 @@ export interface components {
             /** واحد */
             unit?: number | null;
             /** وضعیت */
-            status?: components["schemas"]["Status2a7Enum"];
+            status?: components["schemas"]["EmployeeStatusEnum"];
             /**
              * تاریخ پایان همکاری
              * @example 1405/08/14
@@ -4984,12 +4996,6 @@ export interface components {
             /** @default  */
             readonly category_title: string;
         };
-        /**
-         * @description * `active` - شاغل
-         *     * `separated` - پایان همکاری
-         * @enum {string}
-         */
-        Status2a7Enum: "active" | "separated";
         /**
          * @description * `draft` - پیش‌نویس
          *     * `running` - در جریان

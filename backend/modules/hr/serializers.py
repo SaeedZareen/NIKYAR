@@ -1,5 +1,6 @@
 from django.db import transaction
 from django.utils import timezone
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from core.accounts.models import User
@@ -189,5 +190,6 @@ class EmployeeDetailSerializer(EmployeeSerializer):
             for a in current.order_by("-is_primary", "-start_date")
         ]
 
-    def get_positions(self, obj) -> list[dict]:
+    @extend_schema_field(EmployeePositionSerializer(many=True))
+    def get_positions(self, obj):
         return EmployeePositionSerializer(self._positions(obj), many=True).data

@@ -1,21 +1,23 @@
 // ساختار منوی اصلی. هر مورد مجوز لازم را اعلام می‌کند و فقط به کاربر دارای مجوز نمایش داده می‌شود.
-// ماژول‌ها در فازهای بعد گروه خودشان را اضافه می‌کنند.
+// ماژول‌ها گروه خودشان را دارند (منابع انسانی) و با پرچم نشست خود (`flag:…`) دیده می‌شوند.
 import type { LucideIcon } from "lucide-react"
-import { Bell, ChartColumn, FileCog, FilePlus2, Inbox, ListTodo, Building2, ClipboardList, FileCheck, FileSpreadsheet, PencilRuler, KeyRound, UserRound, UserRoundCog, CalendarDays, Component, DatabaseBackup, ListChecks, FormInput, History, LayoutDashboard, ListTree, Settings, ShieldCheck, Table2, Users, Workflow } from "lucide-react"
+import { Bell, ChartColumn, IdCard, FileCog, FilePlus2, Inbox, ListTodo, Building2, ClipboardList, FileCheck, FileSpreadsheet, PencilRuler, KeyRound, UserRound, UserRoundCog, CalendarDays, Component, DatabaseBackup, ListChecks, FormInput, History, LayoutDashboard, ListTree, Settings, ShieldCheck, Table2, Users, Workflow } from "lucide-react"
 
 /**
- * مجوز مورد نیاز: کد مجوز، "superuser" (فقط مدیر کل؛ راهنمای توسعه)، "workflow-manager" (مجوز مدیریت درخواست‌ها یا مدیر یک فرایند؛ از نشست) یا "forms-viewer"
- * (کسی که ثبت‌های دست‌کم یک فرم را می‌بیند: طراح یا نقش بیننده؛ از نشست).
+ * مجوز مورد نیاز: کد مجوز، "superuser" (فقط مدیر کل؛ راهنمای توسعه)، "workflow-manager" (مجوز مدیریت درخواست‌ها یا مدیر یک فرایند؛ از نشست)، "forms-viewer"
+ * (کسی که ثبت‌های دست‌کم یک فرم را می‌بیند: طراح یا نقش بیننده؛ از نشست) یا `flag:<نام>` (پرچم نشستی که ماژول اعلام می‌کند، مثل `flag:hr_viewer`؛
+ * پرچم ماژول خارج از لایسنس false است، پس منوی آن ماژول پنهان می‌شود).
  */
-export type Access = string | "superuser" | "forms-viewer" | "workflow-manager" | undefined
+export type Access = string | "superuser" | "forms-viewer" | "workflow-manager" | `flag:${string}` | undefined
 
-type Viewer = { is_superuser: boolean; forms_viewer: boolean; workflow_manager: boolean } | null
+type Viewer = { is_superuser: boolean; forms_viewer: boolean; workflow_manager: boolean; flags: Record<string, boolean> } | null
 
 export function isAllowed(access: Access, user: Viewer, can: (permission: string) => boolean): boolean {
   if (access === undefined) return true
   if (access === "superuser") return !!user?.is_superuser
   if (access === "forms-viewer") return !!user?.forms_viewer
   if (access === "workflow-manager") return !!user?.workflow_manager
+  if (access.startsWith("flag:")) return !!user?.flags[access.slice(5)]
   return can(access)
 }
 
@@ -46,6 +48,10 @@ const navigation: NavGroup[] = [
       { title: "گزارش عملکرد", url: "/workflow/performance", icon: ChartColumn, access: "workflow-manager", keywords: "گزارش عملکرد گلوگاه زمان مرحله بار کاری دیرکرد نمودار" },
       { title: "طراحی فرایندها", url: "/workflow/design", icon: Workflow, access: "workflow.design", keywords: "فرایندساز گردش کار مرحله تأیید BPMN" },
     ],
+  },
+  {
+    title: "منابع انسانی",
+    items: [{ title: "پرونده‌های پرسنلی", url: "/hr/employees", icon: IdCard, access: "flag:hr_viewer", keywords: "کارمند پرسنل پرونده کارگزینی کد پرسنلی" }],
   },
   {
     title: "سازمان و کاربران",

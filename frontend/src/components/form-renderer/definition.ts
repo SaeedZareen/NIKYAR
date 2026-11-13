@@ -169,10 +169,11 @@ function nowDefault(field: FieldDef, now: Date): string | undefined {
   return { date, time, datetime: `${date} ${time}` }[field.type as "date" | "time" | "datetime"]
 }
 
-export type PrefillSource = "full_name" | "first_name" | "last_name" | "username" | "mobile" | "email"
+/** منبع «پیش‌پر از حساب کاربر»: کدهای `profile` نشست (حساب کاربر و مقدارهای ماژول‌ها، مثل national_code). */
+export type PrefillSource = string
 
 /** کاربر جاری برای پیش‌فرض‌های «خودم» و «واحد من» و پیش‌پر از حساب. */
-type CurrentUser = { id: number; unitId?: number; profile?: Partial<Record<PrefillSource, string>> }
+type CurrentUser = { id: number; unitId?: number; profile?: Record<string, string> }
 
 function selfDefault(field: FieldDef, me?: CurrentUser): unknown {
   const multiple = field.props?.multiple === true
