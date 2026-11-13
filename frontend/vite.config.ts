@@ -6,6 +6,9 @@ import { defineConfig } from "vite"
 export default defineConfig({
   plugins: [react(), tailwindcss()],
   resolve: { alias: { "@": path.resolve(import.meta.dirname, "./src") } },
+  // بوم bpmn-js (process-canvas، حدود ۵۸۰KB) بزرگ‌ترین تکه است و جدا فقط در فرایندساز و صفحه‌ی درخواست بارگذاری می‌شود؛
+  // سقف هشدار کمی بالاتر از آن است تا هشدار ساخت در update.bat مالک را نگران نکند، ولی تکه‌ی بزرگ تازه‌ای هنوز هشدار بدهد.
+  build: { chunkSizeWarningLimit: 650 },
   server: {
     host: true,
     // Host درخواست حفظ می‌شود (changeOrigin: false) تا بررسی Origin در محافظت CSRF جنگو درست کار کند.
