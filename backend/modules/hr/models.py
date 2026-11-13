@@ -41,6 +41,8 @@ class Employee(models.Model):
     hire_date = models.DateField("تاریخ استخدام")
     employment_type = models.ForeignKey("lookups.LookupItem", verbose_name="نوع استخدام", on_delete=models.PROTECT, related_name="+")
     unit = models.ForeignKey("org.OrgUnit", verbose_name="واحد", null=True, blank=True, on_delete=models.PROTECT, related_name="employees")
+    # پایان قرارداد جاری (فرایند «تمدید قرارداد» به‌روزش می‌کند؛ یادآوری پیش از پایان: service.remind_contracts)
+    contract_end = models.DateField("پایان قرارداد", null=True, blank=True)
     status = models.CharField("وضعیت", max_length=10, choices=Status.choices, default=Status.ACTIVE)
     separation_date = models.DateField("تاریخ پایان همکاری", null=True, blank=True)
     separation_reason = models.ForeignKey(
@@ -51,6 +53,8 @@ class Employee(models.Model):
     )
     # روزی که یادآوری پایان دوره‌ی آزمایشی به مدیر فرستاده شد (onboarding.remind_probation؛ یک بار برای هر پرونده)
     probation_reminded_on = models.DateField("یادآوری دوره‌ی آزمایشی", null=True, blank=True, editable=False)
+    # پایان قراردادی که برایش یادآوری فرستاده شد (با تمدید و تاریخ تازه، یادآوری دوباره ممکن می‌شود)
+    contract_reminded_for = models.DateField("یادآوری پایان قرارداد", null=True, blank=True, editable=False)
     # مقدار فیلدهای دلخواه سازمان (فرم «فیلدهای دلخواه پرونده‌ی پرسنلی»، core.forms.custom_fields)
     extra = models.JSONField("اطلاعات تکمیلی", default=dict, blank=True)
     created_at = models.DateTimeField("زمان ثبت", auto_now_add=True)

@@ -74,6 +74,7 @@ class EmployeeSerializer(FileFieldsMixin, serializers.ModelSerializer):
     birth_date = JalaliDateField(label="تاریخ تولد", required=False, allow_null=True)
     hire_date = JalaliDateField(label="تاریخ استخدام")
     separation_date = JalaliDateField(label="تاریخ پایان همکاری", required=False, allow_null=True)
+    contract_end = JalaliDateField(label="پایان قرارداد", required=False, allow_null=True)
     photo = FileRefField(label="عکس پرسنلی", extensions=IMAGE_EXTENSIONS)
     employment_type = _lookup("employment-type", "نوع استخدام", True)
     separation_reason = _lookup("separation-reason", "علت پایان همکاری", False)
@@ -120,6 +121,7 @@ class EmployeeSerializer(FileFieldsMixin, serializers.ModelSerializer):
             "position",
             "status",
             "status_label",
+            "contract_end",
             "separation_date",
             "separation_reason",
             "separation_reason_title",

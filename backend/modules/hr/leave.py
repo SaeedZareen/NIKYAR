@@ -23,7 +23,7 @@ from core.lookups.models import LookupItem, LookupList
 from core.settings.service import read
 from core.workcalendar.service import WorkCalendar
 
-from .leave_params import FINANCE, KINDS, NOTE_TYPES, ONBOARDING, ROLES
+from .leave_params import EVALUATION_RESULTS, FINANCE, KINDS, NOTE_TYPES, ONBOARDING, ROLES
 from .models import Employee, EmployeeEvent
 
 ANNUAL = "annual"
@@ -130,8 +130,18 @@ def event_values(kind: str, fields: dict, data: dict, cfg: dict) -> dict:
         period = value("period")
         result["start_date"], result["end_date"] = to_date(period["start"]), to_date(period["end"])
         result["days"] = Decimal(working_days(result["start_date"], result["end_date"]))
-    else:
+    elif kind in ROLES["date"][2]:
         result["start_date"] = to_date(value("date"))
+    else:
+        # رویدادهای بی تاریخ فرم (پیشنهاد، شکایت، ارزیابی، مصاحبه‌ی خروج): روز ثبت
+        result["start_date"] = timezone.localdate()
+    if kind in ROLES["subject"][2]:
+        result["title"] = str(value("subject")).strip()[:200]
+    if kind == "evaluation":
+        code = value("result")
+        if code not in EVALUATION_RESULTS:
+            raise BusinessError("نتیجه‌ی ارزیابی شناخته‌شده نیست.", {fields["result"]: "نتیجه را از فهرست انتخاب کنید."})
+        result["leave_type"], result["title"] = code, f"نتیجه: {EVALUATION_RESULTS[code]}"
     if kind in ROLES["time"][2]:
         span = value("time")
         result["start_time"], result["end_time"] = span["start"], span["end"]
@@ -195,6 +205,10 @@ def run_action(context, action: dict) -> None:
         raise BusinessError("پرونده‌ی پرسنلی کارمند این درخواست پیدا نشد؛ ثبت در پرونده ممکن نیست.")
     values = event_values(action["kind"], action.get("fields") or {}, request.data, config())
     EmployeeEvent.objects.update_or_create(request=request, defaults={"employee": employee, "kind": action["kind"], **values})
+    if action["kind"] == "contract" and values.get("end_date"):
+        # تمدید قرارداد پایان قرارداد پرونده را جلو می‌برد (و یادآوری تازه برای پایان تازه ممکن می‌شود)
+        employee.contract_end = values["end_date"]
+        employee.save(update_fields=["contract_end", "updated_at"])
 
 
 # ─── قاعده‌های پیش از ارسال (فرایندهای آماده) ─────────────────────────────
