@@ -64,7 +64,9 @@ def test_training_suggestion_accident_exit(fin):  # noqa: F811
     request = start("hr-suggestion", fin["clerk"], {"subject": "ساعت ناهار", "note": "زودتر"})
     walk(request)
     assert EmployeeEvent.objects.get(request=request).kind == "suggestion"
-    request = start("hr-accident", fin["janitor"], {"employee": fin["clerk"].pk, "date": today, "subject": "انبار، لیز خوردن", "severity": "minor", "note": "پانسمان"})
+    request = start(
+        "hr-accident", fin["janitor"], {"employee": fin["clerk"].pk, "date": today, "subject": "انبار، لیز خوردن", "severity": "minor", "note": "پانسمان"}
+    )
     walk(request)
     event = EmployeeEvent.objects.get(request=request)
     assert event.employee == fin["employee"] and event.kind == "accident"
