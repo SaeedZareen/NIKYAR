@@ -13,6 +13,7 @@ import { FormSheet } from "@/components/form/form-sheet"
 import { TimeInput } from "@/components/form/inputs"
 import { applyServerErrors } from "@/components/form/server-errors"
 import { useAppForm } from "@/components/form/use-app-form"
+import { InfoTip } from "@/components/info-tip"
 import { Section } from "@/components/layout/section"
 import { StatusBadge } from "@/components/status-badge"
 import { Button } from "@/components/ui/button"
@@ -160,7 +161,10 @@ function QuotaForm({ section, data }: { section: SectionInfo; data: Leave }) {
       {count("attendance_fix_days")}
       {kinds.length > 0 && (
         <fieldset className="col-span-full flex flex-col gap-3">
-          <legend className="pb-2 text-xs font-semibold">{LABELS.by_type}</legend>
+          <legend className="flex items-center gap-1 pb-2 text-xs font-semibold">
+            {LABELS.by_type}
+            <InfoTip label={`راهنمای ${LABELS.by_type}`}>سهمیه‌ی سالانه‌ی هر نوع استخدام، اگر با سهمیه‌ی عمومی فرق دارد (مثلاً پاره‌وقت). خالی یعنی همان سهمیه‌ی عمومی.</InfoTip>
+          </legend>
           <FormGrid>
             {kinds.map((k) => (
               <FormField
@@ -168,7 +172,6 @@ function QuotaForm({ section, data }: { section: SectionInfo; data: Leave }) {
                 control={form.control}
                 name={`by_type.${k.code}`}
                 label={k.title}
-                description="خالی یعنی همان سهمیه‌ی عمومی."
                 render={({ field, id, aria }) => (
                   <UnitInput id={id} unit="روز" placeholder={toFaDigits(general)} value={field.value ?? ""} onChange={field.onChange} onBlur={field.onBlur} {...aria} />
                 )}
