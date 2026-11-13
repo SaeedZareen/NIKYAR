@@ -2131,6 +2131,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/settings/hr-onboarding/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description خواندن و ذخیره‌ی یک بخش. برای هر بخش اعلام‌شده یک زیرکلاس با serializer همان بخش ساخته می‌شود (urls.py). */
+        get: operations["settings_hr_onboarding_retrieve"];
+        /** @description خواندن و ذخیره‌ی یک بخش. برای هر بخش اعلام‌شده یک زیرکلاس با serializer همان بخش ساخته می‌شود (urls.py). */
+        put: operations["settings_hr_onboarding_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/settings/hr-roles/": {
         parameters: {
             query?: never;
@@ -3607,6 +3625,8 @@ export interface components {
              * @description مانده‌ی مرخصی استحقاقی امسال (روز، با رویدادهای ثبت‌شده)
              */
             readonly leave_balance: number;
+            /** @description پایان دوره‌ی آزمایشی (تنظیمات «ورود کارمند»)، شمسی */
+            readonly probation_end: string;
         };
         /** @description پرونده‌ی پایه. کد پرسنلی با شماره‌گذاری «کد پرسنلی» صادر می‌شود و تغییر نمی‌کند. */
         EmployeeDetailRequest: {
@@ -3719,9 +3739,12 @@ export interface components {
          *     * `allowance` - کمک‌هزینه
          *     * `travel` - هزینه‌ی سفر مأموریت
          *     * `hire` - استخدام
+         *     * `equipment` - تحویل تجهیزات
+         *     * `orientation` - آموزش بدو ورود
+         *     * `probation` - ارزیابی دوره‌ی آزمایشی
          * @enum {string}
          */
-        EmployeeEventKindEnum: "leave" | "hourly_leave" | "mission" | "hourly_mission" | "overtime" | "remote" | "shift" | "attendance_fix" | "advance" | "loan" | "medical" | "allowance" | "travel" | "hire";
+        EmployeeEventKindEnum: "leave" | "hourly_leave" | "mission" | "hourly_mission" | "overtime" | "remote" | "shift" | "attendance_fix" | "advance" | "loan" | "medical" | "allowance" | "travel" | "hire" | "equipment" | "orientation" | "probation";
         EmployeePosition: {
             title: string;
             unit: string;
@@ -4586,6 +4609,30 @@ export interface components {
              *     این گواهی بنا به درخواست نامبرده جهت ارائه به {recipient} صادر شده است.
              */
             experience: string;
+        };
+        HrOnboardingSettings: {
+            /**
+             * طول دوره‌ی آزمایشی (روز)
+             * @default 90
+             */
+            probation_days: number;
+            /**
+             * یادآوری ارزیابی پیش از پایان دوره (روز)
+             * @default 7
+             */
+            reminder_days: number;
+        };
+        HrOnboardingSettingsRequest: {
+            /**
+             * طول دوره‌ی آزمایشی (روز)
+             * @default 90
+             */
+            probation_days: number;
+            /**
+             * یادآوری ارزیابی پیش از پایان دوره (روز)
+             * @default 7
+             */
+            reminder_days: number;
         };
         HrRolesSettings: {
             /** نقش کارشناس منابع انسانی */
@@ -11382,6 +11429,50 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HrLettersSettings"];
+                };
+            };
+        };
+    };
+    settings_hr_onboarding_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HrOnboardingSettings"];
+                };
+            };
+        };
+    };
+    settings_hr_onboarding_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["HrOnboardingSettingsRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["HrOnboardingSettingsRequest"];
+                "multipart/form-data": components["schemas"]["HrOnboardingSettingsRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HrOnboardingSettings"];
                 };
             };
         };
