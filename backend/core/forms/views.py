@@ -21,7 +21,7 @@ from core.lookups.models import LookupItem
 from core.numbering.pattern import validate as validate_pattern
 
 from . import acceptance, engine, service, transfer
-from .fieldtypes import COLUMN_TYPES, PREFILL, REGISTRY, UNIQUE_TYPES, divisions
+from .fieldtypes import COLUMN_TYPES, REGISTRY, UNIQUE_TYPES, divisions, prefill_sources
 from .models import Form, FormVersion, Submission
 
 CATEGORY_LIST = "form-category"
@@ -297,7 +297,7 @@ def field_type_specs() -> list[dict]:
             "supports_default": t.supports_default,
             "column": code in COLUMN_TYPES,
             "unique": code in UNIQUE_TYPES,
-            "prefill": [{"value": k, "label": label} for k, (label, types) in PREFILL.items() if code in types],
+            "prefill": [{"value": k, "label": label} for k, (label, types) in prefill_sources().items() if code in types],
             "props": [
                 {
                     "name": name,

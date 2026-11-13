@@ -65,6 +65,8 @@ INSTALLED_APPS = [
     "core.licensing",
     "core.forms",
     "core.workflow",
+    # ماژول‌های قابل فروش (backend/modules)؛ هسته به آن‌ها وابسته نیست.
+    "modules.hr",
 ]
 
 AUTH_USER_MODEL = "accounts.User"

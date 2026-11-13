@@ -129,6 +129,8 @@ class MeSerializer(serializers.ModelSerializer):
     assignment = serializers.SerializerMethodField(help_text="سمت اصلی جاری؛ null یعنی بدون سمت.")
     forms_viewer = serializers.SerializerMethodField(help_text="ثبت‌های فرمی را می‌بیند (طراح یا نقش بیننده)؛ برای منوی «ثبت‌های فرم‌ها».")
     workflow_manager = serializers.SerializerMethodField(help_text="مجوز «مدیریت همه‌ی درخواست‌ها» یا مدیر دست‌کم یک فرایند؛ برای منوی «مدیریت درخواست‌ها».")
+    flags = serializers.SerializerMethodField(help_text="پرچم‌های منوی ماژول‌ها (nikyar_session_flags)؛ پرچم ماژول خارج از لایسنس false است.")
+    profile = serializers.SerializerMethodField(help_text="مقدار منبع‌های «پیش‌پر از حساب کاربر» فرم‌ساز، از جمله مقدارهای ماژول‌ها (مثل کد ملی).")
 
     class Meta:
         model = User
@@ -149,6 +151,8 @@ class MeSerializer(serializers.ModelSerializer):
             "assignment",
             "forms_viewer",
             "workflow_manager",
+            "flags",
+            "profile",
         ]
 
     def get_signature(self, obj) -> str:
@@ -174,6 +178,16 @@ class MeSerializer(serializers.ModelSerializer):
         from core.workflow.manage import is_manager
 
         return is_manager(obj)
+
+    def get_flags(self, obj) -> dict[str, bool]:
+        from core.kernel.registry import session_flags
+
+        return session_flags(obj)
+
+    def get_profile(self, obj) -> dict[str, str]:
+        from core.forms.fieldtypes import user_profile
+
+        return user_profile(obj)
 
     def get_forms_viewer(self, obj) -> bool:
         from core.forms.service import viewable_forms

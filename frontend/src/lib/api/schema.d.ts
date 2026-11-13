@@ -898,6 +898,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/hr/employees/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description پرونده‌های پرسنلی. فهرست و جزئیات برای `hr.view`، `hr.manage` و مدیر واحد (کارکنان واحد خودش، فقط‌خواندنی)؛
+         *     ثبت و ویرایش فقط `hr.manage`. پرونده حذف نمی‌شود («پایان همکاری»). همه‌ی پرونده‌های دیدنی یک‌جا (جدول مرورگر).
+         */
+        get: operations["hr_employees_list"];
+        put?: never;
+        /**
+         * @description پرونده‌های پرسنلی. فهرست و جزئیات برای `hr.view`، `hr.manage` و مدیر واحد (کارکنان واحد خودش، فقط‌خواندنی)؛
+         *     ثبت و ویرایش فقط `hr.manage`. پرونده حذف نمی‌شود («پایان همکاری»). همه‌ی پرونده‌های دیدنی یک‌جا (جدول مرورگر).
+         */
+        post: operations["hr_employees_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/hr/employees/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description پرونده‌های پرسنلی. فهرست و جزئیات برای `hr.view`، `hr.manage` و مدیر واحد (کارکنان واحد خودش، فقط‌خواندنی)؛
+         *     ثبت و ویرایش فقط `hr.manage`. پرونده حذف نمی‌شود («پایان همکاری»). همه‌ی پرونده‌های دیدنی یک‌جا (جدول مرورگر).
+         */
+        get: operations["hr_employees_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * @description پرونده‌های پرسنلی. فهرست و جزئیات برای `hr.view`، `hr.manage` و مدیر واحد (کارکنان واحد خودش، فقط‌خواندنی)؛
+         *     ثبت و ویرایش فقط `hr.manage`. پرونده حذف نمی‌شود («پایان همکاری»). همه‌ی پرونده‌های دیدنی یک‌جا (جدول مرورگر).
+         */
+        patch: operations["hr_employees_partial_update"];
+        trace?: never;
+    };
     "/api/jobs/": {
         parameters: {
             query?: never;
@@ -2570,6 +2618,221 @@ export interface components {
          * @enum {string}
          */
         DeliveryStatusEnum: "queued" | "sent" | "failed";
+        /** @description پرونده‌ی پایه. کد پرسنلی با شماره‌گذاری «کد پرسنلی» صادر می‌شود و تغییر نمی‌کند. */
+        Employee: {
+            readonly id: number;
+            /** کد پرسنلی */
+            readonly personnel_code: string;
+            readonly full_name: string;
+            /** نام */
+            first_name: string;
+            /** نام خانوادگی */
+            last_name: string;
+            /** نام پدر */
+            father_name: string;
+            /** کد ملی */
+            national_code: string;
+            /** شماره‌ی شناسنامه */
+            id_number: string;
+            /**
+             * تاریخ تولد
+             * @example 1405/08/14
+             */
+            birth_date: string | null;
+            /** محل تولد */
+            birth_place: string;
+            /** جنسیت */
+            gender: components["schemas"]["GenderEnum"];
+            readonly gender_label: string;
+            /** وضعیت تأهل */
+            marital_status: components["schemas"]["MaritalStatusEnum"] | components["schemas"]["BlankEnum"];
+            readonly marital_status_label: string;
+            /** موبایل */
+            mobile: string;
+            /** ایمیل */
+            email: string;
+            /** استان */
+            province: string;
+            /** شهر */
+            city: string;
+            /** نشانی */
+            address: string;
+            /**
+             * عکس پرسنلی
+             * @description شناسه‌ی فایل بارگذاری‌شده؛ رشته‌ی خالی یعنی بدون فایل.
+             * @default
+             */
+            photo: string;
+            /**
+             * تاریخ استخدام
+             * @example 1405/08/14
+             */
+            hire_date: string;
+            /** نوع استخدام */
+            employment_type: number;
+            readonly employment_type_title: string;
+            /** واحد */
+            unit: number | null;
+            /** @default  */
+            readonly unit_name: string;
+            /** @description سمت اصلی جاری کاربر متصل */
+            readonly position: string;
+            /** وضعیت */
+            status: components["schemas"]["Status2a7Enum"];
+            readonly status_label: string;
+            /**
+             * تاریخ پایان همکاری
+             * @example 1405/08/14
+             */
+            separation_date: string | null;
+            /** علت پایان همکاری */
+            separation_reason: number | null;
+            /** @default  */
+            readonly separation_reason_title: string;
+            /** کاربر سامانه */
+            user: number | null;
+            readonly user_name: string;
+        };
+        /** @description پرونده‌ی پایه. کد پرسنلی با شماره‌گذاری «کد پرسنلی» صادر می‌شود و تغییر نمی‌کند. */
+        EmployeeDetail: {
+            readonly id: number;
+            /** کد پرسنلی */
+            readonly personnel_code: string;
+            readonly full_name: string;
+            /** نام */
+            first_name: string;
+            /** نام خانوادگی */
+            last_name: string;
+            /** نام پدر */
+            father_name: string;
+            /** کد ملی */
+            national_code: string;
+            /** شماره‌ی شناسنامه */
+            id_number: string;
+            /**
+             * تاریخ تولد
+             * @example 1405/08/14
+             */
+            birth_date: string | null;
+            /** محل تولد */
+            birth_place: string;
+            /** جنسیت */
+            gender: components["schemas"]["GenderEnum"];
+            readonly gender_label: string;
+            /** وضعیت تأهل */
+            marital_status: components["schemas"]["MaritalStatusEnum"] | components["schemas"]["BlankEnum"];
+            readonly marital_status_label: string;
+            /** موبایل */
+            mobile: string;
+            /** ایمیل */
+            email: string;
+            /** استان */
+            province: string;
+            /** شهر */
+            city: string;
+            /** نشانی */
+            address: string;
+            /**
+             * عکس پرسنلی
+             * @description شناسه‌ی فایل بارگذاری‌شده؛ رشته‌ی خالی یعنی بدون فایل.
+             * @default
+             */
+            photo: string;
+            /**
+             * تاریخ استخدام
+             * @example 1405/08/14
+             */
+            hire_date: string;
+            /** نوع استخدام */
+            employment_type: number;
+            readonly employment_type_title: string;
+            /** واحد */
+            unit: number | null;
+            /** @default  */
+            readonly unit_name: string;
+            /** @description سمت اصلی جاری کاربر متصل */
+            readonly position: string;
+            /** وضعیت */
+            status: components["schemas"]["Status2a7Enum"];
+            readonly status_label: string;
+            /**
+             * تاریخ پایان همکاری
+             * @example 1405/08/14
+             */
+            separation_date: string | null;
+            /** علت پایان همکاری */
+            separation_reason: number | null;
+            /** @default  */
+            readonly separation_reason_title: string;
+            /** کاربر سامانه */
+            user: number | null;
+            readonly user_name: string;
+            readonly can_edit: boolean;
+            /** @description انتصاب‌های جاری کاربر متصل در ساختار سازمانی */
+            readonly positions: {
+                [key: string]: unknown;
+            }[];
+        };
+        /** @description پرونده‌ی پایه. کد پرسنلی با شماره‌گذاری «کد پرسنلی» صادر می‌شود و تغییر نمی‌کند. */
+        EmployeeDetailRequest: {
+            /** نام */
+            first_name: string;
+            /** نام خانوادگی */
+            last_name: string;
+            /** نام پدر */
+            father_name?: string;
+            /** کد ملی */
+            national_code: string;
+            /** شماره‌ی شناسنامه */
+            id_number?: string;
+            /**
+             * تاریخ تولد
+             * @example 1405/08/14
+             */
+            birth_date?: string | null;
+            /** محل تولد */
+            birth_place?: string;
+            /** جنسیت */
+            gender: components["schemas"]["GenderEnum"];
+            /** وضعیت تأهل */
+            marital_status?: components["schemas"]["MaritalStatusEnum"] | components["schemas"]["BlankEnum"];
+            /** موبایل */
+            mobile?: string;
+            /** ایمیل */
+            email?: string;
+            /** استان */
+            province?: string;
+            /** شهر */
+            city?: string;
+            /** نشانی */
+            address?: string;
+            /**
+             * عکس پرسنلی
+             * @description شناسه‌ی فایل بارگذاری‌شده؛ رشته‌ی خالی یعنی بدون فایل.
+             * @default
+             */
+            photo: string;
+            /**
+             * تاریخ استخدام
+             * @example 1405/08/14
+             */
+            hire_date: string;
+            /** نوع استخدام */
+            employment_type: number;
+            /** واحد */
+            unit?: number | null;
+            /** وضعیت */
+            status?: components["schemas"]["Status2a7Enum"];
+            /**
+             * تاریخ پایان همکاری
+             * @example 1405/08/14
+             */
+            separation_date?: string | null;
+            /** علت پایان همکاری */
+            separation_reason?: number | null;
+            /** کاربر سامانه */
+            user?: number | null;
+        };
         FieldPropSpec: {
             name: string;
             /** @description int، number، bool، text، date، choice، choice_list، options، lookup_list، org_unit، role، record_source، extensions، columns، logic */
@@ -3392,6 +3655,12 @@ export interface components {
             /** @description کار منتظری که مهلتش گذشته */
             readonly overdue: boolean;
         };
+        /**
+         * @description * `single` - مجرد
+         *     * `married` - متأهل
+         * @enum {string}
+         */
+        MaritalStatusEnum: "single" | "married";
         Me: {
             readonly id: number;
             /**
@@ -3427,6 +3696,14 @@ export interface components {
             readonly forms_viewer: boolean;
             /** @description مجوز «مدیریت همه‌ی درخواست‌ها» یا مدیر دست‌کم یک فرایند؛ برای منوی «مدیریت درخواست‌ها». */
             readonly workflow_manager: boolean;
+            /** @description پرچم‌های منوی ماژول‌ها (nikyar_session_flags)؛ پرچم ماژول خارج از لایسنس false است. */
+            readonly flags: {
+                [key: string]: boolean;
+            };
+            /** @description مقدار منبع‌های «پیش‌پر از حساب کاربر» فرم‌ساز، از جمله مقدارهای ماژول‌ها (مثل کد ملی). */
+            readonly profile: {
+                [key: string]: string;
+            };
         };
         MeAssignment: {
             unit_id: number;
@@ -3760,6 +4037,66 @@ export interface components {
             end_date?: string | null;
             /** سمت اصلی */
             is_primary?: boolean;
+        };
+        /** @description پرونده‌ی پایه. کد پرسنلی با شماره‌گذاری «کد پرسنلی» صادر می‌شود و تغییر نمی‌کند. */
+        PatchedEmployeeDetailRequest: {
+            /** نام */
+            first_name?: string;
+            /** نام خانوادگی */
+            last_name?: string;
+            /** نام پدر */
+            father_name?: string;
+            /** کد ملی */
+            national_code?: string;
+            /** شماره‌ی شناسنامه */
+            id_number?: string;
+            /**
+             * تاریخ تولد
+             * @example 1405/08/14
+             */
+            birth_date?: string | null;
+            /** محل تولد */
+            birth_place?: string;
+            /** جنسیت */
+            gender?: components["schemas"]["GenderEnum"];
+            /** وضعیت تأهل */
+            marital_status?: components["schemas"]["MaritalStatusEnum"] | components["schemas"]["BlankEnum"];
+            /** موبایل */
+            mobile?: string;
+            /** ایمیل */
+            email?: string;
+            /** استان */
+            province?: string;
+            /** شهر */
+            city?: string;
+            /** نشانی */
+            address?: string;
+            /**
+             * عکس پرسنلی
+             * @description شناسه‌ی فایل بارگذاری‌شده؛ رشته‌ی خالی یعنی بدون فایل.
+             * @default
+             */
+            photo: string;
+            /**
+             * تاریخ استخدام
+             * @example 1405/08/14
+             */
+            hire_date?: string;
+            /** نوع استخدام */
+            employment_type?: number;
+            /** واحد */
+            unit?: number | null;
+            /** وضعیت */
+            status?: components["schemas"]["Status2a7Enum"];
+            /**
+             * تاریخ پایان همکاری
+             * @example 1405/08/14
+             */
+            separation_date?: string | null;
+            /** علت پایان همکاری */
+            separation_reason?: number | null;
+            /** کاربر سامانه */
+            user?: number | null;
         };
         PatchedFormRequest: {
             /**
@@ -4647,6 +4984,12 @@ export interface components {
             /** @default  */
             readonly category_title: string;
         };
+        /**
+         * @description * `active` - شاغل
+         *     * `separated` - پایان همکاری
+         * @enum {string}
+         */
+        Status2a7Enum: "active" | "separated";
         /**
          * @description * `draft` - پیش‌نویس
          *     * `running` - در جریان
@@ -6728,6 +7071,107 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ViewableForm"][];
+                };
+            };
+        };
+    };
+    hr_employees_list: {
+        parameters: {
+            query?: {
+                /** @description چند مقدار با ویرگول جدا می‌شود. */
+                employment_type?: string;
+                /** @description یک عبارت جستجو. */
+                search?: string;
+                /** @description چند مقدار با ویرگول جدا می‌شود. */
+                status?: string;
+                /** @description چند مقدار با ویرگول جدا می‌شود. */
+                unit?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Employee"][];
+                };
+            };
+        };
+    };
+    hr_employees_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmployeeDetailRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["EmployeeDetailRequest"];
+                "multipart/form-data": components["schemas"]["EmployeeDetailRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeDetail"];
+                };
+            };
+        };
+    };
+    hr_employees_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeDetail"];
+                };
+            };
+        };
+    };
+    hr_employees_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedEmployeeDetailRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedEmployeeDetailRequest"];
+                "multipart/form-data": components["schemas"]["PatchedEmployeeDetailRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeDetail"];
                 };
             };
         };

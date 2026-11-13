@@ -3,12 +3,10 @@ import json
 from datetime import timedelta
 
 import pytest
-from django.apps import apps
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.core.management import call_command
 from django.utils import timezone
 
-from core.kernel.registry import ModuleSpec
 from core.licensing import service, signing
 from core.licensing.management.commands import license as license_cmd
 from core.licensing.models import LicenseState
@@ -91,16 +89,15 @@ class TestLicense:
         assert api.post("/api/backups/").status_code == 201
         assert client_for(make_user("u")).get("/api/license/").json()["install_id"] == ""
 
-    def test_module_gating(self, api, monkeypatch, owner_key, tmp_path):
-        spec = ModuleSpec("lookups-demo", "ماژول آزمایشی")
-        monkeypatch.setattr(apps.get_app_config("lookups"), "nikyar_module", spec, raising=False)
-        assert [m["code"] for m in api.get("/api/license/").json()["modules"]] == ["lookups-demo"]
-        assert api.get("/api/lookups/lists/").status_code == 200  # در دوره‌ی آزمایشی همه‌ی ماژول‌ها فعال‌اند
+    def test_module_gating(self, api, owner_key, tmp_path):
+        assert [m["code"] for m in api.get("/api/license/").json()["modules"]] == ["hr"]
+        assert api.get("/api/hr/employees/").status_code == 200  # در دوره‌ی آزمایشی همه‌ی ماژول‌ها فعال‌اند
         upload(api, issue(owner_key, tmp_path, modules="none"))
-        r = api.get("/api/lookups/lists/")
-        assert r.status_code == 403 and r.json()["code"] == "module_disabled" and "ماژول آزمایشی" in r.json()["detail"]
-        upload(api, issue(owner_key, tmp_path, modules="lookups-demo"))
-        assert api.get("/api/lookups/lists/").status_code == 200
+        r = api.get("/api/hr/employees/")
+        assert r.status_code == 403 and r.json()["code"] == "module_disabled" and "پرونده‌ی پرسنلی" in r.json()["detail"]
+        assert api.get("/api/lookups/lists/").status_code == 200  # هسته همیشه فعال است
+        upload(api, issue(owner_key, tmp_path, modules="hr"))
+        assert api.get("/api/hr/employees/").status_code == 200
 
     def test_keygen_existing_key_and_passphrase(self, owner_key, tmp_path, monkeypatch):
         from django.core.management.base import CommandError

@@ -1302,6 +1302,22 @@ PREFILL = {
     "email": ("ایمیل", {"email", "text"}),
 }
 
+
+def prefill_sources() -> dict[str, tuple[str, set[str]]]:
+    """منبع‌های پیش‌پر: حساب کاربر (PREFILL) و مقدارهایی که ماژول‌ها اعلام می‌کنند (nikyar_profile_values، مثل کد ملی پرونده)."""
+    from core.kernel.registry import profile_values
+
+    return {**PREFILL, **{v.code: (v.title, set(v.types)) for v in profile_values().values()}}
+
+
+def user_profile(user) -> dict[str, str]:
+    """مقدار همه‌ی منبع‌های پیش‌پر برای یک کاربر (برای نشست و سرور)."""
+    from core.kernel.registry import profile_values
+
+    base = {k: (user.get_full_name() if k == "full_name" else getattr(user, k, "")) or "" for k in PREFILL}
+    return {**base, **{code: v.value(user) for code, v in profile_values().items()}}
+
+
 # نوع‌هایی که ستون جدول می‌شوند: هر نوع دارای مقدار که کاربر پر می‌کند، به‌جز خود جدول.
 COLUMN_TYPES = frozenset(code for code, t in REGISTRY.items() if t.has_value and t.client_value and code not in ("table", "hidden"))
 

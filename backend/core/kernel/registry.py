@@ -9,6 +9,8 @@
     nikyar_numbering = [NumberingSpec(code="leave", title="درخواست مرخصی", default_pattern="{year}/مرخصی/{seq:5}")]
     nikyar_workflow_actions = [WorkflowAction(code="set_field", title="تنظیم مقدار یک فیلد", check=..., run=...)]
     nikyar_record_sources = [RecordSource(code="form", title="ثبت‌های فرم", provider="core.forms.records.FormRecords")]
+    nikyar_profile_values = [ProfileValue(code="national_code", title="کد ملی", types=frozenset({"national_code"}), resolve="modules.hr.profile.national_code")]
+    nikyar_session_flags = {"hr_viewer": "modules.hr.access.is_viewer"}
 
 فهرست کامل مجوزها از همین‌جا ساخته می‌شود و نقش‌ها فقط مجوزهای ثبت‌شده را می‌پذیرند.
 """
@@ -130,6 +132,24 @@ class RecordSource:
 
 
 @dataclass(frozen=True)
+class ProfileValue:
+    """
+    مقدار افزوده‌ی حساب کاربر از یک ماژول (مثل کد ملی از پرونده‌ی پرسنلی) برای «پیش‌پر از حساب کاربر» فرم‌ساز.
+    types: نوع‌های فیلدی که این مقدار را می‌پذیرند؛ resolve: مسیر تابع (user) -> str.
+    """
+
+    code: str
+    title: str
+    types: frozenset[str]
+    resolve: str
+
+    def value(self, user) -> str:
+        from django.utils.module_loading import import_string
+
+        return import_string(self.resolve)(user) or ""
+
+
+@dataclass(frozen=True)
 class PermissionGroup:
     app_label: str
     title: str
@@ -175,3 +195,25 @@ def workflow_actions() -> dict[str, WorkflowAction]:
 
 def record_sources() -> dict[str, RecordSource]:
     return {r.code: r for config in apps.get_app_configs() for r in getattr(config, "nikyar_record_sources", [])}
+
+
+def profile_values() -> dict[str, ProfileValue]:
+    return {v.code: v for config in apps.get_app_configs() for v in getattr(config, "nikyar_profile_values", [])}
+
+
+def session_flags(user) -> dict[str, bool]:
+    """
+    پرچم‌های نشست اعلام‌شده با nikyar_session_flags ({نام: مسیر تابع (user) -> bool})، برای نمایش منو.
+    پرچم ماژولی که در لایسنس نیست همیشه False است.
+    """
+    from django.utils.module_loading import import_string
+
+    from core.licensing.service import module_enabled
+
+    flags = {}
+    for config in apps.get_app_configs():
+        module = getattr(config, "nikyar_module", None)
+        enabled = module is None or module_enabled(module.code)
+        for name, path in getattr(config, "nikyar_session_flags", {}).items():
+            flags[name] = enabled and bool(import_string(path)(user))
+    return flags
