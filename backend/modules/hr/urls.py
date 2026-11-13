@@ -10,5 +10,6 @@ router.register("dependents", views.DependentViewSet, basename="hr-dependent")
 router.register("bank-accounts", views.BankAccountViewSet, basename="hr-bank-account")
 router.register("insurances", views.InsuranceViewSet, basename="hr-insurance")
 router.register("documents", views.DocumentViewSet, basename="hr-document")
+router.register("events", views.EventViewSet, basename="hr-event")
 
 urlpatterns = router.urls

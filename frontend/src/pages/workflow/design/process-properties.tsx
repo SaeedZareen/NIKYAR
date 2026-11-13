@@ -17,14 +17,16 @@ import { Textarea } from "@/components/ui/textarea"
 import { UserPicker } from "@/components/user-picker"
 import { ConditionEditor } from "@/pages/forms/design/rule-editors"
 import { decisionsBefore, DEFAULT_DECISIONS, infoOf, setCondition, setDefault, setName, setProps, setWait, userTasks } from "./bpmn-props"
-import { api, unwrap } from "@/lib/api/client"
+import { api, unwrap, type Schemas } from "@/lib/api/client"
 import { onlyDigits } from "@/lib/format"
 import { conditionPython } from "./condition-python"
 
 type Any = any // eslint-disable-line @typescript-eslint/no-explicit-any
 type Decision = { value: string; label: string; comment?: "required" | "optional" }
 type Rule = { type: string; [key: string]: unknown }
-type ActionType = { code: string; title: string }
+type ActionType = Schemas["ActionType"]
+/** پارامتر ویرایشگر عمومی اقدام ماژول (core.kernel.registry.WorkflowAction.params). */
+type ActionParam = { name: string; label: string; type: "choice" | "field"; options?: Record<string, string>; field_types?: string[]; required?: boolean; when?: Record<string, string[]> }
 
 const ASSIGNEES: Record<string, string> = {
   requester: "خود درخواست‌دهنده",
@@ -33,6 +35,7 @@ const ASSIGNEES: Record<string, string> = {
   unit_manager: "مدیر یک واحد",
   position: "صاحب یک سمت",
   role: "دارندگان یک نقش",
+  role_slot: "نقش تعیین‌شده در تنظیمات",
   user: "کاربر مشخص",
   field: "کاربر انتخاب‌شده در فرم",
 }
@@ -186,6 +189,7 @@ function AssigneeEditor({ id, value, onChange, fields, tasks }: { id: string; va
   const units = useUnitOptions()
   const positions = usePositionNames() ?? []
   const roles = useRoleOptions()
+  const slots = useQuery({ queryKey: ["workflow", "role-slots"], queryFn: () => unwrap(api.GET("/api/workflow/processes/role-slots/")), staleTime: Infinity }).data ?? []
   const userId = value?.type === "user" ? Number(value.user) : 0
   const userName = useUserNames(userId ? [userId] : []).data?.[0]?.full_name ?? ""
   const kind = value?.type ?? ""
@@ -200,11 +204,27 @@ function AssigneeEditor({ id, value, onChange, fields, tasks }: { id: string; va
       {kind === "position" && (
         <SearchPicker aria-label="سمت" options={positions.map((p) => ({ value: String(p.id), label: p.title }))} value={String(value?.position ?? "")} onChange={(v) => set({ position: Number(v) })} placeholder="انتخاب سمت" />
       )}
-      {kind === "role" && (
+      {kind === "role_slot" && (
+        <Pick
+          id={`${id}-slot`}
+          aria-label="نقش تنظیمات"
+          value={String(value?.slot ?? "")}
+          onChange={(slot) => set({ slot, same_unit: value?.same_unit === true })}
+          options={Object.fromEntries(slots.map((s) => [s.code, s.title]))}
+          placeholder="کدام نقش تنظیمات"
+        />
+      )}
+      {(kind === "role" || kind === "role_slot") && (
         <>
-          <SearchPicker aria-label="نقش" options={roles} value={String(value?.role ?? "")} onChange={(v) => set({ role: Number(v), same_unit: value?.same_unit === true })} placeholder="انتخاب نقش" />
+          {kind === "role" && (
+            <SearchPicker aria-label="نقش" options={roles} value={String(value?.role ?? "")} onChange={(v) => set({ role: Number(v), same_unit: value?.same_unit === true })} placeholder="انتخاب نقش" />
+          )}
           <Field orientation="horizontal">
-            <Checkbox id={`${id}-unit`} checked={value?.same_unit === true} onCheckedChange={(on) => set({ role: value?.role, same_unit: on === true })} />
+            <Checkbox
+              id={`${id}-unit`}
+              checked={value?.same_unit === true}
+              onCheckedChange={(on) => set(kind === "role" ? { role: value?.role, same_unit: on === true } : { slot: value?.slot, same_unit: on === true })}
+            />
             <FieldLabel htmlFor={`${id}-unit`}>فقط در واحد درخواست‌دهنده و زیرواحدهایش</FieldLabel>
           </Field>
         </>
@@ -487,6 +507,9 @@ function ActionEditor({ id, actions, fields, tasks, value, onChange }: { id: str
         </>
       )}
       {kind === "save_submission" && <SaveSubmissionEditor id={id} fields={fields} value={value} onChange={onChange} />}
+      {(actions.find((a) => a.code === kind)?.params.length ?? 0) > 0 && (
+        <ParamsEditor id={id} params={actions.find((a) => a.code === kind)!.params as ActionParam[]} fields={fields} value={value} onChange={onChange} />
+      )}
       {kind === "notify" && (
         <>
           <Row id={`${id}-to`} label="گیرنده‌ی اعلان">
@@ -498,6 +521,42 @@ function ActionEditor({ id, actions, fields, tasks, value, onChange }: { id: str
         </>
       )}
     </div>
+  )
+}
+
+/**
+ * ویرایشگر عمومی اقدام‌های ماژول از روی پارامترهای اعلام‌شده (مثل «ثبت در پرونده‌ی پرسنلی»): گزینه‌ها در ریشه‌ی تنظیمات،
+ * فیلدهای فرم در `fields`؛ پارامتری که `when` دارد فقط وقتی پارامتر دیگر آن مقدار را دارد نشان داده می‌شود.
+ */
+function ParamsEditor({ id, params, fields, value, onChange }: { id: string; params: ActionParam[]; fields: FieldDef[]; value?: Rule; onChange: (r: Rule) => void }) {
+  const mapped = (value?.fields as Record<string, string> | undefined) ?? {}
+  const visible = params.filter((p) => !p.when || Object.entries(p.when).every(([k, vs]) => vs.includes(String(value?.[k] ?? ""))))
+  return (
+    <>
+      {visible.map((p) => (
+        <Row key={p.name} id={`${id}-${p.name}`} label={p.label}>
+          {p.type === "choice" ? (
+            <Pick id={`${id}-${p.name}`} value={String(value?.[p.name] ?? "")} onChange={(v) => onChange({ ...value, type: value?.type ?? "", [p.name]: v })} options={p.options ?? {}} />
+          ) : (
+            <SearchPicker
+              id={`${id}-${p.name}`}
+              options={[
+                ...(p.required ? [] : [{ value: "", label: "بدون" }]),
+                ...fields.filter((f) => p.field_types?.includes(f.type)).map((f) => ({ value: f.id, label: f.label ?? f.id })),
+              ]}
+              value={mapped[p.name] ?? ""}
+              onChange={(v) => {
+                const next = { ...mapped, [p.name]: String(v) }
+                if (!v) delete next[p.name]
+                onChange({ ...value, type: value?.type ?? "", fields: next })
+              }}
+              placeholder="فیلد فرم"
+              emptyText="فرم اصلی فیلد مناسب ندارد."
+            />
+          )}
+        </Row>
+      ))}
+    </>
   )
 }
 

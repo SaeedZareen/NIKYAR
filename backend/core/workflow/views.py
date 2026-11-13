@@ -17,11 +17,12 @@ from core.audit.service import AuditedModelViewSet, record
 from core.forms.models import Form, FormVersion
 from core.kernel.api import BusinessError, HasPerm, MultiValueFilter
 from core.kernel.fields import JalaliDateField
-from core.kernel.registry import workflow_actions
+from core.kernel.registry import role_slots, slot_modules, workflow_actions
+from core.licensing.service import module_enabled
 from core.lookups.models import LookupItem
 from core.numbering.pattern import validate as validate_pattern
 
-from . import bpmn, discussion, inbox, manage, performance, quick, service, tracking
+from . import bpmn, discussion, inbox, manage, performance, quick, ready, service, tracking
 from .models import Process, ProcessVersion, Request, RequestComment, Task
 
 CATEGORY_LIST = "process-category"
@@ -116,6 +117,25 @@ class ProcessVersionDetailSerializer(ProcessVersionSerializer):
 class ActionTypeSerializer(serializers.Serializer):
     code = serializers.CharField()
     title = serializers.CharField()
+    params = serializers.ListField(child=serializers.DictField(), help_text="پارامترهای ویرایشگر عمومی اقدام ماژول (خالی برای اقدام‌های هسته)")
+
+
+class RoleSlotSerializer(serializers.Serializer):
+    code = serializers.CharField()
+    title = serializers.CharField()
+
+
+class ReadyProcessSerializer(serializers.Serializer):
+    code = serializers.CharField()
+    title = serializers.CharField()
+    description = serializers.CharField()
+    group = serializers.CharField()
+    process = serializers.IntegerField(allow_null=True, help_text="فرایند نصب‌شده (برای ویرایش در فرایندساز)")
+    active = serializers.BooleanField()
+
+
+class ReadyActiveSerializer(serializers.Serializer):
+    active = serializers.BooleanField()
 
 
 class FormOptionSerializer(serializers.Serializer):
@@ -215,7 +235,13 @@ class ProcessViewSet(AuditedModelViewSet):
     @action(detail=False, url_path="action-types")
     def action_types(self, request):
         """اقدام‌های خودکار رجیستری (هسته و ماژول‌ها) برای پانل ویژگی‌ها."""
-        return Response([{"code": a.code, "title": a.title} for a in workflow_actions().values()])
+        return Response([{"code": a.code, "title": a.title, "params": list(a.params)} for a in workflow_actions().values()])
+
+    @extend_schema(responses=RoleSlotSerializer(many=True))
+    @action(detail=False, url_path="role-slots")
+    def role_slots(self, request):
+        """نقش‌هایی که در تنظیمات تعیین می‌شوند (گیرنده‌ی «نقش تعیین‌شده در تنظیمات»)."""
+        return Response([{"code": s.code, "title": s.title} for code, s in role_slots().items() if module_enabled(slot_modules().get(code))])
 
     @extend_schema(responses={200: {"type": "object", "additionalProperties": True}})
     @action(detail=True, url_path="form-definition")
@@ -1016,3 +1042,32 @@ class PerformanceView(APIView):
         query = PerformanceQuerySerializer(data=request.query_params)
         query.is_valid(raise_exception=True)
         return Response(performance.report(request.user, **query.validated_data))
+
+
+class ReadyProcessViewSet(viewsets.ViewSet):
+    """فرایندهای آماده: فهرست با وضعیت نصب، فعال‌سازی یا غیرفعال‌سازی هر کدام و «فعال‌سازی همه»."""
+
+    permission_classes = [HasPerm]
+    perms = {"*": service.DESIGN}
+    lookup_value_regex = r"[a-z][a-z0-9-]*"
+
+    @extend_schema(responses=ReadyProcessSerializer(many=True))
+    def list(self, request):
+        return Response(ready.catalogue())
+
+    @extend_schema(request=ReadyActiveSerializer, responses=ReadyProcessSerializer)
+    @action(detail=True, methods=["post"])
+    def active(self, request, pk=None):
+        s = ReadyActiveSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        process = ready.set_active(pk, s.validated_data["active"], request.user)
+        if process is not None:
+            record(request, AuditLog.Action.UPDATE, process, {"is_active": {"label": "فعال", "old": "", "new": "بله" if process.is_active else "خیر"}})
+        return Response(next(r for r in ready.catalogue() if r["code"] == pk))
+
+    @extend_schema(request=None, responses=ReadyProcessSerializer(many=True))
+    @action(detail=False, methods=["post"], url_path="activate-all")
+    def activate_all(self, request):
+        for code in ready.available():
+            ready.install(code, request.user)
+        return Response(ready.catalogue())

@@ -10,6 +10,7 @@ router.register("requests", views.RequestViewSet, basename="workflow-request")
 router.register("tasks", views.TaskViewSet, basename="workflow-task")
 router.register("comments", views.RequestCommentViewSet, basename="workflow-comment")
 router.register("manage", views.ManagedRequestViewSet, basename="workflow-manage")
+router.register("ready", views.ReadyProcessViewSet, basename="workflow-ready")
 # فرایندها در /api/workflow/processes/
 router.register("processes", views.ProcessViewSet, basename="process")
 urlpatterns = [

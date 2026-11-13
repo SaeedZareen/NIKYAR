@@ -18,6 +18,7 @@ import { EmployeeSheet } from "./employee-sheet"
 import { BANK, DEPENDENTS, DOCUMENTS, EDUCATION, INSURANCE, WORK } from "./record-kinds"
 import { RecordSection } from "./record-section"
 import { EMPLOYEES_KEY, STATUS_TONES, useCustomFields } from "./employees"
+import { EventsSection } from "./events-section"
 import { ExtraInfo } from "./extra-info"
 
 type Employee = Schemas["EmployeeDetail"]
@@ -25,6 +26,7 @@ type Position = Schemas["EmployeePosition"]
 const TABS = [
   { value: "profile", label: "مشخصات" },
   { value: "employment", label: "استخدام" },
+  { value: "events", label: "درخواست‌ها و رویدادها" },
   { value: "extra", label: "اطلاعات تکمیلی" },
   { value: "history", label: "تحصیلات و سوابق کاری" },
   { value: "family", label: "خانواده" },
@@ -135,6 +137,9 @@ export function EmployeeView({ data, own = false }: { data: Employee; own?: bool
             />
           </Section>
           <Positions data={data} />
+        </TabsContent>
+        <TabsContent value="events">
+          <EventsSection employee={data} />
         </TabsContent>
         <TabsContent value="extra">{custom ? <ExtraInfo employee={data} custom={custom} /> : <Skeleton className="h-40 w-full" />}</TabsContent>
         <TabsContent value="history" className="flex flex-col gap-4">

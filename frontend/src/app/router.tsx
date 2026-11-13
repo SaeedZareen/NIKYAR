@@ -30,6 +30,7 @@ const NewRequestPage = lazy(() => import("@/pages/workflow/requests/new-request-
 const RequestFillPage = lazy(() => import("@/pages/workflow/requests/request-fill-page"))
 const ProcessDesignPage = lazy(() => import("@/pages/workflow/design/process-design-page"))
 const ProcessDesignerPage = lazy(() => import("@/pages/workflow/design/process-designer-page"))
+const ReadyProcessesPage = lazy(() => import("@/pages/workflow/design/ready-processes-page"))
 const FormsDesignPage = lazy(() => import("@/pages/forms/design/forms-design-page"))
 const DesignerPage = lazy(() => import("@/pages/forms/design/designer-page"))
 const FormPreviewPage = lazy(() => import("@/pages/forms/design/preview-page"))
@@ -95,6 +96,7 @@ export const router = createBrowserRouter([
           { path: "hr/employees/:employeeId", element: page(<EmployeeFilePage />, "flag:hr_viewer") },
           { path: "hr/me", element: page(<MyFilePage />, "flag:hr_self") },
           { path: "workflow/design", element: page(<ProcessDesignPage />, "workflow.design") },
+          { path: "workflow/ready", element: page(<ReadyProcessesPage />, "workflow.design") },
           { path: "workflow/design/:processId", element: page(<ProcessDesignerPage />, "workflow.design") },
           { path: "account", element: page(<AccountPage />) },
           { path: "admin/delegations", element: page(<DelegationsPage />, "delegation.manage") },
