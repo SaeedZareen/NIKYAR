@@ -2167,6 +2167,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/settings/hr-service/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description خواندن و ذخیره‌ی یک بخش. برای هر بخش اعلام‌شده یک زیرکلاس با serializer همان بخش ساخته می‌شود (urls.py). */
+        get: operations["settings_hr_service_retrieve"];
+        /** @description خواندن و ذخیره‌ی یک بخش. برای هر بخش اعلام‌شده یک زیرکلاس با serializer همان بخش ساخته می‌شود (urls.py). */
+        put: operations["settings_hr_service_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/settings/hr-welfare/": {
         parameters: {
             query?: never;
@@ -3525,6 +3543,11 @@ export interface components {
             status: components["schemas"]["EmployeeStatusEnum"];
             readonly status_label: string;
             /**
+             * پایان قرارداد
+             * @example 1405/08/14
+             */
+            contract_end: string | null;
+            /**
              * تاریخ پایان همکاری
              * @example 1405/08/14
              */
@@ -3601,6 +3624,11 @@ export interface components {
             /** وضعیت */
             status: components["schemas"]["EmployeeStatusEnum"];
             readonly status_label: string;
+            /**
+             * پایان قرارداد
+             * @example 1405/08/14
+             */
+            contract_end: string | null;
             /**
              * تاریخ پایان همکاری
              * @example 1405/08/14
@@ -3681,6 +3709,11 @@ export interface components {
             /** وضعیت */
             status?: components["schemas"]["EmployeeStatusEnum"];
             /**
+             * پایان قرارداد
+             * @example 1405/08/14
+             */
+            contract_end?: string | null;
+            /**
              * تاریخ پایان همکاری
              * @example 1405/08/14
              */
@@ -3748,9 +3781,15 @@ export interface components {
          *     * `correction` - اصلاح پرونده
          *     * `resignation` - استعفا
          *     * `separation` - پایان همکاری
+         *     * `evaluation` - ارزیابی عملکرد
+         *     * `contract` - تمدید قرارداد
+         *     * `training` - آموزش
+         *     * `suggestion` - پیشنهاد و انتقاد
+         *     * `accident` - حادثه‌ی کار
+         *     * `exit_interview` - مصاحبه‌ی خروج
          * @enum {string}
          */
-        EmployeeEventKindEnum: "leave" | "hourly_leave" | "mission" | "hourly_mission" | "overtime" | "remote" | "shift" | "attendance_fix" | "advance" | "loan" | "medical" | "allowance" | "travel" | "hire" | "equipment" | "orientation" | "probation" | "transfer" | "correction" | "resignation" | "separation";
+        EmployeeEventKindEnum: "leave" | "hourly_leave" | "mission" | "hourly_mission" | "overtime" | "remote" | "shift" | "attendance_fix" | "advance" | "loan" | "medical" | "allowance" | "travel" | "hire" | "equipment" | "orientation" | "probation" | "transfer" | "correction" | "resignation" | "separation" | "evaluation" | "contract" | "training" | "suggestion" | "accident" | "exit_interview";
         EmployeePosition: {
             title: string;
             unit: string;
@@ -4675,6 +4714,20 @@ export interface components {
              * @default 1000000000
              */
             ceo_threshold: number;
+        };
+        HrServiceSettings: {
+            /**
+             * یادآوری پیش از پایان قرارداد (روز)
+             * @default 30
+             */
+            contract_reminder_days: number;
+        };
+        HrServiceSettingsRequest: {
+            /**
+             * یادآوری پیش از پایان قرارداد (روز)
+             * @default 30
+             */
+            contract_reminder_days: number;
         };
         /** @description سقف‌ها و مبلغ‌های فرایندهای مالی و رفاه کارکنان (5.6)؛ همه‌ی مبلغ‌ها به ریال، مثل مبلغ‌های فرم‌ها. */
         HrWelfareSettings: {
@@ -5715,6 +5768,11 @@ export interface components {
             unit?: number | null;
             /** وضعیت */
             status?: components["schemas"]["EmployeeStatusEnum"];
+            /**
+             * پایان قرارداد
+             * @example 1405/08/14
+             */
+            contract_end?: string | null;
             /**
              * تاریخ پایان همکاری
              * @example 1405/08/14
@@ -11531,6 +11589,50 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HrRolesSettings"];
+                };
+            };
+        };
+    };
+    settings_hr_service_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HrServiceSettings"];
+                };
+            };
+        };
+    };
+    settings_hr_service_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["HrServiceSettingsRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["HrServiceSettingsRequest"];
+                "multipart/form-data": components["schemas"]["HrServiceSettingsRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HrServiceSettings"];
                 };
             };
         };

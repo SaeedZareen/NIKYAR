@@ -41,7 +41,7 @@ test.describe("فرایندهای آماده", () => {
     await page.goto("/workflow/ready")
     await page.getByRole("button", { name: "فعال‌سازی همه" }).click()
     await expect(page.getByText("همه‌ی فرایندهای آماده فعال شدند.")).toBeVisible()
-    await expect(page.getByText("۲۶ از ۲۶ فعال")).toBeVisible()
+    await expect(page.getByText("۳۳ از ۳۳ فعال")).toBeVisible()
 
     // کارمند (برنامه‌نویس): کد پرسنلی و مانده از پرونده، فقط‌خواندنی
     const employee = await signIn(browser, info, "developer")
