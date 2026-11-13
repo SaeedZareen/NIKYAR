@@ -15,7 +15,7 @@ from core.kernel.registry import (
     SettingsSection,
     WorkflowAction,
 )
-from modules.hr.leave_params import LETTER_PARAMS, PARAMS
+from modules.hr.leave_params import LETTER_PARAMS, PARAMS, THRESHOLD_PARAMS
 
 
 class HrConfig(AppConfig):
@@ -121,6 +121,12 @@ class HrConfig(AppConfig):
             description="متن گواهی‌ها و نامه‌هایی که پس از تأیید منابع انسانی صادر می‌شوند. جای‌گذارها هنگام صدور با مشخصات پرونده پر می‌شوند؛ نامه‌ی صادرشده با تغییر متن عوض نمی‌شود.",
             serializer="modules.hr.sections.HrLettersSettings",
         ),
+        SettingsSection(
+            code="hr-welfare",
+            title="منابع انسانی: مالی و رفاه",
+            description="سقف مساعده و وام، شمار اقساط، سقف بازپرداخت درمان و مبلغ کمک‌هزینه‌ها. سقف مبلغی که تأیید مدیرعامل می‌خواهد در «نقش‌ها و سقف مبلغ» است.",
+            serializer="modules.hr.sections.HrWelfareSettings",
+        ),
     ]
     nikyar_numbering = [
         NumberingSpec(code="hr-personnel", title="کد پرسنلی", default_pattern="{seq:5}", default_reset="never"),
@@ -163,32 +169,59 @@ class HrConfig(AppConfig):
             run=lambda context, config: import_string("modules.hr.letters.run_action")(context, config),
             params=LETTER_PARAMS,
         ),
+        WorkflowAction(
+            code="hr.threshold",
+            title="بررسی سقف تأیید مدیرعامل",
+            check=lambda config, definition: import_string("modules.hr.finance.check_threshold")(config, definition),
+            run=lambda context, config: import_string("modules.hr.finance.run_threshold")(context, config),
+            params=THRESHOLD_PARAMS,
+        ),
     ]
-    nikyar_ready_processes = [
-        ReadyProcess(
-            code=code, title=title, group="مرخصی و تردد", description=description, build=f"modules.hr.ready.{build}", check="modules.hr.leave.check_request"
-        )
-        for code, title, build, description in [
-            ("hr-leave", "مرخصی روزانه", "leave", "استحقاقی، استعلاجی، بدون حقوق، ازدواج و… با سقف و پیوست هر نوع و کسر از مانده."),
-            ("hr-hourly-leave", "مرخصی ساعتی", "hourly_leave", "چند ساعت از یک روز؛ به نسبت «مدت هر روز مرخصی» از مانده کم می‌شود."),
-            ("hr-mission", "مأموریت روزانه", "mission", "مأموریت یک یا چند روزه با مقصد و هدف."),
-            ("hr-hourly-mission", "مأموریت ساعتی", "hourly_mission", "مأموریت چندساعته در یک روز."),
-            ("hr-overtime", "اضافه‌کار", "overtime", "ثبت ساعت اضافه‌کار با سقف روزانه و ماهانه‌ی تنظیمات."),
-            ("hr-remote", "دورکاری", "remote", "دورکاری یک یا چند روزه با شرح کارها."),
-            ("hr-shift", "تغییر یا جابه‌جایی شیفت", "shift", "تغییر شیفت یک روز، در صورت نیاز با جابه‌جایی با همکار."),
-            ("hr-attendance-fix", "اصلاح تردد", "attendance_fix", "ثبت ورود یا خروجی که ثبت نشده، در مهلت تنظیمات."),
+    nikyar_ready_processes = (
+        [
+            ReadyProcess(
+                code=code, title=title, group="مرخصی و تردد", description=description, build=f"modules.hr.ready.{build}", check="modules.hr.leave.check_request"
+            )
+            for code, title, build, description in [
+                ("hr-leave", "مرخصی روزانه", "leave", "استحقاقی، استعلاجی، بدون حقوق، ازدواج و… با سقف و پیوست هر نوع و کسر از مانده."),
+                ("hr-hourly-leave", "مرخصی ساعتی", "hourly_leave", "چند ساعت از یک روز؛ به نسبت «مدت هر روز مرخصی» از مانده کم می‌شود."),
+                ("hr-mission", "مأموریت روزانه", "mission", "مأموریت یک یا چند روزه با مقصد و هدف."),
+                ("hr-hourly-mission", "مأموریت ساعتی", "hourly_mission", "مأموریت چندساعته در یک روز."),
+                ("hr-overtime", "اضافه‌کار", "overtime", "ثبت ساعت اضافه‌کار با سقف روزانه و ماهانه‌ی تنظیمات."),
+                ("hr-remote", "دورکاری", "remote", "دورکاری یک یا چند روزه با شرح کارها."),
+                ("hr-shift", "تغییر یا جابه‌جایی شیفت", "shift", "تغییر شیفت یک روز، در صورت نیاز با جابه‌جایی با همکار."),
+                ("hr-attendance-fix", "اصلاح تردد", "attendance_fix", "ثبت ورود یا خروجی که ثبت نشده، در مهلت تنظیمات."),
+            ]
         ]
-    ] + [
-        ReadyProcess(
-            code=code, title=title, group="نامه‌ها و گواهی‌ها", description=description, build=f"modules.hr.ready.{build}", check="modules.hr.leave.check_request"
-        )
-        for code, title, build, description in [
-            ("hr-letter-employment", "گواهی اشتغال به کار", "letter_employment", "برای ارائه به بانک، سفارت، مدرسه و… با چاپ رسمی و امضای منابع انسانی."),
-            ("hr-letter-introduction", "معرفی‌نامه", "letter_introduction", "معرفی کارمند به سازمان، بانک یا مرکز آموزشی برای کاری مشخص."),
-            ("hr-letter-deduction", "گواهی کسر از حقوق", "letter_deduction", "تعهد کسر اقساط از حقوق تا سقف مبلغ، برای ضمانت وام یا خرید اقساطی."),
-            ("hr-letter-experience", "گواهی سابقه‌ی کار", "letter_experience", "سابقه‌ی همکاری با تاریخ شروع و پایان؛ پس از پایان همکاری هم صادر می‌شود."),
+        + [
+            ReadyProcess(
+                code=code,
+                title=title,
+                group="نامه‌ها و گواهی‌ها",
+                description=description,
+                build=f"modules.hr.ready.{build}",
+                check="modules.hr.leave.check_request",
+            )
+            for code, title, build, description in [
+                ("hr-letter-employment", "گواهی اشتغال به کار", "letter_employment", "برای ارائه به بانک، سفارت، مدرسه و… با چاپ رسمی و امضای منابع انسانی."),
+                ("hr-letter-introduction", "معرفی‌نامه", "letter_introduction", "معرفی کارمند به سازمان، بانک یا مرکز آموزشی برای کاری مشخص."),
+                ("hr-letter-deduction", "گواهی کسر از حقوق", "letter_deduction", "تعهد کسر اقساط از حقوق تا سقف مبلغ، برای ضمانت وام یا خرید اقساطی."),
+                ("hr-letter-experience", "گواهی سابقه‌ی کار", "letter_experience", "سابقه‌ی همکاری با تاریخ شروع و پایان؛ پس از پایان همکاری هم صادر می‌شود."),
+            ]
         ]
-    ]
+        + [
+            ReadyProcess(
+                code=code, title=title, group="مالی و رفاه", description=description, build=f"modules.hr.ready.{build}", check="modules.hr.leave.check_request"
+            )
+            for code, title, build, description in [
+                ("hr-advance", "مساعده", "advance", "علی‌الحساب حقوق با سقف مبلغ و شمار سالانه‌ی تنظیمات؛ بالای سقف، تأیید مدیرعامل."),
+                ("hr-loan", "وام کارکنان", "loan", "وام با شمار اقساط و ضامن؛ سقف مبلغ و اقساط از تنظیمات."),
+                ("hr-medical", "بازپرداخت هزینه‌ی درمان", "medical", "بازپرداخت هزینه‌ی درمان با فاکتور، تا سقف سالانه."),
+                ("hr-allowance", "کمک‌هزینه", "allowance", "کمک‌هزینه‌ی ازدواج، تولد فرزند یا فوت بستگان با مبلغ تنظیمات."),
+                ("hr-travel", "هزینه‌ی سفر مأموریت", "travel", "تنخواه یا هزینه‌ی سفر مأموریت با فاکتور."),
+            ]
+        ]
+    )
     nikyar_session_flags = {"hr_viewer": "modules.hr.access.is_viewer", "hr_self": "modules.hr.access.has_own_file"}
     nikyar_custom_fields = [CustomFieldsSpec(code="hr-employee", title="فیلدهای دلخواه پرونده‌ی پرسنلی")]
     nikyar_demo_seed = "modules.hr.demo.seed"

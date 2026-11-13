@@ -212,3 +212,27 @@ class HrLettersSettings(serializers.Serializer):
         if errors:
             raise serializers.ValidationError(errors)
         return attrs
+
+
+def _rial(label: str, default: int) -> serializers.IntegerField:
+    return serializers.IntegerField(
+        label=label,
+        default=default,
+        min_value=0,
+        max_value=10**15,
+        error_messages={"min_value": "مبلغ نمی‌تواند منفی باشد.", "max_value": "مبلغ بیش از اندازه است.", "invalid": "یک مبلغ معتبر وارد کنید."},
+    )
+
+
+class HrWelfareSettings(serializers.Serializer):
+    """سقف‌ها و مبلغ‌های فرایندهای مالی و رفاه کارکنان (5.6)؛ همه‌ی مبلغ‌ها به ریال، مثل مبلغ‌های فرم‌ها."""
+
+    advance_max = _rial("سقف هر مساعده (ریال)", 100_000_000)
+    advance_per_year = count_field("شمار مساعده در سال", 3, 0, 24, "بار")
+    loan_max = _rial("سقف وام (ریال)", 1_000_000_000)
+    loan_max_installments = count_field("بیشترین شمار اقساط وام", 24, 1, 120, "قسط")
+    loan_needs_guarantor = serializers.BooleanField(label="وام ضامن لازم دارد", default=True)
+    medical_yearly_max = _rial("سقف بازپرداخت درمان در سال (ریال)", 200_000_000)
+    marriage_allowance = _rial("کمک‌هزینه‌ی ازدواج (ریال)", 50_000_000)
+    birth_allowance = _rial("کمک‌هزینه‌ی تولد فرزند (ریال)", 30_000_000)
+    death_allowance = _rial("کمک‌هزینه‌ی فوت بستگان (ریال)", 30_000_000)
