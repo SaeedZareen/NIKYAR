@@ -12,7 +12,7 @@ from core.lookups.models import LookupItem
 from core.numbering.service import allocate
 from core.org.models import Assignment, OrgUnit
 
-from .models import BankAccount, Dependent, Document, Education, Employee, EmployeeEvent, Insurance, WorkHistory
+from .models import BankAccount, Dependent, Document, Education, Employee, EmployeeEvent, Insurance, Letter, WorkHistory
 
 
 def _lookup(list_code: str, label: str, required: bool):
@@ -379,3 +379,41 @@ class EmployeeEventSerializer(serializers.ModelSerializer):
             "request_number",
         ]
         read_only_fields = fields
+
+
+class LetterSerializer(serializers.ModelSerializer):
+    kind_label = serializers.CharField(source="get_kind_display", read_only=True)
+    issued_on = JalaliDateField(read_only=True)
+    employee_name = serializers.CharField(source="employee.__str__", read_only=True)
+    signer_name = serializers.SerializerMethodField()
+    signer_signature = serializers.SerializerMethodField(help_text="شناسه‌ی فایل امضای «حساب من» امضاکننده (یا خالی)")
+
+    class Meta:
+        model = Letter
+        fields = [
+            "id",
+            "employee",
+            "employee_name",
+            "kind",
+            "kind_label",
+            "number",
+            "issued_on",
+            "recipient",
+            "body",
+            "signer_name",
+            "signer_position",
+            "signer_signature",
+            "request",
+        ]
+        read_only_fields = fields
+
+    def get_signer_name(self, obj) -> str:
+        return obj.signer.get_full_name() if obj.signer else ""
+
+    def get_signer_signature(self, obj) -> str:
+        return str(obj.signer.signature_id) if obj.signer and obj.signer.signature_id else ""
+
+
+class LetterPlaceholderSerializer(serializers.Serializer):
+    token = serializers.CharField()
+    label = serializers.CharField()

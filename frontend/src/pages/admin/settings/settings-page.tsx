@@ -16,6 +16,7 @@ import { SystemSection } from "./system-section"
 import { WorkWeekSection } from "./work-week-section"
 import type { SectionInfo } from "./settings-form"
 import { HrLeaveSection } from "@/pages/hr/settings-leave"
+import { HrLettersSection } from "@/pages/hr/settings-letters"
 import { HrRolesSection } from "@/pages/hr/settings-roles"
 
 /** فرم هر بخش اعلام‌شده در سرور (nikyar_settings)؛ ماژول‌ها بخش خودشان را اینجا اضافه می‌کنند. */
@@ -31,6 +32,7 @@ const SECTION_FORMS: Record<string, (section: SectionInfo) => React.ReactNode> =
   system: (s) => <SystemSection section={s} />,
   "hr-roles": (s) => <HrRolesSection section={s} />,
   "hr-leave": (s) => <HrLeaveSection section={s} />,
+  "hr-letters": (s) => <HrLettersSection section={s} />,
 }
 
 export default function SettingsPage() {

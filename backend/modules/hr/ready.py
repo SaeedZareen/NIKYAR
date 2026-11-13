@@ -47,6 +47,42 @@ def _build(code: str, kind: str, sections: list[dict], fields: dict) -> dict:
     return {"form": {"sections": sections}, "bpmn": chain(code, steps, [record]), "category": "hr", "number_pattern": "{year}/{seq:4}"}
 
 
+def _letter(code: str, letter: str, fields: list[dict], mapping: dict) -> dict:
+    """نامه‌ها مستقیم به منابع انسانی می‌روند و پس از تأیید با امضای همان کارشناس صادر می‌شوند."""
+    steps = [Step("hr", "بررسی و صدور منابع انسانی", HR)]
+    issue = Action("letter", "صدور نامه", {"type": "hr.letter", "letter": letter, "fields": mapping})
+    sections = [_employee_section(), _section([*fields, _note("توضیح برای منابع انسانی")])]
+    return {"form": {"sections": sections}, "bpmn": chain(code, steps, [issue]), "category": "hr", "number_pattern": "{year}/{seq:4}"}
+
+
+def _recipient(label: str) -> dict:
+    return {"id": "recipient", "type": "text", "label": label, "required": True, "span": 2, "props": {"max_length": 150}}
+
+
+def letter_employment() -> dict:
+    return _letter("hr-letter-employment", "employment", [_recipient("ارائه به (مثلاً بانک ملت شعبه‌ی ونک)")], {"recipient": "recipient"})
+
+
+def letter_introduction() -> dict:
+    fields = [
+        _recipient("معرفی به (نام سازمان یا مرکز)"),
+        {"id": "purpose", "type": "text", "label": "جهت (موضوع معرفی)", "required": True, "span": 2, "props": {"max_length": 200}},
+    ]
+    return _letter("hr-letter-introduction", "introduction", fields, {"recipient": "recipient", "purpose": "purpose"})
+
+
+def letter_deduction() -> dict:
+    fields = [
+        _recipient("در وجه (بانک یا مؤسسه‌ی وام‌دهنده)"),
+        {"id": "amount", "type": "amount", "label": "سقف مبلغ کسر از حقوق", "required": True, "props": {"min": 1}},
+    ]
+    return _letter("hr-letter-deduction", "deduction", fields, {"recipient": "recipient", "amount": "amount"})
+
+
+def letter_experience() -> dict:
+    return _letter("hr-letter-experience", "experience", [_recipient("ارائه به")], {"recipient": "recipient"})
+
+
 def leave() -> dict:
     fields = [
         {"id": "leave_type", "type": "lookup", "label": "نوع مرخصی", "required": True, "props": {"list": "leave-type"}},

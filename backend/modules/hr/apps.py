@@ -7,6 +7,7 @@ from core.kernel.registry import (
     LookupItemSpec,
     LookupSpec,
     ModuleSpec,
+    NotificationKind,
     NumberingSpec,
     ProfileValue,
     ReadyProcess,
@@ -14,7 +15,7 @@ from core.kernel.registry import (
     SettingsSection,
     WorkflowAction,
 )
-from modules.hr.leave_params import PARAMS
+from modules.hr.leave_params import LETTER_PARAMS, PARAMS
 
 
 class HrConfig(AppConfig):
@@ -114,8 +115,25 @@ class HrConfig(AppConfig):
             description="سهمیه‌ی مرخصی، نوع‌های مرخصی و سقف‌های تردد و اضافه‌کار. پیش‌فرض‌ها بر پایه‌ی قانون کار است.",
             serializer="modules.hr.sections.HrLeaveSettings",
         ),
+        SettingsSection(
+            code="hr-letters",
+            title="منابع انسانی: متن نامه‌ها",
+            description="متن گواهی‌ها و نامه‌هایی که پس از تأیید منابع انسانی صادر می‌شوند. جای‌گذارها هنگام صدور با مشخصات پرونده پر می‌شوند؛ نامه‌ی صادرشده با تغییر متن عوض نمی‌شود.",
+            serializer="modules.hr.sections.HrLettersSettings",
+        ),
     ]
-    nikyar_numbering = [NumberingSpec(code="hr-personnel", title="کد پرسنلی", default_pattern="{seq:5}", default_reset="never")]
+    nikyar_numbering = [
+        NumberingSpec(code="hr-personnel", title="کد پرسنلی", default_pattern="{seq:5}", default_reset="never"),
+        NumberingSpec(code="hr-letter", title="نامه‌ها و گواهی‌های پرسنلی", default_pattern="{year}/پ/{seq:4}"),
+    ]
+    nikyar_notifications = [
+        NotificationKind(
+            code="hr.letter",
+            title="صدور نامه‌ی پرسنلی (به درخواست‌دهنده)",
+            template="«{letter}» شما با شماره‌ی {number} صادر شد و آماده‌ی چاپ است.",
+            placeholders={"letter": ("نوع نامه", "گواهی اشتغال به کار"), "number": ("شماره‌ی نامه", "۱۴۰۵/پ/۰۰۱۲")},
+        )
+    ]
     nikyar_profile_values = [
         ProfileValue(
             code="national_code", title="کد ملی (پرونده‌ی پرسنلی)", types=frozenset({"national_code", "text"}), resolve="modules.hr.profile.national_code"
@@ -137,7 +155,14 @@ class HrConfig(AppConfig):
             check=lambda config, definition: import_string("modules.hr.leave.check_action")(config, definition),
             run=lambda context, config: import_string("modules.hr.leave.run_action")(context, config),
             params=PARAMS,
-        )
+        ),
+        WorkflowAction(
+            code="hr.letter",
+            title="صدور نامه‌ی پرسنلی",
+            check=lambda config, definition: import_string("modules.hr.letters.check_action")(config, definition),
+            run=lambda context, config: import_string("modules.hr.letters.run_action")(context, config),
+            params=LETTER_PARAMS,
+        ),
     ]
     nikyar_ready_processes = [
         ReadyProcess(
@@ -152,6 +177,16 @@ class HrConfig(AppConfig):
             ("hr-remote", "دورکاری", "remote", "دورکاری یک یا چند روزه با شرح کارها."),
             ("hr-shift", "تغییر یا جابه‌جایی شیفت", "shift", "تغییر شیفت یک روز، در صورت نیاز با جابه‌جایی با همکار."),
             ("hr-attendance-fix", "اصلاح تردد", "attendance_fix", "ثبت ورود یا خروجی که ثبت نشده، در مهلت تنظیمات."),
+        ]
+    ] + [
+        ReadyProcess(
+            code=code, title=title, group="نامه‌ها و گواهی‌ها", description=description, build=f"modules.hr.ready.{build}", check="modules.hr.leave.check_request"
+        )
+        for code, title, build, description in [
+            ("hr-letter-employment", "گواهی اشتغال به کار", "letter_employment", "برای ارائه به بانک، سفارت، مدرسه و… با چاپ رسمی و امضای منابع انسانی."),
+            ("hr-letter-introduction", "معرفی‌نامه", "letter_introduction", "معرفی کارمند به سازمان، بانک یا مرکز آموزشی برای کاری مشخص."),
+            ("hr-letter-deduction", "گواهی کسر از حقوق", "letter_deduction", "تعهد کسر اقساط از حقوق تا سقف مبلغ، برای ضمانت وام یا خرید اقساطی."),
+            ("hr-letter-experience", "گواهی سابقه‌ی کار", "letter_experience", "سابقه‌ی همکاری با تاریخ شروع و پایان؛ پس از پایان همکاری هم صادر می‌شود."),
         ]
     ]
     nikyar_session_flags = {"hr_viewer": "modules.hr.access.is_viewer", "hr_self": "modules.hr.access.has_own_file"}

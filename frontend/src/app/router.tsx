@@ -26,6 +26,7 @@ const PerformancePage = lazy(() => import("@/pages/workflow/manage/performance-p
 const EmployeesPage = lazy(() => import("@/pages/hr/employees-page"))
 const EmployeeFilePage = lazy(() => import("@/pages/hr/employee-page"))
 const MyFilePage = lazy(() => import("@/pages/hr/my-file-page"))
+const LetterPrintPage = lazy(() => import("@/pages/hr/letter-print-page"))
 const NewRequestPage = lazy(() => import("@/pages/workflow/requests/new-request-page"))
 const RequestFillPage = lazy(() => import("@/pages/workflow/requests/request-fill-page"))
 const ProcessDesignPage = lazy(() => import("@/pages/workflow/design/process-design-page"))
@@ -71,6 +72,7 @@ export const router = createBrowserRouter([
       // برگه‌ی چاپ ثبت، بی پوسته‌ی برنامه
       { path: "print/submissions/:id", element: page(<SubmissionPrintPage />) },
       { path: "print/requests/:id", element: page(<RequestPrintPage />) },
+      { path: "print/letters/:id", element: page(<LetterPrintPage />) },
       {
         element: <AppShell />,
         children: [

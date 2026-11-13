@@ -1316,6 +1316,57 @@ export interface paths {
         patch: operations["hr_insurances_partial_update"];
         trace?: never;
     };
+    "/api/hr/letters/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description نامه‌ها و گواهی‌های صادرشده‌ی پرونده (`?employee=`) و هر نامه برای برگه‌ی چاپ؛ برای خود کارمند و هر کس پرونده را می‌بیند. */
+        get: operations["hr_letters_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/hr/letters/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description نامه‌ها و گواهی‌های صادرشده‌ی پرونده (`?employee=`) و هر نامه برای برگه‌ی چاپ؛ برای خود کارمند و هر کس پرونده را می‌بیند. */
+        get: operations["hr_letters_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/hr/letters/placeholders/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description جای‌گذارهای متن نامه برای ویرایشگر «تنظیمات › منابع انسانی: متن نامه‌ها». */
+        get: operations["hr_letters_placeholders_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/hr/work-history/": {
         parameters: {
             query?: never;
@@ -2055,6 +2106,24 @@ export interface paths {
         get: operations["settings_hr_leave_retrieve"];
         /** @description خواندن و ذخیره‌ی یک بخش. برای هر بخش اعلام‌شده یک زیرکلاس با serializer همان بخش ساخته می‌شود (urls.py). */
         put: operations["settings_hr_leave_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/settings/hr-letters/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description خواندن و ذخیره‌ی یک بخش. برای هر بخش اعلام‌شده یک زیرکلاس با serializer همان بخش ساخته می‌شود (urls.py). */
+        get: operations["settings_hr_letters_retrieve"];
+        /** @description خواندن و ذخیره‌ی یک بخش. برای هر بخش اعلام‌شده یک زیرکلاس با serializer همان بخش ساخته می‌شود (urls.py). */
+        put: operations["settings_hr_letters_update"];
         post?: never;
         delete?: never;
         options?: never;
@@ -4434,6 +4503,64 @@ export interface components {
              */
             leave_types: components["schemas"]["LeaveTypeRequest"][];
         };
+        /** @description متن هر نامه با جای‌گذارهای پرونده (letters.PLACEHOLDERS)؛ نامه‌ی صادرشده متن زمان صدور را نگه می‌دارد. */
+        HrLettersSettings: {
+            /**
+             * گواهی اشتغال به کار
+             * @default بدین‌وسیله گواهی می‌شود {honorific} {name} فرزند {father_name} به کد ملی {national_code} و کد پرسنلی {personnel_code} از تاریخ {hire_date} تاکنون به‌صورت {employment_type} در سمت {position} در {org} مشغول به کار است.
+             *     این گواهی بنا به درخواست نامبرده جهت ارائه به {recipient} صادر شده و ارزش دیگری ندارد.
+             */
+            employment: string;
+            /**
+             * معرفی‌نامه
+             * @default {recipient}
+             *     با سلام و احترام،
+             *     بدین‌وسیله {honorific} {name} به کد ملی {national_code}، {position} {org}، جهت {purpose} حضورتان معرفی می‌گردد. خواهشمند است همکاری لازم را مبذول فرمایید.
+             */
+            introduction: string;
+            /**
+             * گواهی کسر از حقوق
+             * @default {recipient}
+             *     با سلام و احترام،
+             *     بدین‌وسیله گواهی می‌شود {honorific} {name} به کد ملی {national_code} و کد پرسنلی {personnel_code} از تاریخ {hire_date} به‌صورت {employment_type} کارمند {org} است. این سازمان متعهد است در صورت درخواست کتبی آن مؤسسه، اقساط معوق نامبرده را تا سقف {amount} ریال از حقوق و مزایای ایشان کسر و به آن مؤسسه پرداخت نماید.
+             */
+            deduction: string;
+            /**
+             * گواهی سابقه‌ی کار
+             * @default بدین‌وسیله گواهی می‌شود {honorific} {name} فرزند {father_name} به کد ملی {national_code} از تاریخ {hire_date} تا تاریخ {separation_date} به‌صورت {employment_type} در سمت {position} در {org} مشغول به کار بوده است.
+             *     این گواهی بنا به درخواست نامبرده جهت ارائه به {recipient} صادر شده است.
+             */
+            experience: string;
+        };
+        /** @description متن هر نامه با جای‌گذارهای پرونده (letters.PLACEHOLDERS)؛ نامه‌ی صادرشده متن زمان صدور را نگه می‌دارد. */
+        HrLettersSettingsRequest: {
+            /**
+             * گواهی اشتغال به کار
+             * @default بدین‌وسیله گواهی می‌شود {honorific} {name} فرزند {father_name} به کد ملی {national_code} و کد پرسنلی {personnel_code} از تاریخ {hire_date} تاکنون به‌صورت {employment_type} در سمت {position} در {org} مشغول به کار است.
+             *     این گواهی بنا به درخواست نامبرده جهت ارائه به {recipient} صادر شده و ارزش دیگری ندارد.
+             */
+            employment: string;
+            /**
+             * معرفی‌نامه
+             * @default {recipient}
+             *     با سلام و احترام،
+             *     بدین‌وسیله {honorific} {name} به کد ملی {national_code}، {position} {org}، جهت {purpose} حضورتان معرفی می‌گردد. خواهشمند است همکاری لازم را مبذول فرمایید.
+             */
+            introduction: string;
+            /**
+             * گواهی کسر از حقوق
+             * @default {recipient}
+             *     با سلام و احترام،
+             *     بدین‌وسیله گواهی می‌شود {honorific} {name} به کد ملی {national_code} و کد پرسنلی {personnel_code} از تاریخ {hire_date} به‌صورت {employment_type} کارمند {org} است. این سازمان متعهد است در صورت درخواست کتبی آن مؤسسه، اقساط معوق نامبرده را تا سقف {amount} ریال از حقوق و مزایای ایشان کسر و به آن مؤسسه پرداخت نماید.
+             */
+            deduction: string;
+            /**
+             * گواهی سابقه‌ی کار
+             * @default بدین‌وسیله گواهی می‌شود {honorific} {name} فرزند {father_name} به کد ملی {national_code} از تاریخ {hire_date} تا تاریخ {separation_date} به‌صورت {employment_type} در سمت {position} در {org} مشغول به کار بوده است.
+             *     این گواهی بنا به درخواست نامبرده جهت ارائه به {recipient} صادر شده است.
+             */
+            experience: string;
+        };
         HrRolesSettings: {
             /** نقش کارشناس منابع انسانی */
             hr_role: number | null;
@@ -4677,6 +4804,42 @@ export interface components {
             max_per_year?: number | null;
             /** پیوست لازم برای بیش از (روز) */
             attachment_over?: number | null;
+        };
+        Letter: {
+            readonly id: number;
+            /** پرونده */
+            readonly employee: number;
+            readonly employee_name: string;
+            /** نوع نامه */
+            readonly kind: components["schemas"]["LetterKindEnum"];
+            readonly kind_label: string;
+            /** شماره */
+            readonly number: string;
+            /** @example 1405/08/14 */
+            readonly issued_on: string;
+            /** گیرنده */
+            readonly recipient: string;
+            /** متن */
+            readonly body: string;
+            readonly signer_name: string;
+            /** سمت امضاکننده */
+            readonly signer_position: string;
+            /** @description شناسه‌ی فایل امضای «حساب من» امضاکننده (یا خالی) */
+            readonly signer_signature: string;
+            /** درخواست */
+            readonly request: number | null;
+        };
+        /**
+         * @description * `employment` - گواهی اشتغال به کار
+         *     * `introduction` - معرفی‌نامه
+         *     * `deduction` - گواهی کسر از حقوق
+         *     * `experience` - گواهی سابقه‌ی کار
+         * @enum {string}
+         */
+        LetterKindEnum: "employment" | "introduction" | "deduction" | "experience";
+        LetterPlaceholder: {
+            token: string;
+            label: string;
         };
         LicenseStatus: {
             kind: components["schemas"]["LicenseStatusKindEnum"];
@@ -9312,6 +9475,68 @@ export interface operations {
             };
         };
     };
+    hr_letters_list: {
+        parameters: {
+            query: {
+                /** @description شناسه‌ی پرونده */
+                employee: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Letter"][];
+                };
+            };
+        };
+    };
+    hr_letters_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Letter"];
+                };
+            };
+        };
+    };
+    hr_letters_placeholders_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LetterPlaceholder"][];
+                };
+            };
+        };
+    };
     hr_work_history_list: {
         parameters: {
             query: {
@@ -10979,6 +11204,50 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["HrLeaveSettings"];
+                };
+            };
+        };
+    };
+    settings_hr_letters_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HrLettersSettings"];
+                };
+            };
+        };
+    };
+    settings_hr_letters_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["HrLettersSettingsRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["HrLettersSettingsRequest"];
+                "multipart/form-data": components["schemas"]["HrLettersSettingsRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HrLettersSettings"];
                 };
             };
         };

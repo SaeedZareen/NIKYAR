@@ -184,24 +184,31 @@ def run_action(context, action: dict) -> None:
 # ─── قاعده‌های پیش از ارسال (فرایندهای آماده) ─────────────────────────────
 
 
-def _record_configs(request) -> list[dict]:
+def _module_actions(request) -> list[dict]:
     from core.workflow.service import _compiled
 
     _, definition = _compiled(request.version)
-    return [a for a in definition.actions.values() if isinstance(a, dict) and a.get("type") == "hr.record"]
+    return [a for a in definition.actions.values() if isinstance(a, dict) and a.get("type") in ("hr.record", "hr.letter")]
 
 
 def check_request(request) -> dict[str, str]:
-    """پیام‌های خطا (فیلد ← پیام، «__form__» برای پیام کلی) پیش از ارسال درخواست مرخصی، مأموریت یا تردد."""
-    actions = _record_configs(request)
+    """
+    قاعده‌های پیش از ارسال فرایندهای آماده‌ی پرسنلی (مرخصی، مأموریت، تردد و نامه‌ها): پیام‌های خطا (فیلد ← پیام، «__form__»
+    برای پیام کلی). از تنظیمات اقدام‌های «ثبت در پرونده» و «صدور نامه» نسخه‌ی منتشرشده‌ی فرایند خوانده می‌شود.
+    """
+    from . import letters
+
+    actions = _module_actions(request)
     if not actions:
         return {}
     employee = employee_of(request.requester)
     if employee is None:
         return {"__form__": "پرونده‌ی پرسنلی شما در سامانه ثبت یا به حساب کاربری‌تان وصل نشده است؛ با منابع انسانی تماس بگیرید."}
+    errors = letters.check_request(request, [a for a in actions if a["type"] == "hr.letter"], employee)
+    if errors:
+        return errors
     cfg = config()
-    errors: dict[str, str] = {}
-    for action in actions:
+    for action in (a for a in actions if a["type"] == "hr.record"):
         fields = action.get("fields") or {}
         try:
             event = event_values(action["kind"], fields, request.data, cfg)

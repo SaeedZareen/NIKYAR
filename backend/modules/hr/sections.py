@@ -189,3 +189,26 @@ class HrLeaveSettings(serializers.Serializer):
             if not row["code"]:
                 row["code"], next_id = f"custom-{next_id}", next_id + 1
         return [{k: r[k] for k in ("code", "title", "enabled", "paid", "deducts", "max_per_request", "max_per_year", "attachment_over")} for r in rows]
+
+
+def _letter(kind: str) -> str:
+    from .letter_texts import DEFAULT_TEXTS
+
+    return DEFAULT_TEXTS[kind]
+
+
+class HrLettersSettings(serializers.Serializer):
+    """متن هر نامه با جای‌گذارهای پرونده (letters.PLACEHOLDERS)؛ نامه‌ی صادرشده متن زمان صدور را نگه می‌دارد."""
+
+    employment = serializers.CharField(label="گواهی اشتغال به کار", default=_letter("employment"), max_length=3000)
+    introduction = serializers.CharField(label="معرفی‌نامه", default=_letter("introduction"), max_length=3000)
+    deduction = serializers.CharField(label="گواهی کسر از حقوق", default=_letter("deduction"), max_length=3000)
+    experience = serializers.CharField(label="گواهی سابقه‌ی کار", default=_letter("experience"), max_length=3000)
+
+    def validate(self, attrs):
+        from .letter_texts import unknown_placeholder
+
+        errors = {name: f"جای‌گذار «{token}» شناخته‌شده نیست." for name, text in attrs.items() if (token := unknown_placeholder(text))}
+        if errors:
+            raise serializers.ValidationError(errors)
+        return attrs
