@@ -8,7 +8,7 @@ leave.check_request از روی همان اقدام «ثبت در پرونده»
 from __future__ import annotations
 
 from core.workflow.builder import Action, Step, chain, sequence
-from modules.hr.leave_params import ALLOWANCES, HIRE_FIELDS
+from modules.hr.leave_params import ALLOWANCES, HIRE_FIELDS, PROBATION_RESULTS
 
 HR = {"type": "role_slot", "slot": "hr.hr"}
 FINANCE = {"type": "role_slot", "slot": "hr.finance"}
@@ -303,3 +303,89 @@ def hire() -> dict:
         {"id": "job_section", "title": "استخدام", "columns": 2, "fields": job},
     ]
     return {"form": {"sections": sections}, "bpmn": sequence("hr-hire", items), "category": "hr", "number_pattern": "{year}/{seq:4}", "starters": "hr.hr"}
+
+
+# ─── ورود کارمند ۲ (5.7b) ───────────────────────────────────────────────
+
+EMPLOYEE_CONFIRMS = {"type": "field", "field": "employee"}
+
+
+def _colleague(label: str = "کارمند") -> dict:
+    return {"id": "employee", "type": "user", "label": label, "required": True}
+
+
+def _onboarding(code: str, kind: str, fields: list[dict], mapping: dict, step: Step, starters: str | None = None) -> dict:
+    record = Action("record", "ثبت در پرونده‌ی پرسنلی", {"type": "hr.record", "kind": kind, "fields": {**mapping, "employee": "employee", "note": "note"}})
+    sections = [{"id": "requester_section", "title": "ثبت‌کننده", "columns": 2, "fields": [_requester()]}, _section(fields)]
+    built = {"form": {"sections": sections}, "bpmn": chain(code, [step], [record]), "category": "hr", "number_pattern": "{year}/{seq:4}"}
+    return {**built, "starters": starters} if starters else built
+
+
+def equipment() -> dict:
+    """تحویل‌دهنده (فناوری، اموال) فهرست را ثبت می‌کند ← کارمند دریافت را تأیید می‌کند ← ثبت در پرونده."""
+    items = {
+        "id": "items",
+        "type": "table",
+        "label": "تجهیزات و دارایی‌های تحویلی",
+        "required": True,
+        "span": 2,
+        "props": {
+            "item_label": "ردیف",
+            "min_rows": 1,
+            "columns": [
+                {"id": "item", "type": "text", "label": "شرح (مثلاً رایانه‌ی همراه)", "required": True},
+                {"id": "serial", "type": "text", "label": "شماره‌ی سریال یا اموال"},
+                {"id": "count", "type": "number", "label": "تعداد", "props": {"min": 1}},
+            ],
+        },
+    }
+    fields = [_colleague("تحویل‌گیرنده"), items, _note("توضیح")]
+    return _onboarding("hr-equipment", "equipment", fields, {"items": "items"}, Step("receipt", "تأیید دریافت کارمند", EMPLOYEE_CONFIRMS))
+
+
+def orientation() -> dict:
+    """منابع انسانی مبحث‌های آموزش‌داده‌شده را ثبت می‌کند ← کارمند تأیید می‌کند ← ثبت در پرونده."""
+    topics = [
+        "آشنایی با سازمان، ساختار و مقررات",
+        "شرح وظایف و انتظارات شغل",
+        "ایمنی و بهداشت کار",
+        "سامانه‌ها و ابزارهای کاری",
+        "امنیت اطلاعات و محرمانگی",
+        "حضور و غیاب، مرخصی و درخواست‌ها",
+    ]
+    fields = [
+        _colleague(),
+        {"id": "date", "type": "date", "label": "تاریخ آموزش", "required": True, "props": {"default_now": True}},
+        {
+            "id": "topics",
+            "type": "multi_choice",
+            "label": "مبحث‌های آموزش‌داده‌شده",
+            "required": True,
+            "span": 2,
+            "props": {"options": [{"value": f"t{i + 1}", "label": t} for i, t in enumerate(topics)]},
+        },
+        _note("توضیح"),
+    ]
+    return _onboarding("hr-orientation", "orientation", fields, {"topics": "topics"}, Step("confirm", "تأیید کارمند", EMPLOYEE_CONFIRMS), starters="hr.hr")
+
+
+def probation() -> dict:
+    """مدیر کارمند تازه را ارزیابی می‌کند ← منابع انسانی ← ثبت نتیجه در پرونده."""
+    scale = {"min": 1, "max": 5, "min_label": "ضعیف", "max_label": "عالی"}
+    fields = [
+        _colleague("کارمند تازه"),
+        {"id": "quality", "type": "scale", "label": "کیفیت کار", "required": True, "props": scale},
+        {"id": "discipline", "type": "scale", "label": "نظم و تعهد", "required": True, "props": scale},
+        {"id": "teamwork", "type": "scale", "label": "همکاری و ارتباط", "required": True, "props": scale},
+        {"id": "learning", "type": "scale", "label": "یادگیری و سازگاری", "required": True, "props": scale},
+        {
+            "id": "result",
+            "type": "choice",
+            "label": "نتیجه",
+            "required": True,
+            "span": 2,
+            "props": {"options": [{"value": code, "label": label} for code, label in PROBATION_RESULTS.items()]},
+        },
+        _note("نظر و دلیل", required=True),
+    ]
+    return _onboarding("hr-probation", "probation", fields, {"result": "result"}, Step("hr", "بررسی منابع انسانی", HR))

@@ -127,6 +127,7 @@ export function EmployeeView({ data, own = false }: { data: Employee; own?: bool
                 { label: "نوع استخدام", value: data.employment_type_title },
                 { label: "واحد", value: text(data.unit_name) },
                 { label: "کاربر سامانه", value: text(data.user_name) },
+                ...(data.status === "active" ? [{ label: "پایان دوره‌ی آزمایشی", value: <span className="tabular-nums">{toFaDigits(data.probation_end)}</span> }] : []),
                 { label: "وضعیت", value: <StatusBadge tone={STATUS_TONES[data.status]}>{data.status_label}</StatusBadge> },
                 ...(data.status === "separated"
                   ? [

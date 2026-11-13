@@ -18,7 +18,13 @@ KINDS = {
     "allowance": "کمک‌هزینه",
     "travel": "هزینه‌ی سفر مأموریت",
     "hire": "استخدام",
+    "equipment": "تحویل تجهیزات",
+    "orientation": "آموزش بدو ورود",
+    "probation": "ارزیابی دوره‌ی آزمایشی",
 }
+# رویدادهای ورود کارمند (5.7b): تاریخشان روز ثبت است و معمولاً برای کارمندی جز درخواست‌دهنده‌اند (پارامتر employee)
+ONBOARDING = ["equipment", "orientation", "probation"]
+PROBATION_RESULTS = {"confirm": "تأیید و ادامه‌ی همکاری", "extend": "تمدید دوره‌ی آزمایشی", "end": "پایان همکاری"}
 # رویدادهای مالی (5.6): مبلغ دارند، تاریخشان روز ثبت است و سقف‌هایشان در «تنظیمات › منابع انسانی: مالی و رفاه»
 FINANCE = ["advance", "loan", "medical", "allowance", "travel"]
 # کمک‌هزینه‌ها: کد ← (عنوان، فیلد مبلغ در تنظیمات)
@@ -35,6 +41,9 @@ ROLES = {
     "amount": ("مبلغ", ["amount"], ["advance", "loan", "medical", "travel"]),
     "installments": ("شمار اقساط", ["number"], ["loan"]),
     "allowance_type": ("نوع کمک‌هزینه", ["choice"], ["allowance"]),
+    "items": ("فهرست تجهیزات", ["table"], ["equipment"]),
+    "topics": ("مبحث‌های آموزش", ["multi_choice"], ["orientation"]),
+    "result": ("نتیجه‌ی ارزیابی", ["choice"], ["probation"]),
 }
 NOTE_TYPES = ["text", "textarea"]
 
@@ -54,6 +63,7 @@ PARAMS = (
     },
     {"name": "guarantor", "label": "ضامن", "type": "field", "field_types": ["user"], "required": False, "when": {"kind": ["loan"]}},
     {"name": "note", "label": "شرح (اختیاری)", "type": "field", "field_types": NOTE_TYPES, "required": False},
+    {"name": "employee", "label": "کارمند (اگر جز درخواست‌دهنده است)", "type": "field", "field_types": ["user"], "required": False},
 )
 
 # نامه‌ها و گواهی‌ها (5.5): کد ← عنوان؛ متن هر کدام در «تنظیمات › منابع انسانی: متن نامه‌ها»

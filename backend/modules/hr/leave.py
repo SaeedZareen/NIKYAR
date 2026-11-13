@@ -23,7 +23,7 @@ from core.lookups.models import LookupItem, LookupList
 from core.settings.service import read
 from core.workcalendar.service import WorkCalendar
 
-from .leave_params import FINANCE, KINDS, NOTE_TYPES, ROLES
+from .leave_params import FINANCE, KINDS, NOTE_TYPES, ONBOARDING, ROLES
 from .models import Employee, EmployeeEvent
 
 ANNUAL = "annual"
@@ -122,6 +122,10 @@ def event_values(kind: str, fields: dict, data: dict, cfg: dict) -> dict:
         from . import finance
 
         return {**result, **finance.event_values(kind, fields, data, value)}
+    if kind in ONBOARDING:
+        from . import onboarding
+
+        return {**result, **onboarding.event_values(kind, fields, data, value)}
     if kind in ROLES["period"][2]:
         period = value("period")
         result["start_date"], result["end_date"] = to_date(period["start"]), to_date(period["end"])
@@ -176,11 +180,19 @@ def check_action(config: dict, definition: dict) -> str | None:
     return None
 
 
+def subject_of(request, fields: dict) -> Employee | None:
+    """پرونده‌ی رویداد: کارمند فیلد «کارمند» فرم (مثل تحویل تجهیزات به همکار تازه) یا خود درخواست‌دهنده."""
+    if fields.get("employee"):
+        user = request.data.get(fields["employee"])
+        return Employee.objects.filter(user_id=user).select_related("employment_type").first() if isinstance(user, int) else None
+    return employee_of(request.requester)
+
+
 def run_action(context, action: dict) -> None:
     request = context.request
-    employee = employee_of(request.requester)
+    employee = subject_of(request, action.get("fields") or {})
     if employee is None:
-        raise BusinessError("پرونده‌ی پرسنلی درخواست‌دهنده پیدا نشد؛ ثبت در پرونده ممکن نیست.")
+        raise BusinessError("پرونده‌ی پرسنلی کارمند این درخواست پیدا نشد؛ ثبت در پرونده ممکن نیست.")
     values = event_values(action["kind"], action.get("fields") or {}, request.data, config())
     EmployeeEvent.objects.update_or_create(request=request, defaults={"employee": employee, "kind": action["kind"], **values})
 
@@ -210,15 +222,19 @@ def check_request(request) -> dict[str, str]:
     actions = [a for a in actions if a["type"] != "hr.hire"]
     if not actions:
         return {}
-    employee = employee_of(request.requester)
-    if employee is None:
-        return {"__form__": "پرونده‌ی پرسنلی شما در سامانه ثبت یا به حساب کاربری‌تان وصل نشده است؛ با منابع انسانی تماس بگیرید."}
-    errors = letters.check_request(request, [a for a in actions if a["type"] == "hr.letter"], employee)
-    if errors:
-        return errors
+    errors: dict[str, str] = {}
     cfg = config()
-    for action in (a for a in actions if a["type"] == "hr.record"):
+    for action in actions:
         fields = action.get("fields") or {}
+        employee = subject_of(request, fields)
+        if employee is None:
+            if fields.get("employee"):
+                return {fields["employee"]: "این همکار پرونده‌ی پرسنلی متصل به حساب کاربری ندارد."}
+            return {"__form__": "پرونده‌ی پرسنلی شما در سامانه ثبت یا به حساب کاربری‌تان وصل نشده است؛ با منابع انسانی تماس بگیرید."}
+        if action["type"] == "hr.letter":
+            if errors := letters.check_request(request, [action], employee):
+                return errors
+            continue
         try:
             event = event_values(action["kind"], fields, request.data, cfg)
         except BusinessError as exc:

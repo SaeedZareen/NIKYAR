@@ -127,6 +127,12 @@ class HrConfig(AppConfig):
             description="سقف مساعده و وام، شمار اقساط، سقف بازپرداخت درمان و مبلغ کمک‌هزینه‌ها. سقف مبلغی که تأیید مدیرعامل می‌خواهد در «نقش‌ها و سقف مبلغ» است.",
             serializer="modules.hr.sections.HrWelfareSettings",
         ),
+        SettingsSection(
+            code="hr-onboarding",
+            title="منابع انسانی: ورود کارمند",
+            description="طول دوره‌ی آزمایشی کارکنان تازه و چند روز پیش از پایان آن یادآوری ارزیابی برای مدیرشان فرستاده شود.",
+            serializer="modules.hr.sections.HrOnboardingSettings",
+        ),
     ]
     nikyar_numbering = [
         NumberingSpec(code="hr-personnel", title="کد پرسنلی", default_pattern="{seq:5}", default_reset="never"),
@@ -138,7 +144,13 @@ class HrConfig(AppConfig):
             title="صدور نامه‌ی پرسنلی (به درخواست‌دهنده)",
             template="«{letter}» شما با شماره‌ی {number} صادر شد و آماده‌ی چاپ است.",
             placeholders={"letter": ("نوع نامه", "گواهی اشتغال به کار"), "number": ("شماره‌ی نامه", "۱۴۰۵/پ/۰۰۱۲")},
-        )
+        ),
+        NotificationKind(
+            code="hr.probation",
+            title="یادآوری ارزیابی دوره‌ی آزمایشی (به مدیر)",
+            template="دوره‌ی آزمایشی {name} تا {date} تمام می‌شود؛ لطفاً «ارزیابی دوره‌ی آزمایشی» را ثبت کنید.",
+            placeholders={"name": ("نام کارمند", "نیلوفر کاظمی"), "date": ("پایان دوره", "۱۴۰۵/۱۱/۲۹")},
+        ),
     ]
     nikyar_profile_values = [
         ProfileValue(
@@ -240,6 +252,14 @@ class HrConfig(AppConfig):
                     "درخواست جذب نیرو برای یک واحد با شرح شغل و شرایط؛ بررسی منابع انسانی و تأیید مدیرعامل.",
                 ),
                 ("hr-hire", "استخدام", "hire", "مشخصات کارمند تازه به دست منابع انسانی؛ پس از تأیید مدیرعامل پرونده و در صورت انتخاب حساب کاربری ساخته می‌شود."),
+                ("hr-equipment", "تحویل تجهیزات و دارایی", "equipment", "فهرست رایانه، کارت، کلید و… تحویلی به کارمند با تأیید دریافت خود او؛ ثبت در پرونده."),
+                ("hr-orientation", "آموزش بدو ورود", "orientation", "مبحث‌های آموزش‌دیده‌ی کارمند تازه با تأیید خود او؛ ثبت در پرونده."),
+                (
+                    "hr-probation",
+                    "ارزیابی دوره‌ی آزمایشی",
+                    "probation",
+                    "ارزیابی مدیر از کارمند تازه و نتیجه (ادامه، تمدید یا پایان همکاری) با بررسی منابع انسانی.",
+                ),
             ]
         ]
     )

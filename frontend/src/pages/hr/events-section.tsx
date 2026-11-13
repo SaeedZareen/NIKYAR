@@ -21,8 +21,17 @@ export function EventsSection({ employee }: { employee: Schemas["EmployeeDetail"
     () => [
       col.accessor("kind_label", {
         header: "نوع",
-        meta: { label: "نوع", primary: true },
-        cell: (c) => (c.row.original.kind === "leave" && c.row.original.title ? `مرخصی ${c.row.original.title}` : c.getValue()),
+        meta: { label: "نوع", primary: true, wrap: true },
+        cell: (c) => {
+          const e = c.row.original
+          if (e.kind === "leave" && e.title) return `مرخصی ${e.title}`
+          return (
+            <span className="flex flex-col gap-0.5">
+              <span>{c.getValue()}</span>
+              {e.title && <span className="text-2xs text-muted-foreground">{toFaDigits(e.title)}</span>}
+            </span>
+          )
+        },
       }),
       col.accessor("start_date", {
         header: "تاریخ",
