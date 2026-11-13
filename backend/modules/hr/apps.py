@@ -41,6 +41,52 @@ class HrConfig(AppConfig):
             ],
         ),
     ]
+    nikyar_lookups = nikyar_lookups + [
+        LookupSpec(
+            code="education-level",
+            name="مقطع تحصیلی (پرونده)",
+            items=[
+                LookupItemSpec(c, t)
+                for c, t in [
+                    ("below-diploma", "زیر دیپلم"),
+                    ("diploma", "دیپلم"),
+                    ("associate", "کاردانی"),
+                    ("bachelor", "کارشناسی"),
+                    ("master", "کارشناسی ارشد"),
+                    ("phd", "دکتری"),
+                ]
+            ],
+        ),
+        LookupSpec(
+            code="dependent-relation",
+            name="نسبت افراد تحت تکفل",
+            items=[LookupItemSpec(c, t) for c, t in [("spouse", "همسر"), ("child", "فرزند"), ("father", "پدر"), ("mother", "مادر")]],
+        ),
+        LookupSpec(
+            code="insurance-type",
+            name="نوع بیمه",
+            items=[
+                LookupItemSpec(c, t)
+                for c, t in [("social", "تأمین اجتماعی"), ("health", "خدمات درمانی"), ("supplementary", "بیمه‌ی تکمیلی"), ("armed", "نیروهای مسلح")]
+            ],
+        ),
+        LookupSpec(
+            code="document-type",
+            name="نوع مدرک پرسنلی",
+            items=[
+                LookupItemSpec(c, t)
+                for c, t in [
+                    ("national-card", "کارت ملی"),
+                    ("birth-certificate", "شناسنامه"),
+                    ("contract", "قرارداد"),
+                    ("degree", "مدرک تحصیلی"),
+                    ("military", "کارت پایان خدمت"),
+                    ("health", "گواهی سلامت"),
+                    ("other", "سایر"),
+                ]
+            ],
+        ),
+    ]
     nikyar_numbering = [NumberingSpec(code="hr-personnel", title="کد پرسنلی", default_pattern="{seq:5}", default_reset="never")]
     nikyar_profile_values = [
         ProfileValue(

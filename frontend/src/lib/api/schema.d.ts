@@ -898,6 +898,214 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/hr/bank-accounts/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         */
+        get: operations["hr_bank_accounts_list"];
+        put?: never;
+        /**
+         * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         */
+        post: operations["hr_bank_accounts_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/hr/bank-accounts/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         */
+        get: operations["hr_bank_accounts_retrieve"];
+        put?: never;
+        post?: never;
+        /**
+         * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         */
+        delete: operations["hr_bank_accounts_destroy"];
+        options?: never;
+        head?: never;
+        /**
+         * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         */
+        patch: operations["hr_bank_accounts_partial_update"];
+        trace?: never;
+    };
+    "/api/hr/dependents/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         */
+        get: operations["hr_dependents_list"];
+        put?: never;
+        /**
+         * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         */
+        post: operations["hr_dependents_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/hr/dependents/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         */
+        get: operations["hr_dependents_retrieve"];
+        put?: never;
+        post?: never;
+        /**
+         * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         */
+        delete: operations["hr_dependents_destroy"];
+        options?: never;
+        head?: never;
+        /**
+         * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         */
+        patch: operations["hr_dependents_partial_update"];
+        trace?: never;
+    };
+    "/api/hr/documents/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         */
+        get: operations["hr_documents_list"];
+        put?: never;
+        /**
+         * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         */
+        post: operations["hr_documents_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/hr/documents/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         */
+        get: operations["hr_documents_retrieve"];
+        put?: never;
+        post?: never;
+        /**
+         * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         */
+        delete: operations["hr_documents_destroy"];
+        options?: never;
+        head?: never;
+        /**
+         * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         */
+        patch: operations["hr_documents_partial_update"];
+        trace?: never;
+    };
+    "/api/hr/educations/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         */
+        get: operations["hr_educations_list"];
+        put?: never;
+        /**
+         * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         */
+        post: operations["hr_educations_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/hr/educations/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         */
+        get: operations["hr_educations_retrieve"];
+        put?: never;
+        post?: never;
+        /**
+         * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         */
+        delete: operations["hr_educations_destroy"];
+        options?: never;
+        head?: never;
+        /**
+         * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         */
+        patch: operations["hr_educations_partial_update"];
+        trace?: never;
+    };
     "/api/hr/employees/": {
         parameters: {
             query?: never;
@@ -944,6 +1152,110 @@ export interface paths {
          *     ثبت و ویرایش فقط `hr.manage`. پرونده حذف نمی‌شود («پایان همکاری»). همه‌ی پرونده‌های دیدنی یک‌جا (جدول مرورگر).
          */
         patch: operations["hr_employees_partial_update"];
+        trace?: never;
+    };
+    "/api/hr/insurances/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         */
+        get: operations["hr_insurances_list"];
+        put?: never;
+        /**
+         * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         */
+        post: operations["hr_insurances_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/hr/insurances/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         */
+        get: operations["hr_insurances_retrieve"];
+        put?: never;
+        post?: never;
+        /**
+         * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         */
+        delete: operations["hr_insurances_destroy"];
+        options?: never;
+        head?: never;
+        /**
+         * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         */
+        patch: operations["hr_insurances_partial_update"];
+        trace?: never;
+    };
+    "/api/hr/work-history/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         */
+        get: operations["hr_work_history_list"];
+        put?: never;
+        /**
+         * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         */
+        post: operations["hr_work_history_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/hr/work-history/{id}/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         */
+        get: operations["hr_work_history_retrieve"];
+        put?: never;
+        post?: never;
+        /**
+         * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         */
+        delete: operations["hr_work_history_destroy"];
+        options?: never;
+        head?: never;
+        /**
+         * @description سوابق یک پرونده (`?employee=<شناسه>` برای فهرست). دیدن: هر کس پرونده را می‌بیند، جز سوابق مالی (حساب بانکی و بیمه)
+         *     که فقط `hr.view` و `hr.manage` (نه مدیر واحد) می‌بینند؛ افزودن، ویرایش و حذف: `hr.manage`.
+         */
+        patch: operations["hr_work_history_partial_update"];
         trace?: never;
     };
     "/api/jobs/": {
@@ -2461,6 +2773,33 @@ export interface components {
              */
             file: string;
         };
+        /** @description پایه‌ی سوابق: پرونده (فقط هنگام ساخت) و عنوان‌های فهرست‌های پایه برای نمایش. */
+        BankAccount: {
+            readonly id: number;
+            /** پرونده */
+            employee: number;
+            /** شماره‌ی شبا */
+            iban: string;
+            /** شماره‌ی حساب */
+            account_number: string;
+            /** شماره‌ی کارت */
+            card_number: string;
+            /** حساب حقوق */
+            is_salary: boolean;
+        };
+        /** @description پایه‌ی سوابق: پرونده (فقط هنگام ساخت) و عنوان‌های فهرست‌های پایه برای نمایش. */
+        BankAccountRequest: {
+            /** پرونده */
+            employee: number;
+            /** شماره‌ی شبا */
+            iban: string;
+            /** شماره‌ی حساب */
+            account_number?: string;
+            /** شماره‌ی کارت */
+            card_number?: string;
+            /** حساب حقوق */
+            is_salary?: boolean;
+        };
         /** @enum {unknown} */
         BlankEnum: "";
         Branding: {
@@ -2618,6 +2957,156 @@ export interface components {
          * @enum {string}
          */
         DeliveryStatusEnum: "queued" | "sent" | "failed";
+        /** @description پایه‌ی سوابق: پرونده (فقط هنگام ساخت) و عنوان‌های فهرست‌های پایه برای نمایش. */
+        Dependent: {
+            readonly id: number;
+            /** پرونده */
+            employee: number;
+            /** نام */
+            first_name: string;
+            /** نام خانوادگی */
+            last_name: string;
+            /** نسبت */
+            relation: number;
+            readonly relation_title: string;
+            /** کد ملی */
+            national_code: string;
+            /**
+             * تاریخ تولد
+             * @example 1405/08/14
+             */
+            birth_date: string | null;
+            /** تحت پوشش بیمه */
+            insured: boolean;
+        };
+        /** @description پایه‌ی سوابق: پرونده (فقط هنگام ساخت) و عنوان‌های فهرست‌های پایه برای نمایش. */
+        DependentRequest: {
+            /** پرونده */
+            employee: number;
+            /** نام */
+            first_name: string;
+            /** نام خانوادگی */
+            last_name: string;
+            /** نسبت */
+            relation: number;
+            /** کد ملی */
+            national_code?: string;
+            /**
+             * تاریخ تولد
+             * @example 1405/08/14
+             */
+            birth_date?: string | null;
+            /** تحت پوشش بیمه */
+            insured?: boolean;
+        };
+        /** @description پایه‌ی سوابق: پرونده (فقط هنگام ساخت) و عنوان‌های فهرست‌های پایه برای نمایش. */
+        Document: {
+            readonly id: number;
+            /** پرونده */
+            employee: number;
+            /** نوع مدرک */
+            kind: number;
+            readonly kind_title: string;
+            /** شماره */
+            number: string;
+            /**
+             * تاریخ صدور
+             * @example 1405/08/14
+             */
+            issue_date: string | null;
+            /**
+             * تاریخ اعتبار
+             * @example 1405/08/14
+             */
+            expiry_date: string | null;
+            /**
+             * فایل
+             * @description شناسه‌ی فایل بارگذاری‌شده؛ رشته‌ی خالی یعنی بدون فایل.
+             * @default
+             */
+            file: string;
+            /** توضیح */
+            note: string;
+            /** @description تاریخ اعتبار گذشته است */
+            readonly expired: boolean;
+        };
+        /** @description پایه‌ی سوابق: پرونده (فقط هنگام ساخت) و عنوان‌های فهرست‌های پایه برای نمایش. */
+        DocumentRequest: {
+            /** پرونده */
+            employee: number;
+            /** نوع مدرک */
+            kind: number;
+            /** شماره */
+            number?: string;
+            /**
+             * تاریخ صدور
+             * @example 1405/08/14
+             */
+            issue_date?: string | null;
+            /**
+             * تاریخ اعتبار
+             * @example 1405/08/14
+             */
+            expiry_date?: string | null;
+            /**
+             * فایل
+             * @description شناسه‌ی فایل بارگذاری‌شده؛ رشته‌ی خالی یعنی بدون فایل.
+             * @default
+             */
+            file: string;
+            /** توضیح */
+            note?: string;
+        };
+        /** @description پایه‌ی سوابق: پرونده (فقط هنگام ساخت) و عنوان‌های فهرست‌های پایه برای نمایش. */
+        Education: {
+            readonly id: number;
+            /** پرونده */
+            employee: number;
+            /** مقطع */
+            level: number;
+            readonly level_title: string;
+            /** رشته */
+            field: string;
+            /** دانشگاه یا مؤسسه */
+            institution: string;
+            /** سال دانش‌آموختگی */
+            graduation_year: number | null;
+            /**
+             * معدل
+             * Format: decimal
+             */
+            gpa: string | null;
+            /**
+             * تصویر مدرک
+             * @description شناسه‌ی فایل بارگذاری‌شده؛ رشته‌ی خالی یعنی بدون فایل.
+             * @default
+             */
+            certificate: string;
+        };
+        /** @description پایه‌ی سوابق: پرونده (فقط هنگام ساخت) و عنوان‌های فهرست‌های پایه برای نمایش. */
+        EducationRequest: {
+            /** پرونده */
+            employee: number;
+            /** مقطع */
+            level: number;
+            /** رشته */
+            field?: string;
+            /** دانشگاه یا مؤسسه */
+            institution?: string;
+            /** سال دانش‌آموختگی */
+            graduation_year?: number | null;
+            /**
+             * معدل
+             * Format: decimal
+             */
+            gpa?: string | null;
+            /**
+             * تصویر مدرک
+             * @description شناسه‌ی فایل بارگذاری‌شده؛ رشته‌ی خالی یعنی بدون فایل.
+             * @default
+             */
+            certificate: string;
+        };
         /** @description پرونده‌ی پایه. کد پرسنلی با شماره‌گذاری «کد پرسنلی» صادر می‌شود و تغییر نمی‌کند. */
         Employee: {
             readonly id: number;
@@ -2768,6 +3257,8 @@ export interface components {
             user: number | null;
             readonly user_name: string;
             readonly can_edit: boolean;
+            /** @description حساب بانکی و بیمه را می‌بیند (مجوز، نه مدیر واحد) */
+            readonly can_view_financial: boolean;
             /** @description انتصاب‌های جاری کاربر متصل در ساختار سازمانی */
             readonly positions: components["schemas"]["EmployeePosition"][];
         };
@@ -3448,6 +3939,56 @@ export interface components {
             /** @description کار باز که مهلتش گذشته است. */
             readonly overdue: boolean;
         };
+        /** @description پایه‌ی سوابق: پرونده (فقط هنگام ساخت) و عنوان‌های فهرست‌های پایه برای نمایش. */
+        Insurance: {
+            readonly id: number;
+            /** پرونده */
+            employee: number;
+            /** نوع بیمه */
+            kind: number;
+            readonly kind_title: string;
+            /** شماره‌ی بیمه */
+            number: string;
+            /**
+             * از تاریخ
+             * @example 1405/08/14
+             */
+            start_date: string | null;
+            /**
+             * تا تاریخ
+             * @example 1405/08/14
+             */
+            end_date: string | null;
+            /**
+             * سابقه‌ی پیشین (ماه)
+             * Format: int64
+             */
+            prior_months: number | null;
+        };
+        /** @description پایه‌ی سوابق: پرونده (فقط هنگام ساخت) و عنوان‌های فهرست‌های پایه برای نمایش. */
+        InsuranceRequest: {
+            /** پرونده */
+            employee: number;
+            /** نوع بیمه */
+            kind: number;
+            /** شماره‌ی بیمه */
+            number?: string;
+            /**
+             * از تاریخ
+             * @example 1405/08/14
+             */
+            start_date?: string | null;
+            /**
+             * تا تاریخ
+             * @example 1405/08/14
+             */
+            end_date?: string | null;
+            /**
+             * سابقه‌ی پیشین (ماه)
+             * Format: int64
+             */
+            prior_months?: number | null;
+        };
         Issued: {
             number: string;
         };
@@ -4050,6 +4591,90 @@ export interface components {
             /** سمت اصلی */
             is_primary?: boolean;
         };
+        /** @description پایه‌ی سوابق: پرونده (فقط هنگام ساخت) و عنوان‌های فهرست‌های پایه برای نمایش. */
+        PatchedBankAccountRequest: {
+            /** پرونده */
+            employee?: number;
+            /** شماره‌ی شبا */
+            iban?: string;
+            /** شماره‌ی حساب */
+            account_number?: string;
+            /** شماره‌ی کارت */
+            card_number?: string;
+            /** حساب حقوق */
+            is_salary?: boolean;
+        };
+        /** @description پایه‌ی سوابق: پرونده (فقط هنگام ساخت) و عنوان‌های فهرست‌های پایه برای نمایش. */
+        PatchedDependentRequest: {
+            /** پرونده */
+            employee?: number;
+            /** نام */
+            first_name?: string;
+            /** نام خانوادگی */
+            last_name?: string;
+            /** نسبت */
+            relation?: number;
+            /** کد ملی */
+            national_code?: string;
+            /**
+             * تاریخ تولد
+             * @example 1405/08/14
+             */
+            birth_date?: string | null;
+            /** تحت پوشش بیمه */
+            insured?: boolean;
+        };
+        /** @description پایه‌ی سوابق: پرونده (فقط هنگام ساخت) و عنوان‌های فهرست‌های پایه برای نمایش. */
+        PatchedDocumentRequest: {
+            /** پرونده */
+            employee?: number;
+            /** نوع مدرک */
+            kind?: number;
+            /** شماره */
+            number?: string;
+            /**
+             * تاریخ صدور
+             * @example 1405/08/14
+             */
+            issue_date?: string | null;
+            /**
+             * تاریخ اعتبار
+             * @example 1405/08/14
+             */
+            expiry_date?: string | null;
+            /**
+             * فایل
+             * @description شناسه‌ی فایل بارگذاری‌شده؛ رشته‌ی خالی یعنی بدون فایل.
+             * @default
+             */
+            file: string;
+            /** توضیح */
+            note?: string;
+        };
+        /** @description پایه‌ی سوابق: پرونده (فقط هنگام ساخت) و عنوان‌های فهرست‌های پایه برای نمایش. */
+        PatchedEducationRequest: {
+            /** پرونده */
+            employee?: number;
+            /** مقطع */
+            level?: number;
+            /** رشته */
+            field?: string;
+            /** دانشگاه یا مؤسسه */
+            institution?: string;
+            /** سال دانش‌آموختگی */
+            graduation_year?: number | null;
+            /**
+             * معدل
+             * Format: decimal
+             */
+            gpa?: string | null;
+            /**
+             * تصویر مدرک
+             * @description شناسه‌ی فایل بارگذاری‌شده؛ رشته‌ی خالی یعنی بدون فایل.
+             * @default
+             */
+            certificate: string;
+        };
         /** @description پرونده‌ی پایه. کد پرسنلی با شماره‌گذاری «کد پرسنلی» صادر می‌شود و تغییر نمی‌کند. */
         PatchedEmployeeDetailRequest: {
             /** نام */
@@ -4210,6 +4835,30 @@ export interface components {
             title?: string;
             /** نوع */
             kind?: components["schemas"]["HolidayKindEnum"];
+        };
+        /** @description پایه‌ی سوابق: پرونده (فقط هنگام ساخت) و عنوان‌های فهرست‌های پایه برای نمایش. */
+        PatchedInsuranceRequest: {
+            /** پرونده */
+            employee?: number;
+            /** نوع بیمه */
+            kind?: number;
+            /** شماره‌ی بیمه */
+            number?: string;
+            /**
+             * از تاریخ
+             * @example 1405/08/14
+             */
+            start_date?: string | null;
+            /**
+             * تا تاریخ
+             * @example 1405/08/14
+             */
+            end_date?: string | null;
+            /**
+             * سابقه‌ی پیشین (ماه)
+             * Format: int64
+             */
+            prior_months?: number | null;
         };
         PatchedKindRequest: {
             /** متن اعلان */
@@ -4375,6 +5024,27 @@ export interface components {
             roles?: number[];
             /** گذرواژه */
             password?: string;
+        };
+        /** @description پایه‌ی سوابق: پرونده (فقط هنگام ساخت) و عنوان‌های فهرست‌های پایه برای نمایش. */
+        PatchedWorkHistoryRequest: {
+            /** پرونده */
+            employee?: number;
+            /** محل کار */
+            employer?: string;
+            /** سمت */
+            title?: string;
+            /**
+             * از تاریخ
+             * @example 1405/08/14
+             */
+            start_date?: string;
+            /**
+             * تا تاریخ
+             * @example 1405/08/14
+             */
+            end_date?: string | null;
+            /** علت ترک کار */
+            leave_reason?: string;
         };
         /**
          * @description * `ever` - در کل
@@ -5304,6 +5974,49 @@ export interface components {
             readonly submission_count: number;
             /** Format: date-time */
             readonly last_submitted_at: string | null;
+        };
+        /** @description پایه‌ی سوابق: پرونده (فقط هنگام ساخت) و عنوان‌های فهرست‌های پایه برای نمایش. */
+        WorkHistory: {
+            readonly id: number;
+            /** پرونده */
+            employee: number;
+            /** محل کار */
+            employer: string;
+            /** سمت */
+            title: string;
+            /**
+             * از تاریخ
+             * @example 1405/08/14
+             */
+            start_date: string;
+            /**
+             * تا تاریخ
+             * @example 1405/08/14
+             */
+            end_date: string | null;
+            /** علت ترک کار */
+            leave_reason: string;
+        };
+        /** @description پایه‌ی سوابق: پرونده (فقط هنگام ساخت) و عنوان‌های فهرست‌های پایه برای نمایش. */
+        WorkHistoryRequest: {
+            /** پرونده */
+            employee: number;
+            /** محل کار */
+            employer: string;
+            /** سمت */
+            title?: string;
+            /**
+             * از تاریخ
+             * @example 1405/08/14
+             */
+            start_date: string;
+            /**
+             * تا تاریخ
+             * @example 1405/08/14
+             */
+            end_date?: string | null;
+            /** علت ترک کار */
+            leave_reason?: string;
         };
         WorkWeekSettings: {
             /**
@@ -7081,6 +7794,478 @@ export interface operations {
             };
         };
     };
+    hr_bank_accounts_list: {
+        parameters: {
+            query: {
+                /** @description شناسه‌ی پرونده */
+                employee: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankAccount"][];
+                };
+            };
+        };
+    };
+    hr_bank_accounts_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BankAccountRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["BankAccountRequest"];
+                "multipart/form-data": components["schemas"]["BankAccountRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankAccount"];
+                };
+            };
+        };
+    };
+    hr_bank_accounts_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description یک مقداد عدد یکتا که این حساب بانکی را شناسایی میکند. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankAccount"];
+                };
+            };
+        };
+    };
+    hr_bank_accounts_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description یک مقداد عدد یکتا که این حساب بانکی را شناسایی میکند. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    hr_bank_accounts_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description یک مقداد عدد یکتا که این حساب بانکی را شناسایی میکند. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedBankAccountRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedBankAccountRequest"];
+                "multipart/form-data": components["schemas"]["PatchedBankAccountRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BankAccount"];
+                };
+            };
+        };
+    };
+    hr_dependents_list: {
+        parameters: {
+            query: {
+                /** @description شناسه‌ی پرونده */
+                employee: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Dependent"][];
+                };
+            };
+        };
+    };
+    hr_dependents_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DependentRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["DependentRequest"];
+                "multipart/form-data": components["schemas"]["DependentRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Dependent"];
+                };
+            };
+        };
+    };
+    hr_dependents_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description یک مقداد عدد یکتا که این فرد تحت تکفل را شناسایی میکند. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Dependent"];
+                };
+            };
+        };
+    };
+    hr_dependents_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description یک مقداد عدد یکتا که این فرد تحت تکفل را شناسایی میکند. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    hr_dependents_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description یک مقداد عدد یکتا که این فرد تحت تکفل را شناسایی میکند. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedDependentRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedDependentRequest"];
+                "multipart/form-data": components["schemas"]["PatchedDependentRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Dependent"];
+                };
+            };
+        };
+    };
+    hr_documents_list: {
+        parameters: {
+            query: {
+                /** @description شناسه‌ی پرونده */
+                employee: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Document"][];
+                };
+            };
+        };
+    };
+    hr_documents_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DocumentRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["DocumentRequest"];
+                "multipart/form-data": components["schemas"]["DocumentRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Document"];
+                };
+            };
+        };
+    };
+    hr_documents_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description یک مقداد عدد یکتا که این مدرک را شناسایی میکند. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Document"];
+                };
+            };
+        };
+    };
+    hr_documents_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description یک مقداد عدد یکتا که این مدرک را شناسایی میکند. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    hr_documents_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description یک مقداد عدد یکتا که این مدرک را شناسایی میکند. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedDocumentRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedDocumentRequest"];
+                "multipart/form-data": components["schemas"]["PatchedDocumentRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Document"];
+                };
+            };
+        };
+    };
+    hr_educations_list: {
+        parameters: {
+            query: {
+                /** @description شناسه‌ی پرونده */
+                employee: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Education"][];
+                };
+            };
+        };
+    };
+    hr_educations_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EducationRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["EducationRequest"];
+                "multipart/form-data": components["schemas"]["EducationRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Education"];
+                };
+            };
+        };
+    };
+    hr_educations_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description یک مقداد عدد یکتا که این سابقه‌ی تحصیلی را شناسایی میکند. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Education"];
+                };
+            };
+        };
+    };
+    hr_educations_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description یک مقداد عدد یکتا که این سابقه‌ی تحصیلی را شناسایی میکند. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    hr_educations_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description یک مقداد عدد یکتا که این سابقه‌ی تحصیلی را شناسایی میکند. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedEducationRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedEducationRequest"];
+                "multipart/form-data": components["schemas"]["PatchedEducationRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Education"];
+                };
+            };
+        };
+    };
     hr_employees_list: {
         parameters: {
             query?: {
@@ -7139,7 +8324,8 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                id: string;
+                /** @description یک مقداد عدد یکتا که این پرونده‌ی پرسنلی را شناسایی میکند. */
+                id: number;
             };
             cookie?: never;
         };
@@ -7160,7 +8346,8 @@ export interface operations {
             query?: never;
             header?: never;
             path: {
-                id: string;
+                /** @description یک مقداد عدد یکتا که این پرونده‌ی پرسنلی را شناسایی میکند. */
+                id: number;
             };
             cookie?: never;
         };
@@ -7178,6 +8365,242 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["EmployeeDetail"];
+                };
+            };
+        };
+    };
+    hr_insurances_list: {
+        parameters: {
+            query: {
+                /** @description شناسه‌ی پرونده */
+                employee: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Insurance"][];
+                };
+            };
+        };
+    };
+    hr_insurances_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InsuranceRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["InsuranceRequest"];
+                "multipart/form-data": components["schemas"]["InsuranceRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Insurance"];
+                };
+            };
+        };
+    };
+    hr_insurances_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description یک مقداد عدد یکتا که این بیمه را شناسایی میکند. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Insurance"];
+                };
+            };
+        };
+    };
+    hr_insurances_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description یک مقداد عدد یکتا که این بیمه را شناسایی میکند. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    hr_insurances_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description یک مقداد عدد یکتا که این بیمه را شناسایی میکند. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedInsuranceRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedInsuranceRequest"];
+                "multipart/form-data": components["schemas"]["PatchedInsuranceRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Insurance"];
+                };
+            };
+        };
+    };
+    hr_work_history_list: {
+        parameters: {
+            query: {
+                /** @description شناسه‌ی پرونده */
+                employee: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkHistory"][];
+                };
+            };
+        };
+    };
+    hr_work_history_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["WorkHistoryRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["WorkHistoryRequest"];
+                "multipart/form-data": components["schemas"]["WorkHistoryRequest"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkHistory"];
+                };
+            };
+        };
+    };
+    hr_work_history_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description یک مقداد عدد یکتا که این سابقه‌ی کاری را شناسایی میکند. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkHistory"];
+                };
+            };
+        };
+    };
+    hr_work_history_destroy: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description یک مقداد عدد یکتا که این سابقه‌ی کاری را شناسایی میکند. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    hr_work_history_partial_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description یک مقداد عدد یکتا که این سابقه‌ی کاری را شناسایی میکند. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["PatchedWorkHistoryRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["PatchedWorkHistoryRequest"];
+                "multipart/form-data": components["schemas"]["PatchedWorkHistoryRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WorkHistory"];
                 };
             };
         };
