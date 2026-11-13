@@ -6,8 +6,11 @@ import { SectionForm } from "@/components/form/section-form"
 import { Section } from "@/components/layout/section"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
+import { InputGroup, InputGroupAddon, InputGroupInput, InputGroupText } from "@/components/ui/input-group"
 import { Skeleton } from "@/components/ui/skeleton"
 import { errorMessage, type Schemas } from "@/lib/api/client"
+import { onlyDigits } from "@/lib/format"
+import { cn } from "@/lib/utils"
 
 export type SectionInfo = Schemas["SectionInfo"]
 
@@ -41,4 +44,32 @@ type SettingsFormProps<T extends FieldValues, O extends FieldValues> = Omit<Reac
 /** فرم یک بخش تنظیمات: عنوان و راهنما از اعلام بخش در سرور. */
 export function SettingsForm<T extends FieldValues, O extends FieldValues>({ section, ...props }: SettingsFormProps<T, O>) {
   return <SectionForm title={section.title} description={section.description} {...props} />
+}
+
+type UnitInputProps = Omit<React.ComponentProps<typeof InputGroupInput>, "onChange" | "value"> & {
+  value: string
+  onChange: (value: string) => void
+  unit: string
+  /** بیشترین شمار رقم‌ها. */
+  digits?: number
+}
+
+/** عدد صحیح با واحد کنار آن (روز، ساعت، بار…)؛ مقدار رشته‌ی رقمی است و فرم آن را عدد می‌کند. */
+export function UnitInput({ value, onChange, unit, digits = 3, className, ...props }: UnitInputProps) {
+  return (
+    <InputGroup className={cn("max-w-40", className)}>
+      <InputGroupInput
+        dir="ltr"
+        inputMode="numeric"
+        autoComplete="off"
+        className="text-start tabular-nums"
+        value={value}
+        onChange={(e) => onChange(onlyDigits(e.target.value).slice(0, digits))}
+        {...props}
+      />
+      <InputGroupAddon align="inline-end">
+        <InputGroupText>{unit}</InputGroupText>
+      </InputGroupAddon>
+    </InputGroup>
+  )
 }

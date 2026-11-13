@@ -22,7 +22,10 @@ class SectionListView(generics.ListAPIView):
     pagination_class = None
 
     def get_queryset(self):
-        return settings_sections()
+        from core.licensing.service import module_enabled
+
+        # بخش ماژولی که در لایسنس نیست دیده نمی‌شود
+        return [s for s in settings_sections() if module_enabled(service.module_of(s.code))]
 
 
 class SectionView(generics.GenericAPIView):
@@ -43,4 +46,6 @@ class SectionView(generics.GenericAPIView):
 
 def section_view(code: str):
     name = "".join(part.title() for part in code.split("-")) + "SettingsView"
-    return type(name, (SectionView,), {"section": code, "serializer_class": service.serializer_class(code)})
+    # نمای هر بخش به برنامه‌ی اعلام‌کننده‌اش نسبت داده می‌شود تا HasPerm لایسنس ماژول آن را هم بسنجد.
+    attrs = {"section": code, "serializer_class": service.serializer_class(code), "__module__": service.section(code).serializer.rsplit(".", 1)[0]}
+    return type(name, (SectionView,), attrs)

@@ -12,8 +12,11 @@ import { MessagingSection } from "./messaging-section"
 import { NotificationTemplatesSection } from "./notification-templates-section"
 import { NumberingSection } from "./numbering-section"
 import { OrgProfileSection } from "./org-profile-section"
+import { SystemSection } from "./system-section"
 import { WorkWeekSection } from "./work-week-section"
 import type { SectionInfo } from "./settings-form"
+import { HrLeaveSection } from "@/pages/hr/settings-leave"
+import { HrRolesSection } from "@/pages/hr/settings-roles"
 
 /** فرم هر بخش اعلام‌شده در سرور (nikyar_settings)؛ ماژول‌ها بخش خودشان را اینجا اضافه می‌کنند. */
 const SECTION_FORMS: Record<string, (section: SectionInfo) => React.ReactNode> = {
@@ -25,6 +28,9 @@ const SECTION_FORMS: Record<string, (section: SectionInfo) => React.ReactNode> =
   backup: (s) => <BackupSection section={s} />,
   "notification-templates": (s) => <NotificationTemplatesSection section={s} />,
   messaging: (s) => <MessagingSection section={s} />,
+  system: (s) => <SystemSection section={s} />,
+  "hr-roles": (s) => <HrRolesSection section={s} />,
+  "hr-leave": (s) => <HrLeaveSection section={s} />,
 }
 
 export default function SettingsPage() {

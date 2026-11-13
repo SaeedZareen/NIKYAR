@@ -15,11 +15,12 @@ from django.utils import timezone
 from rest_framework.exceptions import PermissionDenied
 
 from core.kernel.api import BusinessError
+from core.kernel.validators import fa_digits
 from core.messaging.service import config as messaging_config
+from core.settings.service import read as read_settings
 
 from .models import QuickAction, Task
 
-VALID_FOR = timedelta(days=3)
 COMMENT = "ثبت با پیوند ایمیل"
 
 
@@ -35,10 +36,11 @@ def email_links(task: Task, decisions: list[dict]):
         site = (messaging_config().get("site_url") or "").rstrip("/")
         if not site or not choices:
             return ""
-        lines = ["تصمیم بدون ورود به سامانه (پیوند یک‌بارمصرف، تا سه روز):"]
+        days = read_settings("system")["quick_link_days"]
+        lines = [f"تصمیم بدون ورود به سامانه (پیوند یک‌بارمصرف، تا {fa_digits(days)} روز):"]
         for d in choices:
             token = secrets.token_urlsafe(32)
-            QuickAction.objects.create(token=token, task=task, user=user, decision=d["value"], expires_at=timezone.now() + VALID_FOR)
+            QuickAction.objects.create(token=token, task=task, user=user, decision=d["value"], expires_at=timezone.now() + timedelta(days=days))
             lines.append(f"{d['label']}: {site}/quick/{token}")
         return "\n".join(lines)
 

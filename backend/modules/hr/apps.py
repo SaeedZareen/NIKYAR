@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
-from core.kernel.registry import CustomFieldsSpec, LookupItemSpec, LookupSpec, ModuleSpec, NumberingSpec, ProfileValue
+from core.kernel.registry import CustomFieldsSpec, LookupItemSpec, LookupSpec, ModuleSpec, NumberingSpec, ProfileValue, SettingsSection
 
 
 class HrConfig(AppConfig):
@@ -85,6 +85,20 @@ class HrConfig(AppConfig):
                     ("other", "سایر"),
                 ]
             ],
+        ),
+    ]
+    nikyar_settings = [
+        SettingsSection(
+            code="hr-roles",
+            title="منابع انسانی: نقش‌ها و سقف مبلغ",
+            description="چه کسانی مرحله‌های منابع انسانی، امور مالی و مدیرعامل را در فرایندهای آماده‌ی پرسنلی انجام می‌دهند، و از چه مبلغی تأیید مدیرعامل لازم است. جانشینی هر نفر از «جانشینی» خوانده می‌شود.",
+            serializer="modules.hr.sections.HrRolesSettings",
+        ),
+        SettingsSection(
+            code="hr-leave",
+            title="منابع انسانی: مرخصی و تردد",
+            description="سهمیه‌ی مرخصی، نوع‌های مرخصی و سقف‌های تردد و اضافه‌کار. پیش‌فرض‌ها بر پایه‌ی قانون کار است.",
+            serializer="modules.hr.sections.HrLeaveSettings",
         ),
     ]
     nikyar_numbering = [NumberingSpec(code="hr-personnel", title="کد پرسنلی", default_pattern="{seq:5}", default_reset="never")]

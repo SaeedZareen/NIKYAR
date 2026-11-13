@@ -8,7 +8,7 @@ from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema
 from rest_framework import filters, generics, permissions, serializers, status
 from rest_framework.authentication import SessionAuthentication
 from rest_framework.response import Response
-from rest_framework.throttling import ScopedRateThrottle
+from rest_framework.throttling import SimpleRateThrottle
 from rest_framework.views import APIView
 
 from core.audit.models import AuditLog
@@ -20,9 +20,22 @@ from core.kernel.validators import jalali_now
 from core.licensing.service import check_user_capacity
 from core.notifications.service import notify
 from core.org.models import Assignment
+from core.settings.service import read as read_settings
 
 from .models import Role, User
 from .serializers import ChangePasswordSerializer, LoginSerializer, MeSerializer, PermissionGroupSerializer, ProfileSerializer, RoleSerializer, UserSerializer
+
+
+class LoginThrottle(SimpleRateThrottle):
+    """سقف تلاش ورود از هر نشانی IP در دقیقه (در برابر حدس گذرواژه؛ تنظیمات › سامانه و امنیت)."""
+
+    scope = "login"
+
+    def get_rate(self):
+        return f"{read_settings('system')['login_rate']}/min"
+
+    def get_cache_key(self, request, view):
+        return self.cache_format % {"scope": self.scope, "ident": self.get_ident(request)}
 
 
 @method_decorator(ensure_csrf_cookie, name="get")
@@ -30,10 +43,9 @@ class SessionView(APIView):
     """GET: کاربر فعلی (یا ۲۰۴ بدون محتوا اگر وارد نشده) و تنظیم کوکی CSRF. POST: ورود. DELETE: خروج."""
 
     permission_classes = [permissions.AllowAny]
-    throttle_scope = "login"
 
     def get_throttles(self):
-        return [ScopedRateThrottle()] if self.request.method == "POST" else []
+        return [LoginThrottle()] if self.request.method == "POST" else []
 
     @extend_schema(responses={200: MeSerializer, 204: None})
     def get(self, request):
@@ -52,6 +64,7 @@ class SessionView(APIView):
             record(request, AuditLog.Action.LOGIN_FAILED, label=s.validated_data["username"])
             raise BusinessError("نام کاربری یا گذرواژه درست نیست.")
         login(request, user)
+        request.session.set_expiry(read_settings("system")["session_hours"] * 3600)
         record(request, AuditLog.Action.LOGIN, user, user=user)
         return Response(MeSerializer(user).data)
 
