@@ -11,5 +11,6 @@ router.register("bank-accounts", views.BankAccountViewSet, basename="hr-bank-acc
 router.register("insurances", views.InsuranceViewSet, basename="hr-insurance")
 router.register("documents", views.DocumentViewSet, basename="hr-document")
 router.register("events", views.EventViewSet, basename="hr-event")
+router.register("letters", views.LetterViewSet, basename="hr-letter")
 
 urlpatterns = router.urls

@@ -1,7 +1,7 @@
 from django.conf import settings
 from django.db import models
 
-from .leave_params import KINDS
+from .leave_params import KINDS, LETTERS
 
 
 class Employee(models.Model):
@@ -200,3 +200,29 @@ class EmployeeEvent(models.Model):
 
     def __str__(self):
         return f"{self.get_kind_display()} — {self.employee}"
+
+
+class Letter(models.Model):
+    """
+    نامه یا گواهی صادرشده برای یک کارمند (5.5؛ اقدام «صدور نامه‌ی پرسنلی»). متن هنگام صدور از الگوی تنظیمات با مقدارهای
+    پرونده ساخته و همین‌جا ثابت می‌شود تا تغییر بعدی الگو یا پرونده نامه‌ی صادرشده را عوض نکند.
+    """
+
+    employee = models.ForeignKey(Employee, verbose_name="پرونده", on_delete=models.CASCADE, related_name="letters")
+    kind = models.CharField("نوع نامه", max_length=20, choices=list(LETTERS.items()))
+    number = models.CharField("شماره", max_length=60)
+    issued_on = models.DateField("تاریخ")
+    recipient = models.CharField("گیرنده", max_length=200, blank=True)
+    body = models.TextField("متن")
+    signer = models.ForeignKey(settings.AUTH_USER_MODEL, verbose_name="امضاکننده", null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    signer_position = models.CharField("سمت امضاکننده", max_length=150, blank=True)
+    request = models.OneToOneField("workflow.Request", verbose_name="درخواست", null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    created_at = models.DateTimeField("زمان صدور", auto_now_add=True)
+
+    class Meta:
+        ordering = ["-issued_on", "-id"]
+        verbose_name = "نامه‌ی پرسنلی"
+        verbose_name_plural = "نامه‌های پرسنلی"
+
+    def __str__(self):
+        return f"{self.get_kind_display()} {self.number}"

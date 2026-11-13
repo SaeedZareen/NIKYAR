@@ -13,7 +13,8 @@ from core.forms.engine import compile_schema
 from core.kernel.api import HasPerm, MultiValueFilter
 
 from . import access
-from .models import BankAccount, Dependent, Document, Education, Employee, EmployeeEvent, Insurance, WorkHistory
+from .letter_texts import PLACEHOLDERS
+from .models import BankAccount, Dependent, Document, Education, Employee, EmployeeEvent, Insurance, Letter, WorkHistory
 from .serializers import (
     BankAccountSerializer,
     CustomFieldsSerializer,
@@ -25,6 +26,8 @@ from .serializers import (
     EmployeeExtraSerializer,
     EmployeeSerializer,
     InsuranceSerializer,
+    LetterPlaceholderSerializer,
+    LetterSerializer,
     WorkHistorySerializer,
 )
 
@@ -178,3 +181,32 @@ class EventViewSet(viewsets.ReadOnlyModelViewSet):
     @extend_schema(parameters=[OpenApiParameter("employee", int, required=True, description="شناسه‌ی پرونده")])
     def list(self, request, *args, **kwargs):
         return super().list(request, *args, **kwargs)
+
+
+class LetterViewSet(viewsets.ReadOnlyModelViewSet):
+    """نامه‌ها و گواهی‌های صادرشده‌ی پرونده (`?employee=`) و هر نامه برای برگه‌ی چاپ؛ برای خود کارمند و هر کس پرونده را می‌بیند."""
+
+    serializer_class = LetterSerializer
+    permission_classes = [HasPerm]
+    perms = {"*": None}
+    pagination_class = None
+
+    def get_queryset(self):
+        employees = access.readable(self.request.user)
+        letters = Letter.objects.filter(employee__in=employees).select_related("employee", "signer")
+        if self.action == "list":
+            employee = self.request.query_params.get("employee") or 0
+            if not employees.filter(pk=employee).exists():
+                raise PermissionDenied()
+            letters = letters.filter(employee_id=employee)
+        return letters
+
+    @extend_schema(parameters=[OpenApiParameter("employee", int, required=True, description="شناسه‌ی پرونده")])
+    def list(self, request, *args, **kwargs):
+        return super().list(request, *args, **kwargs)
+
+    @extend_schema(responses=LetterPlaceholderSerializer(many=True))
+    @action(detail=False, url_path="placeholders")
+    def placeholders(self, request):
+        """جای‌گذارهای متن نامه برای ویرایشگر «تنظیمات › منابع انسانی: متن نامه‌ها»."""
+        return Response([{"token": f"{{{k}}}", "label": v} for k, v in PLACEHOLDERS.items()])
