@@ -17,6 +17,7 @@ KINDS = {
     "medical": "بازپرداخت هزینه‌ی درمان",
     "allowance": "کمک‌هزینه",
     "travel": "هزینه‌ی سفر مأموریت",
+    "hire": "استخدام",
 }
 # رویدادهای مالی (5.6): مبلغ دارند، تاریخشان روز ثبت است و سقف‌هایشان در «تنظیمات › منابع انسانی: مالی و رفاه»
 FINANCE = ["advance", "loan", "medical", "allowance", "travel"]
@@ -74,3 +75,22 @@ THRESHOLD_PARAMS = (
     {"name": "amount", "label": "فیلد مبلغ", "type": "field", "field_types": ["amount"], "required": True},
     {"name": "flag", "label": "فیلد پنهان نتیجه", "type": "field", "field_types": ["hidden"], "required": True},
 )
+
+# «استخدام: ساخت پرونده» (hr.hire، 5.7a): فیلد فرم هر بخش پرونده؛ (عنوان، نوع‌های فیلد، الزامی)
+HIRE_FIELDS = {
+    "first_name": ("نام", ["text"], True),
+    "last_name": ("نام خانوادگی", ["text"], True),
+    "national_code": ("کد ملی", ["national_code"], True),
+    "gender": ("جنسیت", ["choice"], True),
+    "hire_date": ("تاریخ استخدام", ["date"], True),
+    "employment_type": ("نوع استخدام", ["lookup"], True),
+    "father_name": ("نام پدر", ["text"], False),
+    "birth_date": ("تاریخ تولد", ["date"], False),
+    "mobile": ("موبایل", ["mobile", "text"], False),
+    "email": ("ایمیل", ["email", "text"], False),
+    "unit": ("واحد", ["org_unit"], False),
+    "position": ("سمت سازمانی", ["position"], False),
+    "create_account": ("ساخت حساب کاربری", ["boolean"], False),
+    "username": ("نام کاربری", ["text"], False),
+}
+HIRE_PARAMS = tuple({"name": n, "label": label, "type": "field", "field_types": types, "required": req} for n, (label, types, req) in HIRE_FIELDS.items())

@@ -1068,6 +1068,13 @@ class ReadyProcessViewSet(viewsets.ViewSet):
     @extend_schema(request=None, responses=ReadyProcessSerializer(many=True))
     @action(detail=False, methods=["post"], url_path="activate-all")
     def activate_all(self, request):
+        # هر فرایند جدا نصب می‌شود؛ فرایندی که پیش‌نیازش (مثل نقش تنظیمات) آماده نیست بقیه را نگه نمی‌دارد
+        problems = []
         for code in ready.available():
-            ready.install(code, request.user)
+            try:
+                ready.install(code, request.user)
+            except BusinessError as exc:
+                problems.append(str(exc.detail))
+        if problems:
+            raise BusinessError(" ".join(problems))
         return Response(ready.catalogue())
