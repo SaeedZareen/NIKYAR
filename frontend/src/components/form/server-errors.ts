@@ -5,7 +5,7 @@ import { ApiError, errorMessage } from "@/lib/api/client"
  * خطای سرور را روی فرم می‌نشاند: پیام هر فیلد زیر همان فیلد و در خلاصه‌ی خطا؛
  * خطای کلی (قاعده‌ی کسب‌وکار، شبکه) بالای فرم. toScreen نام خطای خانه‌ی گروه را به جای همان خانه روی صفحه می‌برد.
  */
-export function applyServerErrors<T extends FieldValues>(form: UseFormReturn<T>, error: unknown, toScreen: (name: string) => string = (n) => n) {
+export function applyServerErrors<T extends FieldValues, O extends FieldValues = T>(form: UseFormReturn<T, unknown, O>, error: unknown, toScreen: (name: string) => string = (n) => n) {
   const fields = error instanceof ApiError ? error.fields : {}
   const known = new Set(Object.keys(form.getValues()))
   let unmatched = ""
