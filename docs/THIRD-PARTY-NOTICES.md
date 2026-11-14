@@ -6,6 +6,7 @@
 |---|---|---|---|---|
 | [SpiffWorkflow](https://github.com/sartography/SpiffWorkflow) | 3.2.0 | موتور اجرای فرایند روی سرور | LGPL نسخه‌ی ۳ | بی‌تغییر و جدا از کد نیک‌یار، با `pip` از PyPI نصب می‌شود (`backend/requirements.txt`)؛ می‌توان نسخه‌ی دیگری از آن را به جایش نصب کرد. |
 | [psycopg](https://www.psycopg.org/) | 3 | اتصال به پایگاه داده‌ی PostgreSQL | LGPL نسخه‌ی ۳ (بسته‌ی binary همراه libpq با مجوز PostgreSQL) | مانند SpiffWorkflow: بی‌تغییر و جدا، با `pip` از PyPI نصب می‌شود و جایگزین‌پذیر است. |
+| [cheroot](https://github.com/cherrypy/cheroot) | 11 | سرور وب (HTTP و HTTPS) در `serve.py` | BSD سه‌بندی | بی‌تغییر با `pip` از PyPI نصب می‌شود و همراه نیک‌یار پخش نمی‌شود؛ متن مجوز در بسته‌ی نصب‌شده است. |
 | [WinSW](https://github.com/winsw/winsw) | 2.12.0 | اجرای نیک‌یار به‌صورت سرویس ویندوز (`service.bat`) | MIT | همراه نیک‌یار پخش نمی‌شود: `service.bat` همان فایل منتشرشده‌ی پروژه را بی‌تغییر از GitHub دریافت و با چک‌سام ثابت می‌سنجد. |
 | [bpmn-js](https://github.com/bpmn-io/bpmn-js) | 18 | بوم فرایندساز و نمودار صفحه‌ی درخواست | MIT با شرط نشان bpmn.io | نشان bpmn.io گوشه‌ی بوم و نمودار همیشه دیده می‌شود و چیزی روی آن نمی‌آید. |
 

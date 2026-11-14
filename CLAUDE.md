@@ -13,7 +13,7 @@ Modular Persian BPMS/ERP for on-premise installs in Iran (10–500 users). The p
 - Rolling-wave planning: detail the next phase's packages in the roadmap and get approval before starting it.
 
 ## Stack
-- Backend: Django 5.2 LTS + DRF + drf-spectacular, pytest, ruff. `backend/serve.py` (Waitress) serves API + built frontend on `0.0.0.0` and starts the background-job worker thread.
+- Backend: Django 5.2 LTS + DRF + drf-spectacular, pytest, ruff. `backend/serve.py` (cheroot) serves API + built frontend on `0.0.0.0` (HTTPS when `data/https.json` enables it, `core/kernel/tls.py`) and starts the background-job worker thread.
 - Frontend: React 19, TypeScript, Vite, Tailwind 4, shadcn/ui (RTL, `radix-mira` style, lucide icons), TanStack Query + Table v9, react-hook-form + zod, React Router, date-fns-jalali, Avan Persian Date Picker (`@avan-persian/react`, wrapped in `components/jalali-calendar.tsx`).
 - shadcn MCP server in `.mcp.json`. Add components only via `cd frontend && npx shadcn@latest add <name>` (needs `NODE_USE_ENV_PROXY=1` behind a proxy); check imports use `@/lib/utils` and translate English strings.
 - TanStack Table v9 docs ship inside the package: `frontend/node_modules/@tanstack/*/skills/`.
