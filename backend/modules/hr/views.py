@@ -7,6 +7,7 @@ from rest_framework import filters, parsers, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from core.audit.models import AuditLog
 from core.audit.service import AuditedModelViewSet, record
@@ -15,7 +16,7 @@ from core.forms import custom_fields
 from core.forms.engine import compile_schema
 from core.kernel.api import HasPerm, MultiValueFilter
 
-from . import access, excel
+from . import access, excel, reports
 from .letter_texts import PLACEHOLDERS
 from .models import BankAccount, Dependent, Document, Education, Employee, EmployeeEvent, Insurance, Letter, WorkHistory
 from .serializers import (
@@ -32,6 +33,9 @@ from .serializers import (
     EmployeeImportResultSerializer,
     EmployeeImportRunSerializer,
     EmployeeSerializer,
+    HrDashboardSerializer,
+    HrReportQuerySerializer,
+    HrReportSerializer,
     InsuranceSerializer,
     LetterPlaceholderSerializer,
     LetterSerializer,
@@ -254,3 +258,31 @@ def _xlsx(body: bytes, filename: str) -> HttpResponse:
     response = HttpResponse(body, content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
     response["Content-Disposition"] = content_disposition_header(True, filename)
     return response
+
+
+class ReportView(APIView):
+    """«گزارش نیروی انسانی» (5.10): تفکیک کارکنان شاغل، ورود و خروج در بازه و مدارک رو به پایان اعتبار، در دامنه‌ی دید کاربر."""
+
+    permission_classes = [HasPerm]
+    perms = {"*": None}
+
+    @extend_schema(parameters=[HrReportQuerySerializer], responses=HrReportSerializer)
+    def get(self, request):
+        if not access.is_viewer(request.user):
+            raise PermissionDenied()
+        query = HrReportQuerySerializer(data=request.query_params)
+        query.is_valid(raise_exception=True)
+        return Response(HrReportSerializer(reports.report(request.user, **query.validated_data)).data)
+
+
+class DashboardView(APIView):
+    """ابزارک «نیروی انسانی» پیشخوان برای بینندگان پرونده‌ها."""
+
+    permission_classes = [HasPerm]
+    perms = {"*": None}
+
+    @extend_schema(responses=HrDashboardSerializer)
+    def get(self, request):
+        if not access.is_viewer(request.user):
+            raise PermissionDenied()
+        return Response(reports.dashboard(request.user))

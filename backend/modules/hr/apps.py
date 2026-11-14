@@ -141,7 +141,7 @@ class HrConfig(AppConfig):
         SettingsSection(
             code="hr-service",
             title="منابع انسانی: دوران خدمت",
-            description="چند روز پیش از پایان قرارداد هر کارمند به منابع انسانی و مدیرش یادآوری تمدید فرستاده شود.",
+            description="چند روز پیش از پایان قرارداد هر کارمند به منابع انسانی و مدیرش یادآوری تمدید فرستاده شود و مدارک چند روز پیش از پایان اعتبار در گزارش و پیشخوان هشدار بگیرند.",
             serializer="modules.hr.sections.HrServiceSettings",
         ),
     ]

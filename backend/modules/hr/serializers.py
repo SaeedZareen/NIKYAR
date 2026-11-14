@@ -487,3 +487,78 @@ class EmployeeImportResultSerializer(serializers.Serializer):
     rows = EmployeeImportRowSerializer(many=True)
     counts = EmployeeImportCountsSerializer()
     committed = serializers.BooleanField()
+
+
+class HrReportQuerySerializer(serializers.Serializer):
+    start = JalaliDateField()
+    end = JalaliDateField()
+
+    def validate(self, attrs):
+        if attrs["start"] > attrs["end"]:
+            raise serializers.ValidationError({"end": "پایان بازه پیش از آغاز آن است."})
+        return attrs
+
+
+class HrReportSummarySerializer(serializers.Serializer):
+    active = serializers.IntegerField(help_text="کارکنان شاغل")
+    joins = serializers.IntegerField(help_text="ورود در بازه")
+    leaves = serializers.IntegerField(help_text="خروج در بازه")
+    expiring = serializers.IntegerField(help_text="مدارک منقضی یا رو به پایان اعتبار")
+
+
+class HrReportCountSerializer(serializers.Serializer):
+    key = serializers.CharField()
+    title = serializers.CharField()
+    count = serializers.IntegerField()
+
+
+class HrReportBreakdownsSerializer(serializers.Serializer):
+    unit = HrReportCountSerializer(many=True)
+    employment_type = HrReportCountSerializer(many=True)
+    education = HrReportCountSerializer(many=True)
+    gender = HrReportCountSerializer(many=True)
+    age = HrReportCountSerializer(many=True)
+
+
+class HrReportMonthSerializer(serializers.Serializer):
+    month = serializers.CharField()
+    label = serializers.CharField()
+    joins = serializers.IntegerField()
+    leaves = serializers.IntegerField()
+
+
+class HrReportMovementSerializer(serializers.Serializer):
+    id = serializers.CharField()
+    employee = serializers.IntegerField()
+    name = serializers.CharField()
+    personnel_code = serializers.CharField()
+    unit = serializers.CharField()
+    kind = serializers.ChoiceField(choices=[("join", "ورود"), ("leave", "خروج")])
+    date = JalaliDateField()
+    reason = serializers.CharField()
+
+
+class HrReportDocumentSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    employee = serializers.IntegerField()
+    name = serializers.CharField()
+    kind = serializers.CharField()
+    number = serializers.CharField()
+    expiry_date = JalaliDateField()
+    days_left = serializers.IntegerField(help_text="منفی: گذشته")
+
+
+class HrReportSerializer(serializers.Serializer):
+    summary = HrReportSummarySerializer()
+    breakdowns = HrReportBreakdownsSerializer()
+    months = HrReportMonthSerializer(many=True)
+    movements = HrReportMovementSerializer(many=True)
+    documents = HrReportDocumentSerializer(many=True)
+
+
+class HrDashboardSerializer(serializers.Serializer):
+    active = serializers.IntegerField()
+    joins = serializers.IntegerField()
+    leaves = serializers.IntegerField()
+    expiring = serializers.IntegerField()
+    month = serializers.CharField(help_text="نام ماه جاری شمسی")

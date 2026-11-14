@@ -5,6 +5,7 @@ import { visibleNavigation } from "@/app/navigation"
 import { PageHeader } from "@/components/layout/page-header"
 import { Section } from "@/components/layout/section"
 import { pendingTotal, useTaskCounts } from "@/app/workflow"
+import { HrDashboardCard } from "@/pages/hr/dashboard-card"
 import { formatDate, formatNumber } from "@/lib/format"
 
 /** پیشخوان: خوشامد، سمت‌های فعلی کاربر و دسترسی سریع به بخش‌های مجاز. */
@@ -18,6 +19,7 @@ export default function HomePage() {
       <PageHeader title="پیشخوان" meta={`${user.title}، خوش آمدید · ${formatDate(new Date(), "full")}`} />
       <div className="grid gap-4 lg:grid-cols-3">
         <InboxCard />
+        {user.flags.hr_viewer && <HrDashboardCard />}
         <Section title="سمت‌های من">
           {user.positions.length ? (
             <ul className="flex flex-col gap-2 text-sm">

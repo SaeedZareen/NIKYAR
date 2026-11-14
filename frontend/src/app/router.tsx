@@ -27,6 +27,7 @@ const EmployeesPage = lazy(() => import("@/pages/hr/employees-page"))
 const EmployeeFilePage = lazy(() => import("@/pages/hr/employee-page"))
 const MyFilePage = lazy(() => import("@/pages/hr/my-file-page"))
 const EmployeesImportPage = lazy(() => import("@/pages/hr/import-page"))
+const HrReportPage = lazy(() => import("@/pages/hr/report-page"))
 const LetterPrintPage = lazy(() => import("@/pages/hr/letter-print-page"))
 const NewRequestPage = lazy(() => import("@/pages/workflow/requests/new-request-page"))
 const RequestFillPage = lazy(() => import("@/pages/workflow/requests/request-fill-page"))
@@ -98,6 +99,7 @@ export const router = createBrowserRouter([
           { path: "hr/employees", element: page(<EmployeesPage />, "flag:hr_viewer") },
           { path: "hr/employees/import", element: page(<EmployeesImportPage />, "hr.manage") },
           { path: "hr/employees/:employeeId", element: page(<EmployeeFilePage />, "flag:hr_viewer") },
+          { path: "hr/report", element: page(<HrReportPage />, "flag:hr_viewer") },
           { path: "hr/me", element: page(<MyFilePage />, "flag:hr_self") },
           { path: "workflow/design", element: page(<ProcessDesignPage />, "workflow.design") },
           { path: "workflow/ready", element: page(<ReadyProcessesPage />, "workflow.design") },
