@@ -9,9 +9,11 @@ import { TooltipProvider } from "@/components/ui/tooltip"
 import { queryClient } from "@/app/query-client"
 import { router } from "@/app/router"
 import { trackActivity } from "@/lib/activity"
+import { registerPwa } from "@/lib/pwa"
 import "./index.css"
 
 trackActivity()
+registerPwa()
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

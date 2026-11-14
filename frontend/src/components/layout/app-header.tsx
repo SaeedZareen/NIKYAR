@@ -1,6 +1,6 @@
 import * as React from "react"
 import { Link, useNavigate } from "react-router"
-import { LogOut, UserRound, Monitor, Moon, Search, Sun } from "lucide-react"
+import { Download, LogOut, UserRound, Monitor, Moon, Search, Sun } from "lucide-react"
 import { useAuth, useLogout } from "@/app/auth"
 import { useBranding } from "@/app/branding"
 import { useTheme, type Theme } from "@/components/theme-provider"
@@ -18,6 +18,7 @@ import {
 import { Kbd } from "@/components/ui/kbd"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { formatDate } from "@/lib/format"
+import { useInstallPrompt } from "@/lib/pwa"
 import { BrandMark } from "./brand-mark"
 import { CommandMenu } from "./command-menu"
 import { NotificationBell } from "./notification-bell"
@@ -99,6 +100,7 @@ export function AppHeader() {
 function UserMenu() {
   const { user } = useAuth()
   const logout = useLogout()
+  const install = useInstallPrompt()
   const navigate = useNavigate()
   if (!user) return null
   const initial = (user.first_name || user.username).charAt(0)
@@ -131,6 +133,11 @@ function UserMenu() {
               <UserRound /> حساب من
             </Link>
           </DropdownMenuItem>
+          {install && (
+            <DropdownMenuItem onSelect={install}>
+              <Download /> نصب نیک‌یار روی این دستگاه
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem
             variant="destructive"
             onSelect={() => logout.mutate(undefined, { onSettled: () => navigate("/login", { replace: true }) })}
