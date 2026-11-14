@@ -1,11 +1,14 @@
 """همگام‌سازی فهرست‌های اعلام‌شده در کد با پایگاه داده پس از هر migrate."""
 
+from core.kernel.database import is_main_database
 from core.kernel.registry import lookup_specs
 
 from .models import LookupItem, LookupList
 
 
 def sync_lookups(**kwargs):
+    if not is_main_database(kwargs):
+        return
     for spec in lookup_specs():
         lst, created = LookupList.objects.update_or_create(
             code=spec.code,

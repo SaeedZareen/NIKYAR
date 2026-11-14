@@ -14,6 +14,7 @@ from django.db import transaction
 from django.db.models import F
 from django.utils import timezone
 
+from core.kernel.database import is_main_database
 from core.kernel.registry import NumberingSpec, numbering_specs
 from core.org.fiscal import fiscal_year
 
@@ -65,6 +66,8 @@ def set_next(sequence: NumberSequence, next_number: int, at=None) -> None:
 
 def sync_sequences(**kwargs) -> None:
     """پس از هر migrate: شمارنده‌ی نوع‌های سند تازه‌اعلام‌شده با الگوی پیش‌فرض ساخته می‌شود."""
+    if not is_main_database(kwargs):
+        return
     existing = set(NumberSequence.objects.values_list("code", flat=True))
     NumberSequence.objects.bulk_create(
         NumberSequence(code=s.code, pattern=s.default_pattern, reset=s.default_reset) for s in numbering_specs() if s.code not in existing

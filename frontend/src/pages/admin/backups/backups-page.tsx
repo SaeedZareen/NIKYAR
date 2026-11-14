@@ -21,7 +21,7 @@ type RestoreResult = Schemas["RestoreResult"]
 const KEY = ["backups"]
 const EMPTY: Backup[] = []
 const col = columnHelper<Backup>()
-const TONES: Record<string, "info" | "success" | "warning" | "neutral"> = { manual: "info", daily: "success", "pre-restore": "warning", uploaded: "neutral" }
+const TONES: Record<string, "info" | "success" | "warning" | "neutral"> = { manual: "info", daily: "success", "pre-restore": "warning", "pre-switch": "warning", uploaded: "neutral" }
 
 export default function BackupsPage() {
   const { can } = useAuth()
@@ -75,6 +75,7 @@ export default function BackupsPage() {
             { value: "daily", label: "روزانه" },
             { value: "pre-restore", label: "پیش از بازیابی" },
             { value: "uploaded", label: "بارگذاری‌شده" },
+            { value: "pre-switch", label: "پیش از تغییر پایگاه داده" },
           ],
           exportValue: (b) => b.kind_label,
         },

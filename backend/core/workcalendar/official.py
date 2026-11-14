@@ -11,6 +11,8 @@ from pathlib import Path
 import jdatetime
 from django.db import transaction
 
+from core.kernel.database import is_main_database
+
 from .models import Holiday, OfficialYear
 
 DATA = Path(__file__).parent / "data" / "official_holidays.json"
@@ -46,6 +48,8 @@ def load_year(year: int) -> tuple[int, bool]:
 
 def load_bundled_years(**kwargs) -> None:
     """پس از هر migrate: تقویم منتشرشده‌ی سال‌هایی که هنوز بارگذاری نشده‌اند (نصب تازه یا به‌روزرسانی با داده‌ی سال جدید)."""
+    if not is_main_database(kwargs):
+        return
     done = set(OfficialYear.objects.values_list("year", flat=True))
     for year in published_years():
         if year not in done:

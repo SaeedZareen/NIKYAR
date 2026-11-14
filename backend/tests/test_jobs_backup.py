@@ -1,8 +1,11 @@
+import json
 import zipfile
 from datetime import datetime, timedelta
 
 import pytest
 from django.core.files.uploadedfile import SimpleUploadedFile
+from django.core.management import call_command
+from django.db import connection
 from django.utils import timezone
 
 from core.accounts.models import User
@@ -63,7 +66,7 @@ class TestJobs:
         assert client_for(make_user("clerk")).get("/api/jobs/").status_code == 403
 
 
-@pytest.mark.django_db(transaction=True)
+@pytest.mark.django_db(transaction=True, databases=["default", backup.STAGING])
 class TestBackup:
     def test_backup_restore_roundtrip(self, api, settings):
         api.put("/api/settings/org-profile/", {"name": "شرکت آزمون"}, format="json")
@@ -75,7 +78,8 @@ class TestBackup:
         name = r.json()["name"]
         assert r.json()["kind_label"] == "دستی" and r.json()["org_name"] == "شرکت آزمون"
         with zipfile.ZipFile(settings.DATA_DIR / "backups" / name) as z:
-            assert {"manifest.json", "nikyar.db", "media/files/a.bin"} <= set(z.namelist())
+            data = backup.DB_FILE if connection.vendor == "sqlite" else backup.DATA_FILE
+            assert {"manifest.json", data, "media/files/a.bin"} <= set(z.namelist())
 
         User.objects.create(username="after_backup")
         (media / "a.bin").unlink()
@@ -114,3 +118,28 @@ class TestBackup:
         assert backup.prune(1) == 2
         assert sorted(b.kind for b in backup.list_backups()) == ["daily", "manual"]
         assert TASKS["backup.daily"].func().endswith("پشتیبان روزانه‌ی قدیمی حذف شد.")
+
+    def test_restore_either_format_on_this_engine(self, api, settings, tmp_path):
+        """پشتیبان SQLite (nikyar.db) و پشتیبان مستقل از پایگاه (data.jsonl) روی پایگاه فعلی بازیابی می‌شوند؛ انتقال SQLite به PostgreSQL همین است."""
+        User.objects.create(username="in_backup")
+        manifest = backup.read_manifest(backup.backup_dir() / backup.create("manual").name)
+        jsonl = tmp_path / backup.DATA_FILE
+        backup._dump(backup.DEFAULT, jsonl)
+        sqlite_file = tmp_path / "copy.db"
+        with backup._staging(sqlite_file) as alias:
+            call_command("migrate", database=alias, verbosity=0)
+            call_command("flush", database=alias, verbosity=0, interactive=False, inhibit_post_migrate=True)
+            call_command("loaddata", str(jsonl), database=alias, verbosity=0)
+
+        for fmt, (source, arcname) in {1: (sqlite_file, backup.DB_FILE), 2: (jsonl, backup.DATA_FILE)}.items():
+            archive = tmp_path / f"format{fmt}.zip"
+            with zipfile.ZipFile(archive, "w") as z:
+                z.writestr("manifest.json", json.dumps({**manifest, "format": fmt}))
+                z.write(source, arcname)
+            User.objects.filter(username="in_backup").delete()
+            User.objects.create(username=f"after_{fmt}")
+            r = api.post("/api/backups/upload-restore/", {"file": SimpleUploadedFile("b.zip", archive.read_bytes()), "confirm": "بازیابی"}, format="multipart")
+            assert r.status_code == 200, r.json()
+            assert User.objects.filter(username="in_backup").exists() and not User.objects.filter(username=f"after_{fmt}").exists()
+            # کلیدهای اصلی و شمارنده‌ها سالم: ردیف تازه پس از بازیابی ساخته می‌شود
+            assert User.objects.create(username=f"new_{fmt}").pk > User.objects.get(username="in_backup").pk
