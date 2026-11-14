@@ -1,4 +1,5 @@
-// سرور جنگو برای آزمون مرورگر: پایگاه داده‌ی تازه در پوشه‌ی موقت، داده‌ی نمونه، سپس اجرا.
+// سرور جنگو برای آزمون مرورگر: پایگاه داده‌ی تازه در پوشه‌ی موقت، سپس اجرا. داده‌ی نمونه را نخستین آزمون
+// (auth.setup.ts) با جادوگر «راه‌اندازی نخستین» در حالت «نسخه‌ی نمایشی» می‌سازد.
 // داده‌ی نصب واقعی (backend/data) هرگز لمس نمی‌شود.
 import { spawn, spawnSync } from "node:child_process"
 import { rmSync } from "node:fs"
@@ -19,7 +20,7 @@ const env = {
 rmSync(dataDir, { recursive: true, force: true })
 // آزمون‌های هم‌زمان بارها وارد می‌شوند و فرم ثبت می‌کنند؛ سقف‌های «سامانه و امنیت» برای این سرور بالا برده می‌شود.
 const limits = `from core.settings.models import SettingsValue; SettingsValue.objects.create(section="system", values={"login_rate": 1000, "submit_rate": 1000})`
-for (const args of [["migrate", "-v", "0"], ["seed_demo"], ["shell", "-c", limits]]) {
+for (const args of [["migrate", "-v", "0"], ["shell", "-c", limits]]) {
   const r = spawnSync(python, ["manage.py", ...args], { cwd: backend, env, stdio: "inherit" })
   if (r.status !== 0) process.exit(r.status ?? 1)
 }

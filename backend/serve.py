@@ -43,6 +43,7 @@ def main() -> None:
 
     from config.wsgi import application
     from core.jobs.worker import start_in_background
+    from core.setup import service as setup
 
     if not (settings.FRONTEND_DIST / "index.html").exists():
         sys.exit("Frontend is not built. Run install.bat first.")
@@ -54,6 +55,10 @@ def main() -> None:
         print(f"  From other devices (LAN): http://{ip}:{args.port}")
     print("Background jobs (daily backup, cleanup) run in this window too.")
     print("Press Ctrl+C to stop.\n", flush=True)
+    if setup.needed():
+        # فقط کسی که پنجره‌ی سرور را می‌بیند کد را می‌داند؛ جادوگر بی آن پایان نمی‌یابد
+        print("First-run setup: open the address above in a browser and enter this setup code:")
+        print(f"  {setup.code()}\n", flush=True)
 
     start_in_background()
 

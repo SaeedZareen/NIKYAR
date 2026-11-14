@@ -6,6 +6,7 @@ import { addDays, addYears, getMonth, getYear, newDate } from "date-fns-jalali"
 import { FormField } from "@/components/form/form-field"
 import { applyServerErrors } from "@/components/form/server-errors"
 import { useAppForm } from "@/components/form/use-app-form"
+import { MONTHS } from "@/app/work-calendar"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { api, unwrap, type Schemas } from "@/lib/api/client"
 import { formatDate } from "@/lib/format"
@@ -14,7 +15,6 @@ import { SettingsForm, SettingsLoader, type SectionInfo } from "./settings-form"
 type Fiscal = Schemas["FiscalYearSettings"]
 type Month = Schemas["StartMonthEnum"]
 const KEY = ["settings", "fiscal-year"]
-const MONTHS = ["فروردین", "اردیبهشت", "خرداد", "تیر", "مرداد", "شهریور", "مهر", "آبان", "آذر", "دی", "بهمن", "اسفند"]
 
 const schema = z.object({ start_month: z.string() })
 const LABELS = { start_month: "ماه آغاز سال مالی" }

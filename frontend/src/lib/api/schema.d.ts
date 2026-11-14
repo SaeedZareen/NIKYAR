@@ -2377,6 +2377,30 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/setup/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * @description راه‌اندازی نخستین، بی ورود: GET وضعیت (آیا هنوز کاربری نیست) و شناسه‌ی نصب؛ POST پایان راه‌اندازی با کد
+         *     راه‌اندازی (پنجره‌ی سرور). پس از ساخت نخستین کاربر برای همیشه بسته است.
+         */
+        get: operations["setup_retrieve"];
+        put?: never;
+        /**
+         * @description راه‌اندازی نخستین، بی ورود: GET وضعیت (آیا هنوز کاربری نیست) و شناسه‌ی نصب؛ POST پایان راه‌اندازی با کد
+         *     راه‌اندازی (پنجره‌ی سرور). پس از ساخت نخستین کاربر برای همیشه بسته است.
+         */
+        post: operations["setup_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/workflow/comments/": {
         parameters: {
             query?: never;
@@ -5652,6 +5676,12 @@ export interface components {
             /** نشانی سامانه */
             site_url?: string;
         };
+        /**
+         * @description * `org` - راه‌اندازی سازمان
+         *     * `demo` - نسخه‌ی نمایشی
+         * @enum {string}
+         */
+        ModeEnum: "org" | "demo";
         Module: {
             code: string;
             title: string;
@@ -6925,6 +6955,54 @@ export interface components {
             readonly last_number: number;
             /** @description شماره‌ای که سند بعدی می‌گیرد. */
             readonly next_preview: string;
+        };
+        SetupRequestRequest: {
+            /** کد راه‌اندازی */
+            code: string;
+            /** نوع راه‌اندازی */
+            mode: components["schemas"]["ModeEnum"];
+            /** نام کامل سازمان */
+            org_name?: string;
+            /** نام کوتاه */
+            short_name?: string;
+            /**
+             * لوگو
+             * Format: binary
+             */
+            logo?: string;
+            /**
+             * ماه آغاز سال مالی
+             * @default 1
+             */
+            fiscal_start_month: number;
+            /**
+             * روزها و ساعت کاری
+             * @description JSON فهرست {day, start, end}
+             */
+            work_days?: string;
+            /** نام */
+            first_name?: string;
+            /** نام خانوادگی */
+            last_name?: string;
+            /** نام کاربری */
+            username?: string;
+            /** گذرواژه */
+            password?: string;
+            /** موبایل */
+            mobile?: string;
+            /** ایمیل */
+            email?: string;
+            /**
+             * فایل لایسنس
+             * Format: binary
+             */
+            license?: string;
+        };
+        SetupStatus: {
+            /** @description هنوز هیچ کاربری نیست */
+            needed: boolean;
+            /** @description شناسه‌ی نصب برای درخواست لایسنس */
+            install_id: string;
         };
         /**
          * @description * `` - بدون پیامک
@@ -12218,6 +12296,55 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["WorkWeekSettings"];
                 };
+            };
+        };
+    };
+    setup_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SetupStatus"];
+                };
+            };
+        };
+    };
+    setup_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["SetupRequestRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Me"];
+                };
+            };
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
