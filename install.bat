@@ -45,7 +45,20 @@ popd
 
 echo [4/4] Preparing the database...
 pushd backend
+set "FRESH="
+if not exist "data\nikyar.db" if not exist "data\database.json" set "FRESH=1"
 ..\.venv\Scripts\python manage.py migrate -v 0 || (popd & goto :fail)
+if defined FRESH (
+  echo.
+  echo Which database should NIKYAR use?
+  echo   1. Built-in database ^(recommended; nothing else to install^)
+  echo   2. A PostgreSQL server ^(larger organisations; it must already be installed^)
+  set "DBCHOICE=1"
+  set /p "DBCHOICE=Choose 1 or 2 [1]: "
+)
+if defined FRESH if "%DBCHOICE%"=="2" (
+  ..\.venv\Scripts\python manage.py database postgres --yes || echo NIKYAR keeps the built-in database; you can move later with database-tool.bat.
+)
 ..\.venv\Scripts\python manage.py collectstatic --noinput -v 0 || (popd & goto :fail)
 popd
 
@@ -53,6 +66,7 @@ echo.
 echo Done. Run start.bat to start NIKYAR.
 echo The first time, open it in a browser to finish setup: the setup code is shown in the start.bat window.
 echo (Choose "demo" there to try NIKYAR with sample data: username admin, password nikyar123.)
+echo To run NIKYAR in the background and start it with Windows, use service.bat instead of start.bat.
 pause
 exit /b 0
 
