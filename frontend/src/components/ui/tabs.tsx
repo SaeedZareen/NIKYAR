@@ -21,10 +21,11 @@ function Tabs({
   )
 }
 
-// نیک‌یار: max-w-full و overflow-x-auto تا زبانه‌های زیاد (مثل صفحه‌ی پرونده) روی موبایل درون خودشان پیمایش شوند و صفحه را پهن نکنند؛
+// نیک‌یار: max-w-full و overflow-x-auto تا زبانه‌های زیاد (مثل صفحه‌ی پرونده) روی موبایل درون خودشان پیمایش شوند و صفحه را پهن نکنند
+// (بی نوار پیمایش و بی پیمایش عمودی: در ویندوز یک پیکسل سرریز ارتفاع نوار پیمایش عمودی با پیکان می‌ساخت)؛
 // justify-start تا در راست‌به‌چپ ابتدای فهرست بیرون نماند.
 const tabsListVariants = cva(
-  "group/tabs-list inline-flex w-fit max-w-full overflow-x-auto items-center justify-start rounded-lg p-[3px] text-muted-foreground group-data-horizontal/tabs:h-8 group-data-vertical/tabs:h-fit group-data-vertical/tabs:flex-col data-[variant=line]:rounded-none",
+  "group/tabs-list inline-flex w-fit max-w-full overflow-x-auto overflow-y-hidden [scrollbar-width:none] items-center justify-start rounded-lg p-[3px] text-muted-foreground group-data-horizontal/tabs:h-8 group-data-vertical/tabs:h-fit group-data-vertical/tabs:flex-col data-[variant=line]:rounded-none",
   {
     variants: {
       variant: {
