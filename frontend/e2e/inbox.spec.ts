@@ -144,7 +144,7 @@ test.describe("کارتابل", () => {
     const role = await call(page, "POST", "/api/auth/roles/", { name: unique("کمیسیون"), permissions: [] })
     const names = [unique("m1"), unique("m2")]
     for (const [i, username] of names.entries())
-      await call(page, "POST", "/api/auth/users/", { username, first_name: "عضو", last_name: `کمیسیون ${i + 1}`, gender: "male", password: PASSWORD, roles: [role.id] })
+      await call(page, "POST", "/api/auth/users/", { username, first_name: "عضو", last_name: `کمیسیون ${i + 1}`, gender: "male", must_change_password: false, password: PASSWORD, roles: [role.id] })
     const form = await call(page, "POST", "/api/forms/", { code: unique("cm").replace(/_/g, "-"), title: "فرم کمیسیون", fill_by_everyone: true })
     await call(page, "PATCH", `/api/forms/versions/${form.draft_version}/`, { definition: { sections: [{ id: "s", fields: [{ id: "subject", type: "text", label: "موضوع" }] }] } })
     await call(page, "POST", `/api/forms/versions/${form.draft_version}/publish/`)

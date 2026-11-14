@@ -25,10 +25,15 @@ async function signIn(browser: Browser, page: Page, username: string, password: 
 
 const unique = (name: string, info: { project: { name: string } }) => `${name}_${info.project.name}_${Date.now()}`
 
+/** کاربر آزمون پس از کار غیرفعال می‌شود تا سقف ۵۰ کاربر فعال دوره‌ی آزمایشی در اجرای کامل پر نشود. */
+async function retire(page: Page, user: { id: number }) {
+  await adminApi(page, "PATCH", `/api/auth/users/${user.id}/`, { is_active: false })
+}
+
 test("گذرواژه‌ی موقت: تعیین گذرواژه‌ی تازه پیش از هر کار", async ({ page, browser }, info) => {
   const username = unique("temp", info)
   await page.goto("/")
-  await adminApi(page, "POST", "/api/auth/users/", { username, first_name: "تارا", last_name: "تازه‌وارد", gender: "female", password: "Temp-Pass-123" })
+  const created = await adminApi(page, "POST", "/api/auth/users/", { username, first_name: "تارا", last_name: "تازه‌وارد", gender: "female", password: "Temp-Pass-123" })
   const { context, other } = await signIn(browser, page, username, "Temp-Pass-123")
   await expect(other.getByRole("heading", { level: 1, name: "تعیین گذرواژه‌ی تازه" })).toBeVisible()
   await expectAccessible(other)
@@ -44,12 +49,13 @@ test("گذرواژه‌ی موقت: تعیین گذرواژه‌ی تازه پی
   await form.getByRole("button", { name: "ذخیره‌ی تغییرات" }).click()
   await expect(other.getByText("خوش آمدید", { exact: false })).toBeVisible()
   await context.close()
+  await retire(page, created)
 })
 
 test("دستگاه‌های من: خروج از دستگاه دیگر", async ({ page, browser }, info) => {
   const username = unique("dev", info)
   await page.goto("/")
-  await adminApi(page, "POST", "/api/auth/users/", { username, first_name: "داوود", last_name: "دودستگاهی", gender: "male", must_change_password: false, password: "Two-Devices-1" })
+  const created = await adminApi(page, "POST", "/api/auth/users/", { username, first_name: "داوود", last_name: "دودستگاهی", gender: "male", must_change_password: false, password: "Two-Devices-1" })
   const first = await signIn(browser, page, username, "Two-Devices-1")
   const second = await signIn(browser, page, username, "Two-Devices-1")
   await expect(second.other.getByText("خوش آمدید", { exact: false })).toBeVisible()
@@ -63,12 +69,13 @@ test("دستگاه‌های من: خروج از دستگاه دیگر", async ({
   await expect(second.other.getByRole("heading", { name: "ورود به سامانه" })).toBeVisible()
   await first.context.close()
   await second.context.close()
+  await retire(page, created)
 })
 
 test("قفل حساب پس از تلاش‌های ناموفق و بازکردن آن در «کاربران»", async ({ page, browser }, info) => {
   const username = unique("lock", info)
   await page.goto("/")
-  await adminApi(page, "POST", "/api/auth/users/", { username, first_name: "لیلا", last_name: `قفلی ${info.project.name}`, gender: "female", must_change_password: false, password: "Right-Pass-1" })
+  const created = await adminApi(page, "POST", "/api/auth/users/", { username, first_name: "لیلا", last_name: `قفلی ${info.project.name}`, gender: "female", must_change_password: false, password: "Right-Pass-1" })
   const { context, other } = await signIn(browser, page, username, "wrong-1")
   for (let i = 0; i < 4; i++) {
     await other.getByLabel("گذرواژه", { exact: true }).fill(`wrong-${i}`)
@@ -89,6 +96,7 @@ test("قفل حساب پس از تلاش‌های ناموفق و بازکردن
   const again = await signIn(browser, page, username, "Right-Pass-1")
   await expect(again.other.getByText("خوش آمدید", { exact: false })).toBeVisible()
   await again.context.close()
+  await retire(page, created)
 })
 
 test("تنظیمات امنیت ورود", async ({ page }) => {
@@ -104,7 +112,7 @@ test("تنظیمات امنیت ورود", async ({ page }) => {
 test("خروج پس از بی‌کاری با هشدار و «ادامه‌ی کار»", async ({ page, browser }, info) => {
   const username = unique("idle", info)
   await page.goto("/")
-  await adminApi(page, "POST", "/api/auth/users/", { username, first_name: "ایرج", last_name: "بی‌کار", gender: "male", must_change_password: false, password: "Idle-Pass-123" })
+  const created = await adminApi(page, "POST", "/api/auth/users/", { username, first_name: "ایرج", last_name: "بی‌کار", gender: "male", must_change_password: false, password: "Idle-Pass-123" })
   const context = await browser.newContext({ storageState: { cookies: [], origins: [] }, viewport: page.viewportSize() ?? undefined })
   const other = await context.newPage()
   await other.clock.install()
@@ -124,4 +132,5 @@ test("خروج پس از بی‌کاری با هشدار و «ادامه‌ی ک
   await other.clock.fastForward("01:00")
   await expect(other.getByText("به دلیل بی‌کاری از سامانه خارج شدید؛ دوباره وارد شوید.")).toBeVisible()
   await context.close()
+  await retire(page, created)
 })
