@@ -49,7 +49,9 @@ test.describe("پیامک و ایمیل", () => {
     await expect(tests.getByRole("status").filter({ hasText: "ایمیل آزمایشی به owner@example.ir فرستاده شد." })).toBeVisible()
 
     const log = page.getByRole("region", { name: "گزارش ارسال‌ها" })
-    await expect(log.locator("tbody tr").filter({ hasText: "ارسال شد" })).toHaveCount(2)
+    // آزمون‌های دیگر (کد ورود) هم پیامک می‌فرستند؛ فقط همین دو ارسال
+    await expect(log.locator("tbody tr").filter({ hasText: "ارسال شد" }).filter({ hasText: "owner@example.ir" }).first()).toBeVisible()
+    await expect(log.locator("tbody tr").filter({ hasText: "ارسال شد" }).filter({ hasText: "پیام آزمایشی نیک‌یار: تنظیمات پیامک" }).first()).toBeVisible()
   })
 
   test("انتخاب کاربر برای دریافت اعلان با پیامک و ایمیل", async ({ page }) => {

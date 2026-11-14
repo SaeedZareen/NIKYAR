@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from "node:fs"
+import { existsSync, readdirSync, readFileSync } from "node:fs"
 import { tmpdir } from "node:os"
 import path from "node:path"
 import { expect, test, type Browser, type Page } from "@playwright/test"
@@ -24,9 +24,7 @@ async function lastCode(mobile: string, after: number) {
   let code = ""
   await expect
     .poll(() => {
-      const files = readdirSync(OUTBOX)
-        .filter((f) => f.startsWith("sms-") && f.endsWith(`-${mobile}.json`))
-        .sort()
+      const files = (existsSync(OUTBOX) ? readdirSync(OUTBOX) : []).filter((f) => f.startsWith("sms-") && f.endsWith(`-${mobile}.json`)).sort()
       const text = files.length ? JSON.parse(readFileSync(path.join(OUTBOX, files.at(-1)!), "utf8")).text : ""
       const stamp = files.length ? Number(files.at(-1)!.slice(4, 18)) : 0
       code = stamp >= after ? ((text.match(/[۰-۹]{6}/) ?? [""])[0] as string) : ""
@@ -50,7 +48,8 @@ test("رمز دوم پیامکی برای یک نقش", async ({ page, browser }
   test.skip(test.info().project.name !== "desktop")
   const id = Date.now()
   await page.goto("/")
-  await adminApi(page, "PUT", "/api/settings/messaging/", { ...(await adminApi(page, "GET", "/api/settings/messaging/")), ...SMS })
+  const messaging = await adminApi(page, "GET", "/api/settings/messaging/")
+  await adminApi(page, "PUT", "/api/settings/messaging/", { ...messaging, ...SMS })
   const role = await adminApi(page, "POST", "/api/auth/roles/", { name: `رمز دوم ${id}`, permissions: [] })
   const mobile = `0912${String(id).slice(-7)}`
   const user = await adminApi(page, "POST", "/api/auth/users/", {
@@ -83,6 +82,7 @@ test("رمز دوم پیامکی برای یک نقش", async ({ page, browser }
     await context.close()
   } finally {
     await adminApi(page, "PUT", "/api/settings/system/", { ...system, two_factor: "off", two_factor_roles: [] })
+    await adminApi(page, "PUT", "/api/settings/messaging/", messaging)
     await adminApi(page, "PATCH", `/api/auth/users/${user.id}/`, { is_active: false })
   }
 })
@@ -91,7 +91,8 @@ test("فراموشی گذرواژه با کد پیامکی", async ({ page, brow
   test.skip(test.info().project.name !== "desktop")
   const id = Date.now()
   await page.goto("/")
-  await adminApi(page, "PUT", "/api/settings/messaging/", { ...(await adminApi(page, "GET", "/api/settings/messaging/")), ...SMS })
+  const messaging = await adminApi(page, "GET", "/api/settings/messaging/")
+  await adminApi(page, "PUT", "/api/settings/messaging/", { ...messaging, ...SMS })
   const mobile = `0935${String(id).slice(-7)}`
   const user = await adminApi(page, "POST", "/api/auth/users/", {
     username: `fp_${id}`,
@@ -120,6 +121,7 @@ test("فراموشی گذرواژه با کد پیامکی", async ({ page, brow
   await other.getByRole("button", { name: "ورود" }).click()
   await expect(other.getByText("خوش آمدید", { exact: false })).toBeVisible()
   await context.close()
+  await adminApi(page, "PUT", "/api/settings/messaging/", messaging)
   await adminApi(page, "PATCH", `/api/auth/users/${user.id}/`, { is_active: false })
 })
 
