@@ -12,10 +12,10 @@ import secrets
 from pathlib import Path
 
 from django.conf import settings
-from django.contrib.auth import login
 from django.core.management import call_command
 from django.db import transaction
 
+from core.accounts import security
 from core.accounts.models import User
 from core.files import service as files
 from core.kernel.api import BusinessError
@@ -91,8 +91,7 @@ def finish_org(request, data: dict) -> User:
         except (UnicodeDecodeError, LicenseError) as e:
             message = str(e) if isinstance(e, LicenseError) else "این فایل، لایسنس نیک‌یار نیست یا خراب است."
             raise BusinessError(message, {"license": message}) from None
-    login(request, admin)
-    request.session.set_expiry(settings_service.read("system")["session_hours"] * 3600)
+    security.start_session(request, admin)
     transaction.on_commit(_finished)
     return admin
 

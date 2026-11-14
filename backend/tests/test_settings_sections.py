@@ -20,7 +20,19 @@ LEAVE = "/api/settings/hr-leave/"
 @pytest.mark.django_db
 class TestSystem:
     def test_defaults_and_range_messages(self, api):
-        assert api.get(SYSTEM).json() == {"session_hours": 10, "login_rate": 10, "submit_rate": 10, "quick_link_days": 3, "jobs_keep_days": 30}
+        assert api.get(SYSTEM).json() == {
+            "session_hours": 10,
+            "login_rate": 10,
+            "submit_rate": 10,
+            "quick_link_days": 3,
+            "jobs_keep_days": 30,
+            "password_min_length": 8,
+            "password_mixed": True,
+            "password_expire_days": 0,
+            "lockout_attempts": 5,
+            "lockout_minutes": 15,
+            "idle_minutes": 30,
+        }
         r = api.put(SYSTEM, {"session_hours": 0, "quick_link_days": 31}, format="json")
         assert r.status_code == 400
         assert r.json()["fields"] == {"session_hours": "دست‌کم ۱ ساعت.", "quick_link_days": "حداکثر ۳۰ روز."}

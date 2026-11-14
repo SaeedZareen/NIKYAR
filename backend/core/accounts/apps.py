@@ -36,4 +36,11 @@ class AccountsConfig(AppConfig):
             placeholders={"when": ("زمان تغییر", "۱۴۰۵/۰۸/۱۶ ۱۰:۲۰"), "by": ("تغییردهنده", "خودتان")},
             channels=("sms", "email"),
         ),
+        NotificationKind(
+            code="accounts.locked",
+            title="قفل شدن حساب",
+            template="حساب شما پس از چند تلاش ناموفق ورود تا {until} قفل شد. اگر این تلاش‌ها کار شما نبوده، به راهبر سامانه خبر دهید.",
+            placeholders={"until": ("پایان قفل", "۱۴۰۵/۰۸/۱۶ ۱۰:۳۵")},
+            channels=("sms", "email"),
+        ),
     ]
