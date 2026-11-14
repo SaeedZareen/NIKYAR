@@ -47,13 +47,12 @@ echo [4/4] Preparing the database...
 pushd backend
 ..\.venv\Scripts\python manage.py migrate -v 0 || (popd & goto :fail)
 ..\.venv\Scripts\python manage.py collectstatic --noinput -v 0 || (popd & goto :fail)
-rem Demo data is created only on a fresh database (no users yet); real data is never touched.
-..\.venv\Scripts\python manage.py seed_demo || (popd & goto :fail)
 popd
 
 echo.
 echo Done. Run start.bat to start NIKYAR.
-echo Demo sign-in: username admin, password nikyar123
+echo The first time, open it in a browser to finish setup: the setup code is shown in the start.bat window.
+echo (Choose "demo" there to try NIKYAR with sample data: username admin, password nikyar123.)
 pause
 exit /b 0
 

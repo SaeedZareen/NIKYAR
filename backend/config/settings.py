@@ -64,6 +64,7 @@ INSTALLED_APPS = [
     "core.licensing",
     "core.forms",
     "core.workflow",
+    "core.setup",
     # ماژول‌های قابل فروش (backend/modules)؛ هسته به آن‌ها وابسته نیست.
     "modules.hr",
 ]

@@ -4,6 +4,7 @@ import { z } from "zod"
 import { LogIn } from "lucide-react"
 import { useLogin, useSession } from "@/app/auth"
 import { useBranding } from "@/app/branding"
+import { useSetupStatus } from "@/app/setup"
 import { ErrorSummary } from "@/components/form/error-summary"
 import { FormField } from "@/components/form/form-field"
 import { applyServerErrors } from "@/components/form/server-errors"
@@ -32,11 +33,13 @@ export default function LoginPage() {
   const { name: orgName, version } = useBranding()
   const form = useAppForm(schema, { username: "", password: "" })
   const next = safeNext(params.get("next"))
+  const setup = useSetupStatus()
   React.useEffect(() => {
     document.title = "ورود · نیک‌یار"
   }, [])
 
   if (session.data) return <Navigate to={next} replace />
+  if (setup.data?.needed) return <Navigate to="/setup" replace />
 
   const onSubmit = form.handleSubmit(async (values) => {
     try {
