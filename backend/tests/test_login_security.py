@@ -182,3 +182,32 @@ def test_device_names():
     assert security.device_name("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36 Edg/120") == "Edge روی ویندوز"
     assert security.device_name("Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) Safari/604.1") == "Safari روی آیفون"
     assert security.device_name("curl/8.0") == "مرورگر ناشناخته"
+
+
+@pytest.mark.django_db
+def test_user_manager_cannot_take_over_a_superuser(client_for, make_user, admin):
+    manager = make_user("usermgr", permissions=["accounts.users.view", "accounts.users.manage"])
+    c = client_for(manager)
+    assert c.get(f"/api/auth/users/{admin.pk}/").status_code == 200
+    r = c.patch(f"/api/auth/users/{admin.pk}/", {"password": "Taken-Over-1"}, format="json")
+    assert r.status_code == 400 and r.json()["detail"] == "فقط مدیر کل می‌تواند حساب مدیر کل را تغییر دهد."
+    assert c.post(f"/api/auth/users/{admin.pk}/end-sessions/").status_code == 400
+    other = make_user("plain")
+    assert c.patch(f"/api/auth/users/{other.pk}/", {"first_name": "تازه"}, format="json").status_code == 200
+
+
+@pytest.mark.django_db
+def test_nobody_grants_permissions_they_do_not_hold(client_for, make_user, api):
+    from core.accounts.models import Role
+
+    powerful = Role.objects.create(name="همه‌کاره", permissions=["backup.manage", "accounts.users.manage"])
+    mild = Role.objects.create(name="بیننده", permissions=["accounts.users.view"])
+    manager = make_user("rolemgr", permissions=["accounts.users.view", "accounts.users.manage", "accounts.roles.manage"])
+    c = client_for(manager)
+    r = c.patch(f"/api/auth/users/{manager.pk}/", {"roles": [*manager.roles.values_list("pk", flat=True), powerful.pk]}, format="json")
+    assert r.status_code == 400 and "همه‌کاره" in r.json()["fields"]["roles"]
+    assert c.patch(f"/api/auth/users/{manager.pk}/", {"roles": [*manager.roles.values_list("pk", flat=True), mild.pk]}, format="json").status_code == 200
+    r = c.patch(f"/api/auth/roles/{mild.pk}/", {"permissions": ["accounts.users.view", "backup.manage"]}, format="json")
+    assert r.status_code == 400 and "پشتیبان‌گیری و بازیابی" in r.json()["fields"]["permissions"]
+    # مدیر کل همه را می‌دهد
+    assert api.patch(f"/api/auth/roles/{mild.pk}/", {"permissions": ["accounts.users.view", "backup.manage"]}, format="json").status_code == 200

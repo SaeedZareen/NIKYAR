@@ -275,6 +275,13 @@ class UserViewSet(AuditedModelViewSet):
         current = Assignment.objects.current(today).select_related("position__unit")
         return User.objects.prefetch_related("roles", Prefetch("assignments", queryset=current, to_attr="current_assignments"))
 
+    def get_object(self):
+        user = super().get_object()
+        # راهبر کاربران (بی مدیر کل بودن) با تغییر گذرواژه‌ی مدیر کل یا بستن ورودهایش اختیار او را نمی‌گیرد
+        if self.action != "retrieve" and user.is_superuser and not self.request.user.is_superuser:
+            raise BusinessError("فقط مدیر کل می‌تواند حساب مدیر کل را تغییر دهد.")
+        return user
+
     @extend_schema(request=None, responses={204: None})
     @action(detail=True, methods=["post"])
     def unlock(self, request, pk=None):

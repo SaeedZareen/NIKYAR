@@ -16,6 +16,11 @@ from . import security
 from .models import Role, User
 
 
+def granter_permissions(user) -> set[str]:
+    """مجوزهایی که این کاربر می‌تواند به نقش یا کاربری بدهد: همه برای مدیر کل، وگرنه فقط مجوزهای خودش."""
+    return set(all_permissions()) if user.is_superuser else set(user.permission_codes())
+
+
 class RoleSerializer(serializers.ModelSerializer):
     user_count = serializers.IntegerField(read_only=True)
     permissions = serializers.ListField(child=serializers.CharField(), required=False, label="مجوزها")
@@ -29,6 +34,10 @@ class RoleSerializer(serializers.ModelSerializer):
         unknown = [code for code in value if code not in known]
         if unknown:
             raise serializers.ValidationError(f"مجوز ناشناخته: {'، '.join(unknown)}")
+        before = set(self.instance.permissions) if self.instance else set()
+        missing = sorted(set(value) - before - granter_permissions(self.context["request"].user))
+        if missing:
+            raise serializers.ValidationError(f"این مجوزها را خودتان ندارید و نمی‌توانید به نقشی بدهید: {'، '.join(known[c] for c in missing)}")
         return sorted(set(value))
 
 
@@ -91,6 +100,14 @@ class UserSerializer(serializers.ModelSerializer):
             return ""
         validate_mobile(value)
         return normalize_mobile(value)
+
+    def validate_roles(self, value):
+        before = set(self.instance.roles.all()) if self.instance else set()
+        allowed = granter_permissions(self.context["request"].user)
+        too_much = [r.name for r in value if r not in before and not set(r.permissions) <= allowed]
+        if too_much:
+            raise serializers.ValidationError(f"نقش «{too_much[0]}» مجوزهایی دارد که خودتان ندارید؛ فقط مدیر کل یا دارنده‌ی همه‌ی آن مجوزها می‌تواند آن را بدهد.")
+        return value
 
     def validate_is_superuser(self, value):
         request = self.context.get("request")
