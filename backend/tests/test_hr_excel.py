@@ -108,3 +108,19 @@ def test_template_and_export(client_for, hr_admin):  # noqa: F811
     header = [c.value for c in sheet[1]]
     row = dict(zip(header, [c.value for c in sheet[2]], strict=True))
     assert row["نام"] == "سارا" and row["جنسیت"] == "زن" and row["وضعیت"] == "شاغل" and row["تاریخ استخدام"] == "1403/01/15"
+
+
+def test_export_never_writes_formulas(client_for, hr_admin):  # noqa: F811
+    """متن آغازشده با «=» در خروجی متن می‌ماند، نه فرمول (تزریق فرمول در اکسل)."""
+    Employee.objects.create(
+        personnel_code="1",
+        first_name='=HYPERLINK("http://x")',
+        last_name="آزمون",
+        national_code="0010350829",
+        gender="female",
+        hire_date="2024-04-03",
+        employment_type=LookupItem.objects.get(list__code="employment-type", code="contract"),
+    )
+    sheet = load_workbook(io.BytesIO(client_for(hr_admin).get(f"{URL}export/").content)).active
+    cell = sheet.cell(row=2, column=[c.value for c in sheet[1]].index("نام") + 1)
+    assert cell.data_type == "s" and cell.value == '=HYPERLINK("http://x")'

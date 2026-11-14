@@ -1,8 +1,10 @@
 import type { Row, RowData } from "@tanstack/react-table"
 import type { DataTableFeatures, DataTableInstance } from "./use-data-table"
 
-function csvCell(value: unknown): string {
-  const s = value == null ? "" : String(value)
+/** خانه‌ی CSV؛ متنی که با = + @ یا - (جز عدد منفی) آغاز شود با ' پیشوند می‌گیرد تا اکسل آن را فرمول اجرا نکند. */
+export function csvCell(value: unknown): string {
+  const raw = value == null ? "" : String(value)
+  const s = /^[=+@\t\r]|^-(?!\d+([.,]\d+)?$)/.test(raw) ? `'${raw}` : raw
   return /[",\n\r]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
 }
 
