@@ -247,3 +247,4 @@ class HrOnboardingSettings(serializers.Serializer):
 
 class HrServiceSettings(serializers.Serializer):
     contract_reminder_days = count_field("یادآوری پیش از پایان قرارداد (روز)", 30, 1, 180, "روز")
+    document_warning_days = count_field("هشدار پیش از پایان اعتبار مدارک (روز)", 30, 1, 365, "روز")

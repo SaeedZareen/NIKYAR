@@ -1,3 +1,4 @@
+from django.urls import path
 from rest_framework.routers import DefaultRouter
 
 from . import views
@@ -13,4 +14,8 @@ router.register("documents", views.DocumentViewSet, basename="hr-document")
 router.register("events", views.EventViewSet, basename="hr-event")
 router.register("letters", views.LetterViewSet, basename="hr-letter")
 
-urlpatterns = router.urls
+urlpatterns = [
+    path("report/", views.ReportView.as_view(), name="hr-report"),
+    path("dashboard/", views.DashboardView.as_view(), name="hr-dashboard"),
+    *router.urls,
+]

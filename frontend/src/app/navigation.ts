@@ -1,7 +1,7 @@
 // ساختار منوی اصلی. هر مورد مجوز لازم را اعلام می‌کند و فقط به کاربر دارای مجوز نمایش داده می‌شود.
 // ماژول‌ها گروه خودشان را دارند (منابع انسانی) و با پرچم نشست خود (`flag:…`) دیده می‌شوند.
 import type { LucideIcon } from "lucide-react"
-import { Bell, ChartColumn, IdCard, UserRoundCheck, FileCog, FilePlus2, Inbox, ListTodo, Building2, ClipboardList, FileCheck, FileSpreadsheet, PencilRuler, KeyRound, UserRound, UserRoundCog, CalendarDays, Component, DatabaseBackup, ListChecks, FormInput, History, LayoutDashboard, ListTree, PackageCheck, Settings, ShieldCheck, Table2, Users, Workflow } from "lucide-react"
+import { Bell, ChartColumn, ChartPie, IdCard, UserRoundCheck, FileCog, FilePlus2, Inbox, ListTodo, Building2, ClipboardList, FileCheck, FileSpreadsheet, PencilRuler, KeyRound, UserRound, UserRoundCog, CalendarDays, Component, DatabaseBackup, ListChecks, FormInput, History, LayoutDashboard, ListTree, PackageCheck, Settings, ShieldCheck, Table2, Users, Workflow } from "lucide-react"
 
 /**
  * مجوز مورد نیاز: کد مجوز، "superuser" (فقط مدیر کل؛ راهنمای توسعه)، "workflow-manager" (مجوز مدیریت درخواست‌ها یا مدیر یک فرایند؛ از نشست)، "forms-viewer"
@@ -55,6 +55,7 @@ const navigation: NavGroup[] = [
     items: [
       { title: "پرونده‌ی من", url: "/hr/me", icon: UserRoundCheck, access: "flag:hr_self", keywords: "پرونده پرسنلی من مشخصات سوابق" },
       { title: "پرونده‌های پرسنلی", url: "/hr/employees", icon: IdCard, access: "flag:hr_viewer", keywords: "کارمند پرسنل پرونده کارگزینی کد پرسنلی" },
+      { title: "گزارش نیروی انسانی", url: "/hr/report", icon: ChartPie, access: "flag:hr_viewer", keywords: "گزارش آمار کارکنان واحد جنسیت سن تحصیلات ورود خروج مدارک اعتبار نمودار" },
     ],
   },
   {

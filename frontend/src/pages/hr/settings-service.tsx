@@ -10,9 +10,12 @@ import { SettingsForm, SettingsLoader, UnitInput, type SectionInfo } from "@/pag
 
 type Service = Schemas["HrServiceSettings"]
 const KEY = ["settings", "hr-service"]
-const LABELS = { contract_reminder_days: "یادآوری پیش از پایان قرارداد" }
-const schema = z.object({ contract_reminder_days: countRule(LABELS.contract_reminder_days, 1, 180, "روز") })
-const toForm = (d: Service) => ({ contract_reminder_days: String(d.contract_reminder_days) })
+const LABELS = { contract_reminder_days: "یادآوری پیش از پایان قرارداد", document_warning_days: "هشدار پیش از پایان اعتبار مدارک" }
+const schema = z.object({
+  contract_reminder_days: countRule(LABELS.contract_reminder_days, 1, 180, "روز"),
+  document_warning_days: countRule(LABELS.document_warning_days, 1, 365, "روز"),
+})
+const toForm = (d: Service) => ({ contract_reminder_days: String(d.contract_reminder_days), document_warning_days: String(d.document_warning_days) })
 
 export function HrServiceSection({ section }: { section: SectionInfo }) {
   const query = useQuery({ queryKey: KEY, queryFn: () => unwrap(api.GET("/api/settings/hr-service/")) })
@@ -36,7 +39,7 @@ function ServiceForm({ section, data }: { section: SectionInfo; data: Service })
   })
   const onSubmit = form.handleSubmit(async (v) => {
     try {
-      await save.mutateAsync({ contract_reminder_days: Number(v.contract_reminder_days) })
+      await save.mutateAsync({ contract_reminder_days: Number(v.contract_reminder_days), document_warning_days: Number(v.document_warning_days) })
     } catch (e) {
       applyServerErrors(form, e)
     }
@@ -49,6 +52,14 @@ function ServiceForm({ section, data }: { section: SectionInfo; data: Service })
         label={LABELS.contract_reminder_days}
         required
         description="این چند روز پیش از «پایان قرارداد» هر کارمند (در زبانه‌ی «استخدام» پرونده)، به کارشناسان منابع انسانی و مدیر مستقیمش اعلان می‌رود که «تمدید قرارداد» را ثبت کنند؛ یک بار برای هر تاریخ پایان."
+        render={({ field, id, aria }) => <UnitInput id={id} unit="روز" digits={3} {...field} {...aria} />}
+      />
+      <FormField
+        control={form.control}
+        name="document_warning_days"
+        label={LABELS.document_warning_days}
+        required
+        description="مدارک کارکنان شاغل (زبانه‌ی «مدارک» پرونده) از این چند روز پیش از تاریخ اعتبار، و پس از گذشتن آن، در «گزارش نیروی انسانی» و ابزارک پیشخوان شمرده می‌شوند."
         render={({ field, id, aria }) => <UnitInput id={id} unit="روز" digits={3} {...field} {...aria} />}
       />
     </SettingsForm>

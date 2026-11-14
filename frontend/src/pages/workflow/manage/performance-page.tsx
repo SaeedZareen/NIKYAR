@@ -2,17 +2,15 @@ import * as React from "react"
 import { useForm, useWatch } from "react-hook-form"
 import { useQuery } from "@tanstack/react-query"
 import { subDays } from "date-fns-jalali"
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from "recharts"
 import type { RowData } from "@tanstack/react-table"
 import { columnHelper, DataTable, useDataTable, useTableView, type DataTableColumn } from "@/components/data-table"
 import { FormField } from "@/components/form/form-field"
 import { FormGrid } from "@/components/form/form-grid"
 import { JalaliDateInput } from "@/components/form/inputs"
 import { PageHeader } from "@/components/layout/page-header"
+import { RankChart, StatTiles } from "@/components/report"
 import { Section } from "@/components/layout/section"
-import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } from "@/components/ui/chart"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Skeleton } from "@/components/ui/skeleton"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { api, errorMessage, unwrap, type Schemas } from "@/lib/api/client"
@@ -113,27 +111,15 @@ export default function PerformancePage() {
 }
 
 function Summary({ summary }: { summary?: Report["summary"] }) {
-  const tiles = summary
-    ? [
-        { label: "درخواست‌ها", value: formatNumber(summary.requests), meta: `${formatNumber(summary.running)} در جریان` },
-        { label: "پایان‌یافته", value: formatNumber(summary.completed + summary.rejected), meta: `${formatNumber(summary.rejected)} رد شده · ${formatNumber(summary.cancelled)} لغو` },
-        { label: "میانگین زمان درخواست", value: hours(summary.avg_hours), meta: `بیشترین: ${hours(summary.max_hours)}` },
-        { label: "کارهای دیرکرده", value: formatNumber(summary.late), meta: summary.late_percent == null ? "کاری مهلت ندارد" : `${percent(summary.late_percent)} کارهای مهلت‌دار` },
-      ]
-    : []
+  const tiles = summary && [
+    { label: "درخواست‌ها", value: formatNumber(summary.requests), meta: `${formatNumber(summary.running)} در جریان` },
+    { label: "پایان‌یافته", value: formatNumber(summary.completed + summary.rejected), meta: `${formatNumber(summary.rejected)} رد شده · ${formatNumber(summary.cancelled)} لغو` },
+    { label: "میانگین زمان درخواست", value: hours(summary.avg_hours), meta: `بیشترین: ${hours(summary.max_hours)}` },
+    { label: "کارهای دیرکرده", value: formatNumber(summary.late), meta: summary.late_percent == null ? "کاری مهلت ندارد" : `${percent(summary.late_percent)} کارهای مهلت‌دار` },
+  ]
   return (
     <Section title="خلاصه">
-      <dl className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {summary
-          ? tiles.map((t) => (
-              <div key={t.label} className="flex flex-col gap-1 rounded-lg border bg-background p-3">
-                <dt className="text-xs text-muted-foreground">{t.label}</dt>
-                <dd className="text-lg font-bold tabular-nums">{t.value}</dd>
-                <dd className="text-2xs text-muted-foreground">{t.meta}</dd>
-              </div>
-            ))
-          : Array.from({ length: 4 }, (_, i) => <Skeleton key={i} className="h-20" />)}
-      </dl>
+      <StatTiles tiles={tiles} />
     </Section>
   )
 }
@@ -177,43 +163,6 @@ function Details({ data, loading }: { data?: Report; loading: boolean }) {
         <UnitsTable rows={data?.units ?? []} loading={loading} />
       </TabsContent>
     </Tabs>
-  )
-}
-
-/** نمودار میله‌ای افقی تک‌سری (بی راهنمای رنگ؛ عنوان نام سری است)؛ جدول زیر همان داده را کامل دارد. */
-function RankChart({
-  title,
-  description,
-  rows,
-  label,
-  empty,
-  integer,
-}: {
-  title: string
-  description: string
-  rows: { name: string; value: number }[]
-  label: string
-  empty: string
-  integer?: boolean
-}) {
-  const config = { value: { label, color: "var(--chart-1)" } } satisfies ChartConfig
-  return (
-    <Section title={title} description={description}>
-      {rows.length ? (
-        <ChartContainer config={config} className="w-full" style={{ height: rows.length * 36 + 32 }} role="img" aria-label={`${title}: ${rows.map((r) => `${r.name} ${formatNumber(r.value)}`).join("، ")}`}>
-          <BarChart data={rows} layout="vertical" margin={{ left: 8, right: 8 }} barCategoryGap={6}>
-            <CartesianGrid horizontal={false} />
-            <XAxis type="number" reversed allowDecimals={!integer} tickLine={false} axisLine={false} tickFormatter={(v: number) => formatNumber(v)} fontSize={11} />
-            {/* در RTL «end» نام را به سمت راست محور می‌برد، نه روی میله‌ها */}
-            <YAxis type="category" dataKey="name" orientation="right" tickLine={false} axisLine={false} width={150} fontSize={11} tick={{ textAnchor: "end" }} />
-            <ChartTooltip cursor={false} content={<ChartTooltipContent formatter={(v) => `${label}: ${formatNumber(Number(v))}`} hideIndicator />} />
-            <Bar dataKey="value" fill="var(--color-value)" radius={4} />
-          </BarChart>
-        </ChartContainer>
-      ) : (
-        <p className="text-xs text-muted-foreground">{empty}</p>
-      )}
-    </Section>
   )
 }
 

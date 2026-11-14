@@ -955,6 +955,23 @@ export interface paths {
         patch: operations["hr_bank_accounts_partial_update"];
         trace?: never;
     };
+    "/api/hr/dashboard/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description ابزارک «نیروی انسانی» پیشخوان برای بینندگان پرونده‌ها. */
+        get: operations["hr_dashboard_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/hr/dependents/": {
         parameters: {
             query?: never;
@@ -1427,6 +1444,23 @@ export interface paths {
         };
         /** @description جای‌گذارهای متن نامه برای ویرایشگر «تنظیمات › منابع انسانی: متن نامه‌ها». */
         get: operations["hr_letters_placeholders_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/hr/report/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description «گزارش نیروی انسانی» (5.10): تفکیک کارکنان شاغل، ورود و خروج در بازه و مدارک رو به پایان اعتبار، در دامنه‌ی دید کاربر. */
+        get: operations["hr_report_retrieve"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4479,6 +4513,14 @@ export interface components {
             /** نوع */
             kind?: components["schemas"]["HolidayKindEnum"];
         };
+        HrDashboard: {
+            active: number;
+            joins: number;
+            leaves: number;
+            expiring: number;
+            /** @description نام ماه جاری شمسی */
+            month: string;
+        };
         HrLeaveSettings: {
             /**
              * مرخصی استحقاقی سالانه (روز)
@@ -4803,6 +4845,69 @@ export interface components {
              */
             reminder_days: number;
         };
+        HrReport: {
+            summary: components["schemas"]["HrReportSummary"];
+            breakdowns: components["schemas"]["HrReportBreakdowns"];
+            months: components["schemas"]["HrReportMonth"][];
+            movements: components["schemas"]["HrReportMovement"][];
+            documents: components["schemas"]["HrReportDocument"][];
+        };
+        HrReportBreakdowns: {
+            unit: components["schemas"]["HrReportCount"][];
+            employment_type: components["schemas"]["HrReportCount"][];
+            education: components["schemas"]["HrReportCount"][];
+            gender: components["schemas"]["HrReportCount"][];
+            age: components["schemas"]["HrReportCount"][];
+        };
+        HrReportCount: {
+            key: string;
+            title: string;
+            count: number;
+        };
+        HrReportDocument: {
+            id: number;
+            employee: number;
+            name: string;
+            kind: string;
+            number: string;
+            /** @example 1405/08/14 */
+            expiry_date: string;
+            /** @description منفی: گذشته */
+            days_left: number;
+        };
+        HrReportMonth: {
+            month: string;
+            label: string;
+            joins: number;
+            leaves: number;
+        };
+        HrReportMovement: {
+            id: string;
+            employee: number;
+            name: string;
+            personnel_code: string;
+            unit: string;
+            kind: components["schemas"]["HrReportMovementKindEnum"];
+            /** @example 1405/08/14 */
+            date: string;
+            reason: string;
+        };
+        /**
+         * @description * `join` - ورود
+         *     * `leave` - خروج
+         * @enum {string}
+         */
+        HrReportMovementKindEnum: "join" | "leave";
+        HrReportSummary: {
+            /** @description کارکنان شاغل */
+            active: number;
+            /** @description ورود در بازه */
+            joins: number;
+            /** @description خروج در بازه */
+            leaves: number;
+            /** @description مدارک منقضی یا رو به پایان اعتبار */
+            expiring: number;
+        };
         HrRolesSettings: {
             /** نقش کارشناس منابع انسانی */
             hr_role: number | null;
@@ -4845,6 +4950,11 @@ export interface components {
              * @default 30
              */
             contract_reminder_days: number;
+            /**
+             * هشدار پیش از پایان اعتبار مدارک (روز)
+             * @default 30
+             */
+            document_warning_days: number;
         };
         HrServiceSettingsRequest: {
             /**
@@ -4852,6 +4962,11 @@ export interface components {
              * @default 30
              */
             contract_reminder_days: number;
+            /**
+             * هشدار پیش از پایان اعتبار مدارک (روز)
+             * @default 30
+             */
+            document_warning_days: number;
         };
         /** @description سقف‌ها و مبلغ‌های فرایندهای مالی و رفاه کارکنان (5.6)؛ همه‌ی مبلغ‌ها به ریال، مثل مبلغ‌های فرم‌ها. */
         HrWelfareSettings: {
@@ -9168,6 +9283,25 @@ export interface operations {
             };
         };
     };
+    hr_dashboard_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HrDashboard"];
+                };
+            };
+        };
+    };
     hr_dependents_list: {
         parameters: {
             query: {
@@ -9994,6 +10128,28 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LetterPlaceholder"][];
+                };
+            };
+        };
+    };
+    hr_report_retrieve: {
+        parameters: {
+            query: {
+                end: string;
+                start: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HrReport"];
                 };
             };
         };
