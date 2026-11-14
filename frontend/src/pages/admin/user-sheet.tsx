@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
+import { LockOpen, LogOut } from "lucide-react"
 import { z } from "zod"
 import { toast } from "sonner"
 import { useAuth } from "@/app/auth"
@@ -10,12 +11,15 @@ import { FormSheet } from "@/components/form/form-sheet"
 import { DigitsInput } from "@/components/form/inputs"
 import { applyServerErrors } from "@/components/form/server-errors"
 import { useAppForm } from "@/components/form/use-app-form"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
-import { api, unwrap, type Schemas } from "@/lib/api/client"
+import { api, errorMessage, unwrap, type Schemas } from "@/lib/api/client"
+import { formatDateTime } from "@/lib/format"
 import { schemas } from "@/lib/validators"
 
 type User = Schemas["User"]
@@ -28,6 +32,7 @@ const LABELS = {
   mobile: "موبایل",
   email: "ایمیل",
   password: "گذرواژه",
+  must_change_password: "تغییر گذرواژه در ورود بعدی",
   roles: "نقش‌ها",
   is_active: "حساب فعال",
   is_superuser: "مدیر کل",
@@ -45,7 +50,9 @@ function userSchema(isNew: boolean) {
     gender: z.string(),
     mobile: z.union([z.literal(""), schemas.mobile]),
     email: z.union([z.literal(""), schemas.email]),
-    password: isNew ? z.string().min(8, "گذرواژه دست‌کم ۸ نویسه باشد.") : z.union([z.literal(""), z.string().min(8, "گذرواژه دست‌کم ۸ نویسه باشد.")]),
+    // قاعده‌ی گذرواژه (طول، حرف و رقم) در تنظیمات است و سرور می‌سنجد
+    password: isNew ? z.string().min(1, "تکمیل «گذرواژه» الزامی است.") : z.string(),
+    must_change_password: z.boolean(),
     roles: z.array(z.number()),
     is_active: z.boolean(),
     is_superuser: z.boolean(),
@@ -69,6 +76,7 @@ export function UserSheet({ user, open, onOpenChange }: Props) {
     mobile: user?.mobile ?? "",
     email: user?.email ?? "",
     password: "",
+    must_change_password: true,
     roles: user?.roles ?? [],
     is_active: user?.is_active ?? true,
     is_superuser: user?.is_superuser ?? false,
@@ -87,9 +95,25 @@ export function UserSheet({ user, open, onOpenChange }: Props) {
     },
   })
 
-  const onSubmit = form.handleSubmit(async ({ password, gender, ...values }) => {
+  const unlock = useMutation({
+    mutationFn: () => unwrap(api.POST("/api/auth/users/{id}/unlock/", { params: { path: { id: user!.id } } })),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["users"] })
+      toast.success("قفل حساب باز شد.")
+      onOpenChange(false)
+    },
+    onError: (e) => toast.error(errorMessage(e)),
+  })
+  const endSessions = useMutation({
+    mutationFn: () => unwrap(api.POST("/api/auth/users/{id}/end-sessions/", { params: { path: { id: user!.id } } })),
+    onSuccess: () => toast.success("کاربر از همه‌ی دستگاه‌ها خارج شد."),
+    onError: (e) => toast.error(errorMessage(e)),
+  })
+  const password = form.watch("password")
+
+  const onSubmit = form.handleSubmit(async ({ password, must_change_password, gender, ...values }) => {
     try {
-      await save.mutateAsync({ ...values, gender: gender as Schemas["PatchedUserRequest"]["gender"], ...(password ? { password } : {}) })
+      await save.mutateAsync({ ...values, gender: gender as Schemas["PatchedUserRequest"]["gender"], ...(password ? { password, must_change_password } : {}) })
     } catch (e) {
       applyServerErrors(form, e)
     }
@@ -105,6 +129,16 @@ export function UserSheet({ user, open, onOpenChange }: Props) {
       submitting={save.isPending}
     >
       <ErrorSummary errors={form.formState.errors} labels={LABELS} submitCount={form.formState.submitCount} />
+      {user?.locked_until && (
+        <Alert variant="destructive">
+          <AlertTitle>حساب پس از تلاش‌های ناموفق ورود تا {formatDateTime(user.locked_until)} قفل است.</AlertTitle>
+          <AlertDescription>
+            <Button type="button" variant="outline" size="sm" className="mt-1" onClick={() => unlock.mutate()} disabled={unlock.isPending}>
+              <LockOpen /> بازکردن قفل
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
       <FormGrid>
         <FormField control={form.control} name="first_name" label="نام" required render={({ field, id, aria }) => <Input id={id} {...field} {...aria} />} />
         <FormField control={form.control} name="last_name" label="نام خانوادگی" required render={({ field, id, aria }) => <Input id={id} {...field} {...aria} />} />
@@ -147,9 +181,24 @@ export function UserSheet({ user, open, onOpenChange }: Props) {
           name="password"
           label={isNew ? "گذرواژه" : "گذرواژه‌ی جدید"}
           required={isNew}
-          description={isNew ? "دست‌کم ۸ نویسه؛ کاربر پس از ورود می‌تواند آن را عوض کند." : "برای تغییر ندادن، خالی بگذارید."}
+          description={isNew ? undefined : "برای تغییر ندادن، خالی بگذارید."}
+          hint={me?.password_policy}
           render={({ field, id, aria }) => <Input id={id} type="password" dir="ltr" autoComplete="new-password" {...field} {...aria} />}
         />
+        {(isNew || password) && (
+          <FormField
+            control={form.control}
+            name="must_change_password"
+            label="تغییر گذرواژه در ورود بعدی"
+            description="گذرواژه‌ای که راهبر تعیین می‌کند موقت است: کاربر در نخستین ورود باید گذرواژه‌ی خودش را بگذارد."
+            render={({ field, id }) => (
+              <div className="flex min-h-7 items-center gap-2">
+                <Switch id={id} checked={field.value} onCheckedChange={field.onChange} />
+                <span className="text-xs text-muted-foreground">{field.value ? "گذرواژه‌ی موقت" : "گذرواژه‌ی دائم"}</span>
+              </div>
+            )}
+          />
+        )}
         <FormField
           control={form.control}
           name="roles"
@@ -202,6 +251,13 @@ export function UserSheet({ user, open, onOpenChange }: Props) {
           />
         )}
       </FormGrid>
+      {!isNew && user.id !== me?.id && (
+        <div>
+          <Button type="button" variant="outline" size="sm" onClick={() => endSessions.mutate()} disabled={endSessions.isPending}>
+            <LogOut /> خروج از همه‌ی دستگاه‌ها
+          </Button>
+        </div>
+      )}
     </FormSheet>
   )
 }

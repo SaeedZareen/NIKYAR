@@ -16,8 +16,8 @@ test.describe("اعلان‌ها", () => {
   test("تغییر گذرواژه‌ی کاربر به دست راهبر در زنگوله‌ی همان کاربر دیده می‌شود", async ({ page, browser }, info) => {
     const username = `notif_${info.project.name}_${Date.now()}`
     await page.goto("/")
-    const user = await adminApi(page, "POST", "/api/auth/users/", { username, first_name: "مینا", last_name: "اعلانی", gender: "female", password: "First-Pass-123" })
-    await adminApi(page, "PATCH", `/api/auth/users/${user.id}/`, { password: "Second-Pass-456" })
+    const user = await adminApi(page, "POST", "/api/auth/users/", { username, first_name: "مینا", last_name: "اعلانی", gender: "female", must_change_password: false, password: "First-Pass-123" })
+    await adminApi(page, "PATCH", `/api/auth/users/${user.id}/`, { must_change_password: false, password: "Second-Pass-456" })
 
     const context = await browser.newContext({ storageState: { cookies: [], origins: [] }, ...(info.project.use.viewport ? { viewport: info.project.use.viewport } : {}) })
     const other = await context.newPage()

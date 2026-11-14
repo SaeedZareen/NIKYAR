@@ -203,7 +203,7 @@ test.describe("پرونده‌ی پرسنلی", () => {
   test("پرونده‌ی من: پرونده‌ی خود، فقط‌خواندنی با سوابق مالی", async ({ page, browser }, info) => {
     await page.goto("/hr/employees")
     const username = `me-${info.project.name}-${Date.now().toString(36)}`
-    const user = await call(page, "POST", "/api/auth/users/", { username, first_name: "پریسا", last_name: `خودی ${info.project.name}`, gender: "female", password: "First-Pass-123" })
+    const user = await call(page, "POST", "/api/auth/users/", { username, first_name: "پریسا", last_name: `خودی ${info.project.name}`, gender: "female", must_change_password: false, password: "First-Pass-123" })
     const kinds = await call(page, "GET", "/api/lookups/items/?list=employment-type")
     const employee = await call(page, "POST", "/api/hr/employees/", {
       first_name: "پریسا",

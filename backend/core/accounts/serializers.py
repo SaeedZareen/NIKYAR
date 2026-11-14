@@ -1,5 +1,6 @@
 from django.contrib.auth import password_validation
 from django.contrib.auth.validators import UnicodeUsernameValidator
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils import timezone
 from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
@@ -9,8 +10,15 @@ from core.files.fields import FileRefField
 from core.files.types import IMAGE_EXTENSIONS
 from core.kernel.registry import all_permissions
 from core.kernel.validators import normalize_mobile, validate_mobile
+from core.settings.service import read as read_settings
 
+from . import security
 from .models import Role, User
+
+
+def granter_permissions(user) -> set[str]:
+    """مجوزهایی که این کاربر می‌تواند به نقش یا کاربری بدهد: همه برای مدیر کل، وگرنه فقط مجوزهای خودش."""
+    return set(all_permissions()) if user.is_superuser else set(user.permission_codes())
 
 
 class RoleSerializer(serializers.ModelSerializer):
@@ -26,6 +34,10 @@ class RoleSerializer(serializers.ModelSerializer):
         unknown = [code for code in value if code not in known]
         if unknown:
             raise serializers.ValidationError(f"مجوز ناشناخته: {'، '.join(unknown)}")
+        before = set(self.instance.permissions) if self.instance else set()
+        missing = sorted(set(value) - before - granter_permissions(self.context["request"].user))
+        if missing:
+            raise serializers.ValidationError(f"این مجوزها را خودتان ندارید و نمی‌توانید به نقشی بدهید: {'، '.join(known[c] for c in missing)}")
         return sorted(set(value))
 
 
@@ -34,6 +46,10 @@ class UserSerializer(serializers.ModelSerializer):
     role_names = serializers.SlugRelatedField(source="roles", slug_field="name", many=True, read_only=True)
     positions = serializers.SerializerMethodField()
     password = serializers.CharField(write_only=True, required=False, allow_blank=True, label="گذرواژه")
+    must_change_password = serializers.BooleanField(
+        write_only=True, required=False, label="تغییر گذرواژه در ورود بعدی", help_text="فقط همراه گذرواژه‌ی تازه؛ پیش‌فرض بله (گذرواژه‌ی موقت)"
+    )
+    locked_until = serializers.DateTimeField(read_only=True, help_text="خالی یعنی قفل نیست")
 
     class Meta:
         model = User
@@ -54,6 +70,8 @@ class UserSerializer(serializers.ModelSerializer):
             "last_login",
             "date_joined",
             "password",
+            "must_change_password",
+            "locked_until",
         ]
         read_only_fields = ["last_login", "date_joined"]
         extra_kwargs = {
@@ -83,6 +101,14 @@ class UserSerializer(serializers.ModelSerializer):
         validate_mobile(value)
         return normalize_mobile(value)
 
+    def validate_roles(self, value):
+        before = set(self.instance.roles.all()) if self.instance else set()
+        allowed = granter_permissions(self.context["request"].user)
+        too_much = [r.name for r in value if r not in before and not set(r.permissions) <= allowed]
+        if too_much:
+            raise serializers.ValidationError(f"نقش «{too_much[0]}» مجوزهایی دارد که خودتان ندارید؛ فقط مدیر کل یا دارنده‌ی همه‌ی آن مجوزها می‌تواند آن را بدهد.")
+        return value
+
     def validate_is_superuser(self, value):
         request = self.context.get("request")
         if value and not (request and request.user.is_superuser):
@@ -93,24 +119,34 @@ class UserSerializer(serializers.ModelSerializer):
         password = attrs.get("password")
         if password:
             user = self.instance or User(username=attrs.get("username", ""), first_name=attrs.get("first_name", ""))
-            password_validation.validate_password(password, user)
+            try:
+                password_validation.validate_password(password, user)
+            except DjangoValidationError as e:
+                raise serializers.ValidationError({"password": e.messages[0]}) from None
         return attrs
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        if instance.locked_until and instance.locked_until <= timezone.now():
+            data["locked_until"] = None
+        return data
 
     def create(self, validated):
         password = validated.pop("password")
+        temporary = validated.pop("must_change_password", True)
         roles = validated.pop("roles", [])
         user = User(**validated)
-        user.set_password(password)
         user.save()
         user.roles.set(roles)
+        security.set_password(user, password, temporary=temporary)
         return user
 
     def update(self, instance, validated):
         password = validated.pop("password", "")
+        temporary = validated.pop("must_change_password", True)
         instance = super().update(instance, validated)
         if password:
-            instance.set_password(password)
-            instance.save(update_fields=["password"])
+            security.set_password(instance, password, temporary=temporary and instance != self.context["request"].user)
         return instance
 
 
@@ -131,6 +167,9 @@ class MeSerializer(serializers.ModelSerializer):
     workflow_manager = serializers.SerializerMethodField(help_text="مجوز «مدیریت همه‌ی درخواست‌ها» یا مدیر دست‌کم یک فرایند؛ برای منوی «مدیریت درخواست‌ها».")
     flags = serializers.SerializerMethodField(help_text="پرچم‌های منوی ماژول‌ها (nikyar_session_flags)؛ پرچم ماژول خارج از لایسنس false است.")
     profile = serializers.SerializerMethodField(help_text="مقدار منبع‌های «پیش‌پر از حساب کاربر» فرم‌ساز، از جمله مقدارهای ماژول‌ها (مثل کد ملی).")
+    must_change_password = serializers.SerializerMethodField(help_text="گذرواژه‌ی موقت یا منقضی: پیش از هر کار باید عوض شود.")
+    idle_minutes = serializers.SerializerMethodField(help_text="پایان نشست پس از این چند دقیقه بی‌کاری؛ ۰ یعنی خاموش.")
+    password_policy = serializers.SerializerMethodField(help_text="شرح قاعده‌ی گذرواژه برای فرم‌های تغییر گذرواژه")
 
     class Meta:
         model = User
@@ -153,7 +192,19 @@ class MeSerializer(serializers.ModelSerializer):
             "workflow_manager",
             "flags",
             "profile",
+            "must_change_password",
+            "idle_minutes",
+            "password_policy",
         ]
+
+    def get_must_change_password(self, obj) -> bool:
+        return security.password_change_required(obj)
+
+    def get_idle_minutes(self, obj) -> int:
+        return read_settings("system")["idle_minutes"]
+
+    def get_password_policy(self, obj) -> str:
+        return security.PolicyValidator().get_help_text()
 
     def get_signature(self, obj) -> str:
         return str(obj.signature_id) if obj.signature_id else ""

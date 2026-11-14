@@ -3,6 +3,8 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { Navigate, Outlet, useLocation } from "react-router"
 import { api, unwrap, type Schemas } from "@/lib/api/client"
 import { Skeleton } from "@/components/ui/skeleton"
+import { IdleGuard } from "@/components/layout/idle-guard"
+import PasswordRequiredPage from "@/pages/password-required-page"
 
 export type Me = Schemas["Me"]
 export const SESSION_KEY = ["session"] as const
@@ -64,5 +66,11 @@ export function RequireAuth() {
     const next = location.pathname + location.search
     return <Navigate to={next === "/" ? "/login" : `/login?next=${encodeURIComponent(next)}`} replace />
   }
-  return <Outlet />
+  if (data.must_change_password) return <PasswordRequiredPage />
+  return (
+    <>
+      <IdleGuard minutes={data.idle_minutes} />
+      <Outlet />
+    </>
+  )
 }

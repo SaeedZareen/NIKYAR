@@ -1,7 +1,7 @@
 import * as React from "react"
 import { Link } from "react-router"
 import { useQuery } from "@tanstack/react-query"
-import { RefreshCw, Settings } from "lucide-react"
+import { Download, RefreshCw, Settings } from "lucide-react"
 import { useAuth } from "@/app/auth"
 import { columnHelper, DataTable, useDataTable, useTableView, type DataTableColumn } from "@/components/data-table"
 import { PageHeader } from "@/components/layout/page-header"
@@ -85,6 +85,18 @@ export default function HealthPage() {
               ))}
             </ul>
           </Section>
+          {h.ca_certificate && (
+            <Section
+              title="گواهی امنیتی برای دستگاه‌ها"
+              description="HTTPS با گواهی خود نیک‌یار روشن است. این فایل را یک‌بار روی هر رایانه و گوشی نصب کنید تا مرورگر هشدار «اتصال امن نیست» ندهد (راهنمای نصب در ویندوز، اندروید و آیفون: docs/INSTALL.md). از دستگاه‌های دیگر هم با نشانی http://نشانی-سرور:8000/nikyar-ca.crt دریافت می‌شود."
+            >
+              <Button variant="outline" asChild className="self-start">
+                <a href="/api/https/ca/" download="nikyar-ca.crt">
+                  <Download /> دریافت گواهی ریشه‌ی نیک‌یار
+                </a>
+              </Button>
+            </Section>
+          )}
           <Updates rows={h.updates} />
           <Errors rows={h.errors} />
         </>

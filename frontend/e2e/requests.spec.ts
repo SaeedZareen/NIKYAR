@@ -54,7 +54,7 @@ test.describe("درخواست جدید", () => {
     const title = `درخواست آزمون ${info.project.name} ${Date.now()}`
     await publishedProcess(page, title)
     const username = unique("rq")
-    await call(page, "POST", "/api/auth/users/", { username, first_name: "رضا", last_name: `همکار ${info.project.name}`, gender: "male", password: "First-Pass-123" })
+    await call(page, "POST", "/api/auth/users/", { username, first_name: "رضا", last_name: `همکار ${info.project.name}`, gender: "male", must_change_password: false, password: "First-Pass-123" })
     const colleague = `رضا همکار ${info.project.name}`
 
     await page.goto("/requests/new")
@@ -118,7 +118,7 @@ test.describe("درخواست جدید", () => {
     const title = `پیگیری ${info.project.name} ${Date.now()}`
     await admin.goto("/requests")
     const username = unique("tr")
-    await call(admin, "POST", "/api/auth/users/", { username, first_name: "مینا", last_name: "پیگیر", gender: "female", password: PASSWORD })
+    await call(admin, "POST", "/api/auth/users/", { username, first_name: "مینا", last_name: "پیگیر", gender: "female", must_change_password: false, password: PASSWORD })
     const form = await call(admin, "POST", "/api/forms/", { code: unique("tr"), title: `فرم ${title}`, fill_by_everyone: true })
     await call(admin, "PATCH", `/api/forms/versions/${form.draft_version}/`, { definition: { sections: [{ id: "s", fields: [{ id: "subject", type: "text", label: "موضوع" }] }] } })
     await call(admin, "POST", `/api/forms/versions/${form.draft_version}/publish/`)

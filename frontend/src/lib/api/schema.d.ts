@@ -127,6 +127,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/session/devices/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description GET: دستگاه‌هایی که کاربر واردشده در آن‌ها باز است. DELETE ?id=: خروج یک دستگاه؛ بی id: خروج همه‌ی دستگاه‌های دیگر. */
+        get: operations["auth_session_devices_list"];
+        put?: never;
+        post?: never;
+        /** @description GET: دستگاه‌هایی که کاربر واردشده در آن‌ها باز است. DELETE ?id=: خروج یک دستگاه؛ بی id: خروج همه‌ی دستگاه‌های دیگر. */
+        delete: operations["auth_session_devices_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/session/password/": {
         parameters: {
             query?: never;
@@ -214,6 +232,40 @@ export interface paths {
         head?: never;
         /** @description ایجاد، ویرایش و حذف را همراه با سابقه‌ی تغییر و در یک تراکنش انجام می‌دهد. */
         patch: operations["auth_users_partial_update"];
+        trace?: never;
+    };
+    "/api/auth/users/{id}/end-sessions/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description خروج کاربر از همه‌ی دستگاه‌ها (مثلاً گوشی گم‌شده). */
+        post: operations["auth_users_end_sessions_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/users/{id}/unlock/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description بازکردن حسابی که پس از تلاش‌های ناموفق قفل شده است. */
+        post: operations["auth_users_unlock_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/backups/": {
@@ -3533,6 +3585,18 @@ export interface components {
             /** تحت پوشش بیمه */
             insured?: boolean;
         };
+        Device: {
+            id: number;
+            /** @description مرورگر و سیستم‌عامل */
+            device: string;
+            ip: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            last_seen: string;
+            /** @description همین دستگاه */
+            current: boolean;
+        };
         /** @description پایه‌ی سوابق: پرونده (فقط هنگام ساخت) و عنوان‌های فهرست‌های پایه برای نمایش. */
         Document: {
             readonly id: number;
@@ -4544,6 +4608,8 @@ export interface components {
             updates: components["schemas"]["UpdateAttempt"][];
             /** @description خطاهای ۲۴ ساعت گذشته، تازه‌ترین نخست (حداکثر ۲۰) */
             errors: components["schemas"]["RecentError"][];
+            /** @description HTTPS با گواهی نیک‌یار: گواهی ریشه برای نصب روی دستگاه‌ها در /api/https/ca/ */
+            ca_certificate: boolean;
         };
         HealthCheck: {
             code: string;
@@ -5614,6 +5680,12 @@ export interface components {
             readonly profile: {
                 [key: string]: string;
             };
+            /** @description گذرواژه‌ی موقت یا منقضی: پیش از هر کار باید عوض شود. */
+            readonly must_change_password: boolean;
+            /** @description پایان نشست پس از این چند دقیقه بی‌کاری؛ ۰ یعنی خاموش. */
+            readonly idle_minutes: number;
+            /** @description شرح قاعده‌ی گذرواژه برای فرم‌های تغییر گذرواژه */
+            readonly password_policy: string;
         };
         MeAssignment: {
             unit_id: number;
@@ -6442,6 +6514,11 @@ export interface components {
             roles?: number[];
             /** گذرواژه */
             password?: string;
+            /**
+             * تغییر گذرواژه در ورود بعدی
+             * @description فقط همراه گذرواژه‌ی تازه؛ پیش‌فرض بله (گذرواژه‌ی موقت)
+             */
+            must_change_password?: boolean;
         };
         /** @description پایه‌ی سوابق: پرونده (فقط هنگام ساخت) و عنوان‌های فهرست‌های پایه برای نمایش. */
         PatchedWorkHistoryRequest: {
@@ -7230,6 +7307,36 @@ export interface components {
              * @default 30
              */
             jobs_keep_days: number;
+            /**
+             * کمترین طول گذرواژه
+             * @default 8
+             */
+            password_min_length: number;
+            /**
+             * گذرواژه با حرف و رقم
+             * @default true
+             */
+            password_mixed: boolean;
+            /**
+             * اعتبار گذرواژه (روز)
+             * @default 0
+             */
+            password_expire_days: number;
+            /**
+             * قفل پس از تلاش ناموفق
+             * @default 5
+             */
+            lockout_attempts: number;
+            /**
+             * مدت قفل (دقیقه)
+             * @default 15
+             */
+            lockout_minutes: number;
+            /**
+             * پایان نشست پس از بی‌کاری (دقیقه)
+             * @default 30
+             */
+            idle_minutes: number;
         };
         /** @description مقدارهایی که پیش از 5.4a ثابت در کد بودند؛ هر کدام را برنامه‌ی مصرف‌کننده‌اش با read("system") می‌خواند. */
         SystemSettingsRequest: {
@@ -7258,6 +7365,36 @@ export interface components {
              * @default 30
              */
             jobs_keep_days: number;
+            /**
+             * کمترین طول گذرواژه
+             * @default 8
+             */
+            password_min_length: number;
+            /**
+             * گذرواژه با حرف و رقم
+             * @default true
+             */
+            password_mixed: boolean;
+            /**
+             * اعتبار گذرواژه (روز)
+             * @default 0
+             */
+            password_expire_days: number;
+            /**
+             * قفل پس از تلاش ناموفق
+             * @default 5
+             */
+            lockout_attempts: number;
+            /**
+             * مدت قفل (دقیقه)
+             * @default 15
+             */
+            lockout_minutes: number;
+            /**
+             * پایان نشست پس از بی‌کاری (دقیقه)
+             * @default 30
+             */
+            idle_minutes: number;
         };
         TargetForm: {
             code: string;
@@ -7486,6 +7623,11 @@ export interface components {
              * Format: date-time
              */
             readonly date_joined: string;
+            /**
+             * Format: date-time
+             * @description خالی یعنی قفل نیست
+             */
+            readonly locked_until: string;
         };
         UserLookup: {
             id: number;
@@ -7522,6 +7664,11 @@ export interface components {
             roles?: number[];
             /** گذرواژه */
             password: string;
+            /**
+             * تغییر گذرواژه در ورود بعدی
+             * @description فقط همراه گذرواژه‌ی تازه؛ پیش‌فرض بله (گذرواژه‌ی موقت)
+             */
+            must_change_password?: boolean;
         };
         ViewableForm: {
             readonly id: number;
@@ -7988,6 +8135,46 @@ export interface operations {
             };
         };
     };
+    auth_session_devices_list: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Device"][];
+                };
+            };
+        };
+    };
+    auth_session_devices_destroy: {
+        parameters: {
+            query?: {
+                /** @description دستگاه؛ خالی یعنی همه‌ی دستگاه‌های دیگر */
+                id?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     auth_session_password_create: {
         parameters: {
             query?: never;
@@ -8171,6 +8358,48 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["User"];
                 };
+            };
+        };
+    };
+    auth_users_end_sessions_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description یک مقداد عدد یکتا که این کاربر را شناسایی میکند. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    auth_users_unlock_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description یک مقداد عدد یکتا که این کاربر را شناسایی میکند. */
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

@@ -31,6 +31,11 @@ class User(AbstractUser):
     roles = models.ManyToManyField(Role, verbose_name="نقش‌ها", blank=True, related_name="users")
     # تصویر امضا برای چاپ‌ها (فرم‌ها و نامه‌ها)؛ فقط برای کاربران واردشده دریافت‌شدنی است.
     signature = models.ForeignKey("files.StoredFile", verbose_name="تصویر امضا", null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    # امنیت ورود (6.5): قفل پس از تلاش‌های ناموفق، تغییر اجباری گذرواژه (گذرواژه‌ی موقت یا منقضی)
+    failed_logins = models.PositiveSmallIntegerField("تلاش ناموفق پیاپی", default=0)
+    locked_until = models.DateTimeField("قفل تا", null=True, blank=True)
+    password_changed_at = models.DateTimeField("آخرین تغییر گذرواژه", null=True, blank=True)
+    must_change_password = models.BooleanField("تغییر گذرواژه در ورود بعدی", default=False)
 
     class Meta:
         ordering = ["last_name", "first_name", "username"]
@@ -52,6 +57,25 @@ class User(AbstractUser):
         """نام با عنوان خطاب: «آقای رضا احمدی»."""
         prefix = {"male": "آقای ", "female": "خانم "}.get(self.gender, "")
         return f"{prefix}{self}"
+
+
+class UserSession(models.Model):
+    """یک ورود باز (دستگاه): برای «دستگاه‌های من»، خروج از دستگاه‌های دیگر و پایان نشست پس از بی‌کاری."""
+
+    session_key = models.CharField(max_length=40, unique=True)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="sessions")
+    ip = models.GenericIPAddressField("نشانی", null=True, blank=True)
+    user_agent = models.CharField("مرورگر", max_length=300, blank=True)
+    created_at = models.DateTimeField("ورود", auto_now_add=True)
+    last_seen = models.DateTimeField("آخرین درخواست")
+    # آخرین کار خود کاربر (کلید، کلیک)؛ درخواست‌های خودکار صفحه (تازه‌سازی اعلان‌ها) آن را جلو نمی‌برند
+    last_active = models.DateTimeField("آخرین فعالیت")
+
+    class Meta:
+        ordering = ["-last_seen"]
+
+    def __str__(self):
+        return f"{self.user} @ {self.ip}"
 
 
 def users_with_perm(code: str):

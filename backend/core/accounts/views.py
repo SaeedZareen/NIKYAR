@@ -1,4 +1,4 @@
-from django.contrib.auth import authenticate, login, logout, update_session_auth_hash
+from django.contrib.auth import authenticate, logout, update_session_auth_hash
 from django.db import transaction
 from django.db.models import Count, Prefetch
 from django.utils import timezone
@@ -7,6 +7,7 @@ from django.views.decorators.csrf import ensure_csrf_cookie
 from drf_spectacular.utils import OpenApiParameter, extend_schema, extend_schema_view
 from rest_framework import filters, generics, permissions, serializers, status
 from rest_framework.authentication import SessionAuthentication
+from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework.throttling import SimpleRateThrottle
 from rest_framework.views import APIView
@@ -16,13 +17,14 @@ from core.audit.service import AuditedModelViewSet, diff, record, snapshot
 from core.kernel.api import BusinessError, HasPerm, MultiValueFilter
 from core.kernel.collation import PersianOrderingFilter
 from core.kernel.registry import permission_groups
-from core.kernel.validators import jalali_now
+from core.kernel.validators import jalali_datetime, jalali_now
 from core.licensing.service import check_user_capacity
 from core.notifications.service import notify
 from core.org.models import Assignment
 from core.settings.service import read as read_settings
 
-from .models import Role, User
+from . import security
+from .models import Role, User, UserSession
 from .serializers import ChangePasswordSerializer, LoginSerializer, MeSerializer, PermissionGroupSerializer, ProfileSerializer, RoleSerializer, UserSerializer
 
 
@@ -59,12 +61,20 @@ class SessionView(APIView):
         SessionAuthentication().enforce_csrf(request)
         s = LoginSerializer(data=request.data)
         s.is_valid(raise_exception=True)
-        user = authenticate(request, username=s.validated_data["username"], password=s.validated_data["password"])
+        username = s.validated_data["username"]
+        account = User.objects.filter(username=username, is_active=True).first()
+        if account and (until := security.locked_until(account)):
+            # حتی با گذرواژه‌ی درست؛ تا پایان قفل یا بازکردن آن به دست راهبر
+            record(request, AuditLog.Action.LOGIN_FAILED, label=username)
+            raise BusinessError(f"حساب شما پس از چند تلاش ناموفق تا {jalali_datetime(until)} قفل است. برای بازکردن زودتر به راهبر سامانه خبر دهید.")
+        user = authenticate(request, username=username, password=s.validated_data["password"])
         if user is None:
-            record(request, AuditLog.Action.LOGIN_FAILED, label=s.validated_data["username"])
+            record(request, AuditLog.Action.LOGIN_FAILED, label=username)
+            if account and security.login_failed(account):
+                notify([account], "accounts.locked", until=jalali_datetime(account.locked_until))
+                raise BusinessError(f"به دلیل تلاش‌های ناموفق پیاپی، حساب تا {jalali_datetime(account.locked_until)} قفل شد.")
             raise BusinessError("نام کاربری یا گذرواژه درست نیست.")
-        login(request, user)
-        request.session.set_expiry(read_settings("system")["session_hours"] * 3600)
+        security.start_session(request, user)
         record(request, AuditLog.Action.LOGIN, user, user=user)
         return Response(MeSerializer(user).data)
 
@@ -72,7 +82,49 @@ class SessionView(APIView):
     def delete(self, request):
         if request.user.is_authenticated:
             record(request, AuditLog.Action.LOGOUT, request.user)
+        if request.session.session_key:
+            UserSession.objects.filter(session_key=request.session.session_key).delete()
         logout(request)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class DeviceSerializer(serializers.Serializer):
+    id = serializers.IntegerField()
+    device = serializers.CharField(help_text="مرورگر و سیستم‌عامل")
+    ip = serializers.CharField(allow_blank=True)
+    created_at = serializers.DateTimeField()
+    last_seen = serializers.DateTimeField()
+    current = serializers.BooleanField(help_text="همین دستگاه")
+
+
+class DevicesView(APIView):
+    """GET: دستگاه‌هایی که کاربر واردشده در آن‌ها باز است. DELETE ?id=: خروج یک دستگاه؛ بی id: خروج همه‌ی دستگاه‌های دیگر."""
+
+    @extend_schema(responses=DeviceSerializer(many=True))
+    def get(self, request):
+        key = request.session.session_key
+        rows = [
+            {
+                "id": d.id,
+                "device": security.device_name(d.user_agent),
+                "ip": d.ip or "",
+                "created_at": d.created_at,
+                "last_seen": d.last_seen,
+                "current": d.session_key == key,
+            }
+            for d in security.open_sessions(request.user)
+        ]
+        return Response(DeviceSerializer(rows, many=True).data)
+
+    @extend_schema(parameters=[OpenApiParameter("id", int, description="دستگاه؛ خالی یعنی همه‌ی دستگاه‌های دیگر")], responses={204: None})
+    def delete(self, request):
+        others = UserSession.objects.filter(user=request.user).exclude(session_key=request.session.session_key)
+        target = request.query_params.get("id", "")
+        if target:
+            if not target.isdigit():
+                raise BusinessError("دستگاه نامعتبر است.")
+            others = others.filter(pk=int(target))
+        security.end_sessions(others)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
 
@@ -163,10 +215,13 @@ class ChangePasswordView(APIView):
     def post(self, request):
         s = ChangePasswordSerializer(data=request.data, context={"request": request})
         s.is_valid(raise_exception=True)
-        request.user.set_password(s.validated_data["new_password"])
-        request.user.save(update_fields=["password"])
+        security.set_password(request.user, s.validated_data["new_password"])
         notify([request.user], "accounts.password_changed", when=jalali_now(), by="خودتان")
+        old_key = request.session.session_key
         update_session_auth_hash(request, request.user)
+        # کلید نشست عوض می‌شود؛ دستگاه همین ورود همراهش می‌ماند و ورودهای دیگر (که Django باطل کرده) بسته می‌شوند
+        UserSession.objects.filter(session_key=old_key).update(session_key=request.session.session_key)
+        security.end_sessions(UserSession.objects.filter(user=request.user).exclude(session_key=request.session.session_key))
         record(request, AuditLog.Action.UPDATE, request.user, {"password": {"label": "گذرواژه", "old": "", "new": "تغییر کرد"}})
         return Response(status=status.HTTP_204_NO_CONTENT)
 
@@ -219,6 +274,31 @@ class UserViewSet(AuditedModelViewSet):
         today = timezone.localdate()
         current = Assignment.objects.current(today).select_related("position__unit")
         return User.objects.prefetch_related("roles", Prefetch("assignments", queryset=current, to_attr="current_assignments"))
+
+    def get_object(self):
+        user = super().get_object()
+        # راهبر کاربران (بی مدیر کل بودن) با تغییر گذرواژه‌ی مدیر کل یا بستن ورودهایش اختیار او را نمی‌گیرد
+        if self.action != "retrieve" and user.is_superuser and not self.request.user.is_superuser:
+            raise BusinessError("فقط مدیر کل می‌تواند حساب مدیر کل را تغییر دهد.")
+        return user
+
+    @extend_schema(request=None, responses={204: None})
+    @action(detail=True, methods=["post"])
+    def unlock(self, request, pk=None):
+        """بازکردن حسابی که پس از تلاش‌های ناموفق قفل شده است."""
+        user = self.get_object()
+        security.unlock(user)
+        record(request, AuditLog.Action.UPDATE, user, {"locked_until": {"label": "قفل حساب", "old": "قفل", "new": "باز شد"}})
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @extend_schema(request=None, responses={204: None})
+    @action(detail=True, methods=["post"], url_path="end-sessions")
+    def end_sessions(self, request, pk=None):
+        """خروج کاربر از همه‌ی دستگاه‌ها (مثلاً گوشی گم‌شده)."""
+        user = self.get_object()
+        count = security.end_sessions(UserSession.objects.filter(user=user))
+        record(request, AuditLog.Action.UPDATE, user, {"sessions": {"label": "ورودهای باز", "old": str(count), "new": "همه بسته شد"}})
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     def perform_create(self, serializer):
         if serializer.validated_data.get("is_active", True):

@@ -20,7 +20,7 @@ test.describe("مدیریت درخواست‌ها", () => {
     const title = `مدیریت ${info.project.name} ${Date.now()}`
     await page.goto("/workflow/requests")
     const username = unique("mg")
-    await call(page, "POST", "/api/auth/users/", { username, first_name: "نوید", last_name: `جایگزین ${info.project.name}`, gender: "male", password: "First-Pass-123" })
+    await call(page, "POST", "/api/auth/users/", { username, first_name: "نوید", last_name: `جایگزین ${info.project.name}`, gender: "male", must_change_password: false, password: "First-Pass-123" })
     const form = await call(page, "POST", "/api/forms/", { code: unique("mf"), title: `فرم ${title}`, fill_by_everyone: true })
     await call(page, "PATCH", `/api/forms/versions/${form.draft_version}/`, { definition: { sections: [{ id: "s", fields: [{ id: "subject", type: "text", label: "موضوع" }] }] } })
     await call(page, "POST", `/api/forms/versions/${form.draft_version}/publish/`)

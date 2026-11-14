@@ -5,6 +5,7 @@ from rest_framework import serializers
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
+from core.kernel import tls
 from core.kernel.api import HasPerm
 from core.kernel.validators import jalali_datetime
 
@@ -41,6 +42,7 @@ class HealthSerializer(serializers.Serializer):
     checks = HealthCheckSerializer(many=True)
     updates = UpdateAttemptSerializer(many=True)
     errors = RecentErrorSerializer(many=True, help_text="خطاهای ۲۴ ساعت گذشته، تازه‌ترین نخست (حداکثر ۲۰)")
+    ca_certificate = serializers.BooleanField(help_text="HTTPS با گواهی نیک‌یار: گواهی ریشه برای نصب روی دستگاه‌ها در /api/https/ca/")
 
 
 class HealthView(APIView):
@@ -66,6 +68,7 @@ class HealthView(APIView):
             "database": "PostgreSQL" if connection.vendor == "postgresql" else "درونی (SQLite)",
             "checks": [c.__dict__ for c in checks.run_all()],
             "updates": updates,
+            "ca_certificate": tls.status()["ca"],
             "errors": [{"at": jalali_datetime(at.astimezone()), "message": m} for at, m in logs.recent(hours=24, limit=20)],
         }
         return Response(HealthSerializer(data).data)

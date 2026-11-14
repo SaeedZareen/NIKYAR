@@ -14,6 +14,7 @@ from django.db.migrations.recorder import MigrationRecorder
 from django.utils import timezone
 
 from core.backup import service as backup
+from core.kernel import tls
 from core.kernel.validators import fa_digits, jalali_datetime
 from core.licensing import service as licensing
 from core.settings.service import read as read_settings
@@ -103,7 +104,27 @@ def last_update(limits: dict) -> Check:
     return Check("update", "به‌روزرسانی", not problem, value, problem, repeat=False)
 
 
-CHECKS = [disk, last_backup, errors, license_check, last_update]
+def https(limits: dict) -> Check:
+    s = tls.status()
+    if not s["enabled"]:
+        return Check("https", "اتصال امن (HTTPS)", True, "خاموش؛ دوربین، میکروفون و «موقعیت فعلی من» در فرم‌ها فقط با HTTPS کار می‌کنند.")
+    kind = "گواهی نیک‌یار" if s["mode"] == "self" else "گواهی سازمان"
+    if s["expires"] is None:
+        return Check("https", "اتصال امن (HTTPS)", False, f"روشن با {kind}", "فایل گواهی HTTPS پیدا نشد؛ https-tool.bat را دوباره اجرا کنید.")
+    days = (s["expires"] - timezone.now()).days
+    value = f"روشن با {kind}، معتبر تا {jalali_datetime(s['expires'])}"
+    problem = ""
+    if days < tls.RENEW_DAYS:
+        fix = (
+            "سرور را یک‌بار دوباره روشن کنید تا گواهی تازه صادر شود."
+            if s["mode"] == "self"
+            else "گواهی تازه را از واحد فناوری بگیرید و با https-tool.bat بگذارید."
+        )
+        problem = f"گواهی HTTPS {fa_digits(max(days, 0))} روز دیگر منقضی می‌شود؛ {fix}"
+    return Check("https", "اتصال امن (HTTPS)", not problem, value, problem)
+
+
+CHECKS = [disk, last_backup, errors, license_check, last_update, https]
 
 
 def run_all() -> list[Check]:
