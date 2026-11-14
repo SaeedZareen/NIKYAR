@@ -440,3 +440,50 @@ class LetterSerializer(serializers.ModelSerializer):
 class LetterPlaceholderSerializer(serializers.Serializer):
     token = serializers.CharField()
     label = serializers.CharField()
+
+
+class EmployeeImportInspectSerializer(serializers.Serializer):
+    file = serializers.FileField(label="فایل")
+
+
+class EmployeeImportRunSerializer(serializers.Serializer):
+    file = serializers.FileField(label="فایل")
+    mapping = serializers.JSONField(help_text="سرستون فایل ← کلید فیلد پرونده (extra.<شناسه> برای فیلد دلخواه)")
+    commit = serializers.BooleanField(default=False)
+
+    def validate_mapping(self, value):
+        if not isinstance(value, dict) or not all(isinstance(k, str) and isinstance(v, str) for k, v in value.items()):
+            raise serializers.ValidationError("نگاشت ستون‌ها معتبر نیست.")
+        return value
+
+
+class EmployeeImportColumnSerializer(serializers.Serializer):
+    key = serializers.CharField()
+    label = serializers.CharField()
+
+
+class EmployeeImportInspectResultSerializer(serializers.Serializer):
+    headers = serializers.ListField(child=serializers.CharField())
+    suggested = serializers.DictField(child=serializers.CharField())
+    columns = EmployeeImportColumnSerializer(many=True)
+    row_count = serializers.IntegerField()
+
+
+class EmployeeImportRowSerializer(serializers.Serializer):
+    row = serializers.IntegerField()
+    national_code = serializers.CharField()
+    name = serializers.CharField()
+    action = serializers.ChoiceField(choices=["create", "update", "error"])
+    errors = serializers.DictField(child=serializers.CharField(), required=False)
+
+
+class EmployeeImportCountsSerializer(serializers.Serializer):
+    create = serializers.IntegerField()
+    update = serializers.IntegerField()
+    error = serializers.IntegerField()
+
+
+class EmployeeImportResultSerializer(serializers.Serializer):
+    rows = EmployeeImportRowSerializer(many=True)
+    counts = EmployeeImportCountsSerializer()
+    committed = serializers.BooleanField()

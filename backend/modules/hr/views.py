@@ -1,6 +1,9 @@
 from django.db import transaction
+from django.http import HttpResponse
+from django.utils.http import content_disposition_header
+from drf_spectacular.types import OpenApiTypes
 from drf_spectacular.utils import OpenApiParameter, extend_schema
-from rest_framework import filters, viewsets
+from rest_framework import filters, parsers, viewsets
 from rest_framework.decorators import action
 from rest_framework.exceptions import NotFound, PermissionDenied
 from rest_framework.response import Response
@@ -12,7 +15,7 @@ from core.forms import custom_fields
 from core.forms.engine import compile_schema
 from core.kernel.api import HasPerm, MultiValueFilter
 
-from . import access
+from . import access, excel
 from .letter_texts import PLACEHOLDERS
 from .models import BankAccount, Dependent, Document, Education, Employee, EmployeeEvent, Insurance, Letter, WorkHistory
 from .serializers import (
@@ -24,6 +27,10 @@ from .serializers import (
     EmployeeDetailSerializer,
     EmployeeEventSerializer,
     EmployeeExtraSerializer,
+    EmployeeImportInspectResultSerializer,
+    EmployeeImportInspectSerializer,
+    EmployeeImportResultSerializer,
+    EmployeeImportRunSerializer,
     EmployeeSerializer,
     InsuranceSerializer,
     LetterPlaceholderSerializer,
@@ -42,7 +49,7 @@ class EmployeeViewSet(AuditedModelViewSet):
 
     queryset = Employee.objects.all()  # نوع شناسه برای سند API؛ داده از get_queryset
     permission_classes = [HasPerm]
-    perms = {"list": None, "retrieve": None, "custom_fields": None, "me": None, "*": access.MANAGE}
+    perms = {"list": None, "retrieve": None, "custom_fields": None, "me": None, "export": None, "*": access.MANAGE}
     filter_backends = [MultiValueFilter, filters.SearchFilter]
     filter_fields = {"status": "status", "employment_type": "employment_type_id", "unit": "unit_id"}
     search_fields = ["first_name", "last_name", "personnel_code", "national_code"]
@@ -87,6 +94,37 @@ class EmployeeViewSet(AuditedModelViewSet):
         if employee is None:
             raise NotFound("پرونده‌ای به حساب شما وصل نیست.")
         return Response(EmployeeDetailSerializer(employee, context={**self.get_serializer_context(), "self_view": True}).data)
+
+    @extend_schema(request={"multipart/form-data": EmployeeImportInspectSerializer}, responses=EmployeeImportInspectResultSerializer)
+    @action(detail=False, methods=["post"], url_path="import/inspect", parser_classes=[parsers.MultiPartParser])
+    def import_inspect(self, request):
+        """سرستون‌های فایل، نگاشت پیشنهادی به فیلدهای پرونده و شمار ردیف‌ها."""
+        s = EmployeeImportInspectSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        headers, rows = excel.read_rows(s.validated_data["file"])
+        return Response({"headers": headers, "suggested": excel.suggest(headers), "columns": excel.columns(), "row_count": len(rows)})
+
+    @extend_schema(request={"multipart/form-data": EmployeeImportRunSerializer}, responses=EmployeeImportResultSerializer)
+    @action(detail=False, methods=["post"], url_path="import", parser_classes=[parsers.MultiPartParser])
+    def import_file(self, request):
+        """پیش‌نمایش (commit=false) یا ثبت ردیف‌های درست (commit=true) با نگاشت تأییدشده."""
+        s = EmployeeImportRunSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        return Response(excel.run(s.validated_data["file"], s.validated_data["mapping"], request, s.validated_data["commit"]))
+
+    @extend_schema(responses={(200, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"): OpenApiTypes.BINARY})
+    @action(detail=False, url_path="import/template")
+    def import_template(self, request):
+        """فایل نمونه‌ی خالی با سرستون‌ها و برگه‌ی راهنما."""
+        return _xlsx(excel.template(), "نمونه‌ی ورود پرونده‌ها.xlsx")
+
+    @extend_schema(responses={(200, "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"): OpenApiTypes.BINARY})
+    @action(detail=False, url_path="export")
+    def export(self, request):
+        """همه‌ی فیلدهای پایه و دلخواه پرونده‌های دیدنی کاربر."""
+        if not access.is_viewer(request.user):
+            raise PermissionDenied()
+        return _xlsx(excel.export(access.visible(request.user).order_by("last_name", "first_name")), "پرونده‌های پرسنلی.xlsx")
 
     def get_queryset(self):
         if self.action in ("list", "retrieve"):
@@ -210,3 +248,9 @@ class LetterViewSet(viewsets.ReadOnlyModelViewSet):
     def placeholders(self, request):
         """جای‌گذارهای متن نامه برای ویرایشگر «تنظیمات › منابع انسانی: متن نامه‌ها»."""
         return Response([{"token": f"{{{k}}}", "label": v} for k, v in PLACEHOLDERS.items()])
+
+
+def _xlsx(body: bytes, filename: str) -> HttpResponse:
+    response = HttpResponse(body, content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+    response["Content-Disposition"] = content_disposition_header(True, filename)
+    return response
