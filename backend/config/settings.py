@@ -157,6 +157,15 @@ STATIC_ROOT = DATA_DIR / "static"
 MEDIA_ROOT = DATA_DIR / "media"
 # فایل‌های ساخته‌شده‌ی رابط کاربری (frontend/dist) از ریشه‌ی سایت سرو می‌شوند.
 WHITENOISE_ROOT = FRONTEND_DIST if FRONTEND_DIST.exists() else None
+
+
+def _static_headers(headers, path, url):
+    """کارگر سرویس (sw.js) هر بار از سرور بررسی می‌شود تا نسخه‌ی تازه پس از به‌روزرسانی بی‌درنگ جای قبلی را بگیرد."""
+    if url in ("/sw.js", "/offline.html"):
+        headers["Cache-Control"] = "no-cache"
+
+
+WHITENOISE_ADD_HEADERS_FUNCTION = _static_headers
 STORAGES = {
     "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
     "staticfiles": {"BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage"},

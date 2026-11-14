@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#1d3f6e" />
+    <!-- هر ۱۵ ثانیه دوباره؛ با برقراری اتصال، خود سامانه باز می‌شود -->
+    <meta http-equiv="refresh" content="15" />
+    <title>اتصال برقرار نیست · نیک‌یار</title>
+    <style>
+      :root { color-scheme: light dark; --bg: #f1f4f9; --fg: #16202e; --muted: #5b6575; --primary: #1d3f6e; --card: #fff; --border: #d9dee7; }
+      @media (prefers-color-scheme: dark) { :root { --bg: #0f1724; --fg: #e6ebf2; --muted: #9aa5b5; --primary: #8fb3e8; --card: #172234; --border: #2a3850; } }
+      * { box-sizing: border-box; }
+      body { margin: 0; min-height: 100svh; display: flex; align-items: center; justify-content: center; padding: 16px; background: var(--bg); color: var(--fg); font-family: "Vazirmatn Variable", Tahoma, sans-serif; font-size: 13px; line-height: 1.8; }
+      main { max-width: 26rem; width: 100%; background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 24px; text-align: center; }
+      img { width: 56px; height: 56px; border-radius: 12px; }
+      h1 { font-size: 17px; margin: 12px 0 4px; }
+      p { margin: 0 0 8px; }
+      .muted { color: var(--muted); font-size: 12px; }
+      a { display: inline-block; margin-top: 12px; padding: 8px 20px; border-radius: 8px; background: var(--primary); color: #fff; text-decoration: none; font-weight: 600; }
+      @media (prefers-color-scheme: dark) { a { color: #0f1724; } }
+    </style>
+  </head>
+  <body>
+    <main>
+      <img src="/icons/icon-192.png" alt="" />
+      <h1>اتصال برقرار نیست</h1>
+      <p>نیک‌یار به سرور سازمان دسترسی ندارد.</p>
+      <p class="muted">اتصال شبکه یا وای‌فای دستگاه را بررسی کنید؛ اگر درست است، شاید سرور خاموش باشد و باید به راهبر سامانه خبر دهید. این صفحه هر چند ثانیه دوباره تلاش می‌کند.</p>
+      <a href="/">تلاش دوباره</a>
+    </main>
+  </body>
+</html>

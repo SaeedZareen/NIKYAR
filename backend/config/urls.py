@@ -13,6 +13,7 @@ from rest_framework.routers import DefaultRouter
 
 from core.audit.views import AuditLogViewSet
 from core.kernel import tls
+from core.settings import service as settings_service
 
 audit_router = DefaultRouter(trailing_slash=True)
 audit_router.register("logs", AuditLogViewSet, basename="audit-log")
@@ -65,6 +66,36 @@ def _content_security_policy(mtime: float) -> str:
     )
 
 
+def _icon(name: str, size: int, purpose: str = "any") -> dict:
+    return {"src": f"/icons/{name}", "sizes": f"{size}x{size}", "type": "image/png", "purpose": purpose}
+
+
+def manifest(request):
+    """
+    مانیفست نصب (6.8): نام برنامه با نام کوتاه سازمان («تنظیمات › مشخصات سازمان»)، راست‌به‌چپ، باز شدن بی نوار مرورگر.
+    نصب روی گوشی و رایانه فقط با HTTPS است (https-tool.bat).
+    """
+    profile = settings_service.read("org-profile")
+    org = profile["short_name"] or profile["name"]
+    data = {
+        "name": f"نیک‌یار · {org}" if org else "نیک‌یار",
+        "short_name": "نیک‌یار",
+        "description": "سامانه‌ی یکپارچه‌ی مدیریت فرایند و منابع سازمانی",
+        "lang": "fa",
+        "dir": "rtl",
+        "start_url": "/",
+        "scope": "/",
+        "id": "/",
+        "display": "standalone",
+        "background_color": "#f1f4f9",
+        "theme_color": "#1d3f6e",
+        "icons": [_icon("icon-192.png", 192), _icon("icon-512.png", 512), _icon("maskable-512.png", 512, "maskable")],
+    }
+    response = JsonResponse(data, json_dumps_params={"ensure_ascii": False}, content_type="application/manifest+json")
+    response["Cache-Control"] = "no-cache"
+    return response
+
+
 @never_cache
 def spa(request, path=""):
     """رابط کاربری تک‌صفحه‌ای: هر نشانی غیر از API به index.html برمی‌گردد و مسیریابی در مرورگر انجام می‌شود."""
@@ -105,5 +136,6 @@ api = [
 
 urlpatterns = [
     path("api/", include(api)),
+    path("manifest.webmanifest", manifest, name="manifest"),
     re_path(r"^(?!api/|static/).*$", spa, name="spa"),
 ]

@@ -103,8 +103,8 @@ function Editor({ form, version, specs, onReload }: { form: DesignForm; version:
   const definition = history.present
   const [selection, setSelection] = React.useState<Selection>(null)
   const [saved, setSaved] = React.useState(() => JSON.stringify(version.definition))
-  const [save, setSave] = React.useState<SaveState>({ kind: "saved", at: version.updated_at })
-  const [serverErrors, setServerErrors] = React.useState<Record<string, string>>({})
+  const [lastSave, setSave] = React.useState<SaveState>({ kind: "saved", at: version.updated_at })
+  const [lastErrors, setServerErrors] = React.useState<Record<string, string>>({})
   const [settings, setSettings] = React.useState(false)
   const [previewing, setPreviewing] = React.useState(false)
   const [showVersions, setShowVersions] = React.useState(false)
@@ -117,6 +117,10 @@ function Editor({ form, version, specs, onReload }: { form: DesignForm; version:
 
   const serialized = JSON.stringify(definition)
   const changed = !readOnly && serialized !== saved
+  // ذخیره‌ای که ناموفق ماند و سپس تعریف به همان نسخه‌ی ذخیره‌شده برگشت (مثلاً حذف فیلد نادرست): ایراد کهنه است
+  const reverted = !changed && lastSave.kind === "error"
+  const save: SaveState = reverted ? { kind: "saved", at: lastSave.at } : lastSave
+  const serverErrors = React.useMemo(() => (reverted ? {} : lastErrors), [reverted, lastErrors])
   const errors = React.useMemo(() => errorsByItem(definition, serverErrors), [definition, serverErrors])
   const invalid = React.useMemo(() => new Set(Object.keys(errors)), [errors])
 
@@ -130,7 +134,7 @@ function Editor({ form, version, specs, onReload }: { form: DesignForm; version:
     if (!changed) return
     const timer = window.setTimeout(() => {
       const body = JSON.parse(serialized) as FormDefinition
-      setSave({ kind: "saving" })
+      setSave((s) => ({ kind: "saving", at: s.at }))
       const run = pending.current.then(() => unwrap(api.PATCH("/api/forms/versions/{id}/", { params: { path: { id: version.id } }, body: { definition: body } })))
       pending.current = run.catch(() => undefined)
       run.then(
@@ -141,7 +145,7 @@ function Editor({ form, version, specs, onReload }: { form: DesignForm; version:
         },
         (e) => {
           setServerErrors(e instanceof ApiError ? e.fields : {})
-          setSave({ kind: "error", message: errorMessage(e) })
+          setSave((s) => ({ kind: "error", message: errorMessage(e), at: s.at }))
         }
       )
     }, AUTOSAVE_DELAY)
