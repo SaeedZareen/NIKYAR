@@ -39,7 +39,14 @@ DEFAULT = "default"
 STAGING = "nikyar_restore"
 DB_FILE = "nikyar.db"
 DATA_FILE = "data.jsonl"
-KINDS = {"manual": "دستی", "daily": "روزانه", "pre-restore": "پیش از بازیابی", "uploaded": "بارگذاری‌شده", "pre-switch": "پیش از تغییر پایگاه داده"}
+KINDS = {
+    "manual": "دستی",
+    "daily": "روزانه",
+    "pre-restore": "پیش از بازیابی",
+    "uploaded": "بارگذاری‌شده",
+    "pre-switch": "پیش از تغییر پایگاه داده",
+    "pre-update": "پیش از به‌روزرسانی",
+}
 NAME = re.compile(r"^nikyar-(\d{8}-\d{6})-([a-z-]+)\.zip$")
 
 
@@ -164,12 +171,15 @@ def list_backups() -> list[BackupInfo]:
     return sorted(found, key=lambda b: b.created_at, reverse=True)
 
 
-def prune(keep: int) -> int:
-    """فقط پشتیبان‌های روزانه‌ی قدیمی حذف می‌شوند؛ پشتیبان دستی و پیش از بازیابی را کاربر خودش حذف می‌کند."""
-    daily = [b for b in list_backups() if b.kind == "daily"]
-    for b in daily[keep:]:
+def prune(keep: int, kind: str = "daily") -> int:
+    """
+    پشتیبان‌های خودکار قدیمی یک نوع حذف می‌شوند (روزانه، و «پیش از به‌روزرسانی» که به‌روزرسانی امن می‌سازد)؛
+    پشتیبان دستی و پیش از بازیابی را کاربر خودش حذف می‌کند.
+    """
+    found = [b for b in list_backups() if b.kind == kind]
+    for b in found[keep:]:
         (backup_dir() / b.name).unlink(missing_ok=True)
-    return max(0, len(daily) - keep)
+    return max(0, len(found) - keep)
 
 
 def check_compatible(manifest: dict) -> None:

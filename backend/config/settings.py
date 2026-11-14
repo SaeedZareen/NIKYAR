@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     "core.forms",
     "core.workflow",
     "core.setup",
+    "core.monitoring",
     # ماژول‌های قابل فروش (backend/modules)؛ هسته به آن‌ها وابسته نیست.
     "modules.hr",
 ]
@@ -198,4 +199,16 @@ SPECTACULAR_SETTINGS = {
     "SWAGGER_UI_DIST": "SIDECAR",
     "SWAGGER_UI_FAVICON_HREF": "SIDECAR",
     "REDOC_DIST": "SIDECAR",
+}
+
+# خطاهای سرور (درخواست ناموفق، کار پس‌زمینه‌ی ناموفق) در data/logs/errors.log برای پشتیبانی و بررسی «خطاهای سامانه»،
+# و همه‌ی هشدارها در خروجی کنسول (پنجره‌ی start.bat یا گزارش سرویس).
+LOGGING = {
+    "version": 1,
+    "disable_existing_loggers": False,
+    "handlers": {
+        "console": {"class": "logging.StreamHandler"},
+        "errors": {"()": "core.monitoring.logs.ErrorFileHandler"},
+    },
+    "root": {"handlers": ["console", "errors"], "level": "WARNING"},
 }

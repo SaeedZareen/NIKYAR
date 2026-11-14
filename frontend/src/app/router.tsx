@@ -48,6 +48,7 @@ const AuditPage = lazy(() => import("@/pages/admin/audit-page"))
 const CalendarPage = lazy(() => import("@/pages/admin/calendar/calendar-page"))
 const BackupsPage = lazy(() => import("@/pages/admin/backups/backups-page"))
 const JobsPage = lazy(() => import("@/pages/admin/jobs-page"))
+const HealthPage = lazy(() => import("@/pages/admin/health-page"))
 const LicensePage = lazy(() => import("@/pages/admin/license-page"))
 const SettingsPage = lazy(() => import("@/pages/admin/settings/settings-page"))
 const DataTablePage = lazy(() => import("@/pages/ui-kit/data-table-page"))
@@ -116,6 +117,7 @@ export const router = createBrowserRouter([
           { path: "admin/calendar", element: page(<CalendarPage />, "workcalendar.manage") },
           { path: "admin/backups", element: page(<BackupsPage />, "backup.manage") },
           { path: "admin/jobs", element: page(<JobsPage />, "jobs.manage") },
+          { path: "admin/health", element: page(<HealthPage />, "monitoring.view") },
           { path: "admin/license", element: page(<LicensePage />, "license.manage") },
           { path: "admin/settings", element: page(<SettingsPage />, "settings.manage") },
           { path: "ui-kit/data-table", element: page(<DataTablePage />, "superuser") },

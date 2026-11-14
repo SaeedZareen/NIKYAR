@@ -2,6 +2,8 @@
 Database tool (database-tool.bat): show the current database, move all data to PostgreSQL or back to SQLite,
 or restore a backup file from the command line (a fresh database has no admin user to log in with).
 
+`database backup` is the safety backup of update.py (kind pre-update; the last 3 are kept) and prints its path.
+
 Moving = backup of the current database -> write data/database.json -> migrate + restore in a fresh process
 that reads the new connection. On any failure the previous data/database.json comes back, so NIKYAR keeps
 using the old database untouched. Console output is English (Windows consoles cannot render Persian).
@@ -20,6 +22,8 @@ from django.core.management.base import BaseCommand, CommandError
 from core.accounts.models import User
 from core.backup import service
 
+UPDATE_BACKUPS_KEPT = 3
+
 
 def config_path() -> Path:
     return Path(settings.DATA_DIR) / "database.json"
@@ -31,6 +35,7 @@ class Command(BaseCommand):
     def add_arguments(self, parser):
         sub = parser.add_subparsers(dest="action", required=True)
         sub.add_parser("show", help="Show which database NIKYAR uses.")
+        sub.add_parser("backup", help="Back up everything before an update and print the backup file path.")
         pg = sub.add_parser("postgres", help="Move all data to a PostgreSQL database.")
         for name, default in [("host", "127.0.0.1"), ("port", "5432"), ("name", "nikyar"), ("user", "nikyar")]:
             pg.add_argument(f"--{name}", default=None, help=f"default: {default}")
@@ -41,12 +46,15 @@ class Command(BaseCommand):
         restore = sub.add_parser("restore", help="Restore a NIKYAR backup file into the current database.")
         restore.add_argument("file")
         restore.add_argument("--force", action="store_true", help="also when the database already has users")
+        restore.add_argument("--no-safety-backup", action="store_true", help="with --force: skip the backup of the current data (rolling back an update)")
 
     def handle(self, action, **options):
         if action == "show":
             return self.show()
+        if action == "backup":
+            return self.backup()
         if action == "restore":
-            return self.restore(Path(options["file"]), options["force"])
+            return self.restore(Path(options["file"]), options["force"], not options["no_safety_backup"])
         if action == "postgres":
             target = {"engine": "postgres"}
             for name, default in [("host", "127.0.0.1"), ("port", "5432"), ("name", "nikyar"), ("user", "nikyar")]:
@@ -66,13 +74,18 @@ class Command(BaseCommand):
         else:
             self.stdout.write(f"NIKYAR uses PostgreSQL: database {db['NAME']} on {db['HOST']}:{db['PORT']} as {db['USER']}")
 
-    def restore(self, path: Path, force: bool):
+    def backup(self):
+        created = service.create("pre-update")
+        service.prune(UPDATE_BACKUPS_KEPT, kind="pre-update")
+        self.stdout.write(str(service.backup_dir() / created.name))
+
+    def restore(self, path: Path, force: bool, safety: bool = True):
         if not path.exists():
             raise CommandError(f"File not found: {path}")
         if User.objects.exists() and not force:
             raise CommandError("This database already has users. Restoring replaces everything; add --force if that is intended.")
         try:
-            service.restore(path, safety=force)
+            service.restore(path, safety=force and safety)
         except Exception as e:  # BusinessError پیام فارسی دارد؛ کنسول ویندوز آن را نشان نمی‌دهد
             raise CommandError(f"Restore failed: {e.__class__.__name__}") from e
         self.stdout.write(self.style.SUCCESS(f"Restored {path.name}."))

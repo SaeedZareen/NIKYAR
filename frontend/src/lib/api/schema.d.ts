@@ -1756,6 +1756,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/monitoring/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description وضع کنونی سلامت سامانه برای صفحه‌ی «سلامت سامانه»؛ هشدار را کار دوره‌ای monitoring.check می‌فرستد. */
+        get: operations["monitoring_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/notifications/": {
         parameters: {
             query?: never;
@@ -2316,6 +2333,24 @@ export interface paths {
         get: operations["settings_messaging_retrieve"];
         /** @description خواندن و ذخیره‌ی یک بخش. برای هر بخش اعلام‌شده یک زیرکلاس با serializer همان بخش ساخته می‌شود (urls.py). */
         put: operations["settings_messaging_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/settings/monitoring/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description خواندن و ذخیره‌ی یک بخش. برای هر بخش اعلام‌شده یک زیرکلاس با serializer همان بخش ساخته می‌شود (urls.py). */
+        get: operations["settings_monitoring_retrieve"];
+        /** @description خواندن و ذخیره‌ی یک بخش. برای هر بخش اعلام‌شده یک زیرکلاس با serializer همان بخش ساخته می‌شود (urls.py). */
+        put: operations["settings_monitoring_update"];
         post?: never;
         delete?: never;
         options?: never;
@@ -4502,6 +4537,22 @@ export interface components {
          * @enum {string}
          */
         GenderEnum: "male" | "female";
+        Health: {
+            version: string;
+            database: string;
+            checks: components["schemas"]["HealthCheck"][];
+            updates: components["schemas"]["UpdateAttempt"][];
+            /** @description خطاهای ۲۴ ساعت گذشته، تازه‌ترین نخست (حداکثر ۲۰) */
+            errors: components["schemas"]["RecentError"][];
+        };
+        HealthCheck: {
+            code: string;
+            title: string;
+            ok: boolean;
+            value: string;
+            problem: string;
+            url: string;
+        };
         Holder: {
             assignment: number;
             user: number;
@@ -5688,6 +5739,50 @@ export interface components {
             description: string;
             enabled: boolean;
         };
+        MonitoringSettings: {
+            /**
+             * کمترین فضای خالی دیسک (گیگابایت)
+             * @default 5
+             */
+            disk_min_free_gb: number;
+            /**
+             * بیشترین فاصله از آخرین پشتیبان (روز)
+             * @default 2
+             */
+            backup_max_age_days: number;
+            /**
+             * سقف خطای سامانه در یک ساعت
+             * @default 10
+             */
+            errors_per_hour: number;
+            /**
+             * تکرار هشدار پابرجا (ساعت)
+             * @default 24
+             */
+            repeat_hours: number;
+        };
+        MonitoringSettingsRequest: {
+            /**
+             * کمترین فضای خالی دیسک (گیگابایت)
+             * @default 5
+             */
+            disk_min_free_gb: number;
+            /**
+             * بیشترین فاصله از آخرین پشتیبان (روز)
+             * @default 2
+             */
+            backup_max_age_days: number;
+            /**
+             * سقف خطای سامانه در یک ساعت
+             * @default 10
+             */
+            errors_per_hour: number;
+            /**
+             * تکرار هشدار پابرجا (ساعت)
+             * @default 24
+             */
+            repeat_hours: number;
+        };
         Notification: {
             readonly id: number;
             /** نوع */
@@ -6686,6 +6781,11 @@ export interface components {
             process: number | null;
             active: boolean;
         };
+        RecentError: {
+            /** @description زمان شمسی */
+            at: string;
+            message: string;
+        };
         RecordItem: {
             id: number;
             /** @description شماره‌ی پیگیری (یا خالی) */
@@ -6911,6 +7011,13 @@ export interface components {
             /** @description پشتیبانی که پیش از بازیابی از وضع قبلی گرفته شد. */
             safety: components["schemas"]["Backup"];
         };
+        /**
+         * @description * `ok` - موفق
+         *     * `rolled_back` - ناموفق، به نسخه‌ی قبل برگشت
+         *     * `failed` - ناموفق، بازگشت کامل نشد
+         * @enum {string}
+         */
+        ResultEnum: "ok" | "rolled_back" | "failed";
         Role: {
             readonly id: number;
             /** عنوان */
@@ -7313,6 +7420,18 @@ export interface components {
         };
         UnreadCount: {
             unread: number;
+        };
+        UpdateAttempt: {
+            /** Format: date-time */
+            finished_at: string;
+            from_version: string;
+            to_version: string;
+            result: components["schemas"]["ResultEnum"];
+            result_label: string;
+            /** @description مرحله‌ای که شکست خورد؛ خالی اگر موفق */
+            step: string;
+            /** @description نام فایل گزارش در data/logs */
+            log: string;
         };
         UploadRequest: {
             /**
@@ -10889,6 +11008,25 @@ export interface operations {
             };
         };
     };
+    monitoring_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Health"];
+                };
+            };
+        };
+    };
     notifications_list: {
         parameters: {
             query?: {
@@ -12163,6 +12301,50 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MessagingSettings"];
+                };
+            };
+        };
+    };
+    settings_monitoring_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitoringSettings"];
+                };
+            };
+        };
+    };
+    settings_monitoring_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["MonitoringSettingsRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["MonitoringSettingsRequest"];
+                "multipart/form-data": components["schemas"]["MonitoringSettingsRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MonitoringSettings"];
                 };
             };
         };
