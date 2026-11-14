@@ -60,6 +60,7 @@ ROLES = {
             "workcalendar.manage",
             "backup.manage",
             "jobs.manage",
+            "monitoring.view",
             "delegation.manage",
             "license.manage",
         ],

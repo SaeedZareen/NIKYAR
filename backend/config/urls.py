@@ -39,6 +39,7 @@ api = [
     path("jobs/", include("core.jobs.urls")),
     path("backups/", include("core.backup.urls")),
     path("setup/", include("core.setup.urls")),
+    path("monitoring/", include("core.monitoring.urls")),
     path("notifications/", include("core.notifications.urls")),
     path("messaging/", include("core.messaging.urls")),
     path("delegations/", include("core.delegation.urls")),
