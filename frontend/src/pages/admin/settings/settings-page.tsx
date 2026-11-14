@@ -14,6 +14,7 @@ import { NumberingSection } from "./numbering-section"
 import { OrgProfileSection } from "./org-profile-section"
 import { SystemSection } from "./system-section"
 import { MonitoringSection } from "./monitoring-section"
+import { DirectorySection } from "./directory-section"
 import { WorkWeekSection } from "./work-week-section"
 import type { SectionInfo } from "./settings-form"
 import { HrLeaveSection } from "@/pages/hr/settings-leave"
@@ -35,6 +36,7 @@ const SECTION_FORMS: Record<string, (section: SectionInfo) => React.ReactNode> =
   messaging: (s) => <MessagingSection section={s} />,
   system: (s) => <SystemSection section={s} />,
   monitoring: (s) => <MonitoringSection section={s} />,
+  directory: (s) => <DirectorySection section={s} />,
   "hr-roles": (s) => <HrRolesSection section={s} />,
   "hr-leave": (s) => <HrLeaveSection section={s} />,
   "hr-letters": (s) => <HrLettersSection section={s} />,

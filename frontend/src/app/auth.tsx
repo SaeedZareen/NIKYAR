@@ -7,6 +7,8 @@ import { IdleGuard } from "@/components/layout/idle-guard"
 import PasswordRequiredPage from "@/pages/password-required-page"
 
 export type Me = Schemas["Me"]
+/** گذرواژه درست بود و رمز دوم پیامکی لازم است (پاسخ ۲۰۲ ورود). */
+export type Challenge = Schemas["Challenge"]
 export const SESSION_KEY = ["session"] as const
 
 /** کاربر واردشده؛ null یعنی نشستی وجود ندارد (سرور ۲۰۴ برمی‌گرداند). */
@@ -31,7 +33,18 @@ export function useAuth() {
 export function useLogin() {
   const qc = useQueryClient()
   return useMutation({
-    mutationFn: (body: Schemas["LoginRequest"]) => unwrap(api.POST("/api/auth/session/", { body })),
+    mutationFn: (body: Schemas["LoginRequest"]) => unwrap(api.POST("/api/auth/session/", { body })) as Promise<Me | Challenge>,
+    onSuccess: (result) => {
+      if ("username" in result) qc.setQueryData(SESSION_KEY, result)
+    },
+  })
+}
+
+/** رمز دوم: کد پیامکی و ورود. */
+export function useLoginCode() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: (body: Schemas["CodeVerifyRequest"]) => unwrap(api.POST("/api/auth/session/code/", { body })),
     onSuccess: (me) => qc.setQueryData(SESSION_KEY, me),
   })
 }
