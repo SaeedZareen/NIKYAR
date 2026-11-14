@@ -293,6 +293,12 @@ def _book(headers: list[str]) -> tuple[Workbook, object]:
 
 
 def _bytes(book: Workbook) -> bytes:
+    # هر متن آغازشده با «=» را openpyxl فرمول می‌نویسد؛ داده‌ی کاربر (نام، واحد، فیلد دلخواه) هرگز فرمول اجرا نکند
+    for sheet in book.worksheets:
+        for row in sheet.iter_rows():
+            for cell in row:
+                if cell.data_type == "f":
+                    cell.data_type = "s"
     out = io.BytesIO()
     book.save(out)
     return out.getvalue()

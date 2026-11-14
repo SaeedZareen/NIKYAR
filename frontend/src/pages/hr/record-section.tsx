@@ -19,7 +19,7 @@ import { api, errorMessage, unwrap, type Schemas } from "@/lib/api/client"
 import { EMPLOYEES_KEY } from "./employees"
 
 /** نوع‌های سوابق پرونده = مسیرهای `/api/hr/<kind>/`. */
-export type RecordKind = "educations" | "work-history" | "dependents" | "bank-accounts" | "insurances" | "documents"
+type RecordKind = "educations" | "work-history" | "dependents" | "bank-accounts" | "insurances" | "documents"
 type WithId = RowData & { id: number }
 
 /**

@@ -35,7 +35,7 @@ def secret_key() -> str:
 SECRET_KEY = secret_key()
 DEBUG = env_bool("NIKYAR_DEBUG")
 ALLOWED_HOSTS = [h.strip() for h in os.environ.get("NIKYAR_ALLOWED_HOSTS", "*").split(",") if h.strip()]
-VERSION = "0.5.0"
+VERSION = "0.6.0"
 
 INSTALLED_APPS = [
     "django.contrib.auth",

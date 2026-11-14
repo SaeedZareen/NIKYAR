@@ -4,7 +4,7 @@ import { ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig } f
 import { Skeleton } from "@/components/ui/skeleton"
 import { formatNumber } from "@/lib/format"
 
-export type StatTile = { label: string; value: string; meta?: string }
+type StatTile = { label: string; value: string; meta?: string }
 
 /** کاشی‌های خلاصه‌ی گزارش (شمار اصلی درشت، توضیح کوچک زیر آن)؛ تا رسیدن داده، اسکلت. */
 export function StatTiles({ tiles, count = 4 }: { tiles?: StatTile[]; count?: number }) {
