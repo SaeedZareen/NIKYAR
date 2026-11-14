@@ -140,6 +140,7 @@ class BrandingSerializer(serializers.Serializer):
     short_name = serializers.CharField()
     logo_url = serializers.CharField(help_text="نشانی تصویر لوگو؛ خالی یعنی بدون لوگو.")
     version = serializers.CharField(help_text="نسخه‌ی نیک‌یار، برای صفحه‌ی ورود.")
+    password_reset = serializers.BooleanField(help_text="«فراموشی گذرواژه» با کد پیامکی در صفحه‌ی ورود")
 
 
 class UnitLookupSerializer(serializers.Serializer):
@@ -193,4 +194,6 @@ class BrandingView(generics.GenericAPIView):
     def get(self, request):
         profile = settings_service.read("org-profile")
         logo_url = f"/api/files/{profile['logo']}/download/?inline=1" if profile["logo"] else ""
-        return Response(self.get_serializer({**profile, "logo_url": logo_url, "version": settings.VERSION}).data)
+        from core.accounts.challenges import reset_available
+
+        return Response(self.get_serializer({**profile, "logo_url": logo_url, "version": settings.VERSION, "password_reset": reset_available()}).data)

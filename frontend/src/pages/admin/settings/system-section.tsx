@@ -4,13 +4,16 @@ import { toast } from "sonner"
 import { FormField } from "@/components/form/form-field"
 import { applyServerErrors } from "@/components/form/server-errors"
 import { useAppForm } from "@/components/form/use-app-form"
+import { Checkbox } from "@/components/ui/checkbox"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
 import { api, unwrap, type Schemas } from "@/lib/api/client"
 import { countRule } from "./count-rule"
 import { SettingsForm, SettingsLoader, UnitInput, type SectionInfo } from "./settings-form"
 
 type System = Schemas["SystemSettings"]
-type Name = Exclude<keyof System, "password_mixed">
+type Name = Exclude<keyof System, "password_mixed" | "two_factor" | "two_factor_roles" | "password_reset_sms">
 const KEY = ["settings", "system"]
 
 const LABELS: Record<keyof System, string> = {
@@ -25,6 +28,9 @@ const LABELS: Record<keyof System, string> = {
   lockout_attempts: "قفل پس از تلاش ناموفق",
   lockout_minutes: "مدت قفل",
   idle_minutes: "پایان نشست پس از بی‌کاری",
+  two_factor: "رمز دوم پیامکی",
+  two_factor_roles: "نقش‌های نیازمند رمز دوم",
+  password_reset_sms: "فراموشی گذرواژه با کد پیامکی",
 }
 /** بازه، واحد و راهنمای هر مقدار (همان بازه‌های سرور). */
 const FIELDS: { name: Name; low: number; high: number; unit: string; help: string }[] = [
@@ -42,8 +48,17 @@ const FIELDS: { name: Name; low: number; high: number; unit: string; help: strin
 const schema = z.object({
   ...(Object.fromEntries(FIELDS.map((f) => [f.name, countRule(LABELS[f.name], f.low, f.high, f.unit)])) as Record<Name, ReturnType<typeof countRule>>),
   password_mixed: z.boolean(),
+  two_factor: z.enum(["off", "roles", "all"]),
+  two_factor_roles: z.array(z.number()),
+  password_reset_sms: z.boolean(),
 })
-const toForm = (d: System) => ({ ...(Object.fromEntries(FIELDS.map((f) => [f.name, String(d[f.name])])) as Record<Name, string>), password_mixed: d.password_mixed })
+const toForm = (d: System) => ({
+  ...(Object.fromEntries(FIELDS.map((f) => [f.name, String(d[f.name])])) as Record<Name, string>),
+  password_mixed: d.password_mixed,
+  two_factor: d.two_factor,
+  two_factor_roles: d.two_factor_roles,
+  password_reset_sms: d.password_reset_sms,
+})
 
 export function SystemSection({ section }: { section: SectionInfo }) {
   const query = useQuery({ queryKey: KEY, queryFn: () => unwrap(api.GET("/api/settings/system/")) })
@@ -57,6 +72,8 @@ export function SystemSection({ section }: { section: SectionInfo }) {
 function SystemForm({ section, data }: { section: SectionInfo; data: System }) {
   const qc = useQueryClient()
   const form = useAppForm(schema, toForm(data))
+  const twoFactor = form.watch("two_factor")
+  const roles = useQuery({ queryKey: ["role-lookup"], queryFn: () => unwrap(api.GET("/api/auth/role-lookup/")) })
   const save = useMutation({
     mutationFn: (body: Schemas["SystemSettingsRequest"]) => unwrap(api.PUT("/api/settings/system/", { body })),
     onSuccess: (saved) => {
@@ -67,7 +84,8 @@ function SystemForm({ section, data }: { section: SectionInfo; data: System }) {
   })
   const onSubmit = form.handleSubmit(async (v) => {
     try {
-      await save.mutateAsync({ ...(Object.fromEntries(FIELDS.map((f) => [f.name, Number(v[f.name])])) as Record<Name, number>), password_mixed: v.password_mixed })
+      const counts = Object.fromEntries(FIELDS.map((f) => [f.name, Number(v[f.name])])) as Record<Name, number>
+      await save.mutateAsync({ ...counts, password_mixed: v.password_mixed, two_factor: v.two_factor, two_factor_roles: v.two_factor_roles, password_reset_sms: v.password_reset_sms })
     } catch (e) {
       applyServerErrors(form, e)
     }
@@ -95,6 +113,62 @@ function SystemForm({ section, data }: { section: SectionInfo; data: System }) {
           <div className="flex min-h-7 items-center gap-2">
             <Switch id={id} checked={field.value} onCheckedChange={field.onChange} />
             <span className="text-xs text-muted-foreground">{field.value ? "لازم است" : "لازم نیست"}</span>
+          </div>
+        )}
+      />
+      <FormField
+        control={form.control}
+        name="two_factor"
+        label={LABELS.two_factor}
+        description="پس از گذرواژه‌ی درست، کد شش‌رقمی به موبایل کاربر پیامک می‌شود و ورود با آن کامل می‌شود. نیاز به درگاه پیامک و موبایل ثبت‌شده‌ی کاربران دارد. متن یا الگوی پیامک در «متن اعلان‌ها › کد ورود»."
+        render={({ field, id, aria }) => (
+          <Select value={field.value} onValueChange={field.onChange}>
+            <SelectTrigger id={id} className="w-full" {...aria}>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="off">خاموش</SelectItem>
+              <SelectItem value="roles">برای نقش‌های انتخاب‌شده</SelectItem>
+              <SelectItem value="all">برای همه</SelectItem>
+            </SelectContent>
+          </Select>
+        )}
+      />
+      {twoFactor === "roles" && (
+        <FormField
+          control={form.control}
+          name="two_factor_roles"
+          label={LABELS.two_factor_roles}
+          required
+          group
+          description="مثلاً مدیران و کسانی که به پشتیبان‌گیری یا تنظیمات دسترسی دارند."
+          render={({ field, id, aria }) => (
+            <div id={id} role="group" tabIndex={-1} className="flex flex-col gap-2 pt-1 outline-none" {...aria}>
+              {(roles.data ?? []).map((r) => (
+                <div key={r.id} className="flex items-center gap-2">
+                  <Checkbox
+                    id={`tf-role-${r.id}`}
+                    checked={field.value.includes(r.id)}
+                    onCheckedChange={(on) => field.onChange(on ? [...field.value, r.id] : field.value.filter((x) => x !== r.id))}
+                  />
+                  <Label htmlFor={`tf-role-${r.id}`} className="font-normal">
+                    {r.name}
+                  </Label>
+                </div>
+              ))}
+            </div>
+          )}
+        />
+      )}
+      <FormField
+        control={form.control}
+        name="password_reset_sms"
+        label={LABELS.password_reset_sms}
+        description="پیوند «گذرواژه را فراموش کرده‌ام» در صفحه‌ی ورود: کد به موبایل ثبت‌شده‌ی کاربر پیامک می‌شود و او گذرواژه‌ی تازه می‌گذارد. فقط وقتی درگاه پیامک تنظیم باشد نمایش داده می‌شود. کاربران Active Directory گذرواژه را در ویندوز عوض می‌کنند."
+        render={({ field, id }) => (
+          <div className="flex min-h-7 items-center gap-2">
+            <Switch id={id} checked={field.value} onCheckedChange={field.onChange} />
+            <span className="text-xs text-muted-foreground">{field.value ? "روشن" : "خاموش"}</span>
           </div>
         )}
       />

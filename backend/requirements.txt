@@ -13,3 +13,4 @@ nh3>=0.3,<0.4
 SpiffWorkflow==3.2.0
 openpyxl>=3.1,<4
 psycopg[binary]>=3.2,<4
+ldap3>=2.9,<3

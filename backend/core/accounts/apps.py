@@ -37,6 +37,22 @@ class AccountsConfig(AppConfig):
             channels=("sms", "email"),
         ),
         NotificationKind(
+            code="accounts.login_code",
+            title="کد ورود (رمز دوم)",
+            template="کد ورود به نیک‌یار: {code}\nاین کد را به هیچ‌کس ندهید.",
+            placeholders={"code": ("کد", "۴۸۲۹۱۶")},
+            channels=("sms",),
+            direct=True,
+        ),
+        NotificationKind(
+            code="accounts.reset_code",
+            title="کد بازیابی گذرواژه",
+            template="کد بازیابی گذرواژه‌ی نیک‌یار: {code}\nاگر این درخواست از شما نبوده، به راهبر سامانه خبر دهید.",
+            placeholders={"code": ("کد", "۴۸۲۹۱۶")},
+            channels=("sms",),
+            direct=True,
+        ),
+        NotificationKind(
             code="accounts.locked",
             title="قفل شدن حساب",
             template="حساب شما پس از چند تلاش ناموفق ورود تا {until} قفل شد. اگر این تلاش‌ها کار شما نبوده، به راهبر سامانه خبر دهید.",

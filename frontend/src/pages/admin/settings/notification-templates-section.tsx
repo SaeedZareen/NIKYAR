@@ -172,29 +172,33 @@ function TemplateSheet({ kind, ...sheet }: { kind: Kind; open: boolean; onOpenCh
             />
           )}
         />
-        <FormField
-          control={form.control}
-          name="channels"
-          label="ارسال پیش‌فرض با"
-          group
-          description="اعلان درون سامانه همیشه فرستاده می‌شود؛ پیامک و ایمیل فقط اگر در «پیامک و ایمیل» تنظیم شده باشند. هر کاربر می‌تواند انتخاب خودش را داشته باشد."
-          render={({ field, id, aria: { "aria-required": _required, ...aria } }) => (
-            <div id={id} tabIndex={-1} role="group" className="flex min-h-7 flex-wrap items-center gap-4 outline-none" {...aria}>
-              {CHANNELS.map((c) => (
-                <div key={c.value} className="flex items-center gap-2">
-                  <Checkbox
-                    id={`${id}-${c.value}`}
-                    checked={field.value.includes(c.value)}
-                    onCheckedChange={(v) => field.onChange(v ? [...field.value, c.value] : field.value.filter((x) => x !== c.value))}
-                  />
-                  <Label htmlFor={`${id}-${c.value}`} className="font-normal">
-                    {c.label}
-                  </Label>
-                </div>
-              ))}
-            </div>
-          )}
-        />
+        {kind.direct ? (
+          <p className="col-span-full text-2xs text-muted-foreground">این پیامک مستقیم است: فقط با پیامک و بی‌درنگ فرستاده می‌شود و کاربر نمی‌تواند آن را خاموش کند.</p>
+        ) : (
+          <FormField
+            control={form.control}
+            name="channels"
+            label="ارسال پیش‌فرض با"
+            group
+            description="اعلان درون سامانه همیشه فرستاده می‌شود؛ پیامک و ایمیل فقط اگر در «پیامک و ایمیل» تنظیم شده باشند. هر کاربر می‌تواند انتخاب خودش را داشته باشد."
+            render={({ field, id, aria: { "aria-required": _required, ...aria } }) => (
+              <div id={id} tabIndex={-1} role="group" className="flex min-h-7 flex-wrap items-center gap-4 outline-none" {...aria}>
+                {CHANNELS.map((c) => (
+                  <div key={c.value} className="flex items-center gap-2">
+                    <Checkbox
+                      id={`${id}-${c.value}`}
+                      checked={field.value.includes(c.value)}
+                      onCheckedChange={(v) => field.onChange(v ? [...field.value, c.value] : field.value.filter((x) => x !== c.value))}
+                    />
+                    <Label htmlFor={`${id}-${c.value}`} className="font-normal">
+                      {c.label}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            )}
+          />
+        )}
         <FormField
           control={form.control}
           name="sms_pattern"

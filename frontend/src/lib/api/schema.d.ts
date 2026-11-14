@@ -36,6 +36,47 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/directory/test/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description آزمون اتصال Active Directory با تنظیمات ذخیره‌شده؛ با نام کاربری، یافتن او و عضویتش در گروه‌های مجاز. */
+        post: operations["auth_directory_test_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/password-reset/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /**
+         * @description «فراموشی گذرواژه» با کد پیامکی (اگر در «سامانه و امنیت» روشن و درگاه پیامک تنظیم باشد). POST نام کاربری ← کد به
+         *     موبایل ثبت‌شده؛ پاسخ برای نام کاربری نادرست هم همان است تا وجود حساب‌ها لو نرود. PUT کد و گذرواژه‌ی تازه.
+         */
+        put: operations["auth_password_reset_update"];
+        /**
+         * @description «فراموشی گذرواژه» با کد پیامکی (اگر در «سامانه و امنیت» روشن و درگاه پیامک تنظیم باشد). POST نام کاربری ← کد به
+         *     موبایل ثبت‌شده؛ پاسخ برای نام کاربری نادرست هم همان است تا وجود حساب‌ها لو نرود. PUT کد و گذرواژه‌ی تازه.
+         */
+        post: operations["auth_password_reset_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/permissions/": {
         parameters: {
             query?: never;
@@ -122,6 +163,24 @@ export interface paths {
         post: operations["auth_session_create"];
         /** @description GET: کاربر فعلی (یا ۲۰۴ بدون محتوا اگر وارد نشده) و تنظیم کوکی CSRF. POST: ورود. DELETE: خروج. */
         delete: operations["auth_session_destroy"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/session/code/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** @description رمز دوم ورود: POST کد پیامکی (پس از گذرواژه‌ی درست) و ورود؛ PUT فرستادن دوباره‌ی کد. */
+        put: operations["auth_session_code_update"];
+        /** @description رمز دوم ورود: POST کد پیامکی (پس از گذرواژه‌ی درست) و ورود؛ PUT فرستادن دوباره‌ی کد. */
+        post: operations["auth_session_code_create"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -2264,6 +2323,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/settings/directory/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description خواندن و ذخیره‌ی یک بخش. برای هر بخش اعلام‌شده یک زیرکلاس با serializer همان بخش ساخته می‌شود (urls.py). */
+        get: operations["settings_directory_retrieve"];
+        /** @description خواندن و ذخیره‌ی یک بخش. برای هر بخش اعلام‌شده یک زیرکلاس با serializer همان بخش ساخته می‌شود (urls.py). */
+        put: operations["settings_directory_update"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/settings/files/": {
         parameters: {
             query?: never;
@@ -3297,6 +3374,12 @@ export interface components {
          * @enum {string}
          */
         AuditLogActionEnum: "create" | "update" | "delete" | "login" | "logout" | "login_failed";
+        /**
+         * @description * `local` - نیک‌یار
+         *     * `ldap` - Active Directory
+         * @enum {string}
+         */
+        AuthSourceEnum: "local" | "ldap";
         Availability: {
             /**
              * @description open: پذیرای ثبت
@@ -3420,6 +3503,8 @@ export interface components {
             logo_url: string;
             /** @description نسخه‌ی نیک‌یار، برای صفحه‌ی ورود. */
             version: string;
+            /** @description «فراموشی گذرواژه» با کد پیامکی در صفحه‌ی ورود */
+            password_reset: boolean;
         };
         Calendar: {
             work_week: {
@@ -3435,6 +3520,15 @@ export interface components {
         CancelRequestRequest: {
             /** @default  */
             reason: string;
+        };
+        Challenge: {
+            /**
+             * Format: uuid
+             * @description شناسه‌ی این درخواست کد
+             */
+            token: string;
+            /** @description موبایل پوشیده، مثل ۰۹۱۲***۲۳۳؛ خالی در بازیابی برای نام کاربری ناشناخته */
+            mobile: string;
         };
         ChangePasswordRequest: {
             /** گذرواژه‌ی فعلی */
@@ -3459,6 +3553,12 @@ export interface components {
          * @enum {string}
          */
         CodeEnum: "open" | "not_yet" | "closed" | "full" | "limit";
+        CodeVerifyRequest: {
+            /** Format: uuid */
+            token: string;
+            /** کد */
+            code: string;
+        };
         CompleteTaskRequest: {
             decision: string;
             /** @default  */
@@ -3642,6 +3742,112 @@ export interface components {
             last_seen: string;
             /** @description همین دستگاه */
             current: boolean;
+        };
+        /** @description ورود با حساب ویندوز سازمان (Active Directory یا هر سرور LDAP)؛ مصرف: core.accounts.directory. */
+        DirectorySettings: {
+            /**
+             * ورود با Active Directory
+             * @default false
+             */
+            enabled: boolean;
+            /**
+             * نشانی سرور
+             * @default
+             */
+            server_url: string;
+            /**
+             * رمزگذاری با StartTLS
+             * @default false
+             */
+            start_tls: boolean;
+            /**
+             * حساب جست‌وجو
+             * @default
+             */
+            bind_user: string;
+            /**
+             * گذرواژه‌ی حساب جست‌وجو
+             * @description رمز ذخیره‌شده به شکل «••••••••» برمی‌گردد؛ فرستادن همین مقدار یعنی بدون تغییر.
+             * @default
+             */
+            bind_password: string;
+            /**
+             * ریشه‌ی جست‌وجو
+             * @default
+             */
+            base_dn: string;
+            /**
+             * فیلتر کاربر
+             * @default (sAMAccountName={username})
+             */
+            user_filter: string;
+            /**
+             * گروه‌های مجاز
+             * @description DN گروه‌ها؛ خالی یعنی همه‌ی کاربران دامنه
+             */
+            allowed_groups: string[];
+            /**
+             * ساخت خودکار کاربر
+             * @default true
+             */
+            auto_create: boolean;
+        };
+        /** @description ورود با حساب ویندوز سازمان (Active Directory یا هر سرور LDAP)؛ مصرف: core.accounts.directory. */
+        DirectorySettingsRequest: {
+            /**
+             * ورود با Active Directory
+             * @default false
+             */
+            enabled: boolean;
+            /**
+             * نشانی سرور
+             * @default
+             */
+            server_url: string;
+            /**
+             * رمزگذاری با StartTLS
+             * @default false
+             */
+            start_tls: boolean;
+            /**
+             * حساب جست‌وجو
+             * @default
+             */
+            bind_user: string;
+            /**
+             * گذرواژه‌ی حساب جست‌وجو
+             * @description رمز ذخیره‌شده به شکل «••••••••» برمی‌گردد؛ فرستادن همین مقدار یعنی بدون تغییر.
+             * @default
+             */
+            bind_password: string;
+            /**
+             * ریشه‌ی جست‌وجو
+             * @default
+             */
+            base_dn: string;
+            /**
+             * فیلتر کاربر
+             * @default (sAMAccountName={username})
+             */
+            user_filter: string;
+            /**
+             * گروه‌های مجاز
+             * @description DN گروه‌ها؛ خالی یعنی همه‌ی کاربران دامنه
+             */
+            allowed_groups?: string[];
+            /**
+             * ساخت خودکار کاربر
+             * @default true
+             */
+            auto_create: boolean;
+        };
+        DirectoryTestRequest: {
+            /** نام کاربری نمونه */
+            username?: string;
+        };
+        DirectoryTestResult: {
+            ok: boolean;
+            message: string;
         };
         /** @description پایه‌ی سوابق: پرونده (فقط هنگام ساخت) و عنوان‌های فهرست‌های پایه برای نمایش. */
         Document: {
@@ -5432,6 +5638,8 @@ export interface components {
              * @description نام جای‌گذارها به ترتیب متغیرهای الگو
              */
             sms_variables: string[];
+            /** @description پیامک مستقیم (مثل کد ورود): فقط پیامک، کانال‌ها تغییر نمی‌کنند */
+            readonly direct: boolean;
             readonly default_template: string;
             readonly is_custom: boolean;
             readonly placeholders: components["schemas"]["Placeholder"][];
@@ -5745,6 +5953,8 @@ export interface components {
             readonly idle_minutes: number;
             /** @description شرح قاعده‌ی گذرواژه برای فرم‌های تغییر گذرواژه */
             readonly password_policy: string;
+            /** ورود با */
+            auth_source: components["schemas"]["AuthSourceEnum"];
         };
         MeAssignment: {
             unit_id: number;
@@ -7162,6 +7372,14 @@ export interface components {
             /** @description ثبت به نام دیگری (با مجوز همان فرایند) */
             requester?: number | null;
         };
+        ResetConfirmRequest: {
+            /** Format: uuid */
+            token: string;
+            /** کد */
+            code: string;
+            /** گذرواژه‌ی جدید */
+            new_password: string;
+        };
         /**
          * @description * `never` - هرگز (ادامه‌دار)
          *     * `year` - آغاز هر سال شمسی
@@ -7169,6 +7387,10 @@ export interface components {
          * @enum {string}
          */
         ResetEnum: "never" | "year" | "fiscal";
+        ResetRequestRequest: {
+            /** نام کاربری */
+            username: string;
+        };
         RestoreRequest: {
             /**
              * تأیید
@@ -7434,6 +7656,18 @@ export interface components {
              * @default 30
              */
             idle_minutes: number;
+            /**
+             * رمز دوم پیامکی
+             * @default off
+             */
+            two_factor: components["schemas"]["TwoFactorEnum"];
+            /** نقش‌های نیازمند رمز دوم */
+            two_factor_roles: number[];
+            /**
+             * فراموشی گذرواژه با کد پیامکی
+             * @default true
+             */
+            password_reset_sms: boolean;
         };
         /** @description مقدارهایی که پیش از 5.4a ثابت در کد بودند؛ هر کدام را برنامه‌ی مصرف‌کننده‌اش با read("system") می‌خواند. */
         SystemSettingsRequest: {
@@ -7492,6 +7726,18 @@ export interface components {
              * @default 30
              */
             idle_minutes: number;
+            /**
+             * رمز دوم پیامکی
+             * @default off
+             */
+            two_factor: components["schemas"]["TwoFactorEnum"];
+            /** نقش‌های نیازمند رمز دوم */
+            two_factor_roles?: number[];
+            /**
+             * فراموشی گذرواژه با کد پیامکی
+             * @default true
+             */
+            password_reset_sms: boolean;
         };
         TargetForm: {
             code: string;
@@ -7639,6 +7885,10 @@ export interface components {
             /** شماره‌ی موبایل */
             mobile: string;
         };
+        TokenRequest: {
+            /** Format: uuid */
+            token: string;
+        };
         TrackTask: {
             id: number;
             title: string;
@@ -7647,6 +7897,13 @@ export interface components {
             due_at: string | null;
             overdue: boolean;
         };
+        /**
+         * @description * `off` - خاموش
+         *     * `roles` - برای نقش‌های انتخاب‌شده
+         *     * `all` - برای همه
+         * @enum {string}
+         */
+        TwoFactorEnum: "off" | "roles" | "all";
         UnitLookup: {
             id: number;
             name: string;
@@ -7725,6 +7982,13 @@ export interface components {
              * @description خالی یعنی قفل نیست
              */
             readonly locked_until: string;
+            /**
+             * @description ldap: گذرواژه در Active Directory است
+             *
+             *     * `local` - نیک‌یار
+             *     * `ldap` - Active Directory
+             */
+            readonly auth_source: components["schemas"]["AuthSourceEnum"];
         };
         UserLookup: {
             id: number;
@@ -7977,6 +8241,80 @@ export interface operations {
             };
         };
     };
+    auth_directory_test_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["DirectoryTestRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["DirectoryTestRequest"];
+                "multipart/form-data": components["schemas"]["DirectoryTestRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DirectoryTestResult"];
+                };
+            };
+        };
+    };
+    auth_password_reset_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResetConfirmRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["ResetConfirmRequest"];
+                "multipart/form-data": components["schemas"]["ResetConfirmRequest"];
+            };
+        };
+        responses: {
+            /** @description No response body */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    auth_password_reset_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResetRequestRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["ResetRequestRequest"];
+                "multipart/form-data": components["schemas"]["ResetRequestRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Challenge"];
+                };
+            };
+        };
+    };
     auth_permissions_list: {
         parameters: {
             query?: never;
@@ -8212,6 +8550,14 @@ export interface operations {
                     "application/json": components["schemas"]["Me"];
                 };
             };
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Challenge"];
+                };
+            };
         };
     };
     auth_session_destroy: {
@@ -8229,6 +8575,56 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    auth_session_code_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TokenRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["TokenRequest"];
+                "multipart/form-data": components["schemas"]["TokenRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Challenge"];
+                };
+            };
+        };
+    };
+    auth_session_code_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CodeVerifyRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["CodeVerifyRequest"];
+                "multipart/form-data": components["schemas"]["CodeVerifyRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Me"];
+                };
             };
         };
     };
@@ -12278,6 +12674,50 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BackupSettings"];
+                };
+            };
+        };
+    };
+    settings_directory_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DirectorySettings"];
+                };
+            };
+        };
+    };
+    settings_directory_update: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["DirectorySettingsRequest"];
+                "application/x-www-form-urlencoded": components["schemas"]["DirectorySettingsRequest"];
+                "multipart/form-data": components["schemas"]["DirectorySettingsRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DirectorySettings"];
                 };
             };
         };

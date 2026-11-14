@@ -15,4 +15,11 @@ class SettingsConfig(AppConfig):
             description="مدت اعتبار ورود، سقف تلاش‌ها برای جلوگیری از سوءاستفاده، و مدت نگه‌داری سوابق فنی.",
             serializer="core.settings.sections.SystemSettings",
         ),
+        # پس از «سامانه و امنیت»؛ مصرف‌کننده core.accounts.directory
+        SettingsSection(
+            code="directory",
+            title="ورود با Active Directory",
+            description="کارکنان با همان نام کاربری و گذرواژه‌ی ویندوز سازمان وارد نیک‌یار می‌شوند؛ کاربر نخستین بار خودکار ساخته می‌شود.",
+            serializer="core.accounts.sections.DirectorySettings",
+        ),
     ]

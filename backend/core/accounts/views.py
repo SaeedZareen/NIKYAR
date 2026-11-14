@@ -1,4 +1,7 @@
-from django.contrib.auth import authenticate, logout, update_session_auth_hash
+import uuid
+
+from django.contrib.auth import authenticate, logout, password_validation, update_session_auth_hash
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.db import transaction
 from django.db.models import Count, Prefetch
 from django.utils import timezone
@@ -23,9 +26,14 @@ from core.notifications.service import notify
 from core.org.models import Assignment
 from core.settings.service import read as read_settings
 
-from . import security
-from .models import Role, User, UserSession
+from . import challenges, directory, security
+from .models import LoginChallenge, Role, User, UserSession
 from .serializers import ChangePasswordSerializer, LoginSerializer, MeSerializer, PermissionGroupSerializer, ProfileSerializer, RoleSerializer, UserSerializer
+
+
+class ChallengeSerializer(serializers.Serializer):
+    token = serializers.UUIDField(help_text="شناسه‌ی این درخواست کد")
+    mobile = serializers.CharField(help_text="موبایل پوشیده، مثل ۰۹۱۲***۲۳۳؛ خالی در بازیابی برای نام کاربری ناشناخته")
 
 
 class LoginThrottle(SimpleRateThrottle):
@@ -55,7 +63,7 @@ class SessionView(APIView):
             return Response(status=status.HTTP_204_NO_CONTENT)
         return Response(MeSerializer(request.user).data)
 
-    @extend_schema(request=LoginSerializer, responses=MeSerializer)
+    @extend_schema(request=LoginSerializer, responses={200: MeSerializer, 202: ChallengeSerializer})
     def post(self, request):
         # نشست‌ساز است و کاربر هنوز وارد نشده؛ DRF خودش CSRF را بررسی نمی‌کند (حمله‌ی «ورود جعلی»).
         SessionAuthentication().enforce_csrf(request)
@@ -70,10 +78,16 @@ class SessionView(APIView):
         user = authenticate(request, username=username, password=s.validated_data["password"])
         if user is None:
             record(request, AuditLog.Action.LOGIN_FAILED, label=username)
+            if directory_error := getattr(request, "directory_error", ""):
+                raise BusinessError(directory_error)
             if account and security.login_failed(account):
                 notify([account], "accounts.locked", until=jalali_datetime(account.locked_until))
                 raise BusinessError(f"به دلیل تلاش‌های ناموفق پیاپی، حساب تا {jalali_datetime(account.locked_until)} قفل شد.")
             raise BusinessError("نام کاربری یا گذرواژه درست نیست.")
+        if challenges.two_factor_required(user):
+            # گذرواژه درست است؛ ورود پس از کد پیامکی (session/verify/)
+            challenge = challenges.start(user, LoginChallenge.Purpose.LOGIN)
+            return Response({"token": challenge.token, "mobile": challenges.masked(user.mobile)}, status=status.HTTP_202_ACCEPTED)
         security.start_session(request, user)
         record(request, AuditLog.Action.LOGIN, user, user=user)
         return Response(MeSerializer(user).data)
@@ -86,6 +100,127 @@ class SessionView(APIView):
             UserSession.objects.filter(session_key=request.session.session_key).delete()
         logout(request)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class CodeVerifySerializer(serializers.Serializer):
+    token = serializers.UUIDField()
+    code = serializers.CharField(label="کد", max_length=12)
+
+
+class TokenSerializer(serializers.Serializer):
+    token = serializers.UUIDField()
+
+
+class LoginCodeView(APIView):
+    """رمز دوم ورود: POST کد پیامکی (پس از گذرواژه‌ی درست) و ورود؛ PUT فرستادن دوباره‌ی کد."""
+
+    permission_classes = [permissions.AllowAny]
+
+    def get_throttles(self):
+        return [LoginThrottle()]
+
+    @extend_schema(request=CodeVerifySerializer, responses=MeSerializer)
+    def post(self, request):
+        SessionAuthentication().enforce_csrf(request)
+        s = CodeVerifySerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        try:
+            user = challenges.verify(s.validated_data["token"], LoginChallenge.Purpose.LOGIN, s.validated_data["code"])
+        except BusinessError:
+            record(request, AuditLog.Action.LOGIN_FAILED, label="کد ورود نادرست")
+            raise
+        security.start_session(request, user)
+        record(request, AuditLog.Action.LOGIN, user, user=user)
+        return Response(MeSerializer(user).data)
+
+    @extend_schema(request=TokenSerializer, responses=ChallengeSerializer)
+    def put(self, request):
+        SessionAuthentication().enforce_csrf(request)
+        s = TokenSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        challenge = challenges.resend(s.validated_data["token"], LoginChallenge.Purpose.LOGIN)
+        return Response({"token": challenge.token, "mobile": challenges.masked(challenge.user.mobile)})
+
+
+class ResetRequestSerializer(serializers.Serializer):
+    username = serializers.CharField(label="نام کاربری")
+
+
+class ResetConfirmSerializer(serializers.Serializer):
+    token = serializers.UUIDField()
+    code = serializers.CharField(label="کد", max_length=12)
+    new_password = serializers.CharField(label="گذرواژه‌ی جدید", trim_whitespace=False)
+
+
+class PasswordResetView(APIView):
+    """
+    «فراموشی گذرواژه» با کد پیامکی (اگر در «سامانه و امنیت» روشن و درگاه پیامک تنظیم باشد). POST نام کاربری ← کد به
+    موبایل ثبت‌شده؛ پاسخ برای نام کاربری نادرست هم همان است تا وجود حساب‌ها لو نرود. PUT کد و گذرواژه‌ی تازه.
+    """
+
+    permission_classes = [permissions.AllowAny]
+
+    def get_throttles(self):
+        return [LoginThrottle()]
+
+    def check(self, request):
+        SessionAuthentication().enforce_csrf(request)
+        if not challenges.reset_available():
+            raise BusinessError("بازیابی گذرواژه با پیامک در این سامانه خاموش است؛ به راهبر سامانه خبر دهید.")
+
+    @extend_schema(request=ResetRequestSerializer, responses=ChallengeSerializer)
+    def post(self, request):
+        self.check(request)
+        s = ResetRequestSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        user = User.objects.filter(username=s.validated_data["username"], is_active=True, auth_source=User.AuthSource.LOCAL).exclude(mobile="").first()
+        if user is None:
+            return Response({"token": uuid.uuid4(), "mobile": ""})
+        challenge = challenges.start(user, LoginChallenge.Purpose.RESET)
+        return Response({"token": challenge.token, "mobile": challenges.masked(user.mobile)})
+
+    @extend_schema(request=ResetConfirmSerializer, responses={204: None})
+    @transaction.atomic
+    def put(self, request):
+        self.check(request)
+        s = ResetConfirmSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        user = challenges.verify(s.validated_data["token"], LoginChallenge.Purpose.RESET, s.validated_data["code"])
+        try:
+            password_validation.validate_password(s.validated_data["new_password"], user)
+        except DjangoValidationError as e:
+            raise BusinessError(e.messages[0], {"new_password": e.messages[0]}) from None
+        security.set_password(user, s.validated_data["new_password"])
+        security.unlock(user)
+        security.end_sessions(UserSession.objects.filter(user=user))
+        notify([user], "accounts.password_changed", when=jalali_now(), by="خودتان، با کد پیامکی")
+        record(request, AuditLog.Action.UPDATE, user, {"password": {"label": "گذرواژه", "old": "", "new": "بازیابی با کد پیامکی"}}, user=user)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class DirectoryTestSerializer(serializers.Serializer):
+    username = serializers.CharField(label="نام کاربری نمونه", required=False, allow_blank=True)
+
+
+class DirectoryTestResultSerializer(serializers.Serializer):
+    ok = serializers.BooleanField()
+    message = serializers.CharField()
+
+
+class DirectoryTestView(APIView):
+    """آزمون اتصال Active Directory با تنظیمات ذخیره‌شده؛ با نام کاربری، یافتن او و عضویتش در گروه‌های مجاز."""
+
+    permission_classes = [HasPerm]
+    perms = {"post": "settings.manage"}
+
+    @extend_schema(request=DirectoryTestSerializer, responses=DirectoryTestResultSerializer)
+    def post(self, request):
+        s = DirectoryTestSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        try:
+            return Response({"ok": True, "message": directory.test(s.validated_data.get("username", "").strip())})
+        except directory.DirectoryError as e:
+            return Response({"ok": False, "message": str(e)})
 
 
 class DeviceSerializer(serializers.Serializer):

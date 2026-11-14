@@ -71,6 +71,8 @@ INSTALLED_APPS = [
 ]
 
 AUTH_USER_MODEL = "accounts.User"
+# کاربران محلی با گذرواژه‌ی نیک‌یار، سپس Active Directory (اگر روشن باشد)
+AUTHENTICATION_BACKENDS = ["django.contrib.auth.backends.ModelBackend", "core.accounts.backends.DirectoryBackend"]
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",

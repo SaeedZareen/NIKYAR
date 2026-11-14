@@ -7,6 +7,7 @@ import { NotFound, PageFallback, RequireAccess, RouteError } from "./route-state
 
 const LoginPage = lazy(() => import("@/pages/login-page"))
 const SetupPage = lazy(() => import("@/pages/setup-page"))
+const ForgotPasswordPage = lazy(() => import("@/pages/forgot-password-page"))
 const QuickActionPage = lazy(() => import("@/pages/quick-action-page"))
 const HomePage = lazy(() => import("@/pages/home-page"))
 const NotificationsPage = lazy(() => import("@/pages/notifications-page"))
@@ -66,6 +67,7 @@ const page = (element: React.ReactNode, access?: Access) => (
 export const router = createBrowserRouter([
   { path: "login", element: page(<LoginPage />), errorElement: <RouteError /> },
   { path: "setup", element: page(<SetupPage />), errorElement: <RouteError /> },
+  { path: "forgot-password", element: page(<ForgotPasswordPage />), errorElement: <RouteError /> },
   // پیوند «تأیید با یک کلیک» ایمیل، بی ورود (نشانه‌ی یک‌بارمصرف)
   { path: "quick/:token", element: page(<QuickActionPage />), errorElement: <RouteError /> },
   {

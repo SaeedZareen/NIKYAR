@@ -48,4 +48,10 @@ class TestSettings:
         user = client_for(make_user("clerk"))
         assert user.get(PROFILE).status_code == 403 and user.get("/api/settings/").status_code == 403
         assert client_for(make_user("keeper", permissions=["settings.manage"])).get(PROFILE).status_code == 200
-        assert APIClient().get("/api/org/branding/").json() == {"name": "شرکت نمونه", "short_name": "نمونه", "logo_url": "", "version": settings.VERSION}
+        assert APIClient().get("/api/org/branding/").json() == {
+            "name": "شرکت نمونه",
+            "short_name": "نمونه",
+            "logo_url": "",
+            "version": settings.VERSION,
+            "password_reset": False,
+        }

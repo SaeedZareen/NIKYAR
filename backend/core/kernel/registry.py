@@ -82,6 +82,8 @@ class NotificationKind:
     placeholders: dict[str, tuple[str, str]] = field(default_factory=dict)
     # کانال‌های بیرونی پیش‌فرض («sms»، «email»)؛ اعلان درون سامانه همیشه هست. سازمان و هر کاربر می‌توانند تغییرش دهند.
     channels: tuple[str, ...] = ()
+    # پیامک مستقیم (مثل کد ورود): فقط پیامک، بی اعلان درون سامانه، و کاربر نمی‌تواند خاموشش کند
+    direct: bool = False
 
 
 @dataclass(frozen=True)

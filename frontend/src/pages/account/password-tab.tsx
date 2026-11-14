@@ -4,6 +4,7 @@ import { toast } from "sonner"
 import { SESSION_KEY, useAuth } from "@/app/auth"
 import { FormField } from "@/components/form/form-field"
 import { SectionForm } from "@/components/form/section-form"
+import { Section } from "@/components/layout/section"
 import { applyServerErrors } from "@/components/form/server-errors"
 import { useAppForm } from "@/components/form/use-app-form"
 import { Input } from "@/components/ui/input"
@@ -44,6 +45,14 @@ export function PasswordTab({ title = "تغییر گذرواژه" }: { title?: s
       applyServerErrors(form, e)
     }
   })
+
+  if (user?.auth_source === "ldap") {
+    return (
+      <Section title={title}>
+        <p className="text-xs">گذرواژه‌ی شما همان گذرواژه‌ی ویندوز سازمان (Active Directory) است؛ آن را در ویندوز یا با واحد فناوری عوض کنید.</p>
+      </Section>
+    )
+  }
 
   return (
     <SectionForm

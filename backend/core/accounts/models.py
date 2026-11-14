@@ -1,3 +1,4 @@
+import uuid
 from functools import cached_property
 
 from django.contrib.auth.models import AbstractUser
@@ -21,6 +22,10 @@ class Role(models.Model):
 
 
 class User(AbstractUser):
+    class AuthSource(models.TextChoices):
+        LOCAL = "local", "نیک‌یار"
+        LDAP = "ldap", "Active Directory"
+
     class Gender(models.TextChoices):
         # همان کدهای فهرست پایه‌ی سیستمی «gender»؛ برای عنوان خطاب (آقای / خانم) به کار می‌رود.
         MALE = "male", "مرد"
@@ -36,6 +41,8 @@ class User(AbstractUser):
     locked_until = models.DateTimeField("قفل تا", null=True, blank=True)
     password_changed_at = models.DateTimeField("آخرین تغییر گذرواژه", null=True, blank=True)
     must_change_password = models.BooleanField("تغییر گذرواژه در ورود بعدی", default=False)
+    # ورود با حساب ویندوز سازمان (6.7): گذرواژه در AD است، نه نیک‌یار
+    auth_source = models.CharField("ورود با", max_length=10, choices=AuthSource.choices, default=AuthSource.LOCAL)
 
     class Meta:
         ordering = ["last_name", "first_name", "username"]
@@ -76,6 +83,27 @@ class UserSession(models.Model):
 
     def __str__(self):
         return f"{self.user} @ {self.ip}"
+
+
+class LoginChallenge(models.Model):
+    """کد پیامکی یک‌بارمصرف: رمز دوم ورود (login) یا بازیابی گذرواژه (reset). فقط چکیده‌ی کد نگه داشته می‌شود."""
+
+    class Purpose(models.TextChoices):
+        LOGIN = "login", "رمز دوم ورود"
+        RESET = "reset", "بازیابی گذرواژه"
+
+    token = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="+")
+    purpose = models.CharField(max_length=10, choices=Purpose.choices)
+    code_hash = models.CharField(max_length=64)
+    expires_at = models.DateTimeField()
+    attempts = models.PositiveSmallIntegerField(default=0)
+    sends = models.PositiveSmallIntegerField(default=1)
+    last_sent_at = models.DateTimeField()
+    used = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.get_purpose_display()} {self.user}"
 
 
 def users_with_perm(code: str):

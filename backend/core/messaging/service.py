@@ -81,6 +81,18 @@ def send_now(delivery: Delivery) -> None:
     delivery.save(update_fields=["status", "error", "attempts", "sent_at"])
 
 
+def send_immediately(user, text: str, *, kind: str, pattern: str = "", values: list | None = None) -> Delivery:
+    """
+    پیامک بی‌درنگ (بی صف؛ مثل کد ورود که کاربر منتظرش است). DeliveryError با پیام فارسی اگر درگاه نپذیرد؛ ارسال در
+    گزارش ارسال‌ها ثبت می‌شود.
+    """
+    delivery = Delivery.objects.create(
+        channel="sms", user=user, to=user.mobile, kind=kind, text=text, pattern=pattern, values=[list(v) for v in values or []] if pattern else []
+    )
+    send_now(delivery)
+    return delivery
+
+
 def check_connection() -> str:
     """«آزمون اتصال» درگاه پیامک با تنظیمات ذخیره‌شده: اعتبار حساب، یا DeliveryError با پیام درگاه."""
     cfg = config()

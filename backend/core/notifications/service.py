@@ -52,6 +52,15 @@ def sms_pattern_of(code: str) -> tuple[str, list[str]]:
     return (row[0], list(row[1] or [])) if row else ("", [])
 
 
+def send_direct(user, kind_code: str, **data) -> None:
+    """پیامک مستقیم یک نوع direct (کد ورود، کد بازیابی): متن و الگوی «متن اعلان‌ها»، بی اعلان درون سامانه، بی‌درنگ."""
+    from core.messaging.service import send_immediately
+
+    pattern, variables = sms_pattern_of(kind_code)
+    text = render(template_of(kind_code), data)[:500]
+    send_immediately(user, text, kind=kind_code, pattern=pattern, values=[(n, str(data.get(n, ""))) for n in variables])
+
+
 def render(template: str, data: dict) -> str:
     """جای‌گذارهای ناشناخته یا بدون مقدار همان‌طور می‌مانند (اعلان هرگز به خاطر قالب خراب نمی‌شود)."""
     return PLACEHOLDER.sub(lambda m: str(data[m.group(1)]) if m.group(1) in data else m.group(0), template)

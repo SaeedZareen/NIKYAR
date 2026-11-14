@@ -32,6 +32,9 @@ class TestSystem:
             "lockout_attempts": 5,
             "lockout_minutes": 15,
             "idle_minutes": 30,
+            "two_factor": "off",
+            "two_factor_roles": [],
+            "password_reset_sms": True,
         }
         r = api.put(SYSTEM, {"session_hours": 0, "quick_link_days": 31}, format="json")
         assert r.status_code == 400

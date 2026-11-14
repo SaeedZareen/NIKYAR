@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Switch } from "@/components/ui/switch"
+import { StatusBadge } from "@/components/status-badge"
 import { api, errorMessage, unwrap, type Schemas } from "@/lib/api/client"
 import { formatDateTime } from "@/lib/format"
 import { schemas } from "@/lib/validators"
@@ -176,15 +177,22 @@ export function UserSheet({ user, open, onOpenChange }: Props) {
           label="ایمیل"
           render={({ field, id, aria }) => <Input id={id} type="email" dir="ltr" autoComplete="off" {...field} {...aria} />}
         />
-        <FormField
-          control={form.control}
-          name="password"
-          label={isNew ? "گذرواژه" : "گذرواژه‌ی جدید"}
-          required={isNew}
-          description={isNew ? undefined : "برای تغییر ندادن، خالی بگذارید."}
-          hint={me?.password_policy}
-          render={({ field, id, aria }) => <Input id={id} type="password" dir="ltr" autoComplete="new-password" {...field} {...aria} />}
-        />
+        {user?.auth_source === "ldap" ? (
+          <div className="col-span-full flex items-center gap-2 text-xs">
+            <StatusBadge tone="info">Active Directory</StatusBadge>
+            <span className="text-muted-foreground">گذرواژه‌ی این کاربر در ویندوز سازمان است و همان‌جا عوض می‌شود؛ نام، ایمیل و موبایل در هر ورود از AD خوانده می‌شود.</span>
+          </div>
+        ) : (
+          <FormField
+            control={form.control}
+            name="password"
+            label={isNew ? "گذرواژه" : "گذرواژه‌ی جدید"}
+            required={isNew}
+            description={isNew ? undefined : "برای تغییر ندادن، خالی بگذارید."}
+            hint={me?.password_policy}
+            render={({ field, id, aria }) => <Input id={id} type="password" dir="ltr" autoComplete="new-password" {...field} {...aria} />}
+          />
+        )}
         {(isNew || password) && (
           <FormField
             control={form.control}
@@ -211,11 +219,7 @@ export function UserSheet({ user, open, onOpenChange }: Props) {
                 const checked = field.value.includes(r.id)
                 return (
                   <div key={r.id} className="flex items-center gap-2">
-                    <Checkbox
-                      id={`role-${r.id}`}
-                      checked={checked}
-                      onCheckedChange={(v) => field.onChange(v ? [...field.value, r.id] : field.value.filter((x) => x !== r.id))}
-                    />
+                    <Checkbox id={`role-${r.id}`} checked={checked} onCheckedChange={(v) => field.onChange(v ? [...field.value, r.id] : field.value.filter((x) => x !== r.id))} />
                     <Label htmlFor={`role-${r.id}`} className="font-normal">
                       {r.name}
                     </Label>
