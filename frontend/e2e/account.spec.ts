@@ -18,7 +18,7 @@ async function api(page: Page, method: string, url: string, body?: unknown) {
 async function signInAsNewUser(page: Page, browser: Browser, name: string) {
   const username = `${name}_${Date.now()}_${Math.random().toString(36).slice(2, 5)}`
   await page.goto("/")
-  await api(page, "POST", "/api/auth/users/", { username, first_name: "نیما", last_name: "حسابی", gender: "male", password: "First-Pass-123" })
+  await api(page, "POST", "/api/auth/users/", { username, first_name: "نیما", last_name: "حسابی", gender: "male", must_change_password: false, password: "First-Pass-123" })
   const context = await browser.newContext({ storageState: { cookies: [], origins: [] }, viewport: page.viewportSize() ?? undefined })
   const other = await context.newPage()
   await other.goto("/login")

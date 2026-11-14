@@ -8,7 +8,10 @@ import { Toaster } from "@/components/ui/sonner"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { queryClient } from "@/app/query-client"
 import { router } from "@/app/router"
+import { trackActivity } from "@/lib/activity"
 import "./index.css"
+
+trackActivity()
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

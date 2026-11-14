@@ -1,6 +1,7 @@
 // کارخواه API با نوع‌های خودکار از OpenAPI سرور (npm run api:types).
 // خطاها همیشه ApiError با پیام فارسی سرور و پیام هر فیلد هستند.
 import createClient, { type Middleware } from "openapi-fetch"
+import { idleSeconds } from "@/lib/activity"
 import type { components, paths } from "./schema"
 
 export type Schemas = components["schemas"]
@@ -34,8 +35,16 @@ const csrf: Middleware = {
   },
 }
 
+/** بی‌کاری کاربر برای «پایان نشست پس از بی‌کاری» در سرور (lib/activity). */
+const idle: Middleware = {
+  onRequest({ request }) {
+    request.headers.set("X-Nikyar-Idle", String(idleSeconds()))
+    return request
+  },
+}
+
 export const api = createClient<paths>({ baseUrl: "", credentials: "same-origin" })
-api.use(csrf)
+api.use(csrf, idle)
 
 type Result<T> = { data?: T; error?: unknown; response: Response }
 

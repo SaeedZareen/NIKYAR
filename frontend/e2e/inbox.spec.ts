@@ -81,8 +81,8 @@ test.describe("کارتابل", () => {
     await page.goto("/")
     const role = await call(page, "POST", "/api/auth/roles/", { name: unique("کارپردازی"), permissions: [] })
     const bossName = unique("boss")
-    const boss = await call(page, "POST", "/api/auth/users/", { username: bossName, first_name: "بهرام", last_name: "مدیری", gender: "male", password: PASSWORD, roles: [role.id] })
-    await call(page, "POST", "/api/auth/users/", { username: unique("buyer"), first_name: "سارا", last_name: "خریدار", gender: "female", password: PASSWORD, roles: [role.id] })
+    const boss = await call(page, "POST", "/api/auth/users/", { username: bossName, first_name: "بهرام", last_name: "مدیری", gender: "male", must_change_password: false, password: PASSWORD, roles: [role.id] })
+    await call(page, "POST", "/api/auth/users/", { username: unique("buyer"), first_name: "سارا", last_name: "خریدار", gender: "female", must_change_password: false, password: PASSWORD, roles: [role.id] })
     const form = await call(page, "POST", "/api/forms/", { code: unique("ib").replace(/_/g, "-"), title: "فرم کارتابل", fill_by_everyone: true })
     const fields = [
       { id: "subject", type: "text", label: "موضوع", required: true },

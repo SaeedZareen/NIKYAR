@@ -10,6 +10,7 @@ import { FormField } from "@/components/form/form-field"
 import { applyServerErrors } from "@/components/form/server-errors"
 import { BrandMark } from "@/components/layout/brand-mark"
 import { useAppForm } from "@/components/form/use-app-form"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { FieldGroup } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
@@ -76,6 +77,11 @@ export default function LoginPage() {
             <h1 className="text-lg font-bold">ورود به سامانه</h1>
             <p className="mt-1 text-2xs text-muted-foreground">با نام کاربری و گذرواژه‌ی سازمانی وارد شوید.</p>
           </div>
+          {params.get("reason") === "idle" && (
+            <Alert>
+              <AlertDescription>به دلیل بی‌کاری از سامانه خارج شدید؛ دوباره وارد شوید.</AlertDescription>
+            </Alert>
+          )}
           <ErrorSummary errors={form.formState.errors} labels={LABELS} submitCount={form.formState.submitCount} />
           <FieldGroup className="gap-3">
             <FormField

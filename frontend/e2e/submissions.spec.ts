@@ -118,7 +118,7 @@ test.describe("ثبت‌های فرم", () => {
   test("بدون نقش بیننده، «ثبت‌های فرم‌ها» در منو نیست و صفحه‌اش بسته است", async ({ page, browser }, info) => {
     const username = `viewer_${info.project.name}_${Date.now()}`
     await page.goto("/")
-    await call(page, "POST", "/api/auth/users/", { username, first_name: "رضا", last_name: "بی‌مجوز", gender: "male", password: "Viewer-Pass-123" })
+    await call(page, "POST", "/api/auth/users/", { username, first_name: "رضا", last_name: "بی‌مجوز", gender: "male", must_change_password: false, password: "Viewer-Pass-123" })
     const context = await browser.newContext({ storageState: { cookies: [], origins: [] }, ...(info.project.use.viewport ? { viewport: info.project.use.viewport } : {}) })
     const other = await context.newPage()
     await other.goto("/login")

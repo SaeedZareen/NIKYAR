@@ -8,6 +8,7 @@ import re
 from datetime import timedelta
 
 from django.contrib.auth import login
+from django.contrib.auth.password_validation import CommonPasswordValidator, UserAttributeSimilarityValidator
 from django.contrib.sessions.models import Session
 from django.core.exceptions import ValidationError
 from django.db.models import F
@@ -36,6 +37,24 @@ class PolicyValidator:
         policy = read_settings("system")
         mixed = " با حرف و رقم" if policy["password_mixed"] else ""
         return f"دست‌کم {fa_digits(policy['password_min_length'])} نویسه{mixed}."
+
+
+class CommonValidator(CommonPasswordValidator):
+    """فهرست گذرواژه‌های رایج Django با پیام هم‌واژه‌ی سامانه («گذرواژه»، نه «رمز عبور»)."""
+
+    def validate(self, password, user=None):
+        try:
+            super().validate(password, user)
+        except ValidationError:
+            raise ValidationError("این گذرواژه بسیار رایج است و زود حدس زده می‌شود؛ گذرواژه‌ی دیگری انتخاب کنید.", code="password_too_common") from None
+
+
+class SimilarityValidator(UserAttributeSimilarityValidator):
+    def validate(self, password, user=None):
+        try:
+            super().validate(password, user)
+        except ValidationError:
+            raise ValidationError("گذرواژه به نام کاربری، نام یا ایمیل شما بسیار شبیه است.", code="password_too_similar") from None
 
 
 def set_password(user: User, raw: str, *, temporary: bool = False) -> None:

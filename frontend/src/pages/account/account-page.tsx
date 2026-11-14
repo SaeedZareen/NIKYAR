@@ -3,6 +3,7 @@ import { useAuth } from "@/app/auth"
 import { PageHeader } from "@/components/layout/page-header"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { DelegationTab } from "./delegation-tab"
+import { DevicesTab } from "./devices-tab"
 import { NotificationsTab } from "./notifications-tab"
 import { PasswordTab } from "./password-tab"
 import { ProfileTab } from "./profile-tab"
@@ -10,11 +11,12 @@ import { ProfileTab } from "./profile-tab"
 const TABS = [
   { value: "profile", label: "مشخصات من" },
   { value: "password", label: "گذرواژه" },
+  { value: "devices", label: "دستگاه‌ها" },
   { value: "notifications", label: "اعلان‌ها" },
   { value: "delegation", label: "جانشینی" },
 ] as const
 
-/** «حساب من»: مشخصات و امضا، گذرواژه، دریافت اعلان‌ها و جانشینی؛ زبانه‌ی فعال در نشانی صفحه. */
+/** «حساب من»: مشخصات و امضا، گذرواژه، دستگاه‌ها، دریافت اعلان‌ها و جانشینی؛ زبانه‌ی فعال در نشانی صفحه. */
 export default function AccountPage() {
   const { user } = useAuth()
   const [params, setParams] = useSearchParams()
@@ -37,6 +39,9 @@ export default function AccountPage() {
         </TabsContent>
         <TabsContent value="password">
           <PasswordTab />
+        </TabsContent>
+        <TabsContent value="devices">
+          <DevicesTab />
         </TabsContent>
         <TabsContent value="notifications">
           <NotificationsTab />

@@ -38,7 +38,7 @@ class UserSerializer(serializers.ModelSerializer):
     positions = serializers.SerializerMethodField()
     password = serializers.CharField(write_only=True, required=False, allow_blank=True, label="گذرواژه")
     must_change_password = serializers.BooleanField(
-        write_only=True, required=False, default=True, label="تغییر گذرواژه در ورود بعدی", help_text="فقط همراه گذرواژه‌ی تازه؛ پیش‌فرض بله (گذرواژه‌ی موقت)"
+        write_only=True, required=False, label="تغییر گذرواژه در ورود بعدی", help_text="فقط همراه گذرواژه‌ی تازه؛ پیش‌فرض بله (گذرواژه‌ی موقت)"
     )
     locked_until = serializers.DateTimeField(read_only=True, help_text="خالی یعنی قفل نیست")
 

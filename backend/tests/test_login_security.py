@@ -39,6 +39,8 @@ class TestPasswordPolicy:
         assert r.json()["fields"]["password"] == "گذرواژه باید هم حرف و هم رقم داشته باشد."
         # رقم فارسی هم رقم است
         assert api.patch(f"/api/auth/users/{user.pk}/", {"password": "گذرواژه۱۴۰۵"}, format="json").status_code == 200
+        r = api.patch(f"/api/auth/users/{user.pk}/", {"password": "password123"}, format="json")
+        assert r.json()["fields"]["password"].startswith("این گذرواژه بسیار رایج است")
         system(password_min_length=12, password_mixed=False)
         r = api.patch(f"/api/auth/users/{user.pk}/", {"password": "zxcvbnmasd"}, format="json")
         assert r.json()["fields"]["password"] == "گذرواژه باید دست‌کم ۱۲ نویسه باشد."

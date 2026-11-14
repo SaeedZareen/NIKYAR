@@ -1,6 +1,7 @@
-import { useMutation } from "@tanstack/react-query"
+import { useMutation, useQueryClient } from "@tanstack/react-query"
 import { z } from "zod"
 import { toast } from "sonner"
+import { SESSION_KEY, useAuth } from "@/app/auth"
 import { FormField } from "@/components/form/form-field"
 import { SectionForm } from "@/components/form/section-form"
 import { applyServerErrors } from "@/components/form/server-errors"
@@ -12,7 +13,8 @@ import { schemas } from "@/lib/validators"
 const schema = z
   .object({
     current_password: schemas.required("گذرواژه‌ی فعلی"),
-    new_password: z.string().min(8, "گذرواژه‌ی جدید دست‌کم ۸ نویسه باشد."),
+    // قاعده‌ی گذرواژه در تنظیمات است و سرور می‌سنجد
+    new_password: schemas.required("گذرواژه‌ی جدید"),
     confirm: z.string(),
   })
   .refine((v) => v.new_password === v.confirm, { path: ["confirm"], message: "تکرار گذرواژه با گذرواژه‌ی جدید یکی نیست." })
@@ -20,8 +22,13 @@ const schema = z
 const LABELS = { current_password: "گذرواژه‌ی فعلی", new_password: "گذرواژه‌ی جدید", confirm: "تکرار گذرواژه‌ی جدید" }
 const DEFAULTS = { current_password: "", new_password: "", confirm: "" }
 
-/** «حساب من › گذرواژه». پس از تغییر، نشست‌های دیگر این کاربر (دستگاه‌های دیگر) از کار می‌افتند. */
-export function PasswordTab() {
+/**
+ * «حساب من › گذرواژه» و صفحه‌ی تغییر اجباری گذرواژه (گذرواژه‌ی موقت یا منقضی). پس از تغییر، ورود این کاربر در
+ * دستگاه‌های دیگر بسته می‌شود و نشست دوباره خوانده می‌شود (تغییر اجباری برداشته می‌شود).
+ */
+export function PasswordTab({ title = "تغییر گذرواژه" }: { title?: string }) {
+  const { user } = useAuth()
+  const qc = useQueryClient()
   const form = useAppForm(schema, DEFAULTS)
   const change = useMutation({
     mutationFn: (v: z.output<typeof schema>) =>
@@ -32,6 +39,7 @@ export function PasswordTab() {
       await change.mutateAsync(v)
       form.reset(DEFAULTS)
       toast.success("گذرواژه تغییر کرد.")
+      qc.invalidateQueries({ queryKey: SESSION_KEY })
     } catch (e) {
       applyServerErrors(form, e)
     }
@@ -39,8 +47,8 @@ export function PasswordTab() {
 
   return (
     <SectionForm
-      title="تغییر گذرواژه"
-      description="گذرواژه‌ی جدید دست‌کم ۸ نویسه و غیر از اعداد ساده باشد. پس از تغییر، ورود شما در دستگاه‌های دیگر باطل می‌شود."
+      title={title}
+      description="گذرواژه‌ای انتخاب کنید که دیگران حدس نزنند (نه نام، تاریخ تولد یا اعداد پشت سر هم). پس از تغییر، ورود شما در دستگاه‌های دیگر بسته می‌شود."
       form={form}
       labels={LABELS}
       onSubmit={onSubmit}
@@ -54,6 +62,7 @@ export function PasswordTab() {
           label={LABELS[name]}
           required
           className={name === "current_password" ? "col-span-full" : undefined}
+          hint={name === "new_password" ? user?.password_policy : undefined}
           render={({ field, id, aria }) => (
             <Input id={id} type="password" dir="ltr" autoComplete={name === "current_password" ? "current-password" : "new-password"} {...field} {...aria} />
           )}
