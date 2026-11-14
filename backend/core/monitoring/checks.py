@@ -99,9 +99,7 @@ def last_update(limits: dict) -> Check:
     value = f"{when}: نسخه‌ی {fa_digits(last['from_version'])} به {fa_digits(last['to_version'])}، {UPDATE_RESULTS.get(last['result'], last['result'])}"
     problem = ""
     if last["result"] != "ok":
-        problem = (
-            f"به‌روزرسانی {when} ناموفق بود ({UPDATE_RESULTS.get(last['result'])}). گزارش {last.get('log', '')} در backend/data/logs را برای پشتیبانی بفرستید."
-        )
+        problem = f"به‌روزرسانی {when} ناموفق بود. فایل گزارش {last.get('log', '')} در پوشه‌ی backend/data/logs را برای پشتیبانی بفرستید."
     return Check("update", "به‌روزرسانی", not problem, value, problem, repeat=False)
 
 
