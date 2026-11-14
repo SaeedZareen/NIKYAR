@@ -8,7 +8,7 @@ from django.utils import timezone
 
 from core.audit.models import AuditLog
 from core.jobs import service as jobs
-from core.messaging import providers
+from core.messaging import providers, sms
 from core.messaging.models import Delivery
 from core.settings.models import SettingsValue
 
@@ -118,7 +118,7 @@ class TestDelivery:
             body = io.BytesIO(json.dumps({"return": {"status": 403, "message": "کلید API معتبر نیست"}}).encode())
             raise urllib.error.HTTPError(request.full_url, 403, "Forbidden", {}, body)
 
-        monkeypatch.setattr(providers.urllib.request, "urlopen", refuse)
+        monkeypatch.setattr(sms.urllib.request, "urlopen", refuse)
         r = api.post("/api/messaging/deliveries/test-sms/", {"mobile": "۰۹۱۲۱۱۱۲۲۳۳"}, format="json").json()
         assert r["status"] == "failed" and r["error"] == "درگاه پیامک: کلید API معتبر نیست" and r["to"] == "09121112233"
         assert "شماره‌ی موبایل" in api.post("/api/messaging/deliveries/test-sms/", {"mobile": "123"}, format="json").json()["fields"]["mobile"]

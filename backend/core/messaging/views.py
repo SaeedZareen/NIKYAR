@@ -8,6 +8,8 @@ from core.kernel.validators import normalize_mobile, validate_mobile
 
 from . import service
 from .models import Delivery
+from .providers import DeliveryError
+from .sms import GATEWAYS
 
 
 class DeliverySerializer(serializers.ModelSerializer):
@@ -46,6 +48,18 @@ class TestEmailSerializer(serializers.Serializer):
     email = serializers.EmailField(label="نشانی ایمیل", error_messages={"invalid": "نشانی ایمیل معتبر نیست."})
 
 
+class GatewaySerializer(serializers.Serializer):
+    code = serializers.CharField()
+    title = serializers.CharField()
+    credentials = serializers.ListField(child=serializers.ChoiceField(choices=["api_key", "username", "domain", "password"]))
+    patterns = serializers.ChoiceField(choices=[("named", "با نام متغیر"), ("ordered", "به ترتیب متغیرها"), ("", "بی الگو")])
+
+
+class ConnectionSerializer(serializers.Serializer):
+    ok = serializers.BooleanField()
+    message = serializers.CharField()
+
+
 class DeliveryViewSet(viewsets.ReadOnlyModelViewSet):
     """گزارش ارسال‌های پیامک و ایمیل، و ارسال آزمایشی با تنظیمات ذخیره‌شده."""
 
@@ -72,3 +86,20 @@ class DeliveryViewSet(viewsets.ReadOnlyModelViewSet):
         s = TestEmailSerializer(data=request.data)
         s.is_valid(raise_exception=True)
         return Response(DeliverySerializer(service.test("email", s.validated_data["email"])).data)
+
+    @extend_schema(responses=GatewaySerializer(many=True))
+    @action(detail=False, methods=["get"], pagination_class=None)
+    def gateways(self, request):
+        """درگاه‌های پیامک و فیلدهای حساب هر کدام، برای فرم تنظیمات."""
+        rows = [{"code": c, "title": g.title, "credentials": list(g.credentials), "patterns": g.patterns} for c, g in GATEWAYS.items()]
+        return Response(GatewaySerializer(rows, many=True).data)
+
+    @extend_schema(request=None, responses=ConnectionSerializer)
+    @action(detail=False, methods=["post"], url_path="test-connection")
+    def test_connection(self, request):
+        """آزمون اتصال درگاه پیامک با تنظیمات ذخیره‌شده (خواندن اعتبار حساب؛ پیامکی فرستاده نمی‌شود)."""
+        try:
+            credit = service.check_connection()
+        except DeliveryError as e:
+            return Response({"ok": False, "message": str(e)})
+        return Response({"ok": True, "message": f"اتصال به درگاه برقرار است؛ اعتبار حساب: {credit}"})

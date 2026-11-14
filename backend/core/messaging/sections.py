@@ -3,7 +3,7 @@ from rest_framework import serializers
 
 from core.kernel.secrets import encrypt
 
-from .providers import SMS_PROVIDERS
+from .sms import GATEWAYS
 
 # مقدار نمایشی رمزی که ذخیره شده؛ فرستادن همین مقدار یعنی «بدون تغییر».
 MASK = "••••••••"
@@ -35,8 +35,11 @@ class SecretField(serializers.CharField):
 
 class MessagingSettings(serializers.Serializer):
     sms_provider = serializers.ChoiceField(
-        label="درگاه پیامک", choices=[("", "بدون پیامک"), *((code, p.title) for code, p in SMS_PROVIDERS.items())], default="", allow_blank=True
+        label="درگاه پیامک", choices=[("", "بدون پیامک"), *((code, g.title) for code, g in GATEWAYS.items())], default="", allow_blank=True
     )
+    sms_username = serializers.CharField(label="نام کاربری درگاه", max_length=100, default="", allow_blank=True)
+    sms_domain = serializers.CharField(label="دامنه‌ی حساب", max_length=100, default="", allow_blank=True)
+    # کلید API یا گذرواژه‌ی حساب، بسته به درگاه
     sms_api_key = SecretField(label="کلید درگاه پیامک")
     sms_sender = serializers.CharField(label="شماره‌ی فرستنده", max_length=20, default="", allow_blank=True)
     email_enabled = serializers.BooleanField(label="ارسال ایمیل", default=False)
@@ -60,9 +63,13 @@ class MessagingSettings(serializers.Serializer):
 
     def validate(self, attrs):
         errors = {}
-        if attrs.get("sms_provider"):
+        if gateway := GATEWAYS.get(attrs.get("sms_provider", "")):
             if not attrs.get("sms_api_key"):
-                errors["sms_api_key"] = "کلید درگاه پیامک را وارد کنید."
+                errors["sms_api_key"] = "گذرواژه‌ی حساب درگاه را وارد کنید." if "password" in gateway.credentials else "کلید درگاه پیامک را وارد کنید."
+            if "username" in gateway.credentials and not attrs.get("sms_username", "").strip():
+                errors["sms_username"] = "نام کاربری درگاه را وارد کنید."
+            if "domain" in gateway.credentials and not attrs.get("sms_domain", "").strip():
+                errors["sms_domain"] = "دامنه‌ی حساب مگفا را وارد کنید."
             if not attrs.get("sms_sender", "").strip():
                 errors["sms_sender"] = "شماره‌ی فرستنده را وارد کنید."
         if attrs.get("email_enabled"):

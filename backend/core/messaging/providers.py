@@ -1,5 +1,5 @@
 """
-درگاه‌های پیامک و فرستادن ایمیل. درگاه پیامک تازه: یک تابع send(api_key, sender, mobile, text) و افزودن به SMS_PROVIDERS.
+فرستادن پیامک (درگاه‌ها در sms.py) و ایمیل.
 
 برای آزمون‌ها: با متغیر محیطی NIKYAR_FAKE_DELIVERY=<پوشه>، پیامک و ایمیل به‌جای ارسال واقعی در فایل نوشته می‌شوند.
 """
@@ -8,26 +8,16 @@ import json
 import os
 import smtplib
 import ssl
-import urllib.error
-import urllib.parse
-import urllib.request
-from collections.abc import Callable
-from dataclasses import dataclass
 from email.message import EmailMessage
 from email.utils import formataddr
 from pathlib import Path
 
 from django.utils import timezone
 
+from . import sms
+from .sms import DeliveryError
 
-class DeliveryError(Exception):
-    """خطای ارسال با پیام فارسی برای گزارش ارسال‌ها."""
-
-
-@dataclass(frozen=True)
-class SmsProvider:
-    title: str
-    send: Callable[[str, str, str, str], None]
+__all__ = ["DeliveryError", "send_sms", "send_email", "credit"]
 
 
 def _fake_dir() -> Path | None:
@@ -45,36 +35,30 @@ def _write_fake(channel: str, to: str, body: dict) -> None:
     (folder / f"{channel}-{stamp}-{to.replace('@', '_at_')}.json").write_text(json.dumps({"to": to, **body}, ensure_ascii=False), encoding="utf-8")
 
 
-def send_kavenegar(api_key: str, sender: str, mobile: str, text: str) -> None:
-    url = f"https://api.kavenegar.com/v1/{urllib.parse.quote(api_key)}/sms/send.json"
-    data = urllib.parse.urlencode({"receptor": mobile, "sender": sender, "message": text}).encode()
-    try:
-        with urllib.request.urlopen(urllib.request.Request(url, data=data), timeout=20) as r:
-            body = json.loads(r.read().decode())
-    except urllib.error.HTTPError as e:
-        # کاوه‌نگار پیام خطا را فارسی در بدنه برمی‌گرداند (مثل «کلید API معتبر نیست»).
-        try:
-            body = json.loads(e.read().decode())
-        except ValueError:
-            raise DeliveryError(f"درگاه پیامک خطای {e.code} برگرداند.") from None
-    except (urllib.error.URLError, TimeoutError) as e:
-        raise DeliveryError(f"اتصال به درگاه پیامک برقرار نشد ({e}). اتصال اینترنت سرور را بررسی کنید.") from None
-    status = body.get("return", {}).get("status")
-    if status != 200:
-        raise DeliveryError(f"درگاه پیامک: {body.get('return', {}).get('message', 'پاسخ نامعتبر')}")
+def account(cfg: dict, secret: str) -> sms.Account:
+    return sms.Account(secret=secret, username=cfg["sms_username"], domain=cfg["sms_domain"], sender=cfg["sms_sender"])
 
 
-SMS_PROVIDERS: dict[str, SmsProvider] = {"kavenegar": SmsProvider("کاوه‌نگار", send_kavenegar)}
-
-
-def send_sms(cfg: dict, api_key: str, mobile: str, text: str) -> None:
+def send_sms(cfg: dict, secret: str, mobile: str, text: str, pattern: str = "", values: list | None = None) -> None:
+    """متن، یا اگر الگو داده شده و درگاه الگو دارد، پیامک الگویی (مقدارها: [(نام، مقدار)، …])."""
     if _fake_dir():
-        _write_fake("sms", mobile, {"sender": cfg["sms_sender"], "text": text})
+        _write_fake("sms", mobile, {"sender": cfg["sms_sender"], "text": text, **({"pattern": pattern, "values": values} if pattern else {})})
         return
-    provider = SMS_PROVIDERS.get(cfg["sms_provider"])
-    if provider is None or not api_key:
+    gateway = sms.GATEWAYS.get(cfg["sms_provider"])
+    if gateway is None or not secret:
         raise DeliveryError("درگاه پیامک تنظیم نشده است.")
-    provider.send(api_key, cfg["sms_sender"], mobile, text)
+    if pattern and gateway.send_pattern:
+        gateway.send_pattern(account(cfg, secret), mobile, pattern, [(n, v) for n, v in values or []])
+    else:
+        gateway.send(account(cfg, secret), mobile, text)
+
+
+def credit(cfg: dict, secret: str) -> str:
+    """اعتبار حساب درگاه برای «آزمون اتصال»؛ خطا همان DeliveryError با پیام فارسی درگاه."""
+    gateway = sms.GATEWAYS.get(cfg["sms_provider"])
+    if gateway is None or not secret:
+        raise DeliveryError("درگاه پیامک تنظیم نشده است.")
+    return gateway.credit(account(cfg, secret))
 
 
 def send_email(cfg: dict, password: str, to: str, subject: str, text: str, from_name: str) -> None:

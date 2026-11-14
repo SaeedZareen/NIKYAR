@@ -20,6 +20,9 @@ class Delivery(models.Model):
     kind = models.CharField("نوع اعلان", max_length=60, blank=True)
     subject = models.CharField("موضوع", max_length=200, blank=True)
     text = models.TextField("متن")
+    # پیامک الگویی (6.6): کد الگوی درگاه و مقدار متغیرها [[نام، مقدار]، …]؛ خالی یعنی ارسال متن
+    pattern = models.CharField("کد الگو", max_length=100, blank=True)
+    values = models.JSONField("متغیرهای الگو", default=list, blank=True)
     status = models.CharField("وضعیت", max_length=10, choices=Status.choices, default=Status.QUEUED, db_index=True)
     attempts = models.PositiveSmallIntegerField("تلاش‌ها", default=0)
     error = models.CharField("خطا", max_length=500, blank=True)
