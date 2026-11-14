@@ -55,6 +55,8 @@ def send_sms(cfg: dict, secret: str, mobile: str, text: str, pattern: str = "", 
 
 def credit(cfg: dict, secret: str) -> str:
     """اعتبار حساب درگاه برای «آزمون اتصال»؛ خطا همان DeliveryError با پیام فارسی درگاه."""
+    if _fake_dir():
+        return "آزمایشی (بی ارسال واقعی)"
     gateway = sms.GATEWAYS.get(cfg["sms_provider"])
     if gateway is None or not secret:
         raise DeliveryError("درگاه پیامک تنظیم نشده است.")

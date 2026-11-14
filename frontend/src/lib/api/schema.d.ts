@@ -1774,6 +1774,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/messaging/deliveries/gateways/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description درگاه‌های پیامک و فیلدهای حساب هر کدام، برای فرم تنظیمات. */
+        get: operations["messaging_deliveries_gateways_list"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/messaging/deliveries/test-connection/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description آزمون اتصال درگاه پیامک با تنظیمات ذخیره‌شده (خواندن اعتبار حساب؛ پیامکی فرستاده نمی‌شود). */
+        post: operations["messaging_deliveries_test_connection_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/messaging/deliveries/test-email/": {
         parameters: {
             query?: never;
@@ -3440,6 +3474,18 @@ export interface components {
          * @enum {string}
          */
         CompletionEnum: "any" | "all";
+        Connection: {
+            ok: boolean;
+            message: string;
+        };
+        /**
+         * @description * `api_key` - api_key
+         *     * `username` - username
+         *     * `domain` - domain
+         *     * `password` - password
+         * @enum {string}
+         */
+        CredentialsEnum: "api_key" | "username" | "domain" | "password";
         CustomFields: {
             /** @description شناسه‌ی فرم «فیلدهای دلخواه» برای طراح فرم‌ساز */
             form: number;
@@ -4595,6 +4641,12 @@ export interface components {
          * @enum {string}
          */
         FormVersionStatusEnum: "draft" | "published";
+        Gateway: {
+            code: string;
+            title: string;
+            credentials: components["schemas"]["CredentialsEnum"][];
+            patterns: components["schemas"]["PatternsEnum"] | components["schemas"]["BlankEnum"];
+        };
         /**
          * @description * `male` - مرد
          *     * `female` - زن
@@ -5373,6 +5425,13 @@ export interface components {
             template: string;
             /** کانال‌های پیش‌فرض */
             channels: components["schemas"]["NotificationChannelEnum"][];
+            /** کد الگوی پیامک */
+            sms_pattern: string;
+            /**
+             * متغیرهای الگو
+             * @description نام جای‌گذارها به ترتیب متغیرهای الگو
+             */
+            sms_variables: string[];
             readonly default_template: string;
             readonly is_custom: boolean;
             readonly placeholders: components["schemas"]["Placeholder"][];
@@ -5700,6 +5759,16 @@ export interface components {
              */
             sms_provider: components["schemas"]["SmsProviderEnum"] | components["schemas"]["BlankEnum"];
             /**
+             * نام کاربری درگاه
+             * @default
+             */
+            sms_username: string;
+            /**
+             * دامنه‌ی حساب
+             * @default
+             */
+            sms_domain: string;
+            /**
              * کلید درگاه پیامک
              * @description رمز ذخیره‌شده به شکل «••••••••» برمی‌گردد؛ فرستادن همین مقدار یعنی بدون تغییر.
              * @default
@@ -5752,6 +5821,16 @@ export interface components {
              * @default
              */
             sms_provider: components["schemas"]["SmsProviderEnum"] | components["schemas"]["BlankEnum"];
+            /**
+             * نام کاربری درگاه
+             * @default
+             */
+            sms_username: string;
+            /**
+             * دامنه‌ی حساب
+             * @default
+             */
+            sms_domain: string;
             /**
              * کلید درگاه پیامک
              * @description رمز ذخیره‌شده به شکل «••••••••» برمی‌گردد؛ فرستادن همین مقدار یعنی بدون تغییر.
@@ -6355,6 +6434,13 @@ export interface components {
             template?: string;
             /** کانال‌های پیش‌فرض */
             channels?: components["schemas"]["NotificationChannelEnum"][];
+            /** کد الگوی پیامک */
+            sms_pattern?: string;
+            /**
+             * متغیرهای الگو
+             * @description نام جای‌گذارها به ترتیب متغیرهای الگو
+             */
+            sms_variables?: string[];
         };
         PatchedLookupItemRequest: {
             /** فهرست */
@@ -6541,6 +6627,13 @@ export interface components {
             /** علت ترک کار */
             leave_reason?: string;
         };
+        /**
+         * @description * `named` - با نام متغیر
+         *     * `ordered` - به ترتیب متغیرها
+         *     * `` - بی الگو
+         * @enum {string}
+         */
+        PatternsEnum: "named" | "ordered";
         /**
          * @description * `ever` - در کل
          *     * `day` - در هر روز
@@ -7191,9 +7284,13 @@ export interface components {
         /**
          * @description * `` - بدون پیامک
          *     * `kavenegar` - کاوه‌نگار
+         *     * `melipayamak` - ملی‌پیامک
+         *     * `smsir` - sms.ir
+         *     * `ippanel` - آی‌پی‌پنل (فراز اس‌ام‌اس)
+         *     * `magfa` - مگفا
          * @enum {string}
          */
-        SmsProviderEnum: "kavenegar";
+        SmsProviderEnum: "kavenegar" | "melipayamak" | "smsir" | "ippanel" | "magfa";
         /**
          * @description * `starttls` - STARTTLS
          *     * `ssl` - SSL/TLS
@@ -11183,6 +11280,53 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Delivery"];
+                };
+            };
+        };
+    };
+    messaging_deliveries_gateways_list: {
+        parameters: {
+            query?: {
+                /** @description چند مقدار با ویرگول جدا می‌شود. */
+                channel?: string;
+                /** @description کدام فیلد باید هنگام مرتب‌سازی نتایج استفاده شود. */
+                ordering?: string;
+                /** @description یک عبارت جستجو. */
+                search?: string;
+                /** @description چند مقدار با ویرگول جدا می‌شود. */
+                status?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Gateway"][];
+                };
+            };
+        };
+    };
+    messaging_deliveries_test_connection_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Connection"];
                 };
             };
         };
