@@ -16,6 +16,7 @@ import { Section } from "@/components/layout/section"
 import { StatusBadge } from "@/components/status-badge"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { DropdownMenuItem } from "@/components/ui/dropdown-menu"
 import { api, unwrap, type Schemas } from "@/lib/api/client"
@@ -41,7 +42,18 @@ export function NotificationTemplatesSection({ section }: { section: SectionInfo
     () => [
       col.accessor("title", { header: "نوع اعلان", meta: { label: "نوع اعلان", primary: true } }),
       col.accessor("preview", { header: "نمونه‌ی متن", enableSorting: false, meta: { label: "نمونه‌ی متن", wrap: true } }),
-      col.accessor((k) => channelsLabel(k.channels), { id: "channels", header: "ارسال با", enableSorting: false, meta: { label: "ارسال با" } }),
+      col.accessor((k) => channelsLabel(k.channels), {
+        id: "channels",
+        header: "ارسال با",
+        enableSorting: false,
+        meta: { label: "ارسال با" },
+        cell: (c) => (
+          <span className="inline-flex flex-wrap items-center gap-1.5">
+            {c.getValue()}
+            {c.row.original.sms_pattern && <StatusBadge tone="info">پیامک الگویی</StatusBadge>}
+          </span>
+        ),
+      }),
       col.accessor((k) => (k.is_custom ? "سفارشی" : "پیش‌فرض"), {
         id: "is_custom",
         header: "متن",
@@ -80,11 +92,22 @@ export function NotificationTemplatesSection({ section }: { section: SectionInfo
 const schema = z.object({
   template: schemas.required("متن اعلان").pipe(z.string().max(500, "متن حداکثر ۵۰۰ نویسه است.")),
   channels: z.array(z.enum(["sms", "email"])),
+  sms_pattern: z.string().trim().max(100, "کد الگو حداکثر ۱۰۰ نویسه است."),
+  sms_variables: z.string(),
 })
+
+/** متغیرهای الگو به ترتیب، از جای‌گذارهای نوشته‌شده: «{name} {username}» ← ["name", "username"]. */
+const variablesOf = (text: string) => [...text.matchAll(/\{(\w+)\}/g)].map((m) => m[1])
 
 function TemplateSheet({ kind, ...sheet }: { kind: Kind; open: boolean; onOpenChange: (open: boolean) => void }) {
   const qc = useQueryClient()
-  const form = useAppForm(schema, { template: kind.template, channels: kind.channels as Channel[] })
+  const form = useAppForm(schema, {
+    template: kind.template,
+    channels: kind.channels as Channel[],
+    sms_pattern: kind.sms_pattern,
+    sms_variables: kind.sms_variables.map((v) => `{${v}}`).join(" "),
+  })
+  const pattern = form.watch("sms_pattern")
   const template = form.watch("template")
   const save = useMutation({
     mutationFn: (body: Schemas["PatchedKindRequest"]) => unwrap(api.PATCH("/api/notifications/kinds/{code}/", { params: { path: { code: kind.code } }, body })),
@@ -96,7 +119,7 @@ function TemplateSheet({ kind, ...sheet }: { kind: Kind; open: boolean; onOpenCh
   })
   const onSubmit = form.handleSubmit(async (v) => {
     try {
-      await save.mutateAsync(v)
+      await save.mutateAsync({ ...v, sms_variables: v.sms_pattern ? variablesOf(v.sms_variables) : [] })
     } catch (e) {
       applyServerErrors(form, e)
     }
@@ -117,7 +140,11 @@ function TemplateSheet({ kind, ...sheet }: { kind: Kind; open: boolean; onOpenCh
         )
       }
     >
-      <ErrorSummary errors={form.formState.errors} labels={{ template: "متن اعلان", channels: "ارسال پیش‌فرض با" }} submitCount={form.formState.submitCount} />
+      <ErrorSummary
+        errors={form.formState.errors}
+        labels={{ template: "متن اعلان", channels: "ارسال پیش‌فرض با", sms_pattern: "کد الگوی پیامک", sms_variables: "متغیرهای الگو" }}
+        submitCount={form.formState.submitCount}
+      />
       <FormGrid>
         <FormField
           control={form.control}
@@ -168,6 +195,25 @@ function TemplateSheet({ kind, ...sheet }: { kind: Kind; open: boolean; onOpenCh
             </div>
           )}
         />
+        <FormField
+          control={form.control}
+          name="sms_pattern"
+          label="کد الگوی پیامک"
+          description="اگر درگاه پیامک برای این اعلان «الگو» (پترن) تأیید کرده است، کد آن را بنویسید تا پیامک با الگو فرستاده شود؛ پیامک الگویی به خط‌های خدماتی و شماره‌های مسدودِ تبلیغات هم می‌رسد. خالی یعنی همان متن بالا فرستاده می‌شود. مگفا الگو ندارد و متن را می‌فرستد."
+          render={({ field, id, aria }) => <Input id={id} dir="ltr" autoComplete="off" className="max-w-60" {...field} {...aria} />}
+        />
+        {pattern && (
+          <FormField
+            control={form.control}
+            name="sms_variables"
+            label="متغیرهای الگو"
+            className="col-span-full"
+            description="جای‌گذارها را به ترتیب متغیرهای الگو بگذارید. در sms.ir و آی‌پی‌پنل نام متغیر در الگوی درگاه باید همین نام لاتین باشد (مثلاً name)؛ در کاوه‌نگار و ملی‌پیامک ترتیب ملاک است و کاوه‌نگار حداکثر سه متغیر می‌پذیرد."
+            render={({ field, id, aria }) => (
+              <TokenInput id={id} value={field.value} onChange={field.onChange} onBlur={field.onBlur} tokens={tokens} tokensLabel="افزودن متغیر" {...aria} />
+            )}
+          />
+        )}
       </FormGrid>
     </FormSheet>
   )

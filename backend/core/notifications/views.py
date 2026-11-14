@@ -83,6 +83,10 @@ class KindSerializer(serializers.Serializer):
     title = serializers.CharField(read_only=True)
     template = serializers.CharField(max_length=500, label="متن اعلان", required=False, error_messages={"blank": "تکمیل «متن اعلان» الزامی است."})
     channels = serializers.MultipleChoiceField(choices=CHANNEL_CHOICES, required=False, label="کانال‌های پیش‌فرض")
+    sms_pattern = serializers.CharField(max_length=100, required=False, allow_blank=True, label="کد الگوی پیامک")
+    sms_variables = serializers.ListField(
+        child=serializers.CharField(), required=False, label="متغیرهای الگو", help_text="نام جای‌گذارها به ترتیب متغیرهای الگو"
+    )
     default_template = serializers.CharField(read_only=True)
     is_custom = serializers.BooleanField(read_only=True)
     placeholders = PlaceholderSerializer(many=True, read_only=True)
@@ -96,16 +100,23 @@ class KindSerializer(serializers.Serializer):
 
 def _kind_data(code: str) -> dict:
     spec = service.kind(code)
+    pattern, variables = service.sms_pattern_of(code)
     return {
         "code": spec.code,
         "title": spec.title,
         "template": service.template_of(code),
         "channels": service.org_channels(code),
+        "sms_pattern": pattern,
+        "sms_variables": variables,
         "default_template": spec.template,
         "is_custom": NotificationTemplate.objects.filter(kind=code).exists(),
         "placeholders": [{"name": n, "label": label, "sample": sample} for n, (label, sample) in spec.placeholders.items()],
         "preview": service.preview(code),
     }
+
+
+def _pattern_label(pattern: str, variables: list[str]) -> str:
+    return f"{pattern} ({'، '.join(variables)})" if pattern and variables else pattern
 
 
 def _channels_label(channels) -> str:
@@ -136,17 +147,30 @@ class KindViewSet(viewsets.ViewSet):
         template = s.validated_data.get("template", before["template"]).strip()
         channels = [c for c in service.CHANNELS if c in s.validated_data.get("channels", before["channels"])]
         service.validate_template(code, template)
+        pattern = s.validated_data.get("sms_pattern", before["sms_pattern"]).strip()
+        variables = s.validated_data.get("sms_variables", before["sms_variables"]) if pattern else []
+        unknown = [v for v in variables if v not in spec.placeholders]
+        if unknown:
+            raise serializers.ValidationError({"sms_variables": f"جای‌گذار «{unknown[0]}» برای این اعلان تعریف نشده است."})
         custom_template = "" if template == spec.template else template
         custom_channels = None if channels == list(spec.channels) else channels
-        if not custom_template and custom_channels is None:
+        if not custom_template and custom_channels is None and not pattern:
             NotificationTemplate.objects.filter(kind=code).delete()
         else:
-            NotificationTemplate.objects.update_or_create(kind=code, defaults={"template": custom_template, "channels": custom_channels})
+            NotificationTemplate.objects.update_or_create(
+                kind=code, defaults={"template": custom_template, "channels": custom_channels, "sms_pattern": pattern, "sms_variables": variables}
+            )
         changes = {}
         if before["template"] != template:
             changes["template"] = {"label": "متن اعلان", "old": before["template"], "new": template}
         if before["channels"] != channels:
             changes["channels"] = {"label": "کانال‌های پیش‌فرض", "old": _channels_label(before["channels"]), "new": _channels_label(channels)}
+        if (before["sms_pattern"], before["sms_variables"]) != (pattern, variables):
+            changes["sms_pattern"] = {
+                "label": "الگوی پیامک",
+                "old": _pattern_label(before["sms_pattern"], before["sms_variables"]),
+                "new": _pattern_label(pattern, variables),
+            }
         if changes:
             record(request, AuditLog.Action.UPDATE, NotificationTemplate(kind=code), changes)
         return Response(KindSerializer(_kind_data(code)).data)

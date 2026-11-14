@@ -28,6 +28,9 @@ class NotificationTemplate(models.Model):
     kind = models.CharField("نوع", max_length=60, primary_key=True)
     template = models.CharField("متن", max_length=500, blank=True)
     channels = models.JSONField("کانال‌های پیش‌فرض", null=True, blank=True)
+    # پیامک الگویی (6.6): کد الگوی تأییدشده در درگاه پیامک و جای‌گذارهایی که به ترتیب، متغیرهای الگو هستند
+    sms_pattern = models.CharField("کد الگوی پیامک", max_length=100, blank=True)
+    sms_variables = models.JSONField("متغیرهای الگو", default=list, blank=True)
 
     class Meta:
         verbose_name = "متن اعلان"

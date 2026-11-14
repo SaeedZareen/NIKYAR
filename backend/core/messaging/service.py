@@ -39,14 +39,27 @@ def _subject(title: str) -> str:
     return f"{_sender_name()}: {title}"
 
 
-def queue(channel: str, user, text: str, *, kind: str = "", title: str = "", url: str = "") -> Delivery | None:
-    """ارسال در صف؛ اگر کانال تنظیم نشده یا کاربر شماره/ایمیل ندارد، چیزی فرستاده نمی‌شود."""
+def queue(channel: str, user, text: str, *, kind: str = "", title: str = "", url: str = "", pattern: str = "", values: list | None = None) -> Delivery | None:
+    """
+    ارسال در صف؛ اگر کانال تنظیم نشده یا کاربر شماره/ایمیل ندارد، چیزی فرستاده نمی‌شود. pattern و values برای پیامک
+    الگویی (کد الگوی درگاه و [(نام، مقدار)، …])؛ متن همچنان در سابقه‌ی ارسال‌ها می‌ماند.
+    """
     to = address(channel, user)
     if not to or not available(channel):
         return None
     site = config()["site_url"].rstrip("/")
     body = f"{text}\n{site}{url}" if site and url and channel == "email" else text
-    delivery = Delivery.objects.create(channel=channel, user=user, to=to, kind=kind, subject=_subject(title) if channel == "email" else "", text=body)
+    sms_pattern = pattern if channel == "sms" else ""
+    delivery = Delivery.objects.create(
+        channel=channel,
+        user=user,
+        to=to,
+        kind=kind,
+        subject=_subject(title) if channel == "email" else "",
+        text=body,
+        pattern=sms_pattern,
+        values=[list(v) for v in values or []] if sms_pattern else [],
+    )
     enqueue("messaging.send", delivery_id=delivery.pk)
     return delivery
 
@@ -57,7 +70,7 @@ def send_now(delivery: Delivery) -> None:
     delivery.attempts += 1
     try:
         if delivery.channel == "sms":
-            providers.send_sms(cfg, decrypt(cfg["sms_api_key"]), delivery.to, delivery.text)
+            providers.send_sms(cfg, decrypt(cfg["sms_api_key"]), delivery.to, delivery.text, delivery.pattern, delivery.values)
         else:
             providers.send_email(cfg, decrypt(cfg["smtp_password"]), delivery.to, delivery.subject, delivery.text, _sender_name())
     except providers.DeliveryError as e:
@@ -66,6 +79,12 @@ def send_now(delivery: Delivery) -> None:
         raise
     delivery.status, delivery.error, delivery.sent_at = Delivery.Status.SENT, "", timezone.now()
     delivery.save(update_fields=["status", "error", "attempts", "sent_at"])
+
+
+def check_connection() -> str:
+    """«آزمون اتصال» درگاه پیامک با تنظیمات ذخیره‌شده: اعتبار حساب، یا DeliveryError با پیام درگاه."""
+    cfg = config()
+    return providers.credit(cfg, decrypt(cfg["sms_api_key"]))
 
 
 def test(channel: str, to: str) -> Delivery:

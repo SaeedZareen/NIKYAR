@@ -1,6 +1,6 @@
 import * as React from "react"
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { Mail, MessageSquare } from "lucide-react"
+import { Mail, MessageSquare, PlugZap } from "lucide-react"
 import { z } from "zod"
 import { toast } from "sonner"
 import { useAuth } from "@/app/auth"
@@ -31,6 +31,8 @@ const NONE = "none"
 
 const schema = z.object({
   sms_provider: z.string(),
+  sms_username: z.string().trim(),
+  sms_domain: z.string().trim(),
   sms_api_key: z.string(),
   sms_sender: z.string().trim(),
   email_enabled: z.boolean(),
@@ -44,6 +46,8 @@ const schema = z.object({
 })
 const LABELS = {
   sms_provider: "درگاه پیامک",
+  sms_username: "نام کاربری درگاه",
+  sms_domain: "دامنه‌ی حساب",
   sms_api_key: "کلید درگاه پیامک",
   sms_sender: "شماره‌ی فرستنده",
   email_enabled: "ارسال ایمیل",
@@ -88,13 +92,18 @@ function MessagingForm({ section, data }: { section: SectionInfo; data: Messagin
   })
   const onSubmit = form.handleSubmit(async (v) => {
     try {
-      await save.mutateAsync({ ...v, sms_provider: v.sms_provider === NONE ? "" : (v.sms_provider as "kavenegar"), smtp_port: Number(v.smtp_port) })
+      await save.mutateAsync({ ...v, sms_provider: (v.sms_provider === NONE ? "" : v.sms_provider) as Messaging["sms_provider"], smtp_port: Number(v.smtp_port) })
     } catch (e) {
       applyServerErrors(form, e)
     }
   })
   const [provider, email] = form.watch(["sms_provider", "email_enabled"])
   const sms = provider !== NONE
+  const gateways = useGateways()
+  const gateway = gateways.data?.find((g) => g.code === provider)
+  const needs = (c: Schemas["Gateway"]["credentials"][number]) => !!gateway?.credentials.includes(c)
+  // درگاه‌های نام‌کاربری‌دار گذرواژه‌ی حساب را در همان فیلد رمز می‌گیرند
+  const keyLabel = needs("password") ? "گذرواژه‌ی حساب درگاه" : LABELS.sms_api_key
   // رمزها: مقدار ذخیره‌شده با ماسک برمی‌گردد و همان ماسک یعنی «بدون تغییر».
   const secret = { type: "password", dir: "ltr" as const, autoComplete: "new-password" }
 
@@ -113,17 +122,45 @@ function MessagingForm({ section, data }: { section: SectionInfo; data: Messagin
             </SelectTrigger>
             <SelectContent>
               <SelectItem value={NONE}>بدون پیامک</SelectItem>
-              <SelectItem value="kavenegar">کاوه‌نگار</SelectItem>
+              {(gateways.data ?? []).map((g) => (
+                <SelectItem key={g.code} value={g.code}>
+                  {g.title}
+                </SelectItem>
+              ))}
             </SelectContent>
           </Select>
         )}
       />
+      {needs("username") && (
+        <FormField
+          control={form.control}
+          name="sms_username"
+          label={LABELS.sms_username}
+          required
+          description="نام کاربری ورود به پنل درگاه."
+          render={({ field, id, aria }) => <Input id={id} dir="ltr" autoComplete="off" {...field} {...aria} />}
+        />
+      )}
+      {needs("domain") && (
+        <FormField
+          control={form.control}
+          name="sms_domain"
+          label={LABELS.sms_domain}
+          required
+          description="دامنه‌ای که مگفا همراه نام کاربری داده است (مثلاً magfa)."
+          render={({ field, id, aria }) => <Input id={id} dir="ltr" autoComplete="off" {...field} {...aria} />}
+        />
+      )}
       <FormField
         control={form.control}
         name="sms_api_key"
-        label={LABELS.sms_api_key}
+        label={keyLabel}
         required={sms}
-        description="از پنل درگاه (بخش تنظیمات حساب، API Key). کلید ذخیره‌شده نمایش داده نمی‌شود؛ برای تغییر، کلید تازه را بنویسید."
+        description={
+          needs("password")
+            ? "گذرواژه‌ی ورود به پنل درگاه (یا گذرواژه‌ی وب‌سرویس، اگر درگاه جدا داده است). گذرواژه‌ی ذخیره‌شده نمایش داده نمی‌شود."
+            : "از پنل درگاه (بخش تنظیمات حساب یا وب‌سرویس، API Key). کلید ذخیره‌شده نمایش داده نمی‌شود؛ برای تغییر، کلید تازه را بنویسید."
+        }
         render={({ field, id, aria }) => <Input id={id} disabled={!sms} {...secret} {...field} {...aria} />}
       />
       <FormField
@@ -235,7 +272,11 @@ function TestResult({ delivery }: { delivery: Delivery }) {
   )
 }
 
-/** ارسال آزمایشی بی‌درنگ با تنظیمات ذخیره‌شده. */
+function useGateways() {
+  return useQuery({ queryKey: ["messaging", "gateways"], queryFn: () => unwrap(api.GET("/api/messaging/deliveries/gateways/")), staleTime: Infinity })
+}
+
+/** آزمون اتصال درگاه پیامک و ارسال آزمایشی بی‌درنگ، با تنظیمات ذخیره‌شده. */
 function TestSection() {
   const { user } = useAuth()
   const qc = useQueryClient()
@@ -248,13 +289,27 @@ function TestSection() {
   }
   const testSms = useMutation({ mutationFn: () => unwrap(api.POST("/api/messaging/deliveries/test-sms/", { body: { mobile } })), onSuccess: onDone, onError: (e) => toast.error(errorMessage(e)) })
   const testEmail = useMutation({ mutationFn: () => unwrap(api.POST("/api/messaging/deliveries/test-email/", { body: { email } })), onSuccess: onDone, onError: (e) => toast.error(errorMessage(e)) })
+  const connection = useMutation({ mutationFn: () => unwrap(api.POST("/api/messaging/deliveries/test-connection/")), onError: (e) => toast.error(errorMessage(e)) })
   const mobileId = React.useId()
   const emailId = React.useId()
 
   return (
-    <Section title="ارسال آزمایشی" description="با تنظیمات ذخیره‌شده فرستاده می‌شود؛ اگر چیزی را تغییر داده‌اید، ابتدا ذخیره کنید.">
+    <Section
+      title="ارسال آزمایشی"
+      description="با تنظیمات ذخیره‌شده؛ اگر چیزی را تغییر داده‌اید، ابتدا ذخیره کنید. «آزمون اتصال» فقط اعتبار حساب درگاه را می‌خواند و پیامکی نمی‌فرستد."
+    >
       <div className="flex flex-col gap-3">
+        {connection.data && (
+          <Alert variant={connection.data.ok ? "default" : "destructive"} role="status">
+            <AlertTitle>{connection.data.message}</AlertTitle>
+          </Alert>
+        )}
         {result && <TestResult delivery={result} />}
+        <div>
+          <Button type="button" variant="outline" disabled={connection.isPending} onClick={() => connection.mutate()}>
+            {connection.isPending ? <Spinner /> : <PlugZap />} آزمون اتصال درگاه پیامک
+          </Button>
+        </div>
         <div className="grid gap-3 md:grid-cols-2">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor={mobileId}>موبایل گیرنده</Label>

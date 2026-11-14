@@ -46,6 +46,12 @@ def user_channels(user, code: str, default: list[str] | None = None) -> list[str
     return list(chosen) if chosen is not None else (default if default is not None else org_channels(code))
 
 
+def sms_pattern_of(code: str) -> tuple[str, list[str]]:
+    """کد الگوی پیامک این نوع اعلان و جای‌گذارهای متغیرهایش (به ترتیب)؛ کد خالی یعنی پیامک متنی."""
+    row = NotificationTemplate.objects.filter(kind=code).values_list("sms_pattern", "sms_variables").first()
+    return (row[0], list(row[1] or [])) if row else ("", [])
+
+
 def render(template: str, data: dict) -> str:
     """جای‌گذارهای ناشناخته یا بدون مقدار همان‌طور می‌مانند (اعلان هرگز به خاطر قالب خراب نمی‌شود)."""
     return PLACEHOLDER.sub(lambda m: str(data[m.group(1)]) if m.group(1) in data else m.group(0), template)
@@ -78,12 +84,15 @@ def notify(users: Iterable, code: str, *, url: str = "", body: str | None = None
 
     def create():
         text = (body if body is not None else render(template_of(code), data))[:500]
+        # متن دلخواه (مثلاً پیام یک مرحله‌ی فرایند) با الگوی ثابت درگاه جور نیست؛ آن‌وقت پیامک متنی است
+        pattern, variables = sms_pattern_of(code) if body is None else ("", [])
+        values = [(name, str(data.get(name, ""))) for name in variables]
         Notification.objects.bulk_create(Notification(user_id=pk, kind=code, text=text, url=url) for pk in recipients)
         default = org_channels(code)
         for user in recipients.values():
             for channel in user_channels(user, code, default):
                 extra = email_extra(user) if email_extra and channel == "email" else ""
-                queue(channel, user, f"{text}\n\n{extra}" if extra else text, kind=code, title=kind(code).title, url=url)
+                queue(channel, user, f"{text}\n\n{extra}" if extra else text, kind=code, title=kind(code).title, url=url, pattern=pattern, values=values)
 
     if recipients:
         transaction.on_commit(create)
