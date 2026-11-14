@@ -109,7 +109,8 @@ def client_ip(request) -> str | None:
 
 def start_session(request, user: User) -> None:
     """ورود: نشست Django با مدت تنظیمات و رکورد دستگاه؛ شمارنده‌ی تلاش ناموفق صفر می‌شود."""
-    login(request, user)
+    # کاربر AD هم پس از ورود با پایگاه داده‌ی نیک‌یار شناخته می‌شود
+    login(request, user, backend="django.contrib.auth.backends.ModelBackend")
     request.session.set_expiry(read_settings("system")["session_hours"] * 3600)
     request.session.save()
     if user.failed_logins or user.locked_until:

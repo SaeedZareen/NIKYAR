@@ -87,6 +87,7 @@ class KindSerializer(serializers.Serializer):
     sms_variables = serializers.ListField(
         child=serializers.CharField(), required=False, label="متغیرهای الگو", help_text="نام جای‌گذارها به ترتیب متغیرهای الگو"
     )
+    direct = serializers.BooleanField(read_only=True, help_text="پیامک مستقیم (مثل کد ورود): فقط پیامک، کانال‌ها تغییر نمی‌کنند")
     default_template = serializers.CharField(read_only=True)
     is_custom = serializers.BooleanField(read_only=True)
     placeholders = PlaceholderSerializer(many=True, read_only=True)
@@ -106,6 +107,7 @@ def _kind_data(code: str) -> dict:
         "title": spec.title,
         "template": service.template_of(code),
         "channels": service.org_channels(code),
+        "direct": spec.direct,
         "sms_pattern": pattern,
         "sms_variables": variables,
         "default_template": spec.template,
@@ -209,6 +211,7 @@ def preferences_of(user) -> dict:
         "kinds": [
             {"kind": k.code, "title": k.title, "channels": saved.get(k.code, service.org_channels(k.code)), "is_custom": k.code in saved}
             for k in notification_kinds()
+            if not k.direct
         ],
     }
 

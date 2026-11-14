@@ -1,3 +1,4 @@
+import uuid
 from functools import cached_property
 
 from django.contrib.auth.models import AbstractUser
@@ -82,6 +83,27 @@ class UserSession(models.Model):
 
     def __str__(self):
         return f"{self.user} @ {self.ip}"
+
+
+class LoginChallenge(models.Model):
+    """کد پیامکی یک‌بارمصرف: رمز دوم ورود (login) یا بازیابی گذرواژه (reset). فقط چکیده‌ی کد نگه داشته می‌شود."""
+
+    class Purpose(models.TextChoices):
+        LOGIN = "login", "رمز دوم ورود"
+        RESET = "reset", "بازیابی گذرواژه"
+
+    token = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="+")
+    purpose = models.CharField(max_length=10, choices=Purpose.choices)
+    code_hash = models.CharField(max_length=64)
+    expires_at = models.DateTimeField()
+    attempts = models.PositiveSmallIntegerField(default=0)
+    sends = models.PositiveSmallIntegerField(default=1)
+    last_sent_at = models.DateTimeField()
+    used = models.BooleanField(default=False)
+
+    def __str__(self):
+        return f"{self.get_purpose_display()} {self.user}"
 
 
 def users_with_perm(code: str):

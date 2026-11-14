@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
-from core.kernel.registry import LookupItemSpec, LookupSpec, NotificationKind, SettingsSection
+from core.kernel.registry import LookupItemSpec, LookupSpec, NotificationKind
 
 
 class AccountsConfig(AppConfig):
@@ -12,14 +12,6 @@ class AccountsConfig(AppConfig):
         "accounts.users.manage": "تعریف و ویرایش کاربران",
         "accounts.roles.manage": "تعریف نقش‌ها و مجوزها",
     }
-    nikyar_settings = [
-        SettingsSection(
-            code="directory",
-            title="ورود با Active Directory",
-            description="کارکنان با همان نام کاربری و گذرواژه‌ی ویندوز سازمان وارد نیک‌یار می‌شوند؛ کاربر نخستین بار خودکار ساخته می‌شود.",
-            serializer="core.accounts.sections.DirectorySettings",
-        ),
-    ]
     nikyar_lookups = [
         LookupSpec(
             code="gender",
@@ -43,6 +35,22 @@ class AccountsConfig(AppConfig):
             template="گذرواژه‌ی شما در {when} توسط {by} تغییر کرد. اگر این کار شما نبوده، به راهبر سامانه خبر دهید.",
             placeholders={"when": ("زمان تغییر", "۱۴۰۵/۰۸/۱۶ ۱۰:۲۰"), "by": ("تغییردهنده", "خودتان")},
             channels=("sms", "email"),
+        ),
+        NotificationKind(
+            code="accounts.login_code",
+            title="کد ورود (رمز دوم)",
+            template="کد ورود به نیک‌یار: {code}\nاین کد را به هیچ‌کس ندهید.",
+            placeholders={"code": ("کد", "۴۸۲۹۱۶")},
+            channels=("sms",),
+            direct=True,
+        ),
+        NotificationKind(
+            code="accounts.reset_code",
+            title="کد بازیابی گذرواژه",
+            template="کد بازیابی گذرواژه‌ی نیک‌یار: {code}\nاگر این درخواست از شما نبوده، به راهبر سامانه خبر دهید.",
+            placeholders={"code": ("کد", "۴۸۲۹۱۶")},
+            channels=("sms",),
+            direct=True,
         ),
         NotificationKind(
             code="accounts.locked",

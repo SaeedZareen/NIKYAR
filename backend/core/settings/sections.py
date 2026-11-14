@@ -34,3 +34,18 @@ class SystemSettings(serializers.Serializer):
     lockout_attempts = count_field("قفل پس از تلاش ناموفق", 5, 0, 100, "بار")
     lockout_minutes = count_field("مدت قفل (دقیقه)", 15, 1, 1440, "دقیقه")
     idle_minutes = count_field("پایان نشست پس از بی‌کاری (دقیقه)", 30, 0, 1440, "دقیقه")
+    # هویت سازمانی (6.7): رمز دوم پیامکی و بازیابی گذرواژه با کد پیامکی
+    two_factor = serializers.ChoiceField(
+        label="رمز دوم پیامکی", choices=[("off", "خاموش"), ("roles", "برای نقش‌های انتخاب‌شده"), ("all", "برای همه")], default="off"
+    )
+    two_factor_roles = serializers.ListField(label="نقش‌های نیازمند رمز دوم", child=serializers.IntegerField(), default=list)
+    password_reset_sms = serializers.BooleanField(label="فراموشی گذرواژه با کد پیامکی", default=True)
+
+    def validate(self, attrs):
+        from core.messaging.service import available
+
+        if attrs.get("two_factor", "off") != "off" and not available("sms"):
+            raise serializers.ValidationError({"two_factor": "برای رمز دوم، ابتدا درگاه پیامک را در «تنظیمات › پیامک و ایمیل» تنظیم کنید."})
+        if attrs.get("two_factor") == "roles" and not attrs.get("two_factor_roles"):
+            raise serializers.ValidationError({"two_factor_roles": "دست‌کم یک نقش انتخاب کنید."})
+        return attrs
