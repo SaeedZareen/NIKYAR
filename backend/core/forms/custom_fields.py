@@ -8,6 +8,7 @@ from __future__ import annotations
 from django.db import transaction
 
 from core.files import service as files
+from core.kernel.database import is_main_database
 from core.kernel.registry import custom_field_specs
 
 from . import engine
@@ -17,6 +18,8 @@ from .models import Form, FormVersion
 
 def sync(**kwargs) -> None:
     """پس از migrate: برای هر spec فرمی پنهان با پیش‌نویس خالی (یک‌بار) ساخته می‌شود؛ عنوان با spec هم‌خوان می‌ماند."""
+    if not is_main_database(kwargs):
+        return
     from .service import create_form
 
     for spec in custom_field_specs():

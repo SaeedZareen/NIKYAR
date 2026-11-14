@@ -4,10 +4,11 @@
 NIKYAR_DEBUG=1           حالت توسعه
 NIKYAR_SECRET_KEY        کلید امنیتی (اگر نباشد، یک‌بار ساخته و در data/secret_key نگه داشته می‌شود)
 NIKYAR_ALLOWED_HOSTS     نام‌ها/نشانی‌های مجاز، جداشده با ویرگول (پیش‌فرض: همه، برای شبکه‌ی داخلی)
-NIKYAR_DB_ENGINE         sqlite (پیش‌فرض) یا postgres
+NIKYAR_DB_ENGINE         sqlite (پیش‌فرض) یا postgres؛ بر data/database.json (ابزار database-tool.bat) مقدم است
 NIKYAR_DB_NAME/USER/PASSWORD/HOST/PORT   برای PostgreSQL
 """
 
+import json
 import os
 import secrets
 from pathlib import Path
@@ -99,15 +100,26 @@ TEMPLATES = [
     },
 ]
 
-if os.environ.get("NIKYAR_DB_ENGINE", "sqlite") == "postgres":
+DB_DEFAULTS = {"engine": "sqlite", "name": "nikyar", "user": "nikyar", "password": "", "host": "127.0.0.1", "port": "5432"}
+
+
+def database_config() -> dict:
+    """اتصال پایگاه داده: data/database.json (نوشته‌ی «python manage.py database»)، و متغیرهای محیطی NIKYAR_DB_* مقدم بر آن."""
+    path = DATA_DIR / "database.json"
+    stored = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {}
+    return {key: os.environ.get(f"NIKYAR_DB_{key.upper()}", str(stored.get(key, default))) for key, default in DB_DEFAULTS.items()}
+
+
+DB = database_config()
+if DB["engine"] == "postgres":
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.postgresql",
-            "NAME": os.environ.get("NIKYAR_DB_NAME", "nikyar"),
-            "USER": os.environ.get("NIKYAR_DB_USER", "nikyar"),
-            "PASSWORD": os.environ.get("NIKYAR_DB_PASSWORD", ""),
-            "HOST": os.environ.get("NIKYAR_DB_HOST", "127.0.0.1"),
-            "PORT": os.environ.get("NIKYAR_DB_PORT", "5432"),
+            "NAME": DB["name"],
+            "USER": DB["user"],
+            "PASSWORD": DB["password"],
+            "HOST": DB["host"],
+            "PORT": DB["port"],
             "CONN_MAX_AGE": 60,
         }
     }
@@ -119,6 +131,9 @@ else:
             "OPTIONS": {"init_command": "PRAGMA journal_mode=WAL;", "transaction_mode": "IMMEDIATE"},
         }
     }
+
+# نسخه‌ی موقت بازیابی پشتیبان (core.backup.service): همیشه SQLite، فقط هنگام بازیابی و روی یک فایل موقت باز می‌شود
+DATABASES["nikyar_restore"] = {"ENGINE": "django.db.backends.sqlite3", "NAME": DATA_DIR / "restore-staging.db"}
 
 AUTH_PASSWORD_VALIDATORS = [
     {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},

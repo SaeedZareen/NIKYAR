@@ -8,7 +8,7 @@ from django.db import migrations, models
 def fill_existing(apps, schema_editor):
     """درخواست‌های پیش از 4.4a: پرکننده همان درخواست‌دهنده و زمان ارسال همان زمان شروع است."""
     Request = apps.get_model("workflow", "Request")
-    for request in Request.objects.filter(created_by__isnull=True):
+    for request in Request.objects.using(schema_editor.connection.alias).filter(created_by__isnull=True):
         request.created_by_id = request.requester_id
         request.submitted_at = request.created_at
         request.save(update_fields=["created_by", "submitted_at"])

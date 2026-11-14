@@ -7,7 +7,7 @@ AUDIO = ["mp3", "m4a", "ogg", "wav", "webm"]
 
 def enable(apps, schema_editor):
     SettingsValue = apps.get_model("settings", "SettingsValue")
-    row = SettingsValue.objects.filter(section="files").first()
+    row = SettingsValue.objects.using(schema_editor.connection.alias).filter(section="files").first()
     if row and isinstance(row.values.get("allowed_extensions"), list):
         row.values["allowed_extensions"] = [*row.values["allowed_extensions"], *(e for e in AUDIO if e not in row.values["allowed_extensions"])]
         row.save(update_fields=["values"])

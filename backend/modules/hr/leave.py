@@ -18,6 +18,7 @@ from django.utils import timezone
 
 from core.forms import engine as form_engine
 from core.kernel.api import BusinessError
+from core.kernel.database import is_main_database
 from core.kernel.validators import fa_digits
 from core.lookups.models import LookupItem, LookupList
 from core.settings.service import read
@@ -344,6 +345,8 @@ def _overtime(fields: dict, event: dict, employee: Employee, cfg: dict) -> dict[
 
 def sync_lookup(types: list[dict] | None = None, **kwargs) -> None:
     """فهرست پایه‌ی سیستمی «نوع مرخصی» (فیلد فرم مرخصی) را با جدول تنظیمات هم‌سان می‌کند؛ نوع خاموش غیرفعال می‌شود."""
+    if not is_main_database(kwargs):
+        return
     types = types if types is not None else config()["leave_types"]
     lst, _ = LookupList.objects.update_or_create(
         code="leave-type", defaults={"name": "نوع مرخصی", "description": "از «تنظیمات › منابع انسانی: مرخصی و تردد» ساخته می‌شود.", "is_system": True}
