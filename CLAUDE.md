@@ -3,7 +3,7 @@
 Modular Persian BPMS/ERP for on-premise installs in Iran (10–500 users). The product owner is not a developer: explain results in Persian, plainly (what was built, what to try on the laptop after `update.bat`, what comes next). Read `docs/ROADMAP.md` and `docs/ARCHITECTURE.md` first.
 
 ## Status and process
-- Released: v0.6.0 (phases 0, 1, 2a, 2b, 3 — form builder, 4 — workflow on SpiffWorkflow + bpmn-js, owner choice; owner condition: every process need configurable low-code, no org-written code; library licenses in `docs/THIRD-PARTY-NOTICES.md`; 5 — personnel module `backend/modules/hr` with 33 ready processes; owner rule: every value that differs between organisations lives in Settings with a default). Next: phase 6 (sale readiness, packages in `docs/ROADMAP.md`). Start a package only after the owner approves it; a package split into `a`/`b` needs a separate approval for `b`.
+- Released: v0.6.0 (phases 0, 1, 2a, 2b, 3 — form builder, 4 — workflow on SpiffWorkflow + bpmn-js, owner choice; owner condition: every process need configurable low-code, no org-written code; library licenses in `docs/THIRD-PARTY-NOTICES.md`; 5 — personnel module `backend/modules/hr` with 33 ready processes; owner rule: every value that differs between organisations lives in Settings with a default). In progress: phase 6 (sale readiness, plan approved; 6.1 PostgreSQL done; packages and scope-freeze rule in `docs/ROADMAP.md`). Start a package only after the owner approves it; a package split into `a`/`b` needs a separate approval for `b`.
 - Form builder rule: every field type lives in the engine catalogue (`backend/core/forms/fieldtypes.py`) with JSON Schema, Persian `x-messages` and shared vectors (`shared/vectors/`); the browser never writes its own validation messages.
 - One work package (e.g. `3.1`) per session on branch `wp/<id>`; commit and push often so an interrupted session can resume from the branch. Merge to `main` (`--no-ff`) when the package meets the roadmap's definition of done.
 - Keep docs current without being asked (owner rule): every package updates `ROADMAP.md` (status, durable decisions, waiting list), `ARCHITECTURE.md` (how the new code works), `README.md` and `docs/CHANGELOG.md` as needed; the reasoning behind implementation choices goes in the merge commit message, not the roadmap. Remove finished items from the waiting list (the changelog records them). When the owner approves a package ("تایید"، "start"), record the approval date in `ROADMAP.md` before starting the next one.
@@ -38,12 +38,13 @@ Modular Persian BPMS/ERP for on-premise installs in Iran (10–500 users). The p
 - Never commit private keys (`*.private.pem` is ignored); the owner's license public key is `backend/core/licensing/owner_public_key.pem`.
 
 ## Tests
-- Backend tests use a file SQLite database (real concurrency); tests that back up or restore use `django_db(transaction=True)`.
+- Backend tests use a file SQLite database (real concurrency); tests that back up use `django_db(transaction=True)`, and tests that restore also declare `databases=["default", backup.STAGING]` (restore stages through the `nikyar_restore` SQLite alias).
+- Code stays database-neutral (SQLite and PostgreSQL); post_migrate handlers return early unless `core.kernel.database.is_main_database(kwargs)`, and RunPython migrations use `schema_editor.connection.alias`.
 - E2E runs its own Django on port 8100 with a fresh temp database, a worker (1 s interval) and fake SMS/email delivery (`frontend/e2e/start-backend.mjs`); never point tests at `backend/data`.
 - The three Playwright projects run in parallel against one server: change global state (settings, license, numbering patterns) only in the `desktop` project; use unique data per test (fresh users, a separate year per project). The backup-restore test runs alone in the final `restore` project. Use `getByLabel(..., { exact: true })` (ⓘ buttons contain the label text).
 
 ## Verify before reporting done
 - `cd frontend && npm run typecheck && npm run lint && npm test && npm run e2e` (Playwright: laptop 1093×600@1.25, desktop 1920, mobile; axe must show no serious/critical issues).
-- `cd backend && ../.venv/bin/ruff check . && ../.venv/bin/ruff format --check . && ../.venv/bin/python -m pytest`
+- `cd backend && ../.venv/bin/ruff check . && ../.venv/bin/ruff format --check . && ../.venv/bin/python -m pytest`, and once more with `NIKYAR_DB_ENGINE=postgres NIKYAR_DB_PASSWORD=...` against a local PostgreSQL (role with CREATEDB).
 - `npm run build` then `python backend/serve.py` and open it once to confirm the production path works.
 - Look at screenshots of new pages (laptop and mobile) before reporting; the owner cares about consistent, uniform layouts.
