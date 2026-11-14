@@ -4608,6 +4608,8 @@ export interface components {
             updates: components["schemas"]["UpdateAttempt"][];
             /** @description خطاهای ۲۴ ساعت گذشته، تازه‌ترین نخست (حداکثر ۲۰) */
             errors: components["schemas"]["RecentError"][];
+            /** @description HTTPS با گواهی نیک‌یار: گواهی ریشه برای نصب روی دستگاه‌ها در /api/https/ca/ */
+            ca_certificate: boolean;
         };
         HealthCheck: {
             code: string;

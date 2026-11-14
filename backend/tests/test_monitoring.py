@@ -148,7 +148,7 @@ class TestApi:
         )
         api.force_authenticate(admin)
         data = api.get("/api/monitoring/").json()
-        assert [c["code"] for c in data["checks"]] == ["disk", "backup", "errors", "license", "update"]
+        assert [c["code"] for c in data["checks"]] == ["disk", "backup", "errors", "license", "update", "https"]
         assert data["database"] and data["version"]
         assert data["updates"][0]["result_label"] == "موفق" and data["updates"][0]["step"] == ""
 

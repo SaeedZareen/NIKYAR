@@ -7,6 +7,7 @@ from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 from rest_framework.routers import DefaultRouter
 
 from core.audit.views import AuditLogViewSet
+from core.kernel import tls
 
 audit_router = DefaultRouter(trailing_slash=True)
 audit_router.register("logs", AuditLogViewSet, basename="audit-log")
@@ -15,6 +16,16 @@ audit_router.register("logs", AuditLogViewSet, basename="audit-log")
 def health(request):
     """وضعیت سرویس؛ برای بررسی نصب و پایش."""
     return JsonResponse({"status": "ok", "version": settings.VERSION, "time": timezone.now().isoformat()})
+
+
+def https_ca(request):
+    """گواهی ریشه‌ی نیک‌یار (HTTPS با گواهی خود نیک‌یار) برای نصب روی رایانه‌ها و گوشی‌ها؛ عمومی است و رازی ندارد."""
+    status = tls.status()
+    if not status["ca"]:
+        raise Http404("HTTPS با گواهی نیک‌یار روشن نیست.")
+    response = FileResponse((tls.folder() / "ca.pem").open("rb"), content_type="application/x-x509-ca-cert")
+    response["Content-Disposition"] = 'attachment; filename="nikyar-ca.crt"'
+    return response
 
 
 @never_cache
@@ -28,6 +39,7 @@ def spa(request, path=""):
 
 api = [
     path("health/", health, name="health"),
+    path("https/ca/", https_ca, name="https-ca"),
     path("auth/", include("core.accounts.urls")),
     path("org/", include("core.org.urls")),
     path("lookups/", include("core.lookups.urls")),

@@ -177,6 +177,10 @@ REST_FRAMEWORK = {
 # مدت نشست، سقف تلاش ورود و سقف ثبت پیاپی فرم در «تنظیمات › سامانه و امنیت» است (core.settings.sections).
 SESSION_COOKIE_HTTPONLY = True
 CSRF_COOKIE_SAMESITE = SESSION_COOKIE_SAMESITE = "Lax"
+# با HTTPS (data/https.json، https-tool.bat) کوکی‌ها فقط روی اتصال امن فرستاده می‌شوند
+_https = DATA_DIR / "https.json"
+HTTPS_ENABLED = _https.exists() and bool(json.loads(_https.read_text(encoding="utf-8") or "{}").get("enabled"))
+SESSION_COOKIE_SECURE = CSRF_COOKIE_SECURE = HTTPS_ENABLED
 
 SPECTACULAR_SETTINGS = {
     "TITLE": "NIKYAR API",
