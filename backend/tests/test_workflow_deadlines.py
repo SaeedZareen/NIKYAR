@@ -54,10 +54,12 @@ def test_unknown_placeholder_in_message(org, form, admin):  # noqa: F811
 def test_due_date_from_work_calendar(org, form, admin):  # noqa: F811
     request = start(org, form, admin, deadline={"value": 2, "unit": "days", "remind": 3})
     task = open_task(request, "t1")
-    assert task.due_at == WorkCalendar().add_working_days(task.created_at, 2)
+    # مهلت از «اکنون» لحظه‌ای پیش از created_at حساب می‌شود؛ در ساعت کاری چند میکروثانیه فرق دارند
+    close = lambda a, b: abs(a - b) < timedelta(seconds=1)  # noqa: E731
+    assert close(task.due_at, WorkCalendar().add_working_days(task.created_at, 2))
     assert task.remind_at == task.due_at - timedelta(hours=3)
     hours = open_task(start(org, form, admin, deadline={"value": 4, "unit": "hours"}), "t1")
-    assert hours.due_at == WorkCalendar().add_working_hours(hours.created_at, 4) and hours.remind_at is None
+    assert close(hours.due_at, WorkCalendar().add_working_hours(hours.created_at, 4)) and hours.remind_at is None
 
 
 def test_step_message_with_field_placeholders(org, form, admin, django_capture_on_commit_callbacks):  # noqa: F811
