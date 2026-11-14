@@ -27,11 +27,11 @@ from .serializers import (
     EmployeeDetailSerializer,
     EmployeeEventSerializer,
     EmployeeExtraSerializer,
+    EmployeeImportInspectResultSerializer,
+    EmployeeImportInspectSerializer,
+    EmployeeImportResultSerializer,
+    EmployeeImportRunSerializer,
     EmployeeSerializer,
-    ImportInspectResultSerializer,
-    ImportInspectSerializer,
-    ImportResultSerializer,
-    ImportRunSerializer,
     InsuranceSerializer,
     LetterPlaceholderSerializer,
     LetterSerializer,
@@ -95,20 +95,20 @@ class EmployeeViewSet(AuditedModelViewSet):
             raise NotFound("پرونده‌ای به حساب شما وصل نیست.")
         return Response(EmployeeDetailSerializer(employee, context={**self.get_serializer_context(), "self_view": True}).data)
 
-    @extend_schema(request={"multipart/form-data": ImportInspectSerializer}, responses=ImportInspectResultSerializer)
+    @extend_schema(request={"multipart/form-data": EmployeeImportInspectSerializer}, responses=EmployeeImportInspectResultSerializer)
     @action(detail=False, methods=["post"], url_path="import/inspect", parser_classes=[parsers.MultiPartParser])
     def import_inspect(self, request):
         """سرستون‌های فایل، نگاشت پیشنهادی به فیلدهای پرونده و شمار ردیف‌ها."""
-        s = ImportInspectSerializer(data=request.data)
+        s = EmployeeImportInspectSerializer(data=request.data)
         s.is_valid(raise_exception=True)
         headers, rows = excel.read_rows(s.validated_data["file"])
         return Response({"headers": headers, "suggested": excel.suggest(headers), "columns": excel.columns(), "row_count": len(rows)})
 
-    @extend_schema(request={"multipart/form-data": ImportRunSerializer}, responses=ImportResultSerializer)
+    @extend_schema(request={"multipart/form-data": EmployeeImportRunSerializer}, responses=EmployeeImportResultSerializer)
     @action(detail=False, methods=["post"], url_path="import", parser_classes=[parsers.MultiPartParser])
     def import_file(self, request):
         """پیش‌نمایش (commit=false) یا ثبت ردیف‌های درست (commit=true) با نگاشت تأییدشده."""
-        s = ImportRunSerializer(data=request.data)
+        s = EmployeeImportRunSerializer(data=request.data)
         s.is_valid(raise_exception=True)
         return Response(excel.run(s.validated_data["file"], s.validated_data["mapping"], request, s.validated_data["commit"]))
 

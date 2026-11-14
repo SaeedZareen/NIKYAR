@@ -1208,6 +1208,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/hr/employees/export/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description همه‌ی فیلدهای پایه و دلخواه پرونده‌های دیدنی کاربر. */
+        get: operations["hr_employees_export_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/hr/employees/import/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description پیش‌نمایش (commit=false) یا ثبت ردیف‌های درست (commit=true) با نگاشت تأییدشده. */
+        post: operations["hr_employees_import_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/hr/employees/import/inspect/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** @description سرستون‌های فایل، نگاشت پیشنهادی به فیلدهای پرونده و شمار ردیف‌ها. */
+        post: operations["hr_employees_import_inspect_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/hr/employees/import/template/": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** @description فایل نمونه‌ی خالی با سرستون‌ها و برگه‌ی راهنما. */
+        get: operations["hr_employees_import_template_retrieve"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/hr/employees/me/": {
         parameters: {
             query?: never;
@@ -3790,6 +3858,62 @@ export interface components {
          * @enum {string}
          */
         EmployeeEventKindEnum: "leave" | "hourly_leave" | "mission" | "hourly_mission" | "overtime" | "remote" | "shift" | "attendance_fix" | "advance" | "loan" | "medical" | "allowance" | "travel" | "hire" | "equipment" | "orientation" | "probation" | "transfer" | "correction" | "resignation" | "separation" | "evaluation" | "contract" | "training" | "suggestion" | "accident" | "exit_interview";
+        EmployeeImportColumn: {
+            key: string;
+            label: string;
+        };
+        EmployeeImportCounts: {
+            create: number;
+            update: number;
+            error: number;
+        };
+        EmployeeImportInspectRequest: {
+            /**
+             * فایل
+             * Format: binary
+             */
+            file: string;
+        };
+        EmployeeImportInspectResult: {
+            headers: string[];
+            suggested: {
+                [key: string]: string;
+            };
+            columns: components["schemas"]["EmployeeImportColumn"][];
+            row_count: number;
+        };
+        EmployeeImportResult: {
+            rows: components["schemas"]["EmployeeImportRow"][];
+            counts: components["schemas"]["EmployeeImportCounts"];
+            committed: boolean;
+        };
+        EmployeeImportRow: {
+            row: number;
+            national_code: string;
+            name: string;
+            action: components["schemas"]["EmployeeImportRowActionEnum"];
+            errors: {
+                [key: string]: string;
+            };
+        };
+        /**
+         * @description * `create` - create
+         *     * `update` - update
+         *     * `error` - error
+         * @enum {string}
+         */
+        EmployeeImportRowActionEnum: "create" | "update" | "error";
+        EmployeeImportRunRequest: {
+            /**
+             * فایل
+             * Format: binary
+             */
+            file: string;
+            /** @description سرستون فایل ← کلید فیلد پرونده (extra.<شناسه> برای فیلد دلخواه) */
+            mapping: unknown;
+            /** @default false */
+            commit: boolean;
+        };
         EmployeePosition: {
             title: string;
             unit: string;
@@ -9544,6 +9668,90 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CustomFields"];
+                };
+            };
+        };
+    };
+    hr_employees_export_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
+                };
+            };
+        };
+    };
+    hr_employees_import_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["EmployeeImportRunRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeImportResult"];
+                };
+            };
+        };
+    };
+    hr_employees_import_inspect_create: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "multipart/form-data": components["schemas"]["EmployeeImportInspectRequest"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeImportInspectResult"];
+                };
+            };
+        };
+    };
+    hr_employees_import_template_retrieve: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet": string;
                 };
             };
         };

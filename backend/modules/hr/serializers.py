@@ -442,11 +442,11 @@ class LetterPlaceholderSerializer(serializers.Serializer):
     label = serializers.CharField()
 
 
-class ImportInspectSerializer(serializers.Serializer):
+class EmployeeImportInspectSerializer(serializers.Serializer):
     file = serializers.FileField(label="فایل")
 
 
-class ImportRunSerializer(serializers.Serializer):
+class EmployeeImportRunSerializer(serializers.Serializer):
     file = serializers.FileField(label="فایل")
     mapping = serializers.JSONField(help_text="سرستون فایل ← کلید فیلد پرونده (extra.<شناسه> برای فیلد دلخواه)")
     commit = serializers.BooleanField(default=False)
@@ -457,19 +457,19 @@ class ImportRunSerializer(serializers.Serializer):
         return value
 
 
-class ImportColumnSerializer(serializers.Serializer):
+class EmployeeImportColumnSerializer(serializers.Serializer):
     key = serializers.CharField()
     label = serializers.CharField()
 
 
-class ImportInspectResultSerializer(serializers.Serializer):
+class EmployeeImportInspectResultSerializer(serializers.Serializer):
     headers = serializers.ListField(child=serializers.CharField())
     suggested = serializers.DictField(child=serializers.CharField())
-    columns = ImportColumnSerializer(many=True)
+    columns = EmployeeImportColumnSerializer(many=True)
     row_count = serializers.IntegerField()
 
 
-class ImportRowSerializer(serializers.Serializer):
+class EmployeeImportRowSerializer(serializers.Serializer):
     row = serializers.IntegerField()
     national_code = serializers.CharField()
     name = serializers.CharField()
@@ -477,13 +477,13 @@ class ImportRowSerializer(serializers.Serializer):
     errors = serializers.DictField(child=serializers.CharField(), required=False)
 
 
-class ImportCountsSerializer(serializers.Serializer):
+class EmployeeImportCountsSerializer(serializers.Serializer):
     create = serializers.IntegerField()
     update = serializers.IntegerField()
     error = serializers.IntegerField()
 
 
-class ImportResultSerializer(serializers.Serializer):
-    rows = ImportRowSerializer(many=True)
-    counts = ImportCountsSerializer()
+class EmployeeImportResultSerializer(serializers.Serializer):
+    rows = EmployeeImportRowSerializer(many=True)
+    counts = EmployeeImportCountsSerializer()
     committed = serializers.BooleanField()

@@ -334,7 +334,7 @@ function MobileList<TData extends RowData>({ table, rows, loading, rowHref }: { 
               {fields.map((c) => (
                 <React.Fragment key={c.id}>
                   <dt className="text-muted-foreground">{c.column.columnDef.meta?.label ?? c.column.id}</dt>
-                  <dd className="min-w-0 truncate">
+                  <dd className={cn("min-w-0", c.column.columnDef.meta?.wrap ? "break-words" : "truncate")}>
                     <table.FlexRender cell={c} />
                   </dd>
                 </React.Fragment>

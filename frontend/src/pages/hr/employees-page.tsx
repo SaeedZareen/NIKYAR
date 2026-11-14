@@ -1,6 +1,7 @@
 import * as React from "react"
 import { useQuery } from "@tanstack/react-query"
-import { UserPlus } from "lucide-react"
+import { FileSpreadsheet, FileUp, UserPlus } from "lucide-react"
+import { Link } from "react-router"
 import { useAuth } from "@/app/auth"
 import { useLookupItems } from "@/app/lookups"
 import { columnHelper, DataTable, useDataTable, useTableView, type DataTableColumn } from "@/components/data-table"
@@ -84,11 +85,25 @@ export default function EmployeesPage() {
         description="پرونده‌ی هر کارمند با مشخصات، استخدام و سمت‌ها. مدیر هر واحد کارکنان واحد خود و زیرواحدهایش را فقط می‌بیند."
         meta={employees.data ? `${toFaDigits(employees.data.filter((e) => e.status === "active").length)} کارمند شاغل` : undefined}
         actions={
-          canManage && (
-            <Button onClick={() => setCreating(true)}>
-              <UserPlus /> پرونده‌ی تازه
+          <>
+            <Button asChild variant="outline">
+              <a href="/api/hr/employees/export/" download>
+                <FileSpreadsheet /> خروجی کامل اکسل
+              </a>
             </Button>
-          )
+            {canManage && (
+              <>
+                <Button asChild variant="outline">
+                  <Link to="/hr/employees/import">
+                    <FileUp /> ورود از اکسل
+                  </Link>
+                </Button>
+                <Button onClick={() => setCreating(true)}>
+                  <UserPlus /> پرونده‌ی تازه
+                </Button>
+              </>
+            )}
+          </>
         }
       />
       <DataTable

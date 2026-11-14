@@ -7,7 +7,7 @@
 | [SpiffWorkflow](https://github.com/sartography/SpiffWorkflow) | 3.2.0 | موتور اجرای فرایند روی سرور | LGPL نسخه‌ی ۳ | بی‌تغییر و جدا از کد نیک‌یار، با `pip` از PyPI نصب می‌شود (`backend/requirements.txt`)؛ می‌توان نسخه‌ی دیگری از آن را به جایش نصب کرد. |
 | [bpmn-js](https://github.com/bpmn-io/bpmn-js) | 18 | بوم فرایندساز و نمودار صفحه‌ی درخواست | MIT با شرط نشان bpmn.io | نشان bpmn.io گوشه‌ی بوم و نمودار همیشه دیده می‌شود و چیزی روی آن نمی‌آید. |
 
-کتابخانه‌های دیگر (Django، React و…) مجوزهای آزاد MIT، BSD یا Apache دارند و متنشان در بسته‌ی نصب‌شده‌ی هر کدام هست.
+کتابخانه‌های دیگر (Django، React، openpyxl برای فایل‌های اکسل پرسنلی و…) مجوزهای آزاد MIT، BSD یا Apache دارند و متنشان در بسته‌ی نصب‌شده‌ی هر کدام هست.
 
 ## SpiffWorkflow — GNU LGPL نسخه‌ی ۳
 
