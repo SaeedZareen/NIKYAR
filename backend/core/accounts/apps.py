@@ -1,6 +1,6 @@
 from django.apps import AppConfig
 
-from core.kernel.registry import LookupItemSpec, LookupSpec, NotificationKind
+from core.kernel.registry import LookupItemSpec, LookupSpec, NotificationKind, SettingsSection
 
 
 class AccountsConfig(AppConfig):
@@ -12,6 +12,14 @@ class AccountsConfig(AppConfig):
         "accounts.users.manage": "تعریف و ویرایش کاربران",
         "accounts.roles.manage": "تعریف نقش‌ها و مجوزها",
     }
+    nikyar_settings = [
+        SettingsSection(
+            code="directory",
+            title="ورود با Active Directory",
+            description="کارکنان با همان نام کاربری و گذرواژه‌ی ویندوز سازمان وارد نیک‌یار می‌شوند؛ کاربر نخستین بار خودکار ساخته می‌شود.",
+            serializer="core.accounts.sections.DirectorySettings",
+        ),
+    ]
     nikyar_lookups = [
         LookupSpec(
             code="gender",

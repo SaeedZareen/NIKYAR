@@ -21,6 +21,10 @@ class Role(models.Model):
 
 
 class User(AbstractUser):
+    class AuthSource(models.TextChoices):
+        LOCAL = "local", "نیک‌یار"
+        LDAP = "ldap", "Active Directory"
+
     class Gender(models.TextChoices):
         # همان کدهای فهرست پایه‌ی سیستمی «gender»؛ برای عنوان خطاب (آقای / خانم) به کار می‌رود.
         MALE = "male", "مرد"
@@ -36,6 +40,8 @@ class User(AbstractUser):
     locked_until = models.DateTimeField("قفل تا", null=True, blank=True)
     password_changed_at = models.DateTimeField("آخرین تغییر گذرواژه", null=True, blank=True)
     must_change_password = models.BooleanField("تغییر گذرواژه در ورود بعدی", default=False)
+    # ورود با حساب ویندوز سازمان (6.7): گذرواژه در AD است، نه نیک‌یار
+    auth_source = models.CharField("ورود با", max_length=10, choices=AuthSource.choices, default=AuthSource.LOCAL)
 
     class Meta:
         ordering = ["last_name", "first_name", "username"]

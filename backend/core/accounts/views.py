@@ -23,7 +23,7 @@ from core.notifications.service import notify
 from core.org.models import Assignment
 from core.settings.service import read as read_settings
 
-from . import security
+from . import directory, security
 from .models import Role, User, UserSession
 from .serializers import ChangePasswordSerializer, LoginSerializer, MeSerializer, PermissionGroupSerializer, ProfileSerializer, RoleSerializer, UserSerializer
 
@@ -70,6 +70,8 @@ class SessionView(APIView):
         user = authenticate(request, username=username, password=s.validated_data["password"])
         if user is None:
             record(request, AuditLog.Action.LOGIN_FAILED, label=username)
+            if directory_error := getattr(request, "directory_error", ""):
+                raise BusinessError(directory_error)
             if account and security.login_failed(account):
                 notify([account], "accounts.locked", until=jalali_datetime(account.locked_until))
                 raise BusinessError(f"به دلیل تلاش‌های ناموفق پیاپی، حساب تا {jalali_datetime(account.locked_until)} قفل شد.")
@@ -86,6 +88,31 @@ class SessionView(APIView):
             UserSession.objects.filter(session_key=request.session.session_key).delete()
         logout(request)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class DirectoryTestSerializer(serializers.Serializer):
+    username = serializers.CharField(label="نام کاربری نمونه", required=False, allow_blank=True)
+
+
+class DirectoryTestResultSerializer(serializers.Serializer):
+    ok = serializers.BooleanField()
+    message = serializers.CharField()
+
+
+class DirectoryTestView(APIView):
+    """آزمون اتصال Active Directory با تنظیمات ذخیره‌شده؛ با نام کاربری، یافتن او و عضویتش در گروه‌های مجاز."""
+
+    permission_classes = [HasPerm]
+    perms = {"post": "settings.manage"}
+
+    @extend_schema(request=DirectoryTestSerializer, responses=DirectoryTestResultSerializer)
+    def post(self, request):
+        s = DirectoryTestSerializer(data=request.data)
+        s.is_valid(raise_exception=True)
+        try:
+            return Response({"ok": True, "message": directory.test(s.validated_data.get("username", "").strip())})
+        except directory.DirectoryError as e:
+            return Response({"ok": False, "message": str(e)})
 
 
 class DeviceSerializer(serializers.Serializer):

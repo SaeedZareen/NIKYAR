@@ -50,6 +50,7 @@ class UserSerializer(serializers.ModelSerializer):
         write_only=True, required=False, label="تغییر گذرواژه در ورود بعدی", help_text="فقط همراه گذرواژه‌ی تازه؛ پیش‌فرض بله (گذرواژه‌ی موقت)"
     )
     locked_until = serializers.DateTimeField(read_only=True, help_text="خالی یعنی قفل نیست")
+    auth_source = serializers.ChoiceField(choices=User.AuthSource.choices, read_only=True, help_text="ldap: گذرواژه در Active Directory است")
 
     class Meta:
         model = User
@@ -72,6 +73,7 @@ class UserSerializer(serializers.ModelSerializer):
             "password",
             "must_change_password",
             "locked_until",
+            "auth_source",
         ]
         read_only_fields = ["last_login", "date_joined"]
         extra_kwargs = {
@@ -117,6 +119,8 @@ class UserSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         password = attrs.get("password")
+        if password and self.instance is not None and self.instance.auth_source == User.AuthSource.LDAP:
+            raise serializers.ValidationError({"password": "گذرواژه‌ی این کاربر در Active Directory است و همان‌جا عوض می‌شود."})
         if password:
             user = self.instance or User(username=attrs.get("username", ""), first_name=attrs.get("first_name", ""))
             try:
@@ -195,6 +199,7 @@ class MeSerializer(serializers.ModelSerializer):
             "must_change_password",
             "idle_minutes",
             "password_policy",
+            "auth_source",
         ]
 
     def get_must_change_password(self, obj) -> bool:
@@ -256,6 +261,8 @@ class ChangePasswordSerializer(serializers.Serializer):
     new_password = serializers.CharField(label="گذرواژه‌ی جدید", trim_whitespace=False)
 
     def validate_current_password(self, value):
+        if self.context["request"].user.auth_source == User.AuthSource.LDAP:
+            raise serializers.ValidationError("گذرواژه‌ی شما در Active Directory است؛ آن را در ویندوز عوض کنید.")
         if not self.context["request"].user.check_password(value):
             raise serializers.ValidationError("گذرواژه‌ی فعلی درست نیست.")
         return value
